@@ -235,4 +235,11 @@ config CHARGER_GPIO
 	  This driver can be build as a module. If so, the module will be
 	  called gpio-charger.
 
+
+config BATTERY_TCC
+	tristate "Telechips battery / charger driver"
+	depends on MACH_TCC9200S || MACH_TCC9201 || MACH_TCC8900 || MACH_TCC8800 || MACH_TCC9300CM || MACH_TCC9300ST || MACH_TCC8800ST
+	help
+	  Say Y here to enable support for the battery on Telechips evaluation board.
+
 endif # POWER_SUPPLY

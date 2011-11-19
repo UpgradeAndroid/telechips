@@ -1,0 +1,21 @@
+obj-$(CONFIG_FB_TCC_OVERLAY)	+= tcc_overlay.o
+obj-$(CONFIG_FB_TCC_OVERLAY_EXT) += tcc_overlay1.o
+obj-$(CONFIG_FB_TCC)		+= tcc_ccfb.o tccfb.o tccfb_interface.o ddi/
+
+obj-$(CONFIG_FB_TCC_COMPOSITE)	+= tcc_composite.o tcc_composite_internal.o 
+obj-$(CONFIG_FB_TCC_COMPONENT)	  += tcc_component.o tcc_component_cs4954.o tcc_component_ths8200.o
+obj-$(CONFIG_LCD_HDMI1280X720)	+= hdmi_1280x720.o
+obj-$(CONFIG_LCD_LMS350DF01)	+= lcd_lms350df01.o
+obj-$(CONFIG_LCD_LMS480KF01)	+= lcd_lms480kf01.o
+obj-$(CONFIG_LCD_DX08D11VM0AAA)	+= lcd_dx08d11vm0aaa.o
+obj-$(CONFIG_LCD_LB070WV6)	+= lcd_lb070wv6.o
+obj-$(CONFIG_LCD_CLAA104XA01CW)	+= lcd_claa104xa01cw.o
+obj-$(CONFIG_LCD_HT121WX2)	+= lcd_ht121wx2.o
+obj-$(CONFIG_LCD_TD043MGEB1) += lcd_td043mgeb1.o
+obj-$(CONFIG_LCD_AT070TN93) += lcd_at070tn93.o
+obj-$(CONFIG_LCD_TD070RDH) += lcd_td070rdh.o
+obj-$(CONFIG_LCD_N101L6) += lcd_n101l6.o
+obj-$(CONFIG_LCD_TW8816) += lcd_tw8816.o
+obj-$(CONFIG_LCD_CLAA102NA0DCW) += lcd_claa102na0dcw.o
+obj-$(CONFIG_TCC_VIDEO_DISPLAY_DEINTERLACE_MODE)	+= viqe/
+EXTRA_CFLAGS += -Idrivers/video/tcc/viqe

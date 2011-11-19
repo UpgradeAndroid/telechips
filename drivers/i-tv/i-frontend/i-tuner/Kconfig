@@ -1,0 +1,7 @@
+config iTV_ENABLE_XC5000_MODULE
+	tristate "Enable xc5000 tuner module"
+	depends on iTV_MODULE
+
+config iTV_ENABLE_FQD1136_MODULE
+	tristate "Enable fqd1136 tuner module"
+	depends on iTV_MODULE

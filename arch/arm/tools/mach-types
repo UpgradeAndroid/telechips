@@ -1113,3 +1113,19 @@ blissc			MACH_BLISSC		BLISSC			3491
 thales_adc		MACH_THALES_ADC		THALES_ADC		3492
 ubisys_p9d_evp		MACH_UBISYS_P9D_EVP	UBISYS_P9D_EVP		3493
 atdgp318		MACH_ATDGP318		ATDGP318		3494
+tcc8900                 MACH_TCC8900            TCC8900                 4000
+tcc9100                 MACH_TCC9100            TCC9100                 4001
+tcc9200s                MACH_TCC9200S           TCC9200S                4002
+tcc9200                 MACH_TCC9200            TCC9200                 4003
+tcc9201                 MACH_TCC9201            TCC9201                 4004
+tcc9300st               MACH_TCC9300ST          TCC9300ST               4005
+tcc8800                 MACH_TCC8800            TCC8800                 4006
+m57te                   MACH_M57TE              M57TE                   4100
+m801                    MACH_M801               M801                    4101
+m801_88                 MACH_M801_88            M801_88                 4102
+tcc9300cm               MACH_TCC9300CM          TCC9300CM               4103
+tcc9300                 MACH_TCC9300            TCC9300                 4104
+tcc8800st               MACH_TCC8800ST          TCC8800ST               4105
+m803                    MACH_M803               M803                    4106
+tcc8920                 MACH_TCC8920            TCC8920                 4007
+

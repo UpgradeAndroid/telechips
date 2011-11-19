@@ -12,4 +12,10 @@ config SWITCH_GPIO
 	help
 	  Say Y here to enable GPIO based switch support.
 
+config SWITCH_GPIO_TCC
+	tristate "GPIO Swith support(TCC)"
+	depends on MACH_M57TE || MACH_M801_88 || MACH_M803
+	help
+	  Say Y here to enable GPIO based switch support.
+
 endif # SWITCH

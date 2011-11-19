@@ -363,6 +363,73 @@ extern struct cpufreq_governor cpufreq_gov_interactive;
 #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_interactive)
 #endif
 
+#if defined(CONFIG_CPU_FREQ_TABLE)
+/*********************************************************************
+ *                     FREQUENCY TABLE HELPERS                       *
+ *********************************************************************/
+struct tcc_freq_table_t {
+	unsigned int cpu_freq;
+	unsigned int ddi_freq;
+	unsigned int mem_freq;
+	unsigned int gpu_freq;
+	unsigned int io_freq;
+	unsigned int vbus_freq;
+	unsigned int vcod_freq;
+	unsigned int smu_freq;
+#if defined(CONFIG_ARCH_TCC93XX)
+	unsigned int hsio_freq;
+	unsigned int cam_freq;
+	unsigned int dsub_freq;
+#elif defined(CONFIG_ARCH_TCC88XX)
+	unsigned int hsio_freq;
+	unsigned int cam_freq;
+#elif defined(CONFIG_ARCH_TCC892X)
+	unsigned int hsio_freq;
+#endif
+};
+
+
+typedef enum {
+	TCC_FREQ_LIMIT_CAMERA = 0,
+	TCC_FREQ_LIMIT_VPU_DEC,
+	TCC_FREQ_LIMIT_VPU_ENC,
+	TCC_FREQ_LIMIT_JPEG,
+	TCC_FREQ_LIMIT_HDMI,
+	TCC_FREQ_LIMIT_MALI,
+	TCC_FREQ_LIMIT_FB,		// Frame Bufer
+	TCC_FREQ_LIMIT_G2D,		// Overlay Mixer
+	TCC_FREQ_LIMIT_TV,
+	TCC_FREQ_LIMIT_ETHERNET,		//dm9000 ethernet
+	TCC_FREQ_LIMIT_BT,
+	TCC_FREQ_LIMIT_APP,		// for android framework.
+	TCC_FREQ_LIMIT_USB,
+	TCC_FREQ_LIMIT_USB_ACTIVED,
+//#if defined(CONFIG_INPUT_TCC_REMOTE)
+	TCC_FREQ_LIMIT_REMOCON,
+//#endif
+#if defined(CONFIG_CPU_HIGHSPEED)
+	TCC_FREQ_LIMIT_OVERCLOCK,
+#endif
+//#if defined(CONFIG_TCC_GMAC)
+	TCC_FREQ_LIMIT_GMAC,
+//#endif
+	TCC_FREQ_LIMIT_V2IP,
+	TCC_FREQ_LIMIT_VOIP,
+	TCC_FREQ_LIMIT_VOIP_MAX,
+	TCC_FREQ_LIMIT_FLASH,
+	TCC_FREQ_LIMIT_OTG,
+	TCC_FREQ_LIMIT_EHCI,
+	TCC_FREQ_LIMIT_SATA,
+	TCC_FREQ_LIMIT_UAC,
+#if defined(CONFIG_TCC_CIPHER)
+	TCC_FREQ_LIMIT_CIPHER,
+#endif
+	TCC_FREQ_LIMIT_POWER_RESUME,
+	TCC_FREQ_LIMIT_MAX,
+} tcc_freq_limit_idx_t;
+
+int tcc_cpufreq_set_limit_table(struct tcc_freq_table_t *limit_tbl, tcc_freq_limit_idx_t idx, int flag);
+#endif
 
 /*********************************************************************
  *                     FREQUENCY TABLE HELPERS                       *
@@ -402,5 +469,24 @@ void cpufreq_frequency_table_get_attr(struct cpufreq_frequency_table *table,
 
 void cpufreq_frequency_table_put_attr(unsigned int cpu);
 
+
+/*********************************************************************
+ *                     UNIFIED DEBUG HELPERS                         *
+ *********************************************************************/
+
+#define CPUFREQ_DEBUG_CORE	1
+#define CPUFREQ_DEBUG_DRIVER	2
+#define CPUFREQ_DEBUG_GOVERNOR	4
+
+#ifdef CONFIG_CPU_FREQ_DEBUG
+
+extern void cpufreq_debug_printk(unsigned int type, const char *prefix, 
+				 const char *fmt, ...);
+
+#else
+
+#define cpufreq_debug_printk(msg...) do { } while(0)
+
+#endif /* CONFIG_CPU_FREQ_DEBUG */
 
 #endif /* _LINUX_CPUFREQ_H */

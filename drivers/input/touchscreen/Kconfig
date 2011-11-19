@@ -732,4 +732,89 @@ config TOUCHSCREEN_TPS6507X
 	  To compile this driver as a module, choose M here: the
 	  module will be called tps6507x_ts.
 
+
+config TCC_TCH_CORE
+    tristate "Telechips touchscreen core"
+        default y
+        depends on TOUCHSCREEN_TCC_AK4183 || TOUCHSCREEN_TCC_TSC2003
+
+config TOUCHSCREEN_TCC_AK4183
+        tristate "Telechips AK4183 touchscreen driver"
+        select TCC_TCH_CORE
+        depends on MACH_TCC8800
+        default n
+        help
+          Say Y here if you have a touchscreen interface using the
+          i2c device.
+
+config TOUCHSCREEN_TCC_TSC2003
+    tristate "Telechips TSC2003 touchscreen driver"
+        select TCC_TCH_CORE
+        depends on MACH_TCC8300 || MACH_TCC7901 || MACH_TCC9200S || MACH_TCC9200 || MACH_TCC9201 || MACH_TCC8900
+        help
+          Say Y here if you have a touchscreen interface using the
+          i2c device.
+
+config TOUCHSCREEN_TCC_SYNAPTICS
+        tristate "Telechips SYNAPTICS touchscreen driver"
+        select TCC_TCH_CORE
+        depends on  MACH_TCC9200S || MACH_TCC9200 || MACH_TCC9201 || MACH_TCC8900
+        default n
+        help
+          Say Y here if you have a touchscreen interface using the
+          i2c device.
+
+config TOUCHSCREEN_TCC_CYPRESS
+        tristate "Telechips CYPRESS touchscreen driver"
+        select TCC_TCH_CORE
+        depends on I2C
+        default n
+        help
+          Say Y here if you have a touchscreen interface using the
+          i2c device.
+
+config TOUCHSCREEN_TCC_GOODIX
+        tristate "Goodix touchenscreen for M57TE MID project"
+        select TCC_TCH_CORE
+        depends on I2C
+        default n
+        help
+          Say Y here if you have a touchscreen interface using the
+          i2c device.
+
+config TOUCHSCREEN_TCC_UOR6153
+	tristate "R-type Dual-touch Controller for M803 MID project"
+	select TCC_TCH_CORE
+	depends on I2C
+	default n
+	help
+	  say Y here if you have a touchscreen interface using the
+	  i2c device.
+
+config TCC_TS_CORE
+        tristate "Telechips touchscreen core"
+        default y
+
+config TOUCHSCREEN_TCCTS
+        tristate "Telechips ADC touchscreen driver"
+        select TCC_TS_CORE
+        depends on !(TOUCHSCREEN_TCC_UOR6513)
+        default n
+        help
+          Say Y here if you have a touchscreen interface using ADC.
+
+config PORTRAIT_LCD
+	bool "Set to touchscreen for portrait lcd"
+	depends on TOUCHSCREEN_TCCTS
+	default n
+	help
+	  Say Y here if you have touchscreen for portrait lcd.
+
+config TOUCHSCREEN_CALIBRATION
+        bool "Enable touch calibration for ADC touch"
+        depends on TOUCHSCREEN_TCCTS
+        default y
+        help
+          Say Y here if you have a touchscreen calibration.
+
 endif

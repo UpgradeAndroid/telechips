@@ -204,6 +204,44 @@ config INPUT_KEYCHORD
 	  To compile this driver as a module, choose M here: the
 	  module will be called keychord.
 
+config INPUT_TCC_REMOTE
+	tristate "Telechips Remote Controller"
+    help 
+        Say Y here if you want to support the built-in remote contoller from telechips 
+
+if INPUT_TCC_REMOTE
+
+choice
+	prompt "remocon controller"
+	depends on INPUT_TCC_REMOTE
+	default CS_2000_IR_X_CANVAS
+	help
+	  select what you want to support the remocon controller
+
+config DARE_IR
+	bool "Dare"
+    help 
+
+config CS_2000_IR_X_CANVAS
+	bool "CS2000 X Canvas"
+    help 
+
+config NOVATEK_IR
+	bool "Novatek"
+    help 
+
+config JH_4202_1011_03
+	bool "JH-4202"
+    help 
+
+config SAMSUNG_42BIT
+	bool "SAMSUNG 42"
+    help 
+
+endchoice
+
+endif
+
 config INPUT_KEYSPAN_REMOTE
 	tristate "Keyspan DMR USB remote control (EXPERIMENTAL)"
 	depends on EXPERIMENTAL

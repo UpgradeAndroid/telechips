@@ -483,6 +483,161 @@ config MMC_VIA_SDMMC
 
 	  If unsure, say N.
 
+config MMC_TCC_SDHC
+	bool
+
+config MMC_TCC88XX_SDHC
+	bool "Telechips SD/MMC Host Controller Driver"
+	depends on ARCH_TCC88XX && MMC
+	select MMC_TCC_SDHC
+	help
+	  This selects the Telechips Multimedia card Interface.
+	  If you have an TCC board with a Multimedia Card slot,
+	  say Y here.
+
+config MMC_TCC892X_SDHC
+	bool "Telechips SD/MMC Host Controller Driver"
+	depends on ARCH_TCC892X && MMC
+	select MMC_TCC_SDHC
+	help
+	  This selects the Telechips Multimedia card Interface.
+	  If you have an TCC board with a Multimedia Card slot,
+	  say Y here.
+
+config MMC_TCC_SDHC_CORE0_SLOT0
+	bool "Enabling a TCC SDHC Core 0 Slot 0"
+	depends on MMC_TCC92XX_SDHC && MMC_TCC_4SD_SLOT
+	default y
+	help
+	  This selects the TCC SDHC Core 0 Slot 0 (port 2).
+
+config MMC_TCC_SDHC_CORE0_SLOT1
+	bool "Enabling a TCC SDHC Core 0 Slot 1"
+	depends on MMC_TCC92XX_SDHC && MMC_TCC_4SD_SLOT
+	default n
+	help
+	  This selects the TCC SDHC Core 0 Slot 1 (port 3).
+
+config MMC_TCC_SDHC_CORE1_SLOT2
+	bool "Enabling a TCC SDHC Core 1 Slot 2"
+	depends on MMC_TCC92XX_SDHC && MMC_TCC_4SD_SLOT
+	default n
+	help
+	  This selects the TCC SDHC Core 1 Slot 2 (port 5).
+
+config MMC_TCC_SDHC_CORE1_SLOT3
+	bool "Enabling a TCC SDHC Core 1 Slot 3"
+	depends on MMC_TCC92XX_SDHC && MMC_TCC_4SD_SLOT
+	default n
+	help
+	  This selects the TCC SDHC Core 1 Slot 3 (port 1).
+
+ 
+config MMC_TCC_SDHC_CORE0
+	bool "Enable TCC SDHC core 0"
+	depends on (MMC_TCC92XX_SDHC) && !(MMC_TCC_4SD_SLOT)
+	help
+	  This selects the TCC SDHC Core 0.
+
+config MMC_TCC_SDHC_CORE1
+	bool "Enable TCC SDHC core 1"
+	depends on (MMC_TCC92XX_SDHC) && !(MMC_TCC_4SD_SLOT)
+	help
+	  This selects the TCC SDHC Core 1.
+
+config MMC_TCC_SDHC0
+	bool "Enable TCC SDHC0"
+	depends on (MMC_TCC88XX_SDHC || MMC_TCC93XX_SDHC || MMC_TCC892X_SDHC)
+	help
+	  This selects the TCC SDHC0.
+
+config MMC_TCC_SDHC1
+	bool "Enable TCC SDHC1"
+	depends on (MMC_TCC88XX_SDHC || MMC_TCC93XX_SDHC || MMC_TCC892X_SDHC)
+	help
+	  This selects the TCC SDHC1.
+
+choice		
+  bool "SDHC Data Transmission Methods"
+  depends on (MMC_TCC_SDHC1 && (MMC_TCC88XX_SDHC || MMC_TCC93XX_SDHC))
+  default MMC_TCC_PORT7
+  	
+config MMC_TCC_PORT7
+    bool "SD/MMC Interface PORT7"
+    depends on MMC_TCC88XX_SDHC    
+    help 
+	  GPIOE26,27,28,29,30,31      
+
+config MMC_TCC_PORT3
+    bool "SD/MMC Interface PORT3"
+    depends on MMC_TCC88XX_SDHC    
+    help 
+      GPIOF0~9
+endchoice 		  
+	  
+
+config MMC_TCC_SDHC2
+	bool "Enable TCC SDHC2"
+	depends on (MMC_TCC88XX_SDHC || MMC_TCC93XX_SDHC || MMC_TCC892X_SDHC)
+	default n
+	help
+	  This selects the TCC SDHC2.
+
+config MMC_TCC_SDHC3
+	bool "Enable TCC SDHC3"
+	depends on (MMC_TCC88XX_SDHC || MMC_TCC93XX_SDHC || MMC_TCC892X_SDHC)
+	default n
+	help
+	  This selects the TCC SDHC3.
+
+choice		
+  bool "SDHC Data Transmission Methods"
+  depends on MMC_TCC_SDHC
+  default MMC_TCC_SDMA
+  	
+config MMC_TCC_SDMA
+    bool "SDMA"
+    depends on MMC_TCC_SDHC    
+    select MMC_BLOCK_BOUNCE
+    help 
+      Select 'SDMA' if you want to use SDMA tranmission.
+	  SDMA (Simple DMA) use CONFIG_MMC_BLOCK_BOUCE (Use bouce buffer for simple hosts).
+
+config MMC_TCC_ADMA
+    bool "ADMA"
+    depends on MMC_TCC_SDHC    
+    help 
+      Select 'ADMA' if you want to use ADMA tranmission.
+	  ADMA (Advanced DMA) is scatter & gather DMA.
+
+endchoice 	
+
+config ATH_WIFI
+        bool "Support Atheros WIFI"
+	depends on MMC_TCC_SDHC
+        help
+         Telechips SDHC core 1 Atheros WIFI enable
+
+config WIFI_SUB_BOARD
+        bool "Support Atheros WIFI sub board"
+        depends on MMC_TCC_PORT7 && MMC_TCC88XX_SDHC
+        help
+         Telechips SDHC core 1 Atheros WIFI sub board enable
+
+config MMC_TCC_4SD_SLOT
+        bool "Enabling a 4 SD SLOT SUPPORT"
+        depends on MMC_TCC92XX_SDHC
+        help
+          If you use two slots in one SDHC, Say Y.
+          Otherwise, leave it uncheked.
+
+config MMC_TCC_HOST_LOCK
+        bool "Enabling a SEMAPHORE for Sharing one host controller "
+        depends on MMC_TCC_SDHC
+        help
+          If you use two slots in one SDHC, Say Y.
+          Otherwise, leave it uncheked.
+          
 config SDH_BFIN
 	tristate "Blackfin Secure Digital Host support"
 	depends on (BF54x && !BF544) || (BF51x && !BF512)

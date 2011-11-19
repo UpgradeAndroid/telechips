@@ -517,6 +517,11 @@ struct i2c_msg {
 #define I2C_M_IGNORE_NAK	0x1000	/* if I2C_FUNC_PROTOCOL_MANGLING */
 #define I2C_M_NO_RD_ACK		0x0800	/* if I2C_FUNC_PROTOCOL_MANGLING */
 #define I2C_M_RECV_LEN		0x0400	/* length will be first received byte */
+/* Telechips */
+#define I2C_M_MODE   0x0040  /* if slave is TCC DxB chip */
+#define I2C_M_WR_RD  0x0080  /* if write->read operation */
+#define I2C_M_WM899x_CODEC  0x0100  /* if slave is wm899x codec */
+
 	__u16 len;		/* msg length				*/
 	__u8 *buf;		/* pointer to msg data			*/
 };

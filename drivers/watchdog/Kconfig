@@ -331,6 +331,13 @@ config IMX2_WDT
 	  To compile this driver as a module, choose M here: the
 	  module will be called imx2_wdt.
 
+config TCC_WATCHDOG
+	tristate "TCC Watchdog"
+	depends on ARCH_TCC88XX || ARCH_TCC92XX
+	help
+	  Watchdog timer block in the Telechips SoCs. This will reboot
+	  the system when the timer expires with the watchdog enabled.
+
 # AVR32 Architecture
 
 config AT32AP700X_WDT

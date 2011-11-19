@@ -1,0 +1,57 @@
+if ARCH_TCC892X
+
+comment "TCC Board Type"
+
+config MACH_TCC8920
+	bool "TCC8920 evaluation board"
+	depends on ARCH_TCC892X
+	help
+	  Support for the TCC8920 evaluation board. Say Y here if you
+	  have such a device.
+
+
+config MACH_TCC8923
+	bool "TCC8923 evaluation board"
+	depends on ARCH_TCC892X
+	help
+	  Support for the TCC8923 evaluation board. Say Y here if you
+	  have such a device.
+
+config MACH_TCC8924
+	bool "TCC8924 evaluation board"
+	depends on ARCH_TCC892X
+	help
+	  Support for the TCC8924 evaluation board. Say Y here if you
+	  have such a device.
+
+config CPU_HIGHSPEED
+    bool "CPU high-speed clock"
+    depends on ARCH_TCC892X
+    default n
+    help
+     Support for the TCC892x demo board, Say Y here if you
+     want to overclocking
+
+config GPIO_CORE_VOLTAGE_CONTROL
+	bool "Ctrl coreA/B voltage by gpio ports"
+	depends on CPU_FREQ_DEFAULT_GOV_ONDEMAND && !REGULATOR
+	default n
+	help
+	  Support for the TCC892X demo board.
+
+config TCC_STB_MODE
+	bool "TCC STB Mode"
+        default n
+	help
+	  Support for the TCC93/88/8910 demo board, Say Y here if you STB
+	  It change the memory configuration
+
+config TCC_OUTPUT_STARTER
+        bool "TCC OUTPUT show boot logo image on HDMI/CVBS/Component"
+        depends on ARCH_TCC892X
+        default n
+        help
+          Support for the TCC93/88/8910 demo board, Say Y here if you want
+          to show boot logo by using HDMI/CVBS/Component output
+
+endif

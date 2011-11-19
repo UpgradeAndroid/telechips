@@ -60,6 +60,10 @@ config ARCH_USES_GETTIMEOFFSET
 config GENERIC_CLOCKEVENTS
 	bool
 
+config GENERIC_TIME
+	bool
+	default n
+
 config GENERIC_CLOCKEVENTS_BROADCAST
 	bool
 	depends on GENERIC_CLOCKEVENTS
@@ -67,7 +71,7 @@ config GENERIC_CLOCKEVENTS_BROADCAST
 
 config KTIME_SCALAR
 	bool
-	default y
+	default n
 
 config HAVE_TCM
 	bool
@@ -859,6 +863,11 @@ config ARCH_OMAP
 	help
 	  Support for TI's OMAP platform (OMAP1/2/3/4).
 
+config ARCH_TCC
+	bool "Telechips TCC-based"
+	help
+	  Support for Telechips TCC based systems.
+
 config PLAT_SPEAR
 	bool "ST SPEAr"
 	select ARM_AMBA
@@ -968,6 +977,11 @@ source "arch/arm/plat-s5p/Kconfig"
 source "arch/arm/plat-spear/Kconfig"
 
 source "arch/arm/plat-tcc/Kconfig"
+
+if ARCH_TCC
+source "arch/arm/mach-tcc892x/Kconfig"
+source "arch/arm/mach-tcc88xx/Kconfig"
+endif
 
 if ARCH_S3C2410
 source "arch/arm/mach-s3c2400/Kconfig"

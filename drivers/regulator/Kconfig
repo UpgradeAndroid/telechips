@@ -80,6 +80,22 @@ config REGULATOR_MAX1586
 	  regulator via I2C bus. The provided regulator is suitable
 	  for PXA27x chips to control VCC_CORE and VCC_USIM voltages.
 
+config REGULATOR_AXP192
+	tristate "KrossPower AXP192 Power System Management IC"
+	depends on I2C
+	help
+	  This driver supports the voltage regulators.
+
+config REGULATOR_AXP192_PEK
+	tristate "AXP192 PMIC PEK Power Key USE"
+	depends on (REGULATOR_AXP192 && (MACH_M801_88 || MACH_M803))
+
+config REGULATOR_ACT8810
+	tristate "Active-Semi Eight Channel ActivePath Power Managemant IC"
+	depends on I2C
+	help
+	  This driver supports the voltage regulators.
+
 config REGULATOR_MAX8649
 	tristate "Maxim 8649 voltage regulator"
 	depends on I2C

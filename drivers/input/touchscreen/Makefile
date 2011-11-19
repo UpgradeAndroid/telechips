@@ -61,3 +61,13 @@ obj-$(CONFIG_TOUCHSCREEN_WM97XX_MAINSTONE)	+= mainstone-wm97xx.o
 obj-$(CONFIG_TOUCHSCREEN_WM97XX_ZYLONITE)	+= zylonite-wm97xx.o
 obj-$(CONFIG_TOUCHSCREEN_W90X900)	+= w90p910_ts.o
 obj-$(CONFIG_TOUCHSCREEN_TPS6507X)	+= tps6507x-ts.o
+
+obj-$(CONFIG_TOUCHSCREEN_TCC_AK4183)    += tcc_ts_ak4183.o
+tcc_touch_ak-objs                       := tcc_ts_ak.o tca_ak4183tchctl.o tca_tchcontrol.o tca_tchhwctl.o
+obj-$(CONFIG_TOUCHSCREEN_TCC_TSC2003)   += tcc_ts_tsc.o
+obj-$(CONFIG_TOUCHSCREEN_TCCTS)         += tcc_ts.o
+obj-$(CONFIG_TOUCHSCREEN_TCC_SYNAPTICS) += tcc_ts_synaptics.o
+obj-$(CONFIG_TOUCHSCREEN_TCC_CYPRESS)   += tcc_ts_cypress.o
+obj-$(CONFIG_TOUCHSCREEN_TCC_GOODIX)    += tcc_ts_goodix.o
+obj-$(CONFIG_TOUCHSCREEN_TCC_UOR6153)   += tcc_ts_uor6153.o
+

@@ -553,6 +553,134 @@ config HPET
 	  open selects one of the timers supported by the HPET.  The timers are
 	  non-periodic and/or periodic.
 
+menuconfig TCC_SENSOR_DRV
+	tristate "TCC Sensor Driver"
+	default y
+
+if TCC_SENSOR_DRV
+
+choice
+    prompt "TCC Sensor Driver"
+    default SENSOR_BMA220 
+
+#config SENSOR_CMA3000  # TBD
+#    bool "CMA3000"
+#    depends on I2C
+
+config SENSOR_BMA150   # sensor_bma150_only.c, 88 board(release)
+    bool "BMA150"
+    depends on I2C
+
+config SENSOR_BMA220  # sensor_bma220.c, m801_89, m57te, 89 board, 93 board ..(release) 
+    bool "BMA220"
+    depends on I2C
+
+config SENSOR_BMA023  # sensor_bma023.c, m803, m805 ..(release) 
+    bool "BMA023"
+    depends on I2C
+
+config SENSOR_BMA250  # sensor_bma250.c 
+    bool "BMA250"
+    depends on I2C
+
+#config TUNNING_BMA220   # demo target, sensor_bma220_demo.c, m801_88(with ak8975), m57te
+#    bool "TUNNING_BMA220"
+#    depends on I2C    
+
+endchoice
+
+choice
+    prompt "G-Sensor position"
+    default GSEN_TOP 
+    
+config GSEN_TOP
+    bool "top"
+
+config GSEN_BOTTOM
+    bool "bottom"
+    
+endchoice
+
+choice
+    prompt "G-Sensor orientation"
+    default GSEN_ROTATE_0 
+    
+config GSEN_ROTATE_0
+    bool "rotate 0"
+
+config GSEN_ROTATE_90
+    bool "rotate 90"
+
+config GSEN_ROTATE_180
+    bool "rotate 180"
+
+config GSEN_ROTATE_270
+    bool "rotate 270"
+            
+endchoice
+
+endif # TCC_G_SENSOR_DRV
+
+config TCC_USER_INTR
+    tristate "Telechips User-level interrupt driver"
+	default n
+	help
+	  If you say Y here, you can use H/W interrupt source.
+	  Telechips User-level interrupt driver.
+
+menuconfig TCC_BT_DEV
+	tristate "TCC Bluetooth dev Control power"
+	default y
+	help
+	  If you say Y here, you can contorl the power of the BT H/W Module
+	  (CSR or Broadcom)
+
+if TCC_BT_DEV
+
+config TCC_CSR_BC0406_MODULE_SUPPORT
+	tristate "CSR Module BC04 and BC06 Support"
+	default n
+	---help---
+	  If you say Y here, you can use CSR Module BC04 or BC06 
+	  on the TCC8800 or TCC8900 board. and If you use M801 board, 
+          you should check M801 board version(BT model is different 
+          according to version). If it is v0.2(with csr), you can use 
+          CSR Module on M801 board.
+
+config TCC_CSR_HOST_WAKE_UP
+	bool "CSR Bluetooth Host Wake Up Support"
+	depends on TCC_CSR_BC0406_MODULE_SUPPORT
+	default n
+	---help---
+	  If you say y here, you can use host wake up of CSR Module
+	  on the TCC8800 EVM board. 
+
+config TCC_BRCM_BCM4325D0_MODULE_SUPPORT
+	tristate "Broadcom Module BCM4325D0 Support (TCC9200S only)"
+	default n
+	---help---
+	  If you say Y here, you can use Broadcom Module BCM4325D0
+	  on the TCC9200S board.
+
+config TCC_RDA_587X_MODULE_SUPPORT
+	tristate "RDA Module 587X Support"
+	default n
+	---help---
+	  If you say Y here, you can use RDA Module 587X 
+
+config TCC_ATHEROS_AR3002_MODULE_SUPPORT
+	tristate "ATHEROS Module AR3002 Support"
+	default n
+	---help---
+	  If you say Y here, you can use Atheros Bluetooth 
+ 
+endif # TCC_BT_DEV
+
+config TCC_HDMI
+	tristate "Support for Telechips HDMI"
+	default y
+	depends on ARCH_TCC88XX || ARCH_TCC92XX || ARCH_TCC93XX
+
 config HPET_MMAP
 	bool "Allow mmap of HPET"
 	default y
@@ -589,6 +717,55 @@ config UV_MMTIMER
 	help
 	  The uv_mmtimer device allows direct userspace access to the
 	  UV system timer.
+
+config TCC_GRAPHIC
+    tristate "TCC Graphic engine Driver"
+	default y
+	depends on (ARCH_TCC88XX || ARCH_TCC92XX || ARCH_TCC93XX)
+	help
+	  TCC 2D graphic engine driver.
+
+config TCC_MEMSCALER
+	tristate "TCC memory scaler Driver"
+	default y
+	depends on (ARCH_TCC88XX || ARCH_TCC92XX || ARCH_TCC93XX)
+	help
+	  TCC memmory scaler driver.
+
+config TCC_MEMSCALER1
+	tristate "TCC memory scaler1 Driver"
+	default y
+	depends on (ARCH_TCC88XX || ARCH_TCC92XX || ARCH_TCC93XX)
+	help
+	  TCC memmory scaler1 driver.
+
+config TCC_HW_JPEG_ENC
+	bool "TCCXX H/W JPEG-Encoder driver"
+	default y
+	depends on (ARCH_TCC88XX || ARCH_TCC92XX || ARCH_TCC93XX)
+
+config TCC_HW_JPEG_DEC
+	bool "TCCXX H/W JPEG-Decoder driver"
+	default y
+	depends on MACH_TCC9200S || MACH_TCC9200 || MACH_TCC9201 || MACH_TCC8900
+
+config TCC_VPU
+	bool "TCC VPU driver"
+	help
+	  VPU Clock driver
+
+config TCC_CIPHER
+	bool "TCC Cipher driver"
+	default y
+	depends on ARCH_TCC88XX ||  MACH_TCC9300 || MACH_TCC9300CM || MACH_TCC9300ST
+	help
+	  Cipher Block driver for AES,DES,MULTI2 Algorithm
+
+config TCC_MEM
+	bool "TCC MEM driver"
+	default y
+	help
+	  TCC MEM driver.
 
 source "drivers/char/tpm/Kconfig"
 

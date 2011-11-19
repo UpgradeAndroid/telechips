@@ -962,6 +962,11 @@ config VIDEO_S5P_MIPI_CSIS
 	  module will be called s5p-csis.
 
 #
+# Telechips Camera Device Configuration
+#
+source drivers/media/video/tcccam/Kconfig
+
+#
 # USB Multimedia device configuration
 #
 

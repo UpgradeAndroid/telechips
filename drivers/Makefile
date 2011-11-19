@@ -123,3 +123,6 @@ obj-y				+= ieee802154/
 obj-y				+= clk/
 
 obj-$(CONFIG_HWSPINLOCK)	+= hwspinlock/
+
+obj-$(CONFIG_iTV_CORE)	+= i-tv/
+obj-$(CONFIG_GPS_JGR_SC3_S)     += gps/

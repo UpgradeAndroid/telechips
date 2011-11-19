@@ -100,6 +100,22 @@ static void unlock_policy_rwsem_write(int cpu)
 	up_write(&per_cpu(cpu_policy_rwsem, policy_cpu));
 }
 
+#if defined(CONFIG_ARCH_TCC)
+static int cpufreq_performance_governor_flag;
+static void cpufreq_set_performance_governor_flag(int enabled)
+{
+	if (enabled)
+		cpufreq_performance_governor_flag = 1;
+	else
+		cpufreq_performance_governor_flag = 0;
+}
+
+int cpufreq_is_performace_governor(void)
+{
+	return cpufreq_performance_governor_flag;
+}
+EXPORT_SYMBOL_GPL(cpufreq_is_performace_governor);
+#endif
 
 /* internal prototypes */
 static int __cpufreq_governor(struct cpufreq_policy *policy,
