@@ -383,8 +383,6 @@ fail_locked:
 	return 1;
 }
 
-EXPORT_SYMBOL_GPL(add_mtd_device);
-
 /**
  *	del_mtd_device - unregister an MTD device
  *	@mtd: pointer to MTD device info structure
@@ -429,8 +427,6 @@ out_error:
 	mutex_unlock(&mtd_table_mutex);
 	return ret;
 }
-
-EXPORT_SYMBOL_GPL(del_mtd_device);
 
 /**
  * mtd_device_register - register an MTD device.

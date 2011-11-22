@@ -273,7 +273,7 @@ int tcc8800_mmc_cd_int_config(struct device *dev, int id, unsigned int cd_irq)
 	pPIC->INTMSK1	|= cd_irq;
 	pPIC->MODE1 	&= (~(cd_irq)); // edge trigger
 	pPIC->MODEA1	|= (cd_irq);	//both edge
-	pPIC->IEN1		|= cd_irq;		
+	//pPIC->IEN1		|= cd_irq;		
 	pPIC->CLR1		|= cd_irq;	
 
 	return 0;
