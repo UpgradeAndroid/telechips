@@ -32,8 +32,6 @@
 /* I2S clock */
 #define TCC_I2S_SYSCLK		0
 
-extern struct snd_soc_dai tcc_i2s_dai[];
-
 //=============================================================================
 #define AUDIO_DMA_PAGE_NUMBER   (2)                     // Number of DMA Buffer
 #define AUDIO_DMA_OUT_PAGE_SIZE (1024)                  // Size in bytes        

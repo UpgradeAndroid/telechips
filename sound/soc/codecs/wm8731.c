@@ -32,12 +32,19 @@
 #include "wm8731.h"
 
 #define WM8731_NUM_SUPPLIES 4
+#if 1	// Sangwon_temp
+#define WM8731_NUM_SUPPLIES 0
+static const char *wm8731_supply_names[WM8731_NUM_SUPPLIES] = {
+};
+#else
+#define WM8731_NUM_SUPPLIES 4
 static const char *wm8731_supply_names[WM8731_NUM_SUPPLIES] = {
 	"AVDD",
 	"HPVDD",
 	"DCVDD",
 	"DBVDD",
 };
+#endif
 
 /* codec private data */
 struct wm8731_priv {

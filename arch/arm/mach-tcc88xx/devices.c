@@ -827,9 +827,36 @@ struct platform_device tcc_cpu_id_device = {
 };
 #endif
 
+#if defined(CONFIG_SND_SOC) || defined(CONFIG_SND_SOC_MODULE)
+static struct platform_device tcc_pcm = {
+	.name	= "tcc-pcm-audio",
+	.id	= -1,
+};
+
+static struct platform_device tcc_dai = {
+	.name	= "tcc-dai",
+	.id	= -1,
+};
+
+static struct platform_device tcc_iec958 = {
+	.name	= "tcc-iec958",
+	.id	= -1,
+};
+
+static void tcc_init_audio(void)
+{
+	platform_device_register(&tcc_pcm);
+	platform_device_register(&tcc_dai);
+	platform_device_register(&tcc_iec958);
+}
+#else
+static void tcc_init_audio(void){;}
+#endif
+
 static int __init tcc88xx_init_devices(void)
 {
 	tcc_add_pmem_devices();
+    tcc_init_audio();
 	return 0;
 }
 arch_initcall(tcc88xx_init_devices);

@@ -63,7 +63,7 @@
 #define TCC_I2S_RATES   SNDRV_PCM_RATE_8000_96000
 #endif
 
-#undef alsa_dbg(f, a...)
+#undef alsa_dbg
 #if 0
 #define alsa_dbg(f, a...)  printk("== alsa-debug == " f, ##a)
 #else
@@ -131,8 +131,9 @@ static unsigned int io_ckc_get_dai_clock(unsigned int freq)
  ************************************************************************/
 void tcc_i2s_set_clock(unsigned int ClockRate)
 {
-    unsigned int clk_rate, pll3_rate;
+    unsigned int clk_rate;
 #if defined(CONFIG_MEM_CLK_SYNC_MODE)
+    unsigned int  pll3_rate;
 	volatile PCKC pCKC = (volatile PCKC)tcc_p2v(HwCKC_BASE);
 #endif
 
@@ -185,10 +186,11 @@ EXPORT_SYMBOL(tcc_i2s_set_clock);
 
 void tcc_spdif_set_clock(unsigned int clock_rate)
 {
-    unsigned int clk_rate, pll3_rate;
+    unsigned int clk_rate;
     unsigned tmpCfg, tmpStatus;	
     volatile ADMASPDIFTX *p_adma_spdif_tx_base = (volatile ADMASPDIFTX *)tcc_p2v(BASE_ADDR_SPDIFTX);
 #if defined(CONFIG_MEM_CLK_SYNC_MODE)
+    unsigned int  pll3_rate;
 	volatile PCKC pCKC = (volatile PCKC)tcc_p2v(HwCKC_BASE);
 #endif
 
@@ -249,6 +251,8 @@ static int tcc_i2s_init(void)
 	volatile PADMADAI pADMA_DAI = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI);
 	volatile PPIC pPIC = (volatile PPIC)tcc_p2v(BASE_ADDR_PIC);
 
+    alsa_dbg(" %s \n", __func__);
+
     /* clock enable */
     tcc_dai_clk = clk_get(NULL, CLK_NAME_DAI);
     if(tcc_dai_clk == NULL)     return (-EINVAL);
@@ -289,6 +293,8 @@ static int tcc_i2s_init(void)
 
 static int tcc_spdif_init(void)
 {
+    alsa_dbg(" %s \n", __func__);
+
     /* clock enable */
     tcc_spdif_clk = clk_get(NULL, CLK_NAME_SPDIF);
     if(IS_ERR(tcc_spdif_clk))   return (-EINVAL);
@@ -315,7 +321,7 @@ Returns:		N/A
 static int tcc_i2s_startup(struct snd_pcm_substream *substream, struct snd_soc_dai *dai)
 {
     struct snd_soc_pcm_runtime *rtd = substream->private_data;
-    struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
+    struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
 
     alsa_dbg("tcc_i2s_startup() \n");
     if (!cpu_dai->active) {
@@ -326,6 +332,7 @@ static int tcc_i2s_startup(struct snd_pcm_substream *substream, struct snd_soc_d
 
 static int tcc_i2s_set_dai_fmt(struct snd_soc_dai *cpu_dai, unsigned int fmt)
 {
+    alsa_dbg(" %s \n", __func__);
 
     switch (fmt & SND_SOC_DAIFMT_MASTER_MASK) {
     case SND_SOC_DAIFMT_CBS_CFS:
@@ -350,6 +357,8 @@ static int tcc_i2s_set_dai_fmt(struct snd_soc_dai *cpu_dai, unsigned int fmt)
 static int tcc_i2s_set_dai_sysclk(struct snd_soc_dai *cpu_dai,
                                       int clk_id, unsigned int freq, int dir)
 {
+    alsa_dbg(" %s \n", __func__);
+
     if (clk_id != TCC_I2S_SYSCLK)
         return -ENODEV;  
 
@@ -360,7 +369,7 @@ static int tcc_i2s_hw_params(struct snd_pcm_substream *substream,
                                  struct snd_pcm_hw_params *params, struct snd_soc_dai *dai)
 {
     struct snd_soc_pcm_runtime *rtd = substream->private_data;
-    struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
+    struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
     struct tcc_pcm_dma_params *dma_data;
 
     if (substream->pcm->device == __I2S_DEV_NUM__) {
@@ -388,10 +397,12 @@ static int tcc_spdif_hw_params(struct snd_pcm_substream *substream,
                                  struct snd_pcm_hw_params *params, struct snd_soc_dai *dai)
 {
     struct snd_soc_pcm_runtime *rtd = substream->private_data;
-    struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
+    struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
+
+    alsa_dbg(" %s \n", __func__);
 
     if (substream->pcm->device == __SPDIF_DEV_NUM__) {
-        cpu_dai->playback.dma_data = &tcc_i2s_pcm_spdif_out;
+        cpu_dai->playback_dma_data = &tcc_i2s_pcm_spdif_out;
 
         // Set SPDIF clock
         tcc_spdif_set_clock(params_rate(params));
@@ -403,6 +414,8 @@ static int tcc_spdif_hw_params(struct snd_pcm_substream *substream,
 static int tcc_i2s_trigger(struct snd_pcm_substream *substream, int cmd, struct snd_soc_dai *dai)
 {
     int ret = 0;
+
+    alsa_dbg(" %s \n", __func__);
 
     switch (cmd) {
     case SNDRV_PCM_TRIGGER_START:
@@ -423,6 +436,7 @@ static int tcc_i2s_trigger(struct snd_pcm_substream *substream, int cmd, struct 
 
 static void tcc_i2s_shutdown(struct snd_pcm_substream *substream, struct snd_soc_dai *dai)
 {
+    alsa_dbg(" %s \n", __func__);
     if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {        
     } 
     else {
@@ -432,8 +446,9 @@ static void tcc_i2s_shutdown(struct snd_pcm_substream *substream, struct snd_soc
 static int tcc_i2s_suspend(struct snd_soc_dai *dai)
 {
 	volatile PADMADAI     pADMA_DAI     = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI);
-	volatile PADMASPDIFTX pADMA_SPDIFTX = (volatile PADMADAI)tcc_p2v(BASE_ADDR_SPDIFTX);
+	volatile PADMASPDIFTX pADMA_SPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX);
 
+    alsa_dbg(" %s \n", __func__);
     if(dai->id == 0) {  // DAI
         gADMA_DAI.DAMR   = pADMA_DAI->DAMR;
         gADMA_DAI.DAVC   = pADMA_DAI->DAVC;
@@ -454,8 +469,9 @@ static int tcc_i2s_suspend(struct snd_soc_dai *dai)
 static int tcc_i2s_resume(struct snd_soc_dai *dai)
 {
 	volatile PADMADAI     pADMA_DAI     = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI);
-	volatile PADMASPDIFTX pADMA_SPDIFTX = (volatile PADMADAI)tcc_p2v(BASE_ADDR_SPDIFTX);
+	volatile PADMASPDIFTX pADMA_SPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX);
 
+    alsa_dbg(" %s \n", __func__);
     if(dai->id == 0) {  // DAI
         pADMA_DAI->DAMR   = gADMA_DAI.DAMR;
         pADMA_DAI->DAVC   = gADMA_DAI.DAVC;
@@ -481,7 +497,7 @@ static void tcc_i2s_late_resume(struct early_suspend *h);
 
 
                            
-int tcc_i2s_probe(struct platform_device *pdev, struct snd_soc_dai *dai)
+int tcc_i2s_probe(struct snd_soc_dai *dai)
 {
     alsa_dbg("== alsa-debug == %s() \n", __func__);
     if(tcc_i2s_init())
@@ -500,7 +516,7 @@ int tcc_i2s_probe(struct platform_device *pdev, struct snd_soc_dai *dai)
     return 0;
 }
 
-int tcc_spdif_probe(struct platform_device *pdev, struct snd_soc_dai *dai)
+int tcc_spdif_probe(struct snd_soc_dai *dai)
 {
     alsa_dbg("%s() \n", __func__);
     if(tcc_spdif_init())
@@ -533,13 +549,13 @@ static struct snd_soc_dai_ops tcc_spdif_ops = {
     .trigger    = tcc_i2s_trigger,
 };
 
-struct snd_soc_dai tcc_i2s_dai[] = {
+static struct snd_soc_dai_driver tcc_i2s_dai[] = {
     [__I2S_DEV_NUM__] = {
-        .name = "tcc-i2s",
-        .id = 0,
-
+        .name = "tcc-dai-i2s",
+        .probe = tcc_i2s_probe,
         .suspend = tcc_i2s_suspend,
         .resume = tcc_i2s_resume,
+
         .playback = {
             .channels_min = 2,
 #if defined(CONFIG_SND_SOC_TCC_MULTICHANNEL)
@@ -555,14 +571,14 @@ struct snd_soc_dai tcc_i2s_dai[] = {
             .rates = TCC_I2S_RATES,
             .formats = SNDRV_PCM_FMTBIT_S16_LE,}, //should be change? phys:32 width:16
         .ops   = &tcc_i2s_ops,
-        .probe = tcc_i2s_probe,
     },
-    [__SPDIF_DEV_NUM__] = {
-        .name = "tcc-spdif",
-        .id = 1,
-
+    [__SPDIF_DEV_NUM__] =
+    {
+        .name = "tcc-dai-spdif",
+        .probe = tcc_spdif_probe,
         .suspend = tcc_i2s_suspend,
         .resume  = tcc_i2s_resume,
+
         .playback = {
             .channels_min = 2,
 #if defined(CONFIG_SND_SOC_TCC_MULTICHANNEL)
@@ -573,42 +589,65 @@ struct snd_soc_dai tcc_i2s_dai[] = {
             .rates = TCC_I2S_RATES,
             .formats = SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_IEC958_SUBFRAME_LE,},  //should be change? phys:32 width:16
         .ops   = &tcc_spdif_ops,
-        .probe = tcc_spdif_probe,
-    }
+    },
+};
+
+static __devinit int soc_tcc_i2s_probe(struct platform_device *pdev)
+{
+    alsa_dbg(" %s \n", __func__);
+	return snd_soc_register_dais(&pdev->dev, tcc_i2s_dai, ARRAY_SIZE(tcc_i2s_dai));
+}
+
+
+static int __devexit soc_tcc_i2s_remove(struct platform_device *pdev)
+{
+    alsa_dbg(" %s \n", __func__);
+	snd_soc_unregister_dais(&pdev->dev, ARRAY_SIZE(tcc_i2s_dai));
+	return 0;
+}
+
+
+static struct platform_driver tcc_i2s_driver = {
+	.driver = {
+			.name = "tcc-dai",
+			.owner = THIS_MODULE,
+	},
+
+	.probe = soc_tcc_i2s_probe,
+	.remove = __devexit_p(soc_tcc_i2s_remove),
 };
 
 
-static int __init tcc_i2s_module_init(void)
+static int __init snd_tcc_i2s_init(void)
 {
-	return snd_soc_register_dais(tcc_i2s_dai, ARRAY_SIZE(tcc_i2s_dai));
+    alsa_dbg(" %s \n", __func__);
+    return platform_driver_register(&tcc_i2s_driver);
 }
-module_init(tcc_i2s_module_init);
+module_init(snd_tcc_i2s_init);
 
-static void __exit tcc_i2s_module_exit(void)
+static void __exit snd_tcc_i2s_exit(void)
 {
-	snd_soc_unregister_dais(tcc_i2s_dai, ARRAY_SIZE(tcc_i2s_dai));
+    alsa_dbg(" %s \n", __func__);
+    return platform_driver_unregister(&tcc_i2s_driver);
 }
-module_exit(tcc_i2s_module_exit);
+module_exit(snd_tcc_i2s_exit);
 
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static void tcc_i2s_early_suspend(struct early_suspend *h)
 {
 	alsa_dbg(" %s\n", __func__);
-	tcc_i2s_dai[0].suspend;
-	tcc_i2s_dai[1].suspend;
+//	tcc_i2s_dai[0].suspend;
+//	tcc_i2s_dai[1].suspend;
 }
 static void tcc_i2s_late_resume(struct early_suspend *h)
 {
 	alsa_dbg(" %s\n", __func__);
-	tcc_i2s_dai[0].resume;
-	tcc_i2s_dai[1].resume;
+//	tcc_i2s_dai[0].resume;
+//	tcc_i2s_dai[1].resume;
 }
 
 #endif
-
-
-EXPORT_SYMBOL_GPL(tcc_i2s_dai);
 
 /* Module information */
 MODULE_AUTHOR("linux <linux@telechips.com>");

@@ -74,89 +74,68 @@ static int tcc_spk_func;
 static void tcc_ext_control(struct snd_soc_codec *codec)
 {
 	int spk = 0, mic = 0, line = 0, hp = 0, hs = 0;
+    struct snd_soc_dapm_context *dapm = &codec->dapm;
 
 	/* set up jack connection */
 	switch (tcc_jack_func) {
-	case TCC_HP:
-		hp = 1;
-#if !defined(CONFIG_ARCH_TCC92XX)
-		snd_soc_dapm_disable_pin(codec,    "Ext Spk");
-		snd_soc_dapm_disable_pin(codec, "Mic Jack");
-		snd_soc_dapm_disable_pin(codec, "Line Jack");
-		snd_soc_dapm_enable_pin(codec, "Headphone Jack");
-		snd_soc_dapm_disable_pin(codec, "Headset Jack");
-#endif
-		/* set = unmute headphone */
-//		set_scoop_gpio(&corgiscoop_device.dev, CORGI_SCP_MUTE_L);
-//		set_scoop_gpio(&corgiscoop_device.dev, CORGI_SCP_MUTE_R);
-		break;
-	case TCC_MIC:
-		mic = 1;
-#if !defined(CONFIG_ARCH_TCC92XX)		
-		snd_soc_dapm_disable_pin(codec,    "Ext Spk");
-		snd_soc_dapm_enable_pin(codec, "Mic Jack");
-		snd_soc_dapm_disable_pin(codec, "Line Jack");
-		snd_soc_dapm_disable_pin(codec, "Headphone Jack");
-		snd_soc_dapm_disable_pin(codec, "Headset Jack");
-#endif		
-		/* reset = mute headphone */
-//		reset_scoop_gpio(&corgiscoop_device.dev, CORGI_SCP_MUTE_L);
-//		reset_scoop_gpio(&corgiscoop_device.dev, CORGI_SCP_MUTE_R);
-		break;
-	case TCC_LINE:
-		line = 1;
-#if !defined(CONFIG_ARCH_TCC92XX)		
-		snd_soc_dapm_disable_pin(codec,    "Ext Spk");
-		snd_soc_dapm_disable_pin(codec, "Mic Jack");
-		snd_soc_dapm_enable_pin(codec, "Line Jack");
-		snd_soc_dapm_disable_pin(codec, "Headphone Jack");
-		snd_soc_dapm_disable_pin(codec, "Headset Jack");		
-#endif		
-//		reset_scoop_gpio(&corgiscoop_device.dev, CORGI_SCP_MUTE_L);
-//		reset_scoop_gpio(&corgiscoop_device.dev, CORGI_SCP_MUTE_R);
-		break;
-	case TCC_HEADSET:
-		hs = 1;
-		mic = 1;
-#if !defined(CONFIG_ARCH_TCC92XX)		
-		snd_soc_dapm_disable_pin(codec,    "Ext Spk");
-		snd_soc_dapm_enable_pin(codec, "Mic Jack");
-		snd_soc_dapm_disable_pin(codec, "Line Jack");
-		snd_soc_dapm_disable_pin(codec, "Headphone Jack");
-		snd_soc_dapm_enable_pin(codec, "Headset Jack");		
-#endif		
-//		reset_scoop_gpio(&corgiscoop_device.dev, CORGI_SCP_MUTE_L);
-//		set_scoop_gpio(&corgiscoop_device.dev, CORGI_SCP_MUTE_R);
-		break;
+    	case TCC_HP:
+    		hp = 1;
+    		snd_soc_dapm_disable_pin(dapm,    "Ext Spk");
+    		snd_soc_dapm_disable_pin(dapm, "Mic Jack");
+    		snd_soc_dapm_disable_pin(dapm, "Line Jack");
+    		snd_soc_dapm_enable_pin(dapm, "Headphone Jack");
+    		snd_soc_dapm_disable_pin(dapm, "Headset Jack");
+    		break;
+
+    	case TCC_MIC:
+    		mic = 1;
+    		snd_soc_dapm_disable_pin(dapm,    "Ext Spk");
+    		snd_soc_dapm_enable_pin(dapm, "Mic Jack");
+    		snd_soc_dapm_disable_pin(dapm, "Line Jack");
+    		snd_soc_dapm_disable_pin(dapm, "Headphone Jack");
+    		snd_soc_dapm_disable_pin(dapm, "Headset Jack");
+    		break;
+
+    	case TCC_LINE:
+    		line = 1;
+    		snd_soc_dapm_disable_pin(dapm,    "Ext Spk");
+    		snd_soc_dapm_disable_pin(dapm, "Mic Jack");
+    		snd_soc_dapm_enable_pin(dapm, "Line Jack");
+    		snd_soc_dapm_disable_pin(dapm, "Headphone Jack");
+    		snd_soc_dapm_disable_pin(dapm, "Headset Jack");		
+    		break;
+
+    	case TCC_HEADSET:
+    		hs = 1;
+    		mic = 1;
+    		snd_soc_dapm_disable_pin(dapm,    "Ext Spk");
+    		snd_soc_dapm_enable_pin(dapm, "Mic Jack");
+    		snd_soc_dapm_disable_pin(dapm, "Line Jack");
+    		snd_soc_dapm_disable_pin(dapm, "Headphone Jack");
+    		snd_soc_dapm_enable_pin(dapm, "Headset Jack");		
+    		break;
 	}
 
 	if (tcc_spk_func == TCC_SPK_ON)
 	{
 		spk = 1;
-		snd_soc_dapm_enable_pin(codec, "Ext Spk");		
+		snd_soc_dapm_enable_pin(dapm, "Ext Spk");		
 	}
 
 	/* set the enpoints to their new connetion states */
-//	snd_soc_dapm_set_endpoint(codec, "Ext Spk", spk);
-//	snd_soc_dapm_set_endpoint(codec, "Mic Jack", mic);
-//	snd_soc_dapm_set_endpoint(codec, "Line Jack", line);
-//	snd_soc_dapm_set_endpoint(codec, "Headphone Jack", hp);
-//	snd_soc_dapm_set_endpoint(codec, "Headset Jack", hs);
+	snd_soc_dapm_enable_pin(dapm, "Mic Jack");
+	snd_soc_dapm_enable_pin(dapm, "Line Jack");
+	snd_soc_dapm_enable_pin(dapm, "Headphone Jack");
+	snd_soc_dapm_enable_pin(dapm, "Headphone Jack");
 
-#if !defined(CONFIG_ARCH_TCC92XX)	
-	snd_soc_dapm_enable_pin(codec, "Mic Jack");
-	snd_soc_dapm_enable_pin(codec, "Line Jack");
-	snd_soc_dapm_enable_pin(codec, "Headphone Jack");
-	snd_soc_dapm_enable_pin(codec, "Headphone Jack");
-#endif
 	/* signal a DAPM event */
-	snd_soc_dapm_sync(codec);
+	snd_soc_dapm_sync(dapm);
 }
 
 static int tcc_startup(struct snd_pcm_substream *substream)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_codec *codec = rtd->socdev->card->codec;
+	struct snd_soc_codec *codec = rtd->codec;
 
 	/* check the jack status at stream startup */
 	tcc_ext_control(codec);
@@ -166,20 +145,13 @@ static int tcc_startup(struct snd_pcm_substream *substream)
 /* we need to unmute the HP at shutdown as the mute burns power on tcc83x */
 static void tcc_shutdown(struct snd_pcm_substream *substream)
 {
-	//struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	//struct snd_soc_codec *codec = rtd->socdev->codec;
-
-	/* set = unmute headphone */
-//	set_scoop_gpio(&corgiscoop_device.dev, CORGI_SCP_MUTE_L);
-//	set_scoop_gpio(&corgiscoop_device.dev, CORGI_SCP_MUTE_R);
-	//return 0;
 }
 
 static int tcc_hw_params(struct snd_pcm_substream *substream, struct snd_pcm_hw_params *params)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
-	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
+	struct snd_soc_dai *codec_dai = rtd->codec_dai;
+	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
 	unsigned int clk = 0;
 	int ret = 0;
 
@@ -216,7 +188,7 @@ static int tcc_hw_params(struct snd_pcm_substream *substream, struct snd_pcm_hw_
     }
 
 	/* set the codec system clock for DAC and ADC */
-	ret = snd_soc_dai_set_sysclk(codec_dai, WM8731_SYSCLK, clk,
+	ret = snd_soc_dai_set_sysclk(codec_dai, WM8731_SYSCLK_MCLK, clk,
 		SND_SOC_CLOCK_IN);
 	if (ret < 0) {
         printk("tcc_hw_params()  codec_dai: sysclk error[%d]\n", ret);
@@ -349,39 +321,43 @@ static const struct snd_kcontrol_new wm8731_tcc_controls[] = {
 /*
  * Logic for a wm8731 as connected on a Sharp SL-C7x0 Device
  */
-static int tcc_wm8731_init(struct snd_soc_codec *codec)
+static int tcc_wm8731_init(struct snd_soc_pcm_runtime *rtd)
 {
-	int i, err;
-#if defined(CONFIG_ARCH_TCC92XX) || defined(CONFIG_ARCH_TCC88XX)
-	snd_soc_dapm_enable_pin(codec, "MICIN");
+	int ret;
+	struct snd_soc_codec *codec = rtd->codec;
+	struct snd_soc_dapm_context *dapm = &codec->dapm;
+
+    alsa_dbg("%s() \n", __func__);
+
+#if defined(CONFIG_ARCH_TCC88XX)
+	snd_soc_dapm_enable_pin(dapm, "MICIN");
 #else
-	snd_soc_dapm_disable_pin(codec, "LLINEIN");
-	snd_soc_dapm_disable_pin(codec, "RLINEIN");
+	snd_soc_dapm_disable_pin(dapm, "LLINEIN");
+	snd_soc_dapm_disable_pin(dapm, "RLINEIN");
 #endif	
 
 	/* Add tcc specific controls */
-	for (i = 0; i < ARRAY_SIZE(wm8731_tcc_controls); i++) {
-		err = snd_ctl_add(codec->card,
-			snd_soc_cnew(&wm8731_tcc_controls[i],codec, NULL));
-		if (err < 0)
-			return err;
-	}
+	ret = snd_soc_add_controls(codec, wm8731_tcc_controls,
+				ARRAY_SIZE(wm8731_tcc_controls));
+	if (ret)
+		return ret;
+
 
 	/* Add tcc specific widgets */
-	snd_soc_dapm_new_controls(codec, wm8731_dapm_widgets,
+	snd_soc_dapm_new_controls(dapm, wm8731_dapm_widgets,
 				  ARRAY_SIZE(wm8731_dapm_widgets));
 
 	/* Set up Telechips specific audio path audio_map */
-	snd_soc_dapm_add_routes(codec, audio_map, ARRAY_SIZE(audio_map));
+	snd_soc_dapm_add_routes(dapm, audio_map, ARRAY_SIZE(audio_map));
 
-	snd_soc_dapm_sync(codec);
+	snd_soc_dapm_sync(dapm);
 	return 0;
 }
 
 extern struct snd_soc_platform tcc_soc_platform;
 
 #if !defined(CONFIG_SND_TCC_DAI2SPDIF)
-static int tcc_iec958_dummy_init(struct snd_soc_codec *codec)
+static int tcc_iec958_dummy_init(struct snd_soc_pcm_runtime *rtd)
 {
     return 0;
 }
@@ -389,21 +365,27 @@ static int tcc_iec958_dummy_init(struct snd_soc_codec *codec)
 
 /* tcc digital audio interface glue - connects codec <--> CPU */
 static struct snd_soc_dai_link tcc_dai[] = {
-	{
-		.name = "WM8731",
-		.stream_name = "WM8731",
-		.cpu_dai = &tcc_i2s_dai[0],
-		.codec_dai = &wm8731_dai,
-		.init = tcc_wm8731_init,
-		.ops = &tcc_ops,
-	},
+    {
+        .name = "WM8731",
+        .stream_name = "WM8731",
+        .platform_name  = "tcc-pcm-audio",
+        .cpu_dai_name   = "tcc-dai-i2s",
+
+        .codec_name = "wm8731.0-001a",
+        .codec_dai_name = "wm8731-hifi",
+        .init = &tcc_wm8731_init,
+        .ops = &tcc_ops,
+    },
 #if !defined(CONFIG_SND_TCC_DAI2SPDIF)
     {
         .name = "TCC",
         .stream_name = "IEC958",
-        .cpu_dai = &tcc_i2s_dai[1],
-        .codec_dai = &iec958_dai,
-        .init = tcc_iec958_dummy_init,
+        .platform_name  = "tcc-pcm-audio",
+        .cpu_dai_name   = "tcc-dai-spdif",
+
+        .codec_name     = "tcc-iec958",
+        .codec_dai_name = "IEC958",
+        .init = &tcc_iec958_dummy_init,
         .ops = &tcc_ops,
     },
 #endif
@@ -412,9 +394,9 @@ static struct snd_soc_dai_link tcc_dai[] = {
 
 /* tcc audio machine driver */
 static struct snd_soc_card tcc_soc_card = {
-	.platform = &tcc_soc_platform,
-	.name = "tccx_board",
-	.dai_link = tcc_dai,
+	.driver_name      = "TCC Audio",
+    .long_name = "Telechips Board",
+	.dai_link  = tcc_dai,
 	.num_links = ARRAY_SIZE(tcc_dai),
 };
 
@@ -430,18 +412,14 @@ static int wm8731_i2c_register(void)
     struct i2c_adapter *adapter;
     struct i2c_client *client;
     
+    alsa_dbg("%s() \n", __func__);
+
     memset(&info, 0, sizeof(struct i2c_board_info));
     info.addr = 0x1a;
     strlcpy(info.type, "wm8731", I2C_NAME_SIZE);
 
-#if defined(CONFIG_ARCH_TCC93XX)
-	if (machine_is_tcc9300())
-	    adapter = i2c_get_adapter(2);
-	else
-	    adapter = i2c_get_adapter(1);
-#else
     adapter = i2c_get_adapter(0);
-#endif
+
     if (!adapter) 
     {
         printk(KERN_ERR "can't get i2c adapter 0\n");
@@ -459,12 +437,6 @@ static int wm8731_i2c_register(void)
 }
 
 
-/* tcc audio subsystem */
-static struct snd_soc_device tcc_snd_devdata = {
-	.card = &tcc_soc_card,
-	.codec_dev = &soc_codec_dev_wm8731,
-};
-
 static struct platform_device *tcc_snd_device;
 
 static int __init tcc_init_wm8731(void)
@@ -472,44 +444,22 @@ static int __init tcc_init_wm8731(void)
 
 	int ret;
 
-#if defined(CONFIG_ARCH_TCC92XX) 
-    if(!(machine_is_tcc8900() || machine_is_tcc9200() || machine_is_tcc9201())) {
-#elif defined(CONFIG_ARCH_TCC93XX) 
-    if(!(machine_is_tcc9300() || machine_is_tcc9300cm() || machine_is_tcc9300st())) {
-#elif defined(CONFIG_ARCH_TCC88XX)
     if(!machine_is_tcc8800()) {
-#endif
         alsa_dbg("\n\n\n\n%s() do not execution....\n\n", __func__);
         return 0;
     }
 
     alsa_dbg("TCC Board probe [%s]\n", __FUNCTION__);
 
-#if defined(CONFIG_ARCH_TCC92XX)
-    if(machine_is_tcc9200() || machine_is_tcc8900() || machine_is_tcc9201()) {
-        gpio_request(TCC_GPEXT1(4), "CODEC_ON");
-        gpio_request(TCC_GPEXT2(14), "UN_MUTE");
-
-        gpio_direction_output(TCC_GPEXT1(4), 1);        // Codec power on
-        gpio_direction_output(TCC_GPEXT2(14), 1);       // Line ouput un-mute
-    }
-#elif defined(CONFIG_ARCH_TCC93XX)
-    if( machine_is_tcc9300cm()) {
-        gpio_request(TCC_GPEXT2(4), "CODEC_ON");
-        gpio_request(TCC_GPEXT1(14), "UN_MUTE");
-
-        gpio_direction_output(TCC_GPEXT2(4), 1);    /* codec on */
-        gpio_direction_output(TCC_GPEXT1(14), 1);   /* codec Mute */
-    }
-#elif defined(CONFIG_ARCH_TCC88XX)
     if(machine_is_tcc8800()) {
         gpio_request(TCC_GPEXT1(1), "CODEC_ON");
         gpio_request(TCC_GPEXT2(0), "UN_MUTE");
 
         gpio_direction_output(TCC_GPEXT1(1), 1);        // Codec power on
         gpio_direction_output(TCC_GPEXT2(0), 1);        // Line ouput un-mute
+
+        tcc_soc_card.name = "TCC880x EVM";
     }
-#endif
 
     tca_tcc_initport();
 
@@ -519,12 +469,13 @@ static int __init tcc_init_wm8731(void)
 	if (!tcc_snd_device)
 		return -ENOMEM;
 
-	platform_set_drvdata(tcc_snd_device, &tcc_snd_devdata);
-	tcc_snd_devdata.dev = &tcc_snd_device->dev;
-	ret = platform_device_add(tcc_snd_device);
+	platform_set_drvdata(tcc_snd_device, &tcc_soc_card);
 
-	if (ret)
-		platform_device_put(tcc_snd_device);
+	ret = platform_device_add(tcc_snd_device);
+	if (ret) {
+        printk(KERN_ERR "Unable to add platform device\n");\
+        platform_device_put(tcc_snd_device);
+    }
 
 	return ret;
 }

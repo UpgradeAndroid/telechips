@@ -51,9 +51,12 @@
 
 #include "tcc/tca_tcchwcontrol.h"
 
-#undef alsa_dbg(f, a...)
-//#define alsa_dbg(f, a...)  printk("== alsa-debug == " f, ##a)
+#undef alsa_dbg
+#if 0
+#define alsa_dbg(f, a...)  printk("== alsa-debug == " f, ##a)
+#else
 #define alsa_dbg(f, a...)
+#endif
 
 #if defined(CONFIG_PM)
 static ADMA gADMA;
@@ -351,10 +354,10 @@ static dma_addr_t get_dma_addr_offset(dma_addr_t start_addr, dma_addr_t cur_addr
 
 static int tcc_pcm_hw_params(struct snd_pcm_substream *substream, struct snd_pcm_hw_params *params)
 {
-    struct snd_pcm_runtime *runtime = substream->runtime;
-    struct tcc_runtime_data *prtd = runtime->private_data;
-    struct snd_soc_pcm_runtime *rtd = substream->private_data;
-    struct tcc_pcm_dma_params *dma;
+    struct snd_pcm_runtime     *runtime = substream->runtime;
+    struct tcc_runtime_data    *prtd    = runtime->private_data;
+    struct snd_soc_pcm_runtime *rtd     = substream->private_data;
+    struct tcc_pcm_dma_params  *dma;
 
     size_t totsize = params_buffer_bytes(params);
     size_t period = params_period_bytes(params); 
@@ -365,7 +368,7 @@ static int tcc_pcm_hw_params(struct snd_pcm_substream *substream, struct snd_pcm
     volatile PADMA    pADMA     = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA);
     volatile PADMADAI pADMA_DAI = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI);
 
-    dma = snd_soc_dai_get_dma_data(rtd->dai->cpu_dai, substream);
+    dma = snd_soc_dai_get_dma_data(rtd->cpu_dai, substream);
 
     /* return if this is a bufferless transfer e.g.
      * codec <--> BT codec or GSM modem -- lg FIXME */
@@ -587,9 +590,10 @@ static snd_pcm_uframes_t tcc_pcm_pointer(struct snd_pcm_substream *substream)
 {
     volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA);
     struct snd_pcm_runtime *runtime = substream->runtime;
-    //struct tcc_runtime_data *prtd = runtime->private_data;
     snd_pcm_uframes_t x;
     dma_addr_t ptr = 0;
+
+    alsa_dbg(" %s \n", __func__);
 
     if (substream->pcm->device == __SPDIF_DEV_NUM__) {
         ptr = pADMA->TxSpCsar;
@@ -752,6 +756,8 @@ static void tcc_pcm_free_dma_buffers(struct snd_pcm *pcm)
     struct snd_dma_buffer *buf;
     int stream;
 
+    alsa_dbg(" %s \n", __func__);
+
     for (stream = 0; stream < 2; stream++) {
         substream = pcm->streams[stream].substream;
         if (!substream) { continue; }
@@ -782,12 +788,12 @@ int tcc_pcm_new(struct snd_card *card, struct snd_soc_dai *dai, struct snd_pcm *
     if (!card->dev->coherent_dma_mask) {
         card->dev->coherent_dma_mask = DMA_32BIT_MASK;
     }
-    if (dai->playback.channels_min) {
+    if (dai->driver->playback.channels_min) {
         ret = tcc_pcm_preallocate_dma_buffer(pcm, SNDRV_PCM_STREAM_PLAYBACK);
         if (ret) { goto out; }
     }
 
-    if (dai->capture.channels_min) {
+    if (dai->driver->capture.channels_min) {
         ret = tcc_pcm_preallocate_dma_buffer(pcm, SNDRV_PCM_STREAM_CAPTURE);
         if (ret) { goto out; }
     } 
@@ -858,50 +864,105 @@ out:
 
 
 #if defined(CONFIG_PM)
-int tcc_pcm_suspend(struct snd_soc_dai_link *dai_link)
+int tcc_pcm_suspend(struct snd_soc_dai *dai)
 {
-    volatile PADMA pADMA = (volatile PADMADAI)tcc_p2v(BASE_ADDR_ADMA);
+    volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA);
 
+    alsa_dbg(" %s \n", __func__);
     gADMA.TransCtrl = pADMA->TransCtrl;
     gADMA.RptCtrl   = pADMA->RptCtrl;
     gADMA.ChCtrl    = pADMA->ChCtrl;
     gADMA.GIntReq   = pADMA->GIntReq;
+    return 0;
 }
 
-int tcc_pcm_resume(struct snd_soc_dai_link *dai_link)
+int tcc_pcm_resume(struct snd_soc_dai *dai)
 {
-    volatile PADMA pADMA = (volatile PADMADAI)tcc_p2v(BASE_ADDR_ADMA);
+    volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA);
 
+    alsa_dbg(" %s \n", __func__);
     pADMA->TransCtrl = gADMA.TransCtrl;
     pADMA->RptCtrl   = gADMA.RptCtrl;
     pADMA->ChCtrl    = gADMA.ChCtrl;
     pADMA->GIntReq   = gADMA.GIntReq;
+    return 0;
 }
-
-#else
-#define tcc_pcm_suspend     NULL
-#define tcc_pcm_resume      NULL
 #endif
 
-struct snd_soc_platform tcc_soc_platform = {
-    .name     = "tcc-audio",
-    .pcm_ops  = &tcc_pcm_ops,
+static struct snd_soc_platform_driver tcc_soc_platform = {
+    .ops      = &tcc_pcm_ops,
     .pcm_new  = tcc_pcm_new,
     .pcm_free = tcc_pcm_free_dma_buffers,
+#if defined(CONFIG_PM)
     .suspend  = tcc_pcm_suspend,
     .resume   = tcc_pcm_resume,
+#endif
 };
 
+static __devinit int tcc_pcm_probe(struct platform_device *pdev)
+{
+    alsa_dbg(" %s \n", __func__);
+	return snd_soc_register_platform(&pdev->dev, &tcc_soc_platform);
+}
 
-EXPORT_SYMBOL_GPL(tcc_soc_platform);
+static int __devexit tcc_pcm_remove(struct platform_device *pdev)
+{
+    alsa_dbg(" %s \n", __func__);
+	snd_soc_unregister_platform(&pdev->dev);
+	return 0;
+}
+
+static struct platform_driver tcc_pcm_driver = {
+	.driver = {
+			.name = "tcc-pcm-audio",
+			.owner = THIS_MODULE,
+	},
+
+	.probe = tcc_pcm_probe,
+	.remove = __devexit_p(tcc_pcm_remove),
+};
+
+static int __init snd_tcc_platform_init(void)
+{
+    alsa_dbg(" %s \n", __func__);
+	return platform_driver_register(&tcc_pcm_driver);
+}
+module_init(snd_tcc_platform_init);
+
+static void __exit snd_tcc_platform_exit(void)
+{
+    alsa_dbg(" %s \n", __func__);
+	platform_driver_unregister(&tcc_pcm_driver);
+}
+module_exit(snd_tcc_platform_exit);
+
+
+
 
 
 /************************************************************************
  * Dummy function for S/PDIF. This is a codec part.
 ************************************************************************/
-static int  iec958_pcm_prepare(struct snd_pcm_substream *substream) { return 0; }
-static int  iec958_hw_params(struct snd_pcm_substream *substream, struct snd_pcm_hw_params *params) { return 0; }
-static void iec958_shutdown(struct snd_pcm_substream *substream) { }
+static int tcc_dummy_probe(struct snd_soc_codec *codec) { return 0; }
+static int tcc_dummy_remove(struct snd_soc_codec *codec) { return 0; }
+static int tcc_dummy_set_bias_level(struct snd_soc_codec *codec, enum snd_soc_bias_level level) { return 0; }
+
+static struct snd_soc_codec_driver soc_codec_dev_tcc_dummy = {
+	.probe =	tcc_dummy_probe,
+	.remove =	tcc_dummy_remove,
+	.set_bias_level = tcc_dummy_set_bias_level,
+	.reg_cache_size = 0,
+	.reg_word_size = sizeof(u16),
+	.reg_cache_default = NULL,
+	.dapm_widgets = NULL,
+	.num_dapm_widgets = 0,
+	.dapm_routes = NULL,
+	.num_dapm_routes = 0,
+};
+
+static int  iec958_pcm_prepare(struct snd_pcm_substream *substream, struct snd_soc_dai *cpu_dai) { return 0; }
+static int  iec958_hw_params(struct snd_pcm_substream *substream, struct snd_pcm_hw_params *params, struct snd_soc_dai *cpu_dai) { return 0; }
+static void iec958_shutdown(struct snd_pcm_substream *substream, struct snd_soc_dai *cpu_dai) { }
 static int  iec958_mute(struct snd_soc_dai *dai, int mute) { return 0; }
 static int  iec958_set_dai_sysclk(struct snd_soc_dai *codec_dai, int clk_id, unsigned int freq, int dir) { return 0; }
 static int  iec958_set_dai_fmt(struct snd_soc_dai *codec_dai, unsigned int fmt) { return 0; }
@@ -916,7 +977,7 @@ static struct snd_soc_dai_ops iec958_dai_ops = {
     .shutdown   = iec958_shutdown,
 };
 
-struct snd_soc_dai iec958_dai = {
+static struct snd_soc_dai_driver iec958_dai = {
 	.name = "IEC958",
 	.playback = {
 		.stream_name = "Playback",
@@ -933,33 +994,52 @@ struct snd_soc_dai iec958_dai = {
 		.formats  = (SNDRV_PCM_FMTBIT_S16_LE),},
     .ops = &iec958_dai_ops,
 };
-EXPORT_SYMBOL_GPL(iec958_dai);
 
-static int __init iec958_modinit(void)
+static int tcc_iec958_probe(struct platform_device *pdev)
 {
-	return snd_soc_register_dai(&iec958_dai);
-}
-module_init(iec958_modinit);
+    int ret = 0;
+    alsa_dbg(" %s \n", __func__);
+    ret = snd_soc_register_codec(&pdev->dev, &soc_codec_dev_tcc_dummy, &iec958_dai, 1);
+    printk("%s()   ret: %d\n", __func__, ret);
+    return ret;
 
-static void __exit iec958_exit(void)
-{
-	snd_soc_unregister_dai(&iec958_dai);
+	//return snd_soc_register_dai(&pdev->dev, &iec958_dai);
 }
-module_exit(iec958_exit);
+
+static int tcc_iec958_remove(struct platform_device *pdev)
+{
+    alsa_dbg(" %s \n", __func__);
+    snd_soc_unregister_codec(&pdev->dev);
+    //snd_soc_unregister_dai(&pdev->dev);
+	return 0;
+}
+
+static struct platform_driver tcc_iec958_driver = {
+	.driver = {
+			.name = "tcc-iec958",
+			.owner = THIS_MODULE,
+	},
+
+	.probe = tcc_iec958_probe,
+	.remove = __devexit_p(tcc_iec958_remove),
+};
+
+static int __init snd_tcc_iec958_platform_init(void)
+{
+    alsa_dbg(" %s \n", __func__);
+	return platform_driver_register(&tcc_iec958_driver);
+}
+module_init(snd_tcc_iec958_platform_init);
+
+static void __exit snd_tcc_iec958_platform_exit(void)
+{
+    alsa_dbg(" %s \n", __func__);
+	platform_driver_unregister(&tcc_iec958_driver);
+}
+module_exit(snd_tcc_iec958_platform_exit);
+
 /***********************************************************************/
 
-
-static int __init tcc_soc_platform_init(void)
-{
-	return snd_soc_register_platform(&tcc_soc_platform);
-}
-module_init(tcc_soc_platform_init);
-
-static void __exit tcc_soc_platform_exit(void)
-{
-	snd_soc_unregister_platform(&tcc_soc_platform);
-}
-module_exit(tcc_soc_platform_exit);
 
 
 MODULE_AUTHOR("Telechips");
