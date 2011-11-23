@@ -6,6 +6,8 @@
 
 #include <linux/ioctl.h>
 
+#define AKM8975_I2C_NAME "akm8975"
+
 /*! \name AK8975 operation mode
  \anchor AK8975_Mode
  Defines an operation mode of the AK8975.*/
@@ -14,9 +16,14 @@
 #define	AK8975_MODE_SELF_TEST     0x08
 #define	AK8975_MODE_FUSE_ACCESS   0x0F
 #define	AK8975_MODE_POWER_DOWN    0x00
+#define	AK8975_MODE_POWERDOWN	0x00
 /*! @}*/
 
 #define RBUFF_SIZE		8	/* Rx buffer size */
+
+#define SENSOR_DATA_SIZE		8	/* Rx buffer size, i.e from ST1 to ST2 */
+#define RWBUF_SIZE				16	/* Read/Write buffer size.*/
+
 
 /*! \name AK8975 register address
 \anchor AK8975_REG
@@ -54,13 +61,18 @@ Defines a read-only address of the fuse ROM of the AK8975.*/
 /* IOCTLs for AKM library */
 #define ECS_IOCTL_WRITE                 _IOW(AKMIO, 0x02, char[5])
 #define ECS_IOCTL_READ                  _IOWR(AKMIO, 0x03, char[5])
+#define ECS_IOCTL_SET_MODE              _IOW(AKMIO, 0x04, short)
 #define ECS_IOCTL_GETDATA               _IOR(AKMIO, 0x08, char[RBUFF_SIZE])
 #define ECS_IOCTL_SET_YPR               _IOW(AKMIO, 0x0C, short[12])
 #define ECS_IOCTL_GET_OPEN_STATUS       _IOR(AKMIO, 0x0D, int)
 #define ECS_IOCTL_GET_CLOSE_STATUS      _IOR(AKMIO, 0x0E, int)
 #define ECS_IOCTL_GET_DELAY             _IOR(AKMIO, 0x30, short)
+#define ECS_IOCTL_GET_PROJECT_NAME      _IOR(AKMIO, 0x0D, char[64])
+#define ECS_IOCTL_GET_MATRIX            _IOR(AKMIO, 0x0E, short [4][3][3])
+#define ECS_IOCTL_GET_SUSPEND_STATUS		_IOR(AKMIO, 0x10, int)
 
 /* IOCTLs for APPs */
+#define ECS_IOCTL_APP_SET_MODE		_IOW(AKMIO, 0x10, short)
 #define ECS_IOCTL_APP_SET_MFLAG		_IOW(AKMIO, 0x11, short)
 #define ECS_IOCTL_APP_GET_MFLAG		_IOW(AKMIO, 0x12, short)
 #define ECS_IOCTL_APP_SET_AFLAG		_IOW(AKMIO, 0x13, short)

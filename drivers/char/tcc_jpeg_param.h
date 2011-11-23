@@ -44,11 +44,11 @@ typedef struct {
 } jpeg_encode_time_type;
 
 typedef struct {
-	signed short 	altitude;
-	signed int   	latitude;
-	signed int   	longitude;
-	unsigned int 	timestamp;
-	char 		processing_method[128];
+	GPS_LATITUDE_TYPE 	Latitude;
+	GPS_LONGITUDE_TYPE 	Longitude;
+	int 				Altitude;
+	unsigned int 		Timestamp;
+	char 				Processing_Method[128];
 } jpeg_encode_gps_info_type;
 
 typedef struct {

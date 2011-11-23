@@ -800,7 +800,6 @@ static irqreturn_t tcc_lcd_handler(int irq, void *dev_id)
 
 		if(lcdc_struct.state == 0)		{
 			lcdc_struct.state = 1;
-            printk("%s()   call wake_up_interruptible()...\n", __func__);
 			wake_up_interruptible(&lcdc_struct.waitq);
 		}
 	}

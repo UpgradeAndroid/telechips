@@ -72,12 +72,25 @@ typedef struct {
 } TCCXXX_JPEG_TIMESTAMP_TYPE;
 
 typedef struct {
-	int 			supported;
-	int 			altitude;
-	int 			latitude;
-	int 			longitude;
-	unsigned int 	timestamp;
-	char 		processing_method[128];
+	int degrees;
+	int minutes;
+	int seconds;
+} GPS_LATITUDE_TYPE;
+
+typedef struct {
+	int degrees;
+	int minutes;
+	int seconds;
+} GPS_LONGITUDE_TYPE;
+
+typedef struct {
+	int 				Supported;
+	GPS_LATITUDE_TYPE 	Latitude;
+	GPS_LONGITUDE_TYPE 	Longitude;
+	int 				Altitude;
+	unsigned int 		Timestamp;
+	char 				Processing_Method[128];
+
 } TCCXXX_JPEG_GPS_INFO;
 
 typedef struct {
