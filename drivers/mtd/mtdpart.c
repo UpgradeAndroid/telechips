@@ -123,6 +123,7 @@ static int part_read_oob(struct mtd_info *mtd, loff_t from,
 	if (ops->datbuf && from + ops->len > mtd->size)
 		return -EINVAL;
 
+#if 0   // temparary comments... by B100044.
 	/*
 	 * If OOB is also requested, make sure that we do not read past the end
 	 * of this partition.
@@ -139,6 +140,7 @@ static int part_read_oob(struct mtd_info *mtd, loff_t from,
 		if (ops->ooboffs + ops->ooblen > pages * len)
 			return -EINVAL;
 	}
+#endif
 
 	res = part->master->read_oob(part->master, from + part->offset, ops);
 	if (unlikely(res)) {
