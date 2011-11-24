@@ -31,7 +31,6 @@
 
 #include "wm8731.h"
 
-#define WM8731_NUM_SUPPLIES 4
 #if 1	// Sangwon_temp
 #define WM8731_NUM_SUPPLIES 0
 static const char *wm8731_supply_names[WM8731_NUM_SUPPLIES] = {
@@ -63,11 +62,19 @@ struct wm8731_priv {
  * using 2 wire for device control, so we cache them instead.
  * There is no point in caching the reset register
  */
+#if 0
 static const u16 wm8731_reg[WM8731_CACHEREGNUM] = {
 	0x0097, 0x0097, 0x0079, 0x0079,
 	0x000a, 0x0008, 0x009f, 0x000a,
 	0x0000, 0x0000
 };
+#else	/* Telechips */
+static const u16 wm8731_reg[WM8731_CACHEREGNUM] = {
+	0x009F, 0x009F, 0x0076, 0x0076,
+	0x0094, 0x0000, 0x007f, 0x000a,
+	0x0000, 0x0000
+};
+#endif
 
 #define wm8731_reset(c)	snd_soc_write(c, WM8731_RESET, 0)
 
@@ -247,6 +254,7 @@ struct _coeff_div {
 };
 
 /* codec mclk clock divider coefficients */
+#if 0
 static const struct _coeff_div coeff_div[] = {
 	/* 48k */
 	{12288000, 48000, 256, 0x0, 0x0, 0x0},
@@ -280,6 +288,12 @@ static const struct _coeff_div coeff_div[] = {
 	{16934400, 88200, 192, 0xf, 0x1, 0x0},
 	{12000000, 88200, 136, 0xf, 0x1, 0x1},
 };
+#else	/* Telechips */
+static const struct _coeff_div coeff_div[] = {
+	/* 44.1k */
+	{11289600, 44100, 256, 0x8, 0x0, 0x0},
+};
+#endif
 
 static inline int get_coeff(int mclk, int rate)
 {
@@ -452,7 +466,8 @@ static int wm8731_set_bias_level(struct snd_soc_codec *codec,
 
 			/* Sync reg_cache with the hardware */
 			for (i = 0; i < ARRAY_SIZE(wm8731_reg); i++) {
-				if (cache[i] == wm8731_reg[i])
+				//if (cache[i] == wm8731_reg[i])
+				if ((codec->dapm.bias_level != SND_SOC_BIAS_OFF) && (cache[i] == wm8731_reg[i]))
 					continue;
 
 				data[0] = (i << 1) | ((cache[i] >> 8)
@@ -476,7 +491,11 @@ static int wm8731_set_bias_level(struct snd_soc_codec *codec,
 	return 0;
 }
 
+#if defined(CONFIG_SND_SOC_TCC_MULTICHANNEL)
+#define WM8731_RATES SNDRV_PCM_RATE_8000_192000
+#else
 #define WM8731_RATES SNDRV_PCM_RATE_8000_96000
+#endif
 
 #define WM8731_FORMATS (SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S20_3LE |\
 	SNDRV_PCM_FMTBIT_S24_LE)
@@ -493,7 +512,11 @@ static struct snd_soc_dai_driver wm8731_dai = {
 	.playback = {
 		.stream_name = "Playback",
 		.channels_min = 1,
+#if defined(CONFIG_SND_SOC_TCC_MULTICHANNEL)
+		.channels_max = 8,
+#else
 		.channels_max = 2,
+#endif
 		.rates = WM8731_RATES,
 		.formats = WM8731_FORMATS,},
 	.capture = {
