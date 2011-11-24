@@ -52,7 +52,6 @@ static _mali_osk_resource_t arch_configuration [] =
 		.description = "Mali-400 PP",
 		.mmu_id = 2
 	},
-#if USING_MMU
 	{
 		.type = MMU,
 		.base = 0x70003000,
@@ -67,7 +66,6 @@ static _mali_osk_resource_t arch_configuration [] =
 		.description = "Mali-400 MMU for PP",
 		.mmu_id = 2
 	},
-#endif /*USING_MMU*/
 #if USING_OS_MEMORY
 	{		
 		.type = OS_MEMORY,

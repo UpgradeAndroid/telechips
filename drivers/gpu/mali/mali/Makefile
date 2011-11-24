@@ -11,7 +11,7 @@
 OSKOS=linux
 FILES_PREFIX=
 
-MALI_RELEASE_NAME = r2p2-03rel0
+MALI_RELEASE_NAME = r2p3-00dev1
 
 include $(src)/Makefile.common
 
@@ -26,17 +26,12 @@ USING_OS_MEMORY = 1
 else
 USING_OS_MEMORY = 0
 endif
-ifeq ($(CONFIG_ARCH_TCC892X),y)
-TARGET_PLATFORM = tcc-m400
-else
-TARGET_PLATFORM = tcc-m200
-endif
-
 
 # set up defaults if not defined by the user
 ARCH = arm
 USING_MMU ?= 1
 USING_UMP ?= 1
+USING_MALI_PMU ?= 0
 USING_PMM ?= 1
 USING_OS_MEMORY ?= 1
 
@@ -51,7 +46,12 @@ BUILD = release
 
 # XXX: Remove platform specific definitions
 ifeq ($(CONFIG_ARCH_TCC),y)
-CONFIG ?= $(TARGET_PLATFORM)
+  ifeq ($(CONFIG_ARCH_TCC892X),y)
+  TARGET_PLATFORM = tcc-m400
+  else
+  TARGET_PLATFORM ?= tcc-m200
+  endif
+  CONFIG ?= $(TARGET_PLATFORM)
 endif
 
 # Check if a Mali Core sub module should be enabled, true or false returned
@@ -70,7 +70,12 @@ DEFINES += -D_MALI_OSK_SPECIFIC_INDIRECT_MMAP
 DEFINES += -DMALI_TIMELINE_PROFILING_ENABLED=$(USING_PROFILING)
 DEFINES += -DMALI_POWER_MGMT_TEST_SUITE=$(USING_MALI_PMM_TESTSUITE)
 DEFINES += -DMALI_PMM_RUNTIME_JOB_CONTROL_ON=$(USING_MALI_RUN_TIME_PM)
-
+ifeq ($(shell test $(SUBLEVEL) -gt 32 -a $(PATCHLEVEL) = 6 -a $(VERSION) = 2 -o $(VERSION) -gt 2 && echo "OK"),OK)
+# MALI_STATE_TRACKING is only supported on Linux kernels from version 2.6.32.
+DEFINES += -DMALI_STATE_TRACKING=1
+else
+DEFINES += -DMALI_STATE_TRACKING=0
+endif
 DEFINES += -DMALI_OS_MEMORY_KERNEL_BUFFER_SIZE_IN_MB=$(OS_MEMORY_KERNEL_BUFFER_SIZE_IN_MB)
 ifneq ($(call submodule_enabled, $(src), PMU),0)
         MALI_PLATFORM_FILE = platform/$(TARGET_PLATFORM)/mali_platform.c
@@ -80,6 +85,8 @@ endif
 
 DEFINES += -DUSING_MALI_PMM=$(USING_PMM)
 DEFINES += -DMALI_GPU_UTILIZATION=$(USING_GPU_UTILIZATION)
+
+DEFINES += -DUSING_MALI_PMU=$(USING_MALI_PMU)
 
 ifeq ($(BUILD), debug)
 DEFINES += -DDEBUG

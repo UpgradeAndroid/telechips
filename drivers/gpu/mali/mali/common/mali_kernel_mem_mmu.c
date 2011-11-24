@@ -658,8 +658,9 @@ static _mali_osk_errcode_t mali_memory_core_session_begin(struct mali_session_da
 	for (i = 0; i < MALI_MMU_PAGE_SIZE/4; i++)
 	{
 		/* mark each page table as not present */
-		_mali_osk_mem_iowrite32(session_data->page_directory_mapped, sizeof(u32) * i, 0);
+		_mali_osk_mem_iowrite32_relaxed(session_data->page_directory_mapped, sizeof(u32) * i, 0);
 	}
+	_mali_osk_write_mem_barrier();
 
 	/* page_table_mapped[] is already set to NULL by _mali_osk_calloc call */
 
@@ -841,8 +842,9 @@ static _mali_osk_errcode_t fill_page(mali_io_address mapping, u32 data)
 
 	for(i = 0; i < MALI_MMU_PAGE_SIZE/4; i++)
 	{
-		_mali_osk_mem_iowrite32( mapping, i * sizeof(u32), data);
+		_mali_osk_mem_iowrite32_relaxed( mapping, i * sizeof(u32), data);
 	}
+	_mali_osk_mem_barrier();
 	MALI_SUCCESS;
 }
 
@@ -2100,7 +2102,14 @@ _mali_osk_errcode_t mali_mmu_get_table_page(u32 *table_page, mali_io_address *ma
 
 		_mali_osk_set_nonatomic_bit(0, alloc->usage_map);
 
-		_mali_osk_list_add(&alloc->list, &page_table_cache.partial);
+		if (alloc->num_pages > 1)
+		{
+			_mali_osk_list_add(&alloc->list, &page_table_cache.partial);
+		}
+		else
+		{
+			_mali_osk_list_add(&alloc->list, &page_table_cache.full);
+		}
 
     	_mali_osk_lock_signal(page_table_cache.lock, _MALI_OSK_LOCKMODE_RW);
 		*table_page = alloc->pages.phys_base; /* return the first page */
@@ -2160,8 +2169,21 @@ void mali_mmu_release_table_page(u32 pa)
 
 			_mali_osk_memset((void*)( ((u32)alloc->pages.mapping) + (pa - start) ), 0, MALI_MMU_PAGE_SIZE);
 
-			/* transfer to partial list */
-			_mali_osk_list_move(&alloc->list, &page_table_cache.partial);
+
+			if (0 == alloc->usage_count)
+			{
+				/* empty, release whole page alloc */
+				_mali_osk_list_del(&alloc->list);
+				alloc->pages.release(&alloc->pages);
+				_mali_osk_free(alloc->usage_map);
+				_mali_osk_free(alloc);
+			}
+			else
+			{
+				/* transfer to partial list */
+				_mali_osk_list_move(&alloc->list, &page_table_cache.partial);
+			}
+			
            	_mali_osk_lock_signal(page_table_cache.lock, _MALI_OSK_LOCKMODE_RW);
         	MALI_DEBUG_PRINT(4, ("(full list)Released table page 0x%08X to the cache\n", pa));
 			return;
@@ -2662,8 +2684,9 @@ static _mali_osk_errcode_t mali_address_manager_map(mali_memory_allocation * des
 	for ( ; mali_address < mali_address_end; mali_address += MALI_MMU_PAGE_SIZE, current_phys_addr += MALI_MMU_PAGE_SIZE)
 	{
         MALI_DEBUG_ASSERT_POINTER(session_data->page_entries_mapped[MALI_MMU_PDE_ENTRY(mali_address)]);
-		_mali_osk_mem_iowrite32(session_data->page_entries_mapped[MALI_MMU_PDE_ENTRY(mali_address)], MALI_MMU_PTE_ENTRY(mali_address) * sizeof(u32), current_phys_addr | MALI_MMU_FLAGS_WRITE_PERMISSION | MALI_MMU_FLAGS_READ_PERMISSION | MALI_MMU_FLAGS_PRESENT);
+		_mali_osk_mem_iowrite32_relaxed(session_data->page_entries_mapped[MALI_MMU_PDE_ENTRY(mali_address)], MALI_MMU_PTE_ENTRY(mali_address) * sizeof(u32), current_phys_addr | MALI_MMU_FLAGS_WRITE_PERMISSION | MALI_MMU_FLAGS_READ_PERMISSION | MALI_MMU_FLAGS_PRESENT);
 	}
+	_mali_osk_write_mem_barrier();
 
 #if defined USING_MALI400_L2_CACHE
 	if (1 == has_active_mmus)

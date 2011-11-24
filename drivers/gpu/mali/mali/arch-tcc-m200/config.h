@@ -45,7 +45,6 @@ static _mali_osk_resource_t arch_configuration [] =
 		.irq = _IRQ_3DGP_,
 		.mmu_id = 1
 	},
-#if USING_MMU
 	{
 		.type = MMU,
 #if defined(CONFIG_ARCH_TCC92XX) || defined(CONFIG_ARCH_TCC88XX)
@@ -57,7 +56,6 @@ static _mali_osk_resource_t arch_configuration [] =
 		.description = "Mali MMU",
 		.mmu_id = 1
 	},
-#endif /* USING_MMU */
 	{
 		.type = MALI200,
 #if defined(CONFIG_ARCH_TCC92XX) || defined(CONFIG_ARCH_TCC88XX)

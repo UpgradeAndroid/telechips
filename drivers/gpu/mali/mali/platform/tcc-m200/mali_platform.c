@@ -29,7 +29,7 @@ typedef enum	{
 } t_mali_clk_type;
 static t_mali_clk_type mali_clk_enable = MALI_CLK_NONE;
 
-_mali_osk_errcode_t mali_platform_init(_mali_osk_resource_t *resource)
+_mali_osk_errcode_t mali_platform_init(void)
 {
 	if(mali_clk_enable != MALI_CLK_ENABLED)
 	{
@@ -44,7 +44,7 @@ _mali_osk_errcode_t mali_platform_init(_mali_osk_resource_t *resource)
     MALI_SUCCESS;
 }
 
-_mali_osk_errcode_t mali_platform_deinit(_mali_osk_resource_type_t *type)
+_mali_osk_errcode_t mali_platform_deinit(void)
 {
 	if(mali_clk_enable == MALI_CLK_ENABLED)
 	{
@@ -88,4 +88,17 @@ _mali_osk_errcode_t mali_platform_powerup(u32 cores)
 
 	}
     MALI_SUCCESS;
+}
+
+_mali_osk_errcode_t mali_platform_power_mode_change(mali_power_mode power_mode)
+{
+    MALI_SUCCESS;
+}
+
+void mali_gpu_utilization_handler(u32 utilization)
+{
+}
+
+void set_mali_parent_power_domain(void* dev)
+{
 }
