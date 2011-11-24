@@ -1098,7 +1098,8 @@ void pcd_remove(struct platform_device *_dev)
  *
  * @param driver The driver being registered
  */
-int usb_gadget_register_driver(struct usb_gadget_driver *driver)
+int usb_gadget_probe_driver(struct usb_gadget_driver *driver,
+			       int (*bind)(struct usb_gadget *))
 {
 	int retval;
 
@@ -1106,7 +1107,7 @@ int usb_gadget_register_driver(struct usb_gadget_driver *driver)
 		    driver->driver.name);
 
 	if (!driver || driver->speed == USB_SPEED_UNKNOWN ||
-	    !driver->bind ||
+	    !bind ||
 	    !driver->disconnect || !driver->setup) {
 		DWC_DEBUGPL(DBG_PCDV, "EINVAL\n");
 		return -EINVAL;
@@ -1125,7 +1126,7 @@ int usb_gadget_register_driver(struct usb_gadget_driver *driver)
 	gadget_wrapper->gadget.dev.driver = &driver->driver;
 
 	DWC_DEBUGPL(DBG_PCD, "bind to driver %s\n", driver->driver.name);
-	retval = driver->bind(&gadget_wrapper->gadget);
+	retval = bind(&gadget_wrapper->gadget);
 	if (retval) {
 		DWC_ERROR("bind to driver %s --> error %d\n",
 			  driver->driver.name, retval);
@@ -1138,7 +1139,7 @@ int usb_gadget_register_driver(struct usb_gadget_driver *driver)
 	return 0;
 }
 
-EXPORT_SYMBOL(usb_gadget_register_driver);
+EXPORT_SYMBOL(usb_gadget_probe_driver);
 
 /**
  * This function unregisters a gadget driver

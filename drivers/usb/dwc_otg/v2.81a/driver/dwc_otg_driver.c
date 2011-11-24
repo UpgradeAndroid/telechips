@@ -1419,7 +1419,7 @@ static int dwc_otg_driver_probe(struct platform_device *_dev)
 	}
 #endif
 
-	init_MUTEX(&dwc_otg_device->vbus_usb_task_lock);
+	sema_init(&dwc_otg_device->vbus_usb_task_lock, 1);
 	dwc_otg_device->vbus_usb_task = kthread_create(tcc_usb_thread, dwc_otg_device, "tcc-usb-thread");
 	if (IS_ERR(dwc_otg_device->vbus_usb_task)) {
 		printk("\nPTR ERR %p", dwc_otg_device->vbus_usb_task);

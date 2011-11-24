@@ -594,6 +594,22 @@ config USB_CI13XXX_MSM
 	default USB_GADGET
 	select USB_GADGET_SELECTED
 
+config USB_GADGET_OTG_TCC
+	boolean "Telechips USB OTG Device Controller"
+	depends on ARCH_TCC92XX || ARCH_TCC93XX || ARCH_TCC88XX
+	select USB_GADGET_SELECTED
+	select USB_GADGET_DUALSPEED
+	select USB_OTG_UTILS
+	help
+	  Telechips USB OTG device controller driver which supports
+	  both full and high speed USB (USB2.0, Dual-speed).
+
+config USB_OTG_TCC
+	tristate
+	depends on USB_GADGET_OTG_TCC
+	default USB_GADGET
+	select USB_GADGET_SELECTED
+
 #
 # LAST -- dummy/emulated controller
 #
