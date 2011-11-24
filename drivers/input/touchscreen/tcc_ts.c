@@ -288,6 +288,7 @@ static inline void tcc_pen_release(struct tcc_ts* ts_data, struct input_dev *dev
 
 		preempt_disable();
 		input_report_key(dev, BTN_TOUCH, PEN_RELEASE);
+		input_report_abs(dev, ABS_PRESSURE, 0);
 		input_sync(dev);
 		preempt_enable();
 		/* wake_up_interruptible(&ts->wait_q); */
@@ -310,6 +311,7 @@ static inline void tcc_pen_pressure(struct tcc_ts* ts_data, struct input_dev *de
 	input_report_key(dev, BTN_TOUCH, PEN_DOWN);
 	input_report_abs(dev, ABS_X, ts_data->x);
 	input_report_abs(dev, ABS_Y, ts_data->y);
+	input_report_abs(dev, ABS_PRESSURE, 1);
 	input_sync(dev);
 	preempt_enable();
 
