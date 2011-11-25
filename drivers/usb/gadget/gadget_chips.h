@@ -160,6 +160,12 @@
 #define	gadget_is_renesas_usbhs(g) 0
 #endif
 
+#ifdef CONFIG_USB_GADGET_OTG_TCC
+#define gadget_is_dwc_otg_pcd(g)	(!strcmp("dwc_otg_pcd", (g)->name))
+#else
+#define gadget_is_dwc_otg_pcd(g)	0
+#endif
+
 /**
  * usb_gadget_controller_number - support bcdDevice id convention
  * @gadget: the controller being driven
@@ -223,6 +229,8 @@ static inline int usb_gadget_controller_number(struct usb_gadget *gadget)
 		return 0x29;
 	else if (gadget_is_s3c_hsudc(gadget))
 		return 0x30;
+	else if (gadget_is_dwc_otg_pcd(gadget))
+		return 0x31;
 
 	return -ENOENT;
 }
