@@ -1551,7 +1551,7 @@ void tcc_component_clock_onoff(char OnOff)
 /*****************************************************************************
  Function Name : tcc_component_ioctl()
 ******************************************************************************/
-static int tcc_component_ioctl(struct inode *inode, struct file *file, unsigned int cmd, void *arg)
+static long tcc_component_ioctl(struct file *file, unsigned int cmd, void *arg)
 {
 	TCC_COMPONENT_START_TYPE start;
 	TCC_COMPONENT_MODE_TYPE type;

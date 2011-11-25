@@ -322,8 +322,7 @@ static ssize_t tcc_msensor_read(struct file *file, char __user *user, size_t siz
 	return 0;
 }
 
-static int tcc_msensor_ioctl(struct inode *inode, struct file *filp, 
-						unsigned int cmd, void *arg)
+static long tcc_msensor_ioctl(struct file *filp, unsigned int cmd, void *arg)
 {
        int ret = 0;
 

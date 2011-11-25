@@ -223,7 +223,7 @@ static void sensor_fetch_thread(struct work_struct *work)
 	sensor_timer_registertimer( sensor_timer, sensor_duration );
 }
 
-static int tcc_sensor_ioctl(struct inode *inode, struct file *filp, 
+static long tcc_sensor_ioctl(struct file *filp, 
 							unsigned int cmd, void *arg)
 {
 	if (!sensor_used_count)

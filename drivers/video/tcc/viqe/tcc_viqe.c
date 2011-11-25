@@ -386,7 +386,7 @@ static int tcc_viqe_deinitialize_wrapper(tcc_viqe_t *arg)
 	return 0;
 }
 
-static int tcc_viqe_ioctl(struct inode *inode, struct file *filp, unsigned int cmd, unsigned long arg)
+static long tcc_viqe_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	int ret = 0;
 

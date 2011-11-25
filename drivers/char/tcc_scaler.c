@@ -529,7 +529,7 @@ static irqreturn_t tccxxx_scaler_handler(int irq, void *client_data/*, struct pt
 	return IRQ_HANDLED;
 }
 		
-int tccxxx_scaler_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long arg)
+long tccxxx_scaler_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	int ret = 0;
 	SCALER_TYPE scaler_v;

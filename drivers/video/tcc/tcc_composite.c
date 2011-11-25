@@ -1323,7 +1323,7 @@ void tcc_composite_clock_onoff(char OnOff)
 /*****************************************************************************
  Function Name : tcc_composite_ioctl()
 ******************************************************************************/
-static int tcc_composite_ioctl(struct inode *inode, struct file *file, unsigned int cmd, void *arg)
+static long tcc_composite_ioctl(struct file *file, unsigned int cmd, void *arg)
 {
 	TCC_COMPOSITE_START_TYPE start;
 	TCC_COMPOSITE_MODE_TYPE type;

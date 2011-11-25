@@ -306,7 +306,7 @@ static int tccxxx_ccfb_disp_update(ccfb_dev_config_t *dev, unsigned int* arg)
 	return 0;
 }
 
-static int tccxxx_ccfb_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long arg)
+static long tccxxx_ccfb_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	int ret = -EPERM;
 	ccfb_dev_config_t	*dev = get_ccfb_dev();
