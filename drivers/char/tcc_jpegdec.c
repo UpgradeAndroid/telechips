@@ -551,7 +551,7 @@ static int tcc_jpegdec_mmap(struct file *file, struct vm_area_struct *vma)
 	return 0;
 }
 
-static int tcc_jpegdec_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long arg)
+static long tcc_jpegdec_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	int_data_t *jpg_data = (int_data_t *)file->private_data;
 	int wait_ms = 10000;	

@@ -118,7 +118,7 @@ unsigned int tca_keypad_getscancode(void)
 	int adc_ch = 0;	// Keypad-> ADC0
 	volatile PTSADC pTSADC = (volatile PTSADC)tcc_p2v(HwTSADC_BASE);
 
-#if CONFIG_ARCH_TCC892X
+#if defined(CONFIG_ARCH_TCC892X)
 	pTSADC->ADCCON.nREG |= Hw2|adc_ch<<3;
 	pTSADC->ADCCON.bREG.STBY = 0;
 	pTSADC->ADCCON.bREG.EN_ST = 1;

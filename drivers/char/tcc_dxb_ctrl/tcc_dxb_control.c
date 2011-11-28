@@ -29,7 +29,7 @@
 
 static struct device *pdev_dxb = NULL;
 
-static int tcc_dxb_ctrl_ioctl(struct inode *inode, struct file *filp, 
+static long tcc_dxb_ctrl_ioctl(struct file *filp, 
 							unsigned int cmd, unsigned long arg)
 {
 	int ret;

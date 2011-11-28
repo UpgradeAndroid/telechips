@@ -540,7 +540,7 @@ static int tccxxx_overlay1_set_chroma(overlay_chroma_t* arg)
 
 
 static int overlay1_forbid;
-static int tccxxx_overlay1_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long arg)
+static long tccxxx_overlay1_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	int intArg;
 

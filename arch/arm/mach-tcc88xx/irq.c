@@ -577,16 +577,16 @@ void __init tcc_init_irq(void)
 	{
 		if (irqno == INT_UART) {
             irq_set_chip(INT_UART, &tcc8800_irq_uart_chip);
-			irq_set_handler(INT_UART, tcc8800_irq_uart_handler);
+			irq_set_chained_handler(INT_UART, tcc8800_irq_uart_handler);
 		} else if (irqno == INT_GPSB) {
 			irq_set_chip(INT_GPSB, &tcc8800_irq_gpsb_chip);
-			irq_set_handler(INT_GPSB, tcc8800_irq_gpsb_handler);
+			irq_set_chained_handler(INT_GPSB, tcc8800_irq_gpsb_handler);
 		} else if (irqno == INT_GDMA) {
 			irq_set_chip(INT_GDMA, &tcc8800_irq_dma_chip);
-			irq_set_handler(INT_GDMA, tcc8800_irq_dma_handler);
+			irq_set_chained_handler(INT_GDMA, tcc8800_irq_dma_handler);
 		} else if (irqno == INT_TC0) {
 			irq_set_chip(INT_TC0, &tcc8800_irq_tc0_chip);
-			irq_set_handler(INT_TC0, tcc8800_irq_tc0_handler);
+			irq_set_chained_handler(INT_TC0, tcc8800_irq_tc0_handler);
 		} else {
 			irq_set_chip(irqno, &tcc8800_irq_chip);
 			irq_set_handler(irqno, handle_level_irq);

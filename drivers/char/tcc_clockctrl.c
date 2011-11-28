@@ -62,7 +62,7 @@ extern struct tcc_freq_table_t gtUSBClockLimitTable[];
 extern struct tcc_freq_table_t gtJpegMaxClockLimitTable;
 extern struct tcc_freq_table_t gtVoipClockLimitTable[];
 
-static int tcc_clockctrl_ioctl(struct inode *inode, struct file *filp, unsigned int cmd, unsigned long arg)
+static long tcc_clockctrl_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	dbg("%s:\n", __func__);
 

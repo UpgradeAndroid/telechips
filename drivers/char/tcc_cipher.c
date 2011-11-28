@@ -796,7 +796,7 @@ static int tcc_cipher_write(struct file *filp, unsigned int *buf, size_t count, 
 	return 0;
 }
 
-static int tcc_cipher_ioctl(struct inode *inode, struct file *file, unsigned int cmd, void *arg)
+static long tcc_cipher_ioctl(struct file *file, unsigned int cmd, void *arg)
 {
 	dprintk("%s, cmd=%d\n", __func__, cmd);
 	

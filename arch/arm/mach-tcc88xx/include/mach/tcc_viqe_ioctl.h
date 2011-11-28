@@ -11,5 +11,5 @@
 * structures
 *
 ******************************************************************************/
-static int tcc_viqe_ioctl(struct inode *inode, struct file *filp, unsigned int cmd, unsigned long arg);
+static long tcc_viqe_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
 

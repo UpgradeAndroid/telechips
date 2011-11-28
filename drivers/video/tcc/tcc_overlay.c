@@ -688,7 +688,7 @@ static int tccxxx_overlay_set_configure(overlay_config_t* arg)
 }
 
 static int overlay_forbid;
-static int tccxxx_overlay_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long arg)
+static long tccxxx_overlay_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	int intArg;
 
