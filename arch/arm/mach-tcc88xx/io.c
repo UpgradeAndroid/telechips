@@ -122,7 +122,7 @@ void __init tcc_reserve_sdram(void)
 	}
 #else
 	if (pmap_get_info("total", &pmap)) {
-		if (memblock_reserve(pmap.base, pmap.size) == 0) {
+		if (memblock_remove(pmap.base, pmap.size) == 0) {
 			printk(KERN_INFO "Total reserved memory: base=0x%x, size=0x%x\n", pmap.base, pmap.size);
 		} else {
 			printk(KERN_ERR "Can't reserve memory (base=0x%x, size=0x%x)\n", pmap.base, pmap.size);
