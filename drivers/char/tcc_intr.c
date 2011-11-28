@@ -267,8 +267,7 @@ static unsigned int intr_poll(struct file *filp, poll_table *wait)
 	}
 }
 
-static int intr_ioctl(struct inode *inode, struct file *filp, 
-							unsigned int cmd, unsigned long arg)
+static int intr_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	unsigned long data;
 	tcc_intr_data_t *tcc_intr = (tcc_intr_data_t *)filp->private_data;
@@ -462,7 +461,7 @@ struct file_operations intr_vc_fops =
 {
 	.owner		= THIS_MODULE,
 	.poll		= intr_poll,
-	.ioctl		= intr_ioctl,
+	.ulocked_ioctl		= intr_ioctl,
 	.open		= intr_vc_open,
 	.release	= intr_release,
 };
@@ -471,7 +470,7 @@ struct file_operations intr_sc_fops =
 {
 	.owner		= THIS_MODULE,
 	.poll		= intr_poll,
-	.ioctl		= intr_ioctl,
+	.ulocked_ioctl		= intr_ioctl,
 	.open		= intr_sc_open,
 	.release	= intr_release,
 };
@@ -480,7 +479,7 @@ struct file_operations intr_bc_fops =
 {
 	.owner		= THIS_MODULE,
 	.poll		= intr_poll,
-	.ioctl		= intr_ioctl,
+	.ulocked_ioctl		= intr_ioctl,
 	.open		= intr_bc_open,
 	.release	= intr_release,
 };
@@ -488,7 +487,7 @@ struct file_operations intr_bc_fops =
 struct file_operations intr_test_fops =
 {
 	.owner		= THIS_MODULE,
-	.ioctl		= intr_test_ioctl,
+	.ulocked_ioctl		= intr_test_ioctl,
 };
 
 static int tcc_intr_open(struct inode *inode, struct file *filp)

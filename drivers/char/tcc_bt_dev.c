@@ -297,30 +297,30 @@ static int tcc_bt_get_info(tcc_bt_info_t* arg)
 }
 
 
-int tcc_bt_dev_ioctl(struct inode *inode, struct file *file,
+int tcc_bt_dev_ioctl(struct file *file,
                  unsigned int cmd, void *arg)
 {
     int *parm1;
     
     memset(&parm1, 0, sizeof(int));
-	printk("[## BT ##] tcc_bt_dev_ioctl cmd[%d] arg[%d]\n", cmd, arg);
+	printk("[## BT ##] tcc_bt_dev_ioctl cmd[%x] arg[%x]\n", cmd, arg);
 	
     switch(cmd)
     {
 	    case IOCTL_BT_DEV_POWER:			
     		parm1 = (int*)arg;
-    		printk("[## BT ##] IOCTL_BT_DEV_POWER cmd[%d] parm1[%d]\n", cmd, *parm1);
+    		printk("[## BT ##] IOCTL_BT_DEV_POWER cmd[%x] parm1[%x]\n", cmd, *parm1);
 			tcc_bt_power_control(*parm1);
 	        // GPIO Control
 	        break;
 	        
 		case IOCTL_BT_DEV_SPECIFIC:
-			printk("[## BT ##] IOCTL_BT_DEV_SPECIFIC cmd[%d]\n", cmd);
+			printk("[## BT ##] IOCTL_BT_DEV_SPECIFIC cmd[%x]\n", cmd);
 			tcc_bt_get_info((tcc_bt_info_t*)arg);
 			break;
         
 	    default :
-    		printk("[## BT ##] tcc_bt_dev_ioctl cmd[%d]\n", cmd);
+    		printk("[## BT ##] tcc_bt_dev_ioctl cmd[%x]\n", cmd);
 	        break;
     }
 
@@ -329,7 +329,7 @@ int tcc_bt_dev_ioctl(struct inode *inode, struct file *file,
 
 struct file_operations tcc_bt_dev_ops = {
     .owner      = THIS_MODULE,
-    .ioctl      = tcc_bt_dev_ioctl,
+    .unlocked_ioctl      = tcc_bt_dev_ioctl,
     .open       = tcc_bt_dev_open,
     .release    = tcc_bt_dev_release,
 };
