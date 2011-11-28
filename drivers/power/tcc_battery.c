@@ -1102,7 +1102,7 @@ static int tcc_battery_probe(struct platform_device *pdev)
 	}
 
 
-	usb_register_notifier(&usb_status_notifier);
+//	usb_register_notifier(&usb_status_notifier);
 	/* create tcc detail attributes */
 	tcc_battery_create_attrs(tcc_power_supplies[CHARGER_BATTERY].dev);
 
@@ -1284,7 +1284,7 @@ static void __exit tcc_battery_exit(void)
 	clk_put(tcc_batt_info.clk);
 
 	platform_driver_unregister(&tcc_battery_driver);
-	usb_unregister_notify(&usb_status_notifier);
+//	usb_unregister_notify(&usb_status_notifier);
 }
 
 module_init(tcc_battery_init);
