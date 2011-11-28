@@ -670,5 +670,8 @@ extern struct rw_semaphore ehci_cf_port_reset_rwsem;
 extern unsigned long usb_hcds_loaded;
 
 #endif /* __KERNEL__ */
+/* Host product descriptor for TCC */
+#define EHCI_PRODUCT_DESC       "Telechips EHCI HS"
+#define OHCI_PRODUCT_DESC       "TCC OHCI"
 
 #endif /* __USB_CORE_HCD_H */

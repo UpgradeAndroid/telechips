@@ -125,6 +125,11 @@ config XPS_USB_HCD_XILINX
 		transaction translator built-in. It can be configured to either
 		support both high speed and full speed devices, or high speed
 		devices only.
+config USB_EHCI_TCC
+	bool "Support for Telechips on-chip EHCI USB controller"
+	depends on USB_EHCI_HCD && ARCH_TCC88XX
+	---help---
+	  Enables support for the USB controller on the Telechips TCC880x chip.
 
 config USB_FSL_MPH_DR_OF
 	tristate

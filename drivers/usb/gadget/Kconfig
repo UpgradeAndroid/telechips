@@ -15,6 +15,7 @@
 
 menuconfig USB_GADGET
 	tristate "USB Gadget Support"
+	depends on TCC_DWC_OTG_DUAL_ROLE || TCC_DWC_OTG_DEVICE_ONLY 
 	help
 	   USB is a master/slave protocol, organized with one master
 	   host (such as a PC) controlling up to 127 peripheral devices.
@@ -599,7 +600,7 @@ config USB_GADGET_OTG_TCC
 	depends on ARCH_TCC92XX || ARCH_TCC93XX || ARCH_TCC88XX
 	select USB_GADGET_SELECTED
 	select USB_GADGET_DUALSPEED
-	select USB_OTG_UTILS
+#select USB_OTG_UTILS
 	help
 	  Telechips USB OTG device controller driver which supports
 	  both full and high speed USB (USB2.0, Dual-speed).
@@ -608,7 +609,6 @@ config USB_OTG_TCC
 	tristate
 	depends on USB_GADGET_OTG_TCC
 	default USB_GADGET
-	select USB_GADGET_SELECTED
 
 #
 # LAST -- dummy/emulated controller
@@ -958,6 +958,52 @@ config USB_G_ANDROID
 	  The Android gadget driver supports multiple USB functions.
 	  The functions can be configured via a board file and may be
 	  enabled and disabled dynamically.
+config USB_G_ANDROID_ACM
+	boolean "Android gadget ACM serial function"
+	depends on USB_G_ANDROID
+	help
+	  Provides ACM serial function for android gadget driver.
+
+config USB_G_ANDROID_ADB
+	boolean "Android gadget adb function"
+	depends on USB_G_ANDROID
+	help
+	  Provides adb function for android gadget driver.
+
+config USB_G_ANDROID_MASS_STORAGE
+	boolean "Android gadget mass storage function"
+	depends on USB_G_ANDROID && SWITCH
+	help
+	  Provides USB mass storage function for android gadget driver.
+
+config USB_G_ANDROID_MTP
+	boolean "Android MTP function"
+	depends on USB_G_ANDROID
+	help
+	  Provides Media Transfer Protocol (MTP) support for android gadget driver.
+
+config USB_G_ANDROID_RNDIS
+	boolean "Android gadget RNDIS ethernet function"
+	depends on USB_G_ANDROID
+	help
+	  Provides RNDIS ethernet function for android gadget driver.
+
+config USB_G_ANDROID_RNDIS_WCEIS
+        boolean "Use Windows Internet Sharing Class/SubClass/Protocol"
+        depends on USB_G_ANDROID_RNDIS
+        help
+         Causes the driver to look like a Windows-compatible Internet
+         Sharing device, so Windows auto-detects it.
+
+         If you enable this option, the device is no longer CDC ethernet
+         compatible.
+
+
+config USB_G_ANDROID_ACCESSORY
+	boolean "Android USB accessory function"
+	depends on USB_G_ANDROID
+	help
+	  Provides Android USB Accessory support for android gadget driver.
 
 config USB_CDC_COMPOSITE
 	tristate "CDC Composite Device (Ethernet and ACM)"
