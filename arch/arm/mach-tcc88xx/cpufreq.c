@@ -869,7 +869,7 @@ static int tcc_cpufreq_resume(struct cpufreq_policy *policy)
 
 static int __init tcc_cpufreq_init(struct cpufreq_policy *policy)
 {
-	int i;
+	int ret, i;
 
 printk("%s() \n", __func__);
 
@@ -920,13 +920,20 @@ printk("%s() \n", __func__);
 	}
 	tcc_cpufreq_table[i].frequency = CPUFREQ_TABLE_END;
 
-	policy->cur = policy->min = policy->max = clk_get_rate(cpu_clk);
+	policy->cur = policy->min = policy->max = clk_get_rate(cpu_clk)/1000;
 	policy->cpuinfo.min_freq = tcc_cpufreq_table[0].frequency;
 	policy->cpuinfo.max_freq = tcc_cpufreq_table[i - 1].frequency;
 	policy->cpuinfo.transition_latency = 
 		TCC_TRANSITION_LATENCY * NSEC_PER_USEC;
 
-	cpufreq_frequency_table_cpuinfo(policy, tcc_cpufreq_table);
+	ret = cpufreq_frequency_table_cpuinfo(policy, tcc_cpufreq_table);
+
+	if (ret < 0) {
+		printk(KERN_ERR "%s: failed to register TCC880x CPUfreq with error code %d\n",
+		       __func__, ret);
+		goto err;
+	}
+	cpufreq_frequency_table_get_attr(tcc_cpufreq_table, policy->cpu);
 
 #if defined(CONFIG_CPU_HIGHSPEED)
     init_timer(&timer_highspeed);
@@ -960,6 +967,8 @@ printk("%s() \n", __func__);
 
 	printk(KERN_INFO "TCC cpufreq driver initialized\n");
 	return 0;
+err:
+	return ret;
 }
 
 static struct cpufreq_driver tcc_cpufreq_driver = {
