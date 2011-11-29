@@ -186,19 +186,11 @@ volatile void tca_alarm_settime(unsigned int devbaseaddresss, rtctime *pTime)
 	if(machine_is_tcc8800() || machine_is_m801_88() || machine_is_m803())
 	{
 		#ifdef CONFIG_ARCH_TCC88XX
-		if (tcc88xx_chip_rev() == TCC88XX_REV0) { // rev. 0X
-			#if defined(TCC_PM_SLEEP_WFI_USED)
-			BITSET(pRTC->RTCIM, Hw2|Hw1|Hw0);	//INTMODE : NormalMode / ActiveHigh / LevelTrigger
-			#else
-			BITSET(pRTC->RTCIM, Hw3|Hw2|Hw1|Hw0);	//INTMODE : PowerDownMode / ActiveHigh / LevelTrigger
-			#endif
-		}else{ // rev. AX
 			#if defined(CONFIG_SLEEP_MODE) && defined(TCC_PM_SLEEP_WFI_USED)
 			BITSET(pRTC->RTCIM, Hw2|Hw1|Hw0);	//INTMODE : NormalMode / ActiveHigh / LevelTrigger
 			#else
 			BITSET(pRTC->RTCIM, Hw3|Hw2|Hw1|Hw0);	//INTMODE : PowerDownMode / ActiveHigh / LevelTrigger
 			#endif
-		}
 		#else
 			BITSET(pRTC->RTCIM, Hw3|Hw2|Hw1|Hw0);	//INTMODE : PowerDownMode / ActiveHigh / LevelTrigger
 		#endif

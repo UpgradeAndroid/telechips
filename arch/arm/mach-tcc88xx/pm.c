@@ -379,8 +379,7 @@ static void port_arrange(void)
 	}
 
 #ifdef CONFIG_SHUTDOWN_MODE
-	if (tcc88xx_chip_rev() == TCC88XX_REV1)// rev. AX
-		*((volatile unsigned long *)0xF0308084) &= ~Hw28;		//GPIO_C28, input mode [RTC_PMWKUP]
+	*((volatile unsigned long *)0xF0308084) &= ~Hw28;		//GPIO_C28, input mode [RTC_PMWKUP]
 #endif
 }
 #endif //#ifdef PORT_ARRANGE_USED
@@ -1033,25 +1032,13 @@ static void shutdown(void)
 	//*(volatile unsigned long *)addr(0x404000) |= (1<<4); //L2 Cache retention
 
 	//BUS Power Off
-	//Bruce, The chip ID should be read physical address.
-	//if (tcc88xx_chip_rev() == TCC88XX_REV0){
-	if(*(volatile unsigned long*)0x3000008C == TCC88XX_REV0){
-		*(volatile unsigned long *)addr(0x404018) &= ~(Hw6|Hw12|Hw15|Hw18|Hw21|Hw24); //pre-off : 0
-		*(volatile unsigned long *)addr(0x404018) &= ~(Hw7|Hw13|Hw16|Hw19|Hw22|Hw25); //off : 0
-		*(volatile unsigned long *)addr(0x404018) |= (Hw5|Hw11|Hw14|Hw17|Hw20|Hw23); //iso : 1
-		for (nCount = 1000; nCount > 0; nCount --);	// Wait
-		*(volatile unsigned long *)addr(0x400044) = ~(*(volatile unsigned long *)addr(0x400044)) | (Hw1|Hw3|Hw5|Hw6|Hw8|Hw9); //reset off
-		*(volatile unsigned long *)addr(0x305008) &= ~(Hw4|Hw5); //Memory Bus Config . SW Reset
-		*(volatile unsigned long *)addr(0x404018) &= ~(Hw0|Hw1|Hw2|Hw3|Hw4|Hw26|Hw29|Hw30); //ip power-off
-	}else{
-		*(volatile unsigned long *)addr(0x404018) &= ~(Hw0|Hw1|Hw2|Hw3|Hw4|Hw26|Hw29|Hw30); //ip power-off
-		*(volatile unsigned long *)addr(0x400044) = ~(*(volatile unsigned long *)addr(0x400044)) & ~(Hw1|Hw3|Hw5|Hw6|Hw8|Hw9); //reset on
-		*(volatile unsigned long *)addr(0x305008) |= (Hw4|Hw5); //Memory Bus Config . SW Reset
-		for (nCount = 1000; nCount > 0; nCount --);	// Wait
-		*(volatile unsigned long *)addr(0x404018) &= ~(Hw5|Hw11|Hw14|Hw17|Hw20|Hw23); //iso : 0
-		*(volatile unsigned long *)addr(0x404018) |= (Hw6|Hw12|Hw15|Hw18|Hw21|Hw24); //pre-off : 1
-		*(volatile unsigned long *)addr(0x404018) |= (Hw7|Hw13|Hw16|Hw19|Hw22|Hw25); //off : 1
-	}
+	*(volatile unsigned long *)addr(0x404018) &= ~(Hw0|Hw1|Hw2|Hw3|Hw4|Hw26|Hw29|Hw30); //ip power-off
+	*(volatile unsigned long *)addr(0x400044) = ~(*(volatile unsigned long *)addr(0x400044)) & ~(Hw1|Hw3|Hw5|Hw6|Hw8|Hw9); //reset on
+	*(volatile unsigned long *)addr(0x305008) |= (Hw4|Hw5); //Memory Bus Config . SW Reset
+	for (nCount = 1000; nCount > 0; nCount --);	// Wait
+	*(volatile unsigned long *)addr(0x404018) &= ~(Hw5|Hw11|Hw14|Hw17|Hw20|Hw23); //iso : 0
+	*(volatile unsigned long *)addr(0x404018) |= (Hw6|Hw12|Hw15|Hw18|Hw21|Hw24); //pre-off : 1
+	*(volatile unsigned long *)addr(0x404018) |= (Hw7|Hw13|Hw16|Hw19|Hw22|Hw25); //off : 1
 
 	*(volatile unsigned long *)addr(0x404050) |= Hw20; // CONTROL.MEM_PDN : IRAM Powerdown.!!
 
@@ -1306,13 +1293,8 @@ static void shutdown_mode(void)
 		ckc->PLL0CFG = pReg->ckc.PLL0CFG;
 		ckc->PLL1CFG = pReg->ckc.PLL1CFG;
 		ckc->PLL2CFG = pReg->ckc.PLL2CFG;
-		if (tcc88xx_chip_rev() == TCC88XX_REV0) {
-			//ckc->PLL3CFG = pReg->ckc.PLL3CFG; //PLL3 is used as Memory Bus Clock
-			ckc->PLL4CFG = pReg->ckc.PLL4CFG;
-		} else {
-			ckc->PLL3CFG = pReg->ckc.PLL3CFG;
-			//ckc->PLL4CFG = pReg->ckc.PLL4CFG; //PLL4 is used as Memory Bus Clock
-		}
+		ckc->PLL3CFG = pReg->ckc.PLL3CFG;
+		//ckc->PLL4CFG = pReg->ckc.PLL4CFG; //PLL4 is used as Memory Bus Clock
 		//ckc->PLL5CFG = pReg->ckc.PLL5CFG;
 		nCount = 1000; while(nCount--) NopDelay30();
 
@@ -1793,13 +1775,8 @@ static void sleep_mode(void)
 		ckc->PLL0CFG = ckc_backup.PLL0CFG;
 		ckc->PLL1CFG = ckc_backup.PLL1CFG;
 		ckc->PLL2CFG = ckc_backup.PLL2CFG;
-		if (tcc88xx_chip_rev() == TCC88XX_REV0) {
-			//ckc->PLL3CFG = ckc_backup.PLL3CFG; //PLL3 is used as Memory Bus Clock
-			ckc->PLL4CFG = ckc_backup.PLL4CFG;
-		} else {
-			ckc->PLL3CFG = ckc_backup.PLL3CFG;
-			//ckc->PLL4CFG = ckc_backup.PLL4CFG; //PLL4 is used as Memory Bus Clock
-		}
+		ckc->PLL3CFG = ckc_backup.PLL3CFG;
+		//ckc->PLL4CFG = ckc_backup.PLL4CFG; //PLL4 is used as Memory Bus Clock
 		//ckc->PLL5CFG = ckc_backup.PLL5CFG;
 		nCount = 1000; while(nCount--) NopDelay30();
 
@@ -2021,45 +1998,25 @@ static void sdram_init_shutdown(void)
 	*(volatile unsigned long *)addr(0x400054) = 0x81012C03;
 
 	//MEM PLL
-	//Bruce, The chip ID should be read physical address.
-	//if (tcc88xx_chip_rev() == TCC88XX_REV0) {  // PLL3
-	if(*(volatile unsigned long*)0x3000008C == TCC88XX_REV0) {  // PLL3
-		//*(volatile unsigned long *)addr(0x40002C) = 0x41009103; // 290MHz
-		//*(volatile unsigned long *)addr(0x40002C) = 0xC1009103;
-		*(volatile unsigned long *)addr(0x40002C) = 0x4100A003; // 320MHz
-		*(volatile unsigned long *)addr(0x40002C) = 0xC100A003;
-	}
-	else {  // PLL4
-		//*(volatile unsigned long *)addr(0x400050) = 0x02012203; // 290MHz
-		//*(volatile unsigned long *)addr(0x400050) = 0x82012203;
+	//*(volatile unsigned long *)addr(0x400050) = 0x02012203; // 290MHz
+	//*(volatile unsigned long *)addr(0x400050) = 0x82012203;
 #if defined(CONFIG_MACH_TCC8800ST)
-		*(volatile unsigned long *)addr(0x400050) = 0x01019003; // 800MHz
-		*(volatile unsigned long *)addr(0x400050) = 0xC1019003;
+	*(volatile unsigned long *)addr(0x400050) = 0x01019003; // 800MHz
+	*(volatile unsigned long *)addr(0x400050) = 0xC1019003;
 #else
-		*(volatile unsigned long *)addr(0x400050) = 0x02014003; // 320MHz
-		*(volatile unsigned long *)addr(0x400050) = 0x82014003;
+	*(volatile unsigned long *)addr(0x400050) = 0x02014003; // 320MHz
+	*(volatile unsigned long *)addr(0x400050) = 0x82014003;
 #endif
-	}
 
 	for (i = 3000; i > 0; i --);	// Wait
 
 	//cpu bus - PLL5, 600 = 600MHz
 	*(volatile unsigned long *)addr(0x400000) = 0x002ffff9;
 
-	//Bruce, The chip ID should be read physical address.
-	//if (tcc88xx_chip_rev() == TCC88XX_REV0) {
-	if(*(volatile unsigned long*)0x3000008C == TCC88XX_REV0) {  // PLL3
-		//mem bus - PLL3, 290/2 = 145MHz
-		*(volatile unsigned long *)addr(0x400008) = 0x00200013;
-		//io bus - PLL3, 290/2 = 145MHz
-		*(volatile unsigned long *)addr(0x400010) = 0x00200013;
-	}
-	else {
-		//mem bus - PLL4, 290/2 = 145MHz
-		*(volatile unsigned long *)addr(0x400008) = 0x00200018;
-		//io bus - PLL4, 290/2 = 145MHz
-		*(volatile unsigned long *)addr(0x400010) = 0x00200018;
-	}
+	//mem bus - PLL4, 290/2 = 145MHz
+	*(volatile unsigned long *)addr(0x400008) = 0x00200018;
+	//io bus - PLL4, 290/2 = 145MHz
+	*(volatile unsigned long *)addr(0x400010) = 0x00200018;
 	//smu bus
 	*(volatile unsigned long *)addr(0x40001C) = 0x00200039;
 
@@ -2884,40 +2841,24 @@ static void sdram_init_sleep(void)
 	*(volatile unsigned long *)addr(0x400054) = 0x81012C03;
 
 	//MEM PLL
-	if (tcc88xx_chip_rev() == TCC88XX_REV0) {  // PLL3
-		//*(volatile unsigned long *)addr(0x40002C) = 0x41009103; // 290MHz
-		//*(volatile unsigned long *)addr(0x40002C) = 0xC1009103;
-		*(volatile unsigned long *)addr(0x40002C) = 0x4100A003; // 320MHz
-		*(volatile unsigned long *)addr(0x40002C) = 0xC100A003;
-	}
-	else {  // PLL4
-		//*(volatile unsigned long *)addr(0x400050) = 0x02012203; // 290MHz
-		//*(volatile unsigned long *)addr(0x400050) = 0x82012203;
+	//*(volatile unsigned long *)addr(0x400050) = 0x02012203; // 290MHz
+	//*(volatile unsigned long *)addr(0x400050) = 0x82012203;
 #if defined(CONFIG_MACH_TCC8800ST)
-		*(volatile unsigned long *)addr(0x400050) = 0x01019003; // 800MHz
-		*(volatile unsigned long *)addr(0x400050) = 0xC1019003;
+	*(volatile unsigned long *)addr(0x400050) = 0x01019003; // 800MHz
+	*(volatile unsigned long *)addr(0x400050) = 0xC1019003;
 #else
-		*(volatile unsigned long *)addr(0x400050) = 0x02014003; // 320MHz
-		*(volatile unsigned long *)addr(0x400050) = 0x82014003;
+	*(volatile unsigned long *)addr(0x400050) = 0x02014003; // 320MHz
+	*(volatile unsigned long *)addr(0x400050) = 0x82014003;
 #endif /* CONFIG_MACH_TCC8800ST */
-	}
 
 	for (i = 3000; i > 0; i --);	// Wait
 
 	//cpu bus - PLL5, 600 = 600MHz
 	*(volatile unsigned long *)addr(0x400000) = 0x002ffff9;
-	if (tcc88xx_chip_rev() == TCC88XX_REV0) {
-		//mem bus - PLL3, 290/2 = 145MHz
-		*(volatile unsigned long *)addr(0x400008) = 0x00200013;
-		//io bus - PLL3, 290/2 = 145MHz
-		*(volatile unsigned long *)addr(0x400010) = 0x00200013;
-	}
-	else {
-		//mem bus - PLL4, 290/2 = 145MHz
-		*(volatile unsigned long *)addr(0x400008) = 0x00200018;
-		//io bus - PLL4, 290/2 = 145MHz
-		*(volatile unsigned long *)addr(0x400010) = 0x00200018;
-	}
+	//mem bus - PLL4, 290/2 = 145MHz
+	*(volatile unsigned long *)addr(0x400008) = 0x00200018;
+	//io bus - PLL4, 290/2 = 145MHz
+	*(volatile unsigned long *)addr(0x400010) = 0x00200018;
 	//smu bus
 	*(volatile unsigned long *)addr(0x40001C) = 0x00200039;
 
@@ -3788,20 +3729,16 @@ static int tcc_pm_enter(suspend_state_t state)
 #endif
 
 #ifdef TCC_PM_BOTH_SUSPEND_USED
-	if (tcc88xx_chip_rev() == TCC88XX_REV0) { // rev. 0X
-		suspend_mode_flag = 0; // sleep mode
-	}else{ // rev. AX
-		#ifdef CONFIG_SLEEP_MODE
-		suspend_mode_flag = 0; // sleep mode
-		#endif
-		#ifdef CONFIG_SHUTDOWN_MODE
-		suspend_mode_flag = 1; // shutdown mode
+	#ifdef CONFIG_SLEEP_MODE
+	suspend_mode_flag = 0; // sleep mode
+	#endif
+	#ifdef CONFIG_SHUTDOWN_MODE
+	suspend_mode_flag = 1; // shutdown mode
 
-		*((volatile unsigned long *)0xF0308084) &= ~Hw28;		//GPIO_C28, input mode [RTC_PMWKUP]
-		*((volatile unsigned long *)0xF0404004) |= HwPMU_WKUP_GPIOC28;	// Set wake-up source = GPIO_C28
-		*((volatile unsigned long *)0xF0404008) &= ~HwPMU_WKUP_GPIOC28;	// Active High = GPIO_C28
-		#endif
-	}
+	*((volatile unsigned long *)0xF0308084) &= ~Hw28;		//GPIO_C28, input mode [RTC_PMWKUP]
+	*((volatile unsigned long *)0xF0404004) |= HwPMU_WKUP_GPIOC28;	// Set wake-up source = GPIO_C28
+	*((volatile unsigned long *)0xF0404008) &= ~HwPMU_WKUP_GPIOC28;	// Active High = GPIO_C28
+	#endif
 
 	if(suspend_mode_flag == 1)
 #endif

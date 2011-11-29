@@ -354,42 +354,21 @@ static void change_clock(unsigned int type)
 		*(volatile unsigned long *)addr(0x400008)  = 0x00200014;
 
 #if defined(GPU_400MHz_USED) // GPU_400MHz
-		if (tcc88xx_chip_rev() == TCC88XX_REV0) {
-			if (*(volatile unsigned long*)addr(0x40000C) & 0x0020003)
-				*(volatile unsigned long *)addr(0x40000C)  = 0x00200014;
-		}
-		else {
-			if (*(volatile unsigned long*)addr(0x40000C) & 0x0020008)
-				*(volatile unsigned long *)addr(0x40000C)  = 0x00200014;
-		}
+		if (*(volatile unsigned long*)addr(0x40000C) & 0x0020008)
+			*(volatile unsigned long *)addr(0x40000C)  = 0x00200014;
 #endif
 
 		//set pll1 value
-		if (tcc88xx_chip_rev() == TCC88XX_REV0) {  // PLL3
-			*(volatile unsigned long *)addr(0x40002C)  = CKC_CHANGE_ARG(PLL_VALUE); // PLL_PWR_OFF & SET PMS
-			*(volatile unsigned long *)addr(0x40002C) |= 0x80000000;			// PLL_PWR_ON
-		}
-		else {  // PLL4
-			*(volatile unsigned long *)addr(0x400050)  = CKC_CHANGE_ARG(PLL_VALUE); // PLL_PWR_OFF & SET PMS
-			*(volatile unsigned long *)addr(0x400050) |= 0x80000000;			// PLL_PWR_ON
-		}
-
-		if (tcc88xx_chip_rev() != TCC88XX_REV0) {
-			i = 20; while(i--);
-		}
+		*(volatile unsigned long *)addr(0x400050)  = CKC_CHANGE_ARG(PLL_VALUE); // PLL_PWR_OFF & SET PMS
+		*(volatile unsigned long *)addr(0x400050) |= 0x80000000;			// PLL_PWR_ON
+		i = 20; while(i--);
 
 		//*(volatile unsigned long *)addr(0x400008)  = 0x00200013;
 		*(volatile unsigned long *)addr(0x400008) = CKC_CHANGE_ARG(CKC_CTRL_VALUE);
 
 #if defined(GPU_400MHz_USED) // GPU_400MHz
-		if (tcc88xx_chip_rev() == TCC88XX_REV0) {
-			if (*(volatile unsigned long*)addr(0x40000C) & 0x0020004)
-				*(volatile unsigned long *)addr(0x40000C) = 0x00200013;
-		}
-		else {
-			if (*(volatile unsigned long*)addr(0x40000C) & 0x0020004)
-				*(volatile unsigned long *)addr(0x40000C) = 0x00200018;
-		}
+		if (*(volatile unsigned long*)addr(0x40000C) & 0x0020004)
+			*(volatile unsigned long *)addr(0x40000C) = 0x00200018;
 #endif
 	}
 	else //---------------------------------------------------------------------------
@@ -656,18 +635,9 @@ static void change_clock(unsigned int type)
 		*(volatile unsigned long *)addr(0x400008)  = 0x00200014;
 
 		//set pll1 value
-		if (tcc88xx_chip_rev() == TCC88XX_REV0) {  // PLL3
-			*(volatile unsigned long *)addr(0x40002C)  = CKC_CHANGE_ARG(PLL_VALUE); // PLL_PWR_OFF & SET PMS
-			*(volatile unsigned long *)addr(0x40002C) |= 0x80000000;			// PLL_PWR_ON
-		}
-		else {  // PLL4
-			*(volatile unsigned long *)addr(0x400050)  = CKC_CHANGE_ARG(PLL_VALUE); // PLL_PWR_OFF & SET PMS
-			*(volatile unsigned long *)addr(0x400050) |= 0x80000000;			// PLL_PWR_ON
-		}
-
-		if (tcc88xx_chip_rev() != TCC88XX_REV0) {
-			i = 20; while(i--);
-		}
+		*(volatile unsigned long *)addr(0x400050)  = CKC_CHANGE_ARG(PLL_VALUE); // PLL_PWR_OFF & SET PMS
+		*(volatile unsigned long *)addr(0x400050) |= 0x80000000;			// PLL_PWR_ON
+		i = 20; while(i--);
 
 		//*(volatile unsigned long *)addr(0x400008)  = 0x00200013;
 		*(volatile unsigned long *)addr(0x400008) = CKC_CHANGE_ARG(CKC_CTRL_VALUE);
@@ -1118,42 +1088,21 @@ static void change_clock(unsigned int type)
 		*(volatile unsigned long *)addr(0x400008)  = 0x00200014;
 
 #if defined(GPU_400MHz_USED) // GPU_400MHz
-		if (tcc88xx_chip_rev() == TCC88XX_REV0) {
-			if (*(volatile unsigned long*)addr(0x40000C) & 0x0020003)
-				*(volatile unsigned long *)addr(0x40000C)  = 0x00200014;
-		}
-		else {
-			if (*(volatile unsigned long*)addr(0x40000C) & 0x0020008)
-				*(volatile unsigned long *)addr(0x40000C)  = 0x00200014;
-		}
+		if (*(volatile unsigned long*)addr(0x40000C) & 0x0020008)
+			*(volatile unsigned long *)addr(0x40000C)  = 0x00200014;
 #endif
 
 		//set pll1 value
-		if (tcc88xx_chip_rev() == TCC88XX_REV0) {  // PLL3
-			*(volatile unsigned long *)addr(0x40002C)  = CKC_CHANGE_ARG(PLL_VALUE); // PLL_PWR_OFF & SET PMS
-			*(volatile unsigned long *)addr(0x40002C) |= 0x80000000;			// PLL_PWR_ON
-		}
-		else {  // PLL4
-			*(volatile unsigned long *)addr(0x400050)  = CKC_CHANGE_ARG(PLL_VALUE); // PLL_PWR_OFF & SET PMS
-			*(volatile unsigned long *)addr(0x400050) |= 0x80000000;			// PLL_PWR_ON
-		}
-
-		if (tcc88xx_chip_rev() != TCC88XX_REV0) {
-			i = 20; while(i--);
-		}
+		*(volatile unsigned long *)addr(0x400050)  = CKC_CHANGE_ARG(PLL_VALUE); // PLL_PWR_OFF & SET PMS
+		*(volatile unsigned long *)addr(0x400050) |= 0x80000000;			// PLL_PWR_ON
+		i = 20; while(i--);
 
 		//*(volatile unsigned long *)addr(0x400008)  = 0x00200013;
 		*(volatile unsigned long *)addr(0x400008) = CKC_CHANGE_ARG(CKC_CTRL_VALUE);
 
 #if defined(GPU_400MHz_USED) // GPU_400MHz
-		if (tcc88xx_chip_rev() == TCC88XX_REV0) {
-			if (*(volatile unsigned long*)addr(0x40000C) & 0x0020004)
-				*(volatile unsigned long *)addr(0x40000C) = 0x00200013;
-		}
-		else {
-			if (*(volatile unsigned long*)addr(0x40000C) & 0x0020004)
-				*(volatile unsigned long *)addr(0x40000C) = 0x00200018;
-		}
+		if (*(volatile unsigned long*)addr(0x40000C) & 0x0020004)
+			*(volatile unsigned long *)addr(0x40000C) = 0x00200018;
 #endif
 	}
 	else //---------------------------------------------------------------------------
@@ -1403,34 +1352,18 @@ static unsigned int get_membus_ckc(unsigned int mem_freq)
 {
 	int i = 0;
 
-	if (tcc88xx_chip_rev() == TCC88XX_REV0) {
-		for (i=0 ; i<ARRAY_SIZE(pIO_CKC_PLL_L) ; i++) {
-			if (pIO_CKC_PLL_L[i].freq >= mem_freq)
-				break;
-		}
-
-		if (i >= ARRAY_SIZE(pIO_CKC_PLL_L))
-			i = (ARRAY_SIZE(pIO_CKC_PLL_L) - 1);;
-
-		CKC_CHANGE_ARG(PLL_VALUE) = pIO_CKC_PLL_L[i].pll;
-		CKC_CHANGE_ARG(CKC_CTRL_VALUE) = pIO_CKC_PLL_L[i].clkctrl;
-
-		return (pIO_CKC_PLL_L[i].freq/10000);
+	for (i=0 ; i<ARRAY_SIZE(pIO_CKC_PLL_H) ; i++) {
+		if (pIO_CKC_PLL_H[i].freq >= mem_freq)
+			break;
 	}
-	else {
-		for (i=0 ; i<ARRAY_SIZE(pIO_CKC_PLL_H) ; i++) {
-			if (pIO_CKC_PLL_H[i].freq >= mem_freq)
-				break;
-		}
 
-		if (i >= ARRAY_SIZE(pIO_CKC_PLL_H))
-			i = (ARRAY_SIZE(pIO_CKC_PLL_H) - 1);;
+	if (i >= ARRAY_SIZE(pIO_CKC_PLL_H))
+		i = (ARRAY_SIZE(pIO_CKC_PLL_H) - 1);;
 
-		CKC_CHANGE_ARG(PLL_VALUE) = pIO_CKC_PLL_H[i].pll;
-		CKC_CHANGE_ARG(CKC_CTRL_VALUE) = pIO_CKC_PLL_H[i].clkctrl;
+	CKC_CHANGE_ARG(PLL_VALUE) = pIO_CKC_PLL_H[i].pll;
+	CKC_CHANGE_ARG(CKC_CTRL_VALUE) = pIO_CKC_PLL_H[i].clkctrl;
 
-		return (pIO_CKC_PLL_H[i].freq/10000);
-	}
+	return (pIO_CKC_PLL_H[i].freq/10000);
 }
 
 /*===========================================================================
@@ -1523,11 +1456,8 @@ int tcc_change_pmu(unsigned int src, unsigned int onoff)
 
 	return -1;	// 20110627, Do not into the self-refresh mode when device control the PMU PWROFF register.
 
-	if (tcc88xx_chip_rev() == TCC88XX_REV0)
-		goto err_chgpmu_chiprev;
-
 #if defined(CONFIG_MACH_TCC8800ST)
-		goto err_chgpmu_chiprev;
+	goto err_chgpmu_chiprev;
 #endif /* CONFIG_MACH_TCC8800ST */
 
 	if (mem_clk_initialized == 0)

@@ -376,14 +376,8 @@ VOLATILE void tca_ckc_setfbusctrl(unsigned int clkname,unsigned int isenable,uns
 #if defined(CONFIG_MACH_TCC8800ST)
 	if (clkname != CLKCTRL3 /*&& clkname != CLKCTRL5*/) {
 #endif
-		if (tcc88xx_chip_rev() == TCC88XX_REV0) {
-			if (sor == DIRECTPLL3)
-				sor = DIRECTPLL4;
-		}
-		else {
-			if (sor == DIRECTPLL4)
-				sor = DIRECTPLL3;
-		}
+		if (sor == DIRECTPLL4)
+			sor = DIRECTPLL3;
 #if defined(CONFIG_MACH_TCC8800ST)
 	}
 #endif
@@ -784,18 +778,10 @@ VOLATILE void tca_ckc_setperi(unsigned int periname,unsigned int isenable, unsig
 	volatile unsigned	*pPERI;
 	pPERI =(volatile unsigned	*)((&pCKC->PCLK_TCX)+periname);
 
-	if (tcc88xx_chip_rev() == TCC88XX_REV0) {
-		if (sor == PCDIRECTPLL3)
-			sor = PCDIRECTPLL4;
-		if (sor == PCDIVIDPLL3)
-			sor = PCDIVIDPLL4;
-	}
-	else {
-		if (sor == PCDIRECTPLL4)
-			sor = PCDIRECTPLL3;
-		if (sor == PCDIVIDPLL4)
-			sor = PCDIVIDPLL3;
-	}
+	if (sor == PCDIRECTPLL4)
+		sor = PCDIRECTPLL3;
+	if (sor == PCDIVIDPLL4)
+		sor = PCDIVIDPLL3;
 
 	switch(sor)
 	{

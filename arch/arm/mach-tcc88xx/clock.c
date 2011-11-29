@@ -255,10 +255,7 @@ static int fclk_set_rate(struct clk *clk, unsigned long rate)
 	}
 #if defined(CONFIG_MACH_TCC8800ST)
 	else if (clk->clock_idx == CLKCTRL3/* || clk->clock_idx == CLKCTRL5*/) {	// CLKCTRL3: GPU, CLKCTRL5: VBUS 
-		if (tcc88xx_chip_rev() == TCC88XX_REV0)
-			clksrc = DIRECTPLL3;
-		else
-			clksrc = DIRECTPLL4;
+		clksrc = DIRECTPLL4;
 		clkrate = 4000000;
 	}
 #endif
@@ -412,23 +409,12 @@ static int pclk_set_rate(struct clk *clk, unsigned long rate)
 					searchsrc = i;
 			}
 		}
-		if (tcc88xx_chip_rev() == TCC88XX_REV0) {
-			switch(searchsrc) {
-				case 0: clksrc = PCDIRECTPLL0; break;
-				case 1: clksrc = PCDIRECTPLL1; break;
-				case 2: clksrc = PCDIRECTPLL2; break;
-				case 4: clksrc = PCDIRECTPLL4; break;
-				default: clksrc = PCDIRECTPLL4; break;
-			}
-		}
-		else {
-			switch(searchsrc) {
-				case 0: clksrc = PCDIRECTPLL0; break;
-				case 1: clksrc = PCDIRECTPLL1; break;
-				case 2: clksrc = PCDIRECTPLL2; break;
-				case 3: clksrc = PCDIRECTPLL3; break;
-				default: clksrc = PCDIRECTPLL3; break;
-			}
+		switch(searchsrc) {
+			case 0: clksrc = PCDIRECTPLL0; break;
+			case 1: clksrc = PCDIRECTPLL1; break;
+			case 2: clksrc = PCDIRECTPLL2; break;
+			case 3: clksrc = PCDIRECTPLL3; break;
+			default: clksrc = PCDIRECTPLL3; break;
 		}
 		if ((div[searchsrc]) > (32768))
 			clkrate = ((stPLLValue[searchsrc]>>dco_shift)*(65536-div[searchsrc]))/(65536>>dco_shift);
@@ -473,23 +459,12 @@ static int pclk_set_rate(struct clk *clk, unsigned long rate)
 				}
 			}
 		}
-		if (tcc88xx_chip_rev() == TCC88XX_REV0) {
-			switch(searchsrc) {
-				case 0: clksrc = PCDIRECTPLL0; break;
-				case 1: clksrc = PCDIRECTPLL1; break;
-				case 2: clksrc = PCDIRECTPLL2; break;
-				case 4: clksrc = PCDIRECTPLL4; break;
-				default: clksrc = PCDIRECTPLL4; break;
-			}
-		}
-		else {
-			switch(searchsrc) {
-				case 0: clksrc = PCDIRECTPLL0; break;
-				case 1: clksrc = PCDIRECTPLL1; break;
-				case 2: clksrc = PCDIRECTPLL2; break;
-				case 3: clksrc = PCDIRECTPLL3; break;
-				default: clksrc = PCDIRECTPLL3; break;
-			}
+		switch(searchsrc) {
+			case 0: clksrc = PCDIRECTPLL0; break;
+			case 1: clksrc = PCDIRECTPLL1; break;
+			case 2: clksrc = PCDIRECTPLL2; break;
+			case 3: clksrc = PCDIRECTPLL3; break;
+			default: clksrc = PCDIRECTPLL3; break;
 		}
 		clkrate = stPLLValue[searchsrc]/div[searchsrc];
 
@@ -1945,11 +1920,7 @@ int __init clk_init(void)
 			stPLLValue[i] = 0;
 			pr_info("pll_%d:  cpu clcok source\n", i);
 		}
-		else if ((tcc88xx_chip_rev() == TCC88XX_REV0) && i == 3) {
-			stPLLValue[i] = 0;
-			pr_info("pll_%d:  memory clcok source\n", i);
-		}
-		else if ((tcc88xx_chip_rev() != TCC88XX_REV0) && (i == MEM_CLK_CH)) {
+		else if (i == MEM_CLK_CH) {
 			stPLLValue[i] = 0;
 			pr_info("pll_%d:  memory clcok source\n", i);
 		}
@@ -1959,10 +1930,7 @@ int __init clk_init(void)
 		}
 	}
 	
-	if (tcc88xx_chip_rev() == TCC88XX_REV0)
-		mem_pll = tca_ckc_getpll(3);
-	else
-		mem_pll = tca_ckc_getpll(4);
+	mem_pll = tca_ckc_getpll(MEM_CLK_CH);
 	tcc_ddr_set_clock(mem_pll/20);
 
 	for (clk = onchip_clocks; clk < onchip_clocks + ARRAY_SIZE(onchip_clocks); clk++) {

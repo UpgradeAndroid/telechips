@@ -86,26 +86,6 @@ static struct tcc_pll_table_t tcc_pll_table[] = {
 	{1200000,1200000 },
 };
 
-static struct tcc_voltage_table_t tcc_voltage_table_rev0[] = {
-	/*   cpu     ddi     mem     gpu      io    vbus    vcod     smu    hsio     cam      vol */
-#if defined(CONFIG_MACH_M801_88) && defined(CONFIG_GPIO_CORE_VOLTAGE_CONTROL)
-	{ 600000, 221000, 300000, 250000, 198000, 225000, 218000, 150000, 182000, 248000, 1250000 },
-	{ 800000, 367000, 400000, 402000, 245000, 374000, 362000, 250000, 303000, 412000, 1450000 },
-#else
-	{ 300000, 111000, 125000, 121000,  75000, 114000, 109000,  75000,  92000, 124000, 1100000 },
-	{ 400000, 147000, 160000, 161000,  98000, 150000, 145000, 100000, 122000, 165000, 1150000 },
-	{ 500000, 184000, 200000, 201000, 123000, 188000, 181000, 125000, 152000, 206000, 1200000 },
-	{ 600000, 221000, 240000, 242000, 147000, 225000, 218000, 150000, 182000, 248000, 1250000 },
-	{ 700000, 257000, 280000, 282000, 172000, 263000, 254000, 175000, 213000, 289000, 1300000 },
-#if defined(CONFIG_DRAM_DDR3)
-	{ 700000, 257000, 300000, 282000, 172000, 263000, 254000, 175000, 213000, 289000, 1320000 },
-#endif
-	{ 800000, 294000, 320000, 322000, 196000, 300000, 290000, 200000, 243000, 330000, 1350000 },
-	{ 900000, 330000, 360000, 362000, 220000, 337000, 326000, 225000, 273000, 371000, 1400000 },
-	{ 999000, 367000, 400000, 402000, 245000, 374000, 362000, 250000, 303000, 412000, 1450000 },
-#endif
-};
-
 static struct tcc_voltage_table_t tcc_voltage_table[] = {
 	/*   cpu     ddi     mem     gpu      io    vbus    vcod     smu    hsio     cam      vol */
 	{ 200000,  74000,  80000,  81000,  49000,  75000,  73000,  50000,  61000,  83000,  950000 },	// recommended freq.
@@ -125,7 +105,6 @@ static struct tcc_freq_table_t tcc_freq_old_table = {
 	       0,      0,      0,      0,      0,      0,      0,      0,      0,      0
 };
 
-extern struct tcc_freq_table_t gtClockLimitTable_rev0[];
 extern struct tcc_freq_table_t gtClockLimitTable[];
 
 struct tcc_freq_limit_table_t {
@@ -140,14 +119,11 @@ static unsigned int tcc_limitclocktbl_flag = 0;
 static unsigned int tcc_freq_mutex_init_flag = 0;
 static struct mutex tcc_freq_mutex;
 
-#define NUM_VOLTAGES_REV0	ARRAY_SIZE(tcc_voltage_table_rev0)
 #define NUM_VOLTAGES		ARRAY_SIZE(tcc_voltage_table)
 #define NUM_PLLS			ARRAY_SIZE(tcc_pll_table)
-#define NUM_FREQS_REV0		ARRAY_SIZE(gtClockLimitTable_rev0)
 #define NUM_FREQS			ARRAY_SIZE(gtClockLimitTable)
 
-#define NUM_FREQS_MAX		((NUM_FREQS_REV0 > NUM_FREQS) ? NUM_FREQS_REV0 : NUM_FREQS )
-static struct cpufreq_frequency_table tcc_cpufreq_table[NUM_FREQS_MAX + 1];
+static struct cpufreq_frequency_table tcc_cpufreq_table[NUM_FREQS + 1];
 
 static struct clk *pll0_clk;
 static struct clk *cpu_clk;
@@ -238,27 +214,14 @@ static void cpufreq_work_func(struct work_struct *work)
 
 	mutex_lock(&tcc_freq_mutex);
 
-	if (tcc88xx_chip_rev() == TCC88XX_REV0) {
-		if (cpu_highspeed_status == CPU_FREQ_PROCESSING_LIMIT_HIGHSPEED) {
-			tcc_freq_curr_limit_table.cpu_freq = TCC_CPU_FREQ_NORMAL_SPEED_REV0;
-		}
-		else if(cpu_highspeed_status == CPU_FREQ_PROCESSING_HIGHSPEED) {
-		 	if (tcc_cpufreq_is_limit_highspeed_status())
-				tcc_freq_curr_limit_table.cpu_freq = TCC_CPU_FREQ_NORMAL_SPEED_REV0;
-			else
-				tcc_freq_curr_limit_table.cpu_freq = TCC_CPU_FREQ_HIGH_SPEED_REV0;
-		}
+	if (cpu_highspeed_status == CPU_FREQ_PROCESSING_LIMIT_HIGHSPEED) {
+		tcc_freq_curr_limit_table.cpu_freq = TCC_CPU_FREQ_NORMAL_SPEED;
 	}
-	else {
-		if (cpu_highspeed_status == CPU_FREQ_PROCESSING_LIMIT_HIGHSPEED) {
+	else if(cpu_highspeed_status == CPU_FREQ_PROCESSING_HIGHSPEED) {
+	 	if (tcc_cpufreq_is_limit_highspeed_status())
 			tcc_freq_curr_limit_table.cpu_freq = TCC_CPU_FREQ_NORMAL_SPEED;
-		}
-		else if(cpu_highspeed_status == CPU_FREQ_PROCESSING_HIGHSPEED) {
-		 	if (tcc_cpufreq_is_limit_highspeed_status())
-				tcc_freq_curr_limit_table.cpu_freq = TCC_CPU_FREQ_NORMAL_SPEED;
-			else
-				tcc_freq_curr_limit_table.cpu_freq = TCC_CPU_FREQ_HIGH_SPEED;
-		}
+		else
+			tcc_freq_curr_limit_table.cpu_freq = TCC_CPU_FREQ_HIGH_SPEED;
 	}
 	tcc_cpufreq_set_clock_table(&tcc_freq_curr_limit_table);
 	mutex_unlock(&tcc_freq_mutex);
@@ -281,10 +244,7 @@ static void highspeed_timer_func(unsigned long data)
 	int status_changed = 0;
 	unsigned int noraml_speed_clock;
 
-	if (tcc88xx_chip_rev() == TCC88XX_REV0)
-		noraml_speed_clock = TCC_CPU_FREQ_NORMAL_SPEED_REV0;
-	else
-		noraml_speed_clock = TCC_CPU_FREQ_NORMAL_SPEED;
+	noraml_speed_clock = TCC_CPU_FREQ_NORMAL_SPEED;
 
 	// increase counters
 	if (cpu_highspeed_status == CPU_FREQ_PROCESSING_LIMIT_HIGHSPEED)
@@ -427,21 +387,10 @@ static int tcc_cpufreq_set_voltage(tcc_core_type core, int uV)
 	int ret = 0;
 
 #if defined(CONFIG_REGULATOR)
-	if (vdd_coreA && (core == TCC_CORE_A)) {
-		if (tcc88xx_chip_rev() == TCC88XX_REV0) {
-			if (uV < 1300000)
-				uV = 1300000;
-			ret = regulator_set_voltage(vdd_coreA, uV, tcc_voltage_table_rev0[NUM_VOLTAGES_REV0-1].voltage);
-		}
-		else
-			ret = regulator_set_voltage(vdd_coreA, uV, tcc_voltage_table[NUM_VOLTAGES-1].voltage);
-	}
-	if (vdd_coreB && (core == TCC_CORE_B)) {
-		if (tcc88xx_chip_rev() == TCC88XX_REV0)
-			ret = regulator_set_voltage(vdd_coreB, uV, tcc_voltage_table_rev0[NUM_VOLTAGES_REV0-1].voltage);
-		else
-			ret = regulator_set_voltage(vdd_coreB, uV, tcc_voltage_table[NUM_VOLTAGES-1].voltage);
-	}
+	if (vdd_coreA && (core == TCC_CORE_A))
+		ret = regulator_set_voltage(vdd_coreA, uV, tcc_voltage_table[NUM_VOLTAGES-1].voltage);
+	if (vdd_coreB && (core == TCC_CORE_B))
+		ret = regulator_set_voltage(vdd_coreB, uV, tcc_voltage_table[NUM_VOLTAGES-1].voltage);
 #elif defined(CONFIG_GPIO_CORE_VOLTAGE_CONTROL)
 	ret = tcc_cpufreq_set_voltage_by_gpio(core, uV);
 #endif
@@ -461,9 +410,6 @@ unsigned int tcc_get_maximum_io_clock(void)
 ****************************************************/
 unsigned int tcc_get_maximum_io_clock(void)
 {
-	if(tcc88xx_chip_rev() == TCC88XX_REV0)
-		return gtClockLimitTable_rev0[NUM_FREQS_REV0-1].io_freq;
-
 	return gtClockLimitTable[NUM_FREQS-1].io_freq;
 }
 EXPORT_SYMBOL(tcc_get_maximum_io_clock);
@@ -486,64 +432,33 @@ static int tcc_cpufreq_get_voltage_table(tcc_core_type core, struct tcc_freq_tab
 {
 	int i;
 
-	if(tcc88xx_chip_rev() == TCC88XX_REV0) {
-		if (core == TCC_CORE_A) {
-			for (i=0 ; i<NUM_VOLTAGES_REV0 ; i++) {
-				if (tcc_voltage_table_rev0[i].cpu_freq  >= clk_tbl->cpu_freq  &&
-					tcc_voltage_table_rev0[i].ddi_freq  >= clk_tbl->ddi_freq  &&
-					tcc_voltage_table_rev0[i].mem_freq  >= clk_tbl->mem_freq  &&
-					tcc_voltage_table_rev0[i].io_freq   >= clk_tbl->io_freq   &&
-					tcc_voltage_table_rev0[i].smu_freq  >= clk_tbl->smu_freq  &&
-					tcc_voltage_table_rev0[i].hsio_freq >= clk_tbl->hsio_freq &&
-					tcc_voltage_table_rev0[i].cam_freq  >= clk_tbl->cam_freq)
-					break;
-			}
+	if (core == TCC_CORE_A) {
+		for (i=0 ; i<NUM_VOLTAGES ; i++) {
+			if (tcc_voltage_table[i].cpu_freq  >= clk_tbl->cpu_freq  &&
+				tcc_voltage_table[i].ddi_freq  >= clk_tbl->ddi_freq  &&
+				tcc_voltage_table[i].mem_freq  >= clk_tbl->mem_freq  &&
+				tcc_voltage_table[i].io_freq   >= clk_tbl->io_freq   &&
+				tcc_voltage_table[i].smu_freq  >= clk_tbl->smu_freq  &&
+				tcc_voltage_table[i].hsio_freq >= clk_tbl->hsio_freq &&
+				tcc_voltage_table[i].cam_freq  >= clk_tbl->cam_freq)
+				break;
 		}
-		else if (core == TCC_CORE_B) {
-			for (i=0 ; i<NUM_VOLTAGES_REV0 ; i++) {
-				if (tcc_voltage_table_rev0[i].gpu_freq  >= clk_tbl->gpu_freq  &&
-					tcc_voltage_table_rev0[i].vbus_freq >= clk_tbl->vbus_freq &&
-					tcc_voltage_table_rev0[i].vcod_freq >= clk_tbl->vcod_freq)
-					break;
-			}
-		}
-		else
-			i = NUM_VOLTAGES_REV0-1;
-
-		if (i >= NUM_VOLTAGES_REV0)
-			i = NUM_VOLTAGES_REV0-1;
-
-		return (tcc_voltage_table_rev0[i].voltage);
 	}
-	else {
-		if (core == TCC_CORE_A) {
-			for (i=0 ; i<NUM_VOLTAGES ; i++) {
-				if (tcc_voltage_table[i].cpu_freq  >= clk_tbl->cpu_freq  &&
-					tcc_voltage_table[i].ddi_freq  >= clk_tbl->ddi_freq  &&
-					tcc_voltage_table[i].mem_freq  >= clk_tbl->mem_freq  &&
-					tcc_voltage_table[i].io_freq   >= clk_tbl->io_freq   &&
-					tcc_voltage_table[i].smu_freq  >= clk_tbl->smu_freq  &&
-					tcc_voltage_table[i].hsio_freq >= clk_tbl->hsio_freq &&
-					tcc_voltage_table[i].cam_freq  >= clk_tbl->cam_freq)
-					break;
-			}
+	else if (core == TCC_CORE_B) {
+		for (i=0 ; i<NUM_VOLTAGES ; i++) {
+			if (tcc_voltage_table[i].gpu_freq  >= clk_tbl->gpu_freq  &&
+				tcc_voltage_table[i].vbus_freq >= clk_tbl->vbus_freq &&
+				tcc_voltage_table[i].vcod_freq >= clk_tbl->vcod_freq)
+				break;
 		}
-		else if (core == TCC_CORE_B) {
-			for (i=0 ; i<NUM_VOLTAGES ; i++) {
-				if (tcc_voltage_table[i].gpu_freq  >= clk_tbl->gpu_freq  &&
-					tcc_voltage_table[i].vbus_freq >= clk_tbl->vbus_freq &&
-					tcc_voltage_table[i].vcod_freq >= clk_tbl->vcod_freq)
-					break;
-			}
-		}
-		else
-			i = NUM_VOLTAGES-1;
-
-		if (i >= NUM_VOLTAGES)
-			i = NUM_VOLTAGES-1;
-
-		return (tcc_voltage_table[i].voltage);
 	}
+	else
+		i = NUM_VOLTAGES-1;
+
+	if (i >= NUM_VOLTAGES)
+		i = NUM_VOLTAGES-1;
+
+	return (tcc_voltage_table[i].voltage);
 }
 
 static int tcc_cpufreq_set_clock_table(struct tcc_freq_table_t *curr_clk_tbl)
@@ -556,21 +471,11 @@ static int tcc_cpufreq_set_clock_table(struct tcc_freq_table_t *curr_clk_tbl)
 
 #if defined(CONFIG_CPU_HIGHSPEED)
 #if (DEBUG_HIGHSPEED)
-	if (tcc88xx_chip_rev() == TCC88XX_REV0) {
-		if (tcc_freq_old_table.cpu_freq > TCC_CPU_FREQ_NORMAL_SPEED_REV0 && curr_clk_tbl->cpu_freq <= TCC_CPU_FREQ_NORMAL_SPEED_REV0 ) {
-			dbg_highspeed("change to %dMHz\n", TCC_CPU_FREQ_NORMAL_SPEED_REV0/1000);
-		}
-		else if (tcc_freq_old_table.cpu_freq <= TCC_CPU_FREQ_NORMAL_SPEED_REV0 && curr_clk_tbl->cpu_freq > TCC_CPU_FREQ_NORMAL_SPEED_REV0 ) {
-			dbg_highspeed("change to %dMHz\n", TCC_CPU_FREQ_HIGH_SPEED_REV0/1000);
-		}
+	if (tcc_freq_old_table.cpu_freq > TCC_CPU_FREQ_NORMAL_SPEED && curr_clk_tbl->cpu_freq <= TCC_CPU_FREQ_NORMAL_SPEED ) {
+		dbg_highspeed("change to %dMHz\n", TCC_CPU_FREQ_NORMAL_SPEED/1000);
 	}
-	else {
-		if (tcc_freq_old_table.cpu_freq > TCC_CPU_FREQ_NORMAL_SPEED && curr_clk_tbl->cpu_freq <= TCC_CPU_FREQ_NORMAL_SPEED ) {
-			dbg_highspeed("change to %dMHz\n", TCC_CPU_FREQ_NORMAL_SPEED/1000);
-		}
-		else if (tcc_freq_old_table.cpu_freq <= TCC_CPU_FREQ_NORMAL_SPEED && curr_clk_tbl->cpu_freq > TCC_CPU_FREQ_NORMAL_SPEED ) {
-			dbg_highspeed("change to %dMHz\n", TCC_CPU_FREQ_HIGH_SPEED/1000);
-		}
+	else if (tcc_freq_old_table.cpu_freq <= TCC_CPU_FREQ_NORMAL_SPEED && curr_clk_tbl->cpu_freq > TCC_CPU_FREQ_NORMAL_SPEED ) {
+		dbg_highspeed("change to %dMHz\n", TCC_CPU_FREQ_HIGH_SPEED/1000);
 	}
 #endif
 #endif
@@ -676,14 +581,8 @@ int tcc_cpufreq_set_limit_table(struct tcc_freq_table_t *limit_tbl, tcc_freq_lim
 		if (flag) {
 			tcc_freq_limit_table[idx].usecount++;
 
-			if (tcc88xx_chip_rev() == TCC88XX_REV0) {
-				if (tcc_freq_curr_limit_table.cpu_freq > TCC_CPU_FREQ_NORMAL_SPEED_REV0)
-					tcc_freq_curr_limit_table.cpu_freq = TCC_CPU_FREQ_NORMAL_SPEED_REV0;
-			}
-			else {
-				if (tcc_freq_curr_limit_table.cpu_freq > TCC_CPU_FREQ_NORMAL_SPEED)
-					tcc_freq_curr_limit_table.cpu_freq = TCC_CPU_FREQ_NORMAL_SPEED;
-			}
+			if (tcc_freq_curr_limit_table.cpu_freq > TCC_CPU_FREQ_NORMAL_SPEED)
+				tcc_freq_curr_limit_table.cpu_freq = TCC_CPU_FREQ_NORMAL_SPEED;
 
 			tcc_limitclocktbl_flag |= (1<<idx);
 			tcc_cpufreq_set_clock_table(&tcc_freq_curr_limit_table);
@@ -766,17 +665,9 @@ int tcc_cpufreq_set_limit_table(struct tcc_freq_table_t *limit_tbl, tcc_freq_lim
 		}
 
 #if defined(CONFIG_CPU_HIGHSPEED)
-		if (tcc88xx_chip_rev() == TCC88XX_REV0) {
-			if (tcc_freq_curr_limit_table.cpu_freq > TCC_CPU_FREQ_NORMAL_SPEED_REV0) {
-				if (tcc_cpufreq_is_limit_highspeed_status())
-					tcc_freq_curr_limit_table.cpu_freq = TCC_CPU_FREQ_NORMAL_SPEED_REV0;
-			}
-		}
-		else {
-			if (tcc_freq_curr_limit_table.cpu_freq > TCC_CPU_FREQ_NORMAL_SPEED) {
-				if (tcc_cpufreq_is_limit_highspeed_status())
-					tcc_freq_curr_limit_table.cpu_freq = TCC_CPU_FREQ_NORMAL_SPEED;
-			}
+		if (tcc_freq_curr_limit_table.cpu_freq > TCC_CPU_FREQ_NORMAL_SPEED) {
+			if (tcc_cpufreq_is_limit_highspeed_status())
+				tcc_freq_curr_limit_table.cpu_freq = TCC_CPU_FREQ_NORMAL_SPEED;
 		}
 #endif
 
@@ -804,30 +695,10 @@ static int tcc_cpufreq_target(struct cpufreq_policy *policy,
 	if (target_freq < policy->min)
 		target_freq = policy->min;
 
-	if (tcc_freq_limit_table[TCC_FREQ_LIMIT_FB].usecount == 0) {
-		if (policy->cur < 200000 && target_freq >= 500000)
-			target_freq = 200000;
-		else 
-		if (policy->cur < 300000 && target_freq >= 500000)
-			target_freq = 300000;
-		else if (policy->cur < 400000 && target_freq >= 500000)
-			target_freq = 400000;
-		else if (policy->cur < 500000 && target_freq >= 500000)
-			target_freq = 500000;
-	}
-
 #if defined(CONFIG_CPU_HIGHSPEED)
-	if (tcc88xx_chip_rev() == TCC88XX_REV0) {
-		if (target_freq > TCC_CPU_FREQ_NORMAL_SPEED_REV0) {
-			if (tcc_cpufreq_is_limit_highspeed_status())
-				target_freq = TCC_CPU_FREQ_NORMAL_SPEED_REV0;
-		}
-	}
-	else {
-		if (target_freq > TCC_CPU_FREQ_NORMAL_SPEED) {
-			if (tcc_cpufreq_is_limit_highspeed_status())
-				target_freq = TCC_CPU_FREQ_NORMAL_SPEED;
-		}
+	if (target_freq > TCC_CPU_FREQ_NORMAL_SPEED) {
+		if (tcc_cpufreq_is_limit_highspeed_status())
+			target_freq = TCC_CPU_FREQ_NORMAL_SPEED;
 	}
 #endif
 
@@ -838,16 +709,10 @@ static int tcc_cpufreq_target(struct cpufreq_policy *policy,
 
 	mutex_lock(&tcc_freq_mutex);
 
-	if (tcc88xx_chip_rev() == TCC88XX_REV0) {
-		if (index > NUM_FREQS_REV0-1)
-			index = NUM_FREQS_REV0-1;
-		memcpy(&tcc_freq_curr_limit_table, &(gtClockLimitTable_rev0[index]), sizeof(struct tcc_freq_table_t));
-	}
-	else {
-		if (index > NUM_FREQS-1)
-			index = NUM_FREQS-1;
-		memcpy(&tcc_freq_curr_limit_table, &(gtClockLimitTable[index]), sizeof(struct tcc_freq_table_t));
-	}
+	if (index > NUM_FREQS-1)
+		index = NUM_FREQS-1;
+	memcpy(&tcc_freq_curr_limit_table, &(gtClockLimitTable[index]), sizeof(struct tcc_freq_table_t));
+
 #if defined(CONFIG_CPU_HIGHSPEED)
 	tcc_freq_curr_target_cpufreq = tcc_freq_curr_limit_table.cpu_freq;
 #endif
@@ -901,17 +766,9 @@ static int tcc_cpufreq_target(struct cpufreq_policy *policy,
 	}
 
 #if defined(CONFIG_CPU_HIGHSPEED)
-	if (tcc88xx_chip_rev() == TCC88XX_REV0) {
-		if (tcc_freq_curr_limit_table.cpu_freq > TCC_CPU_FREQ_NORMAL_SPEED_REV0) {
-			if (tcc_cpufreq_is_limit_highspeed_status())
-				tcc_freq_curr_limit_table.cpu_freq = TCC_CPU_FREQ_NORMAL_SPEED_REV0;
-		}
-	}
-	else {
-		if (tcc_freq_curr_limit_table.cpu_freq > TCC_CPU_FREQ_NORMAL_SPEED) {
-			if (tcc_cpufreq_is_limit_highspeed_status())
-				tcc_freq_curr_limit_table.cpu_freq = TCC_CPU_FREQ_NORMAL_SPEED;
-		}
+	if (tcc_freq_curr_limit_table.cpu_freq > TCC_CPU_FREQ_NORMAL_SPEED) {
+		if (tcc_cpufreq_is_limit_highspeed_status())
+			tcc_freq_curr_limit_table.cpu_freq = TCC_CPU_FREQ_NORMAL_SPEED;
 	}
 #endif
 
@@ -946,10 +803,7 @@ static int tcc_cpufreq_suspend(struct cpufreq_policy *policy, pm_message_t pmsg)
 {
 	struct tcc_freq_table_t *freqs;
 
-	if (tcc88xx_chip_rev() == TCC88XX_REV0)
-		freqs = &gtClockLimitTable_rev0[0];
-	else
-		freqs = &gtClockLimitTable[0];
+	freqs = &gtClockLimitTable[0];
 
 #if defined(CONFIG_CPU_HIGHSPEED)
 	//del_timer(&timer_highspeed);
@@ -976,24 +830,14 @@ static int tcc_cpufreq_resume(struct cpufreq_policy *policy)
 	int ret;
 #endif
 	struct tcc_freq_table_t freqs;
-
-	if (tcc88xx_chip_rev() == TCC88XX_REV0)
-		memcpy(&freqs, &gtClockLimitTable_rev0[NUM_FREQS_REV0 - 1], sizeof(struct tcc_freq_table_t));
-	else
-		memcpy(&freqs, &gtClockLimitTable[NUM_FREQS - 1], sizeof(struct tcc_freq_table_t));
+	memcpy(&freqs, &gtClockLimitTable[NUM_FREQS - 1], sizeof(struct tcc_freq_table_t));
 
 #if defined(CONFIG_CPU_HIGHSPEED)
 	//timer_highspeed.expires = jiffies + msecs_to_jiffies(HIGHSPEED_TIMER_TICK);	// 100 milisec.
 	//add_timer(&timer_highspeed);
 
-	if (tcc88xx_chip_rev() == TCC88XX_REV0) {
-		if (freqs.cpu_freq > TCC_CPU_FREQ_NORMAL_SPEED_REV0)
-			freqs.cpu_freq = TCC_CPU_FREQ_NORMAL_SPEED_REV0;
-	}
-	else {
-		if (freqs.cpu_freq > TCC_CPU_FREQ_NORMAL_SPEED)
-			freqs.cpu_freq = TCC_CPU_FREQ_NORMAL_SPEED;
-	}
+	if (freqs.cpu_freq > TCC_CPU_FREQ_NORMAL_SPEED)
+		freqs.cpu_freq = TCC_CPU_FREQ_NORMAL_SPEED;
 #endif
 
 #if !defined(CONFIG_REGULATOR)
@@ -1070,17 +914,9 @@ printk("%s() \n", __func__);
 	if (IS_ERR(cam_clk))
 		return PTR_ERR(cam_clk);
 
-	if (tcc88xx_chip_rev() == TCC88XX_REV0) {
-		for (i = 0; i < NUM_FREQS_REV0; i++) {
-			tcc_cpufreq_table[i].index = i;
-			tcc_cpufreq_table[i].frequency = gtClockLimitTable_rev0[i].cpu_freq;
-		}
-	}
-	else {
-		for (i = 0; i < NUM_FREQS; i++) {
-			tcc_cpufreq_table[i].index = i;
-			tcc_cpufreq_table[i].frequency = gtClockLimitTable[i].cpu_freq;
-		}
+	for (i = 0; i < NUM_FREQS; i++) {
+		tcc_cpufreq_table[i].index = i;
+		tcc_cpufreq_table[i].frequency = gtClockLimitTable[i].cpu_freq;
 	}
 	tcc_cpufreq_table[i].frequency = CPUFREQ_TABLE_END;
 
