@@ -130,7 +130,7 @@ static unsigned int tcc8801_row_gpios[] = { GPIO_PORTG|26, GPIO_PORTG|27, GPIO_P
 static const unsigned short tcc8801_keymap[] = {
 	[KEYMAP_INDEX(0, 0)] = KEY_MENU,
 	[KEYMAP_INDEX(0, 1)] = KEY_RESERVED,
-	[KEYMAP_INDEX(0, 2)] = KEY_END,
+	[KEYMAP_INDEX(0, 2)] = KEY_POWER,	//KEY_END,
 
 	[KEYMAP_INDEX(1, 0)] = KEY_VOLUMEUP,
 	[KEYMAP_INDEX(1, 1)] = KEY_VOLUMEDOWN,

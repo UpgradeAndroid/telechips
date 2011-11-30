@@ -62,7 +62,11 @@ extern void printascii(char *);
 
 /* We show everything that is MORE important than this.. */
 #define MINIMUM_CONSOLE_LOGLEVEL 1 /* Minimum loglevel we let people use */
+#ifdef CONFIG_PM_VERBOSE
+#define DEFAULT_CONSOLE_LOGLEVEL 8 /* anything MORE serious than KERN_DEBUG */
+#else
 #define DEFAULT_CONSOLE_LOGLEVEL 7 /* anything MORE serious than KERN_DEBUG */
+#endif
 
 DECLARE_WAIT_QUEUE_HEAD(log_wait);
 
