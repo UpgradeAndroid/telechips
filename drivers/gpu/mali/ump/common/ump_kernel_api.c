@@ -360,3 +360,32 @@ msync_release_and_return:
 	ump_dd_reference_release(mem);
 	return;
 }
+
+_mali_osk_errcode_t _ump_ukk_physaddr_get( _ump_uk_physaddr_get_s *user_interaction )
+{
+	ump_dd_mem * mem;  /* Describes current mapping of memory */
+	_mali_osk_errcode_t ret = _MALI_OSK_ERR_FAULT;
+	
+
+	DEBUG_ASSERT_POINTER( user_interaction );
+
+	/* We lock the mappings so things don't get removed while we are looking for the memory */
+	_mali_osk_lock_wait(device.secure_id_map_lock, _MALI_OSK_LOCKMODE_RW);
+	if (0 == ump_descriptor_mapping_get(device.secure_id_map, (int)user_interaction->secure_id, (void**)&mem))
+	{
+		user_interaction->addr = mem->block_array->addr;
+		user_interaction->size = mem->block_array->size;
+		ret = _MALI_OSK_ERR_OK;
+		DBG_MSG(4, ("Returning size. ID: %u, size: %lu, physaddr:0x%08lx\n ", (ump_secure_id)user_interaction->secure_id, (unsigned long)user_interaction->size, (unsigned long)user_interaction->addr));
+	}
+	else
+	{
+		user_interaction->addr = 0;
+		 user_interaction->size = 0;
+		DBG_MSG(1, ("Failed to look up mapping in ump_ioctl_size_get(). ID: %u\n", (ump_secure_id)user_interaction->secure_id));
+	}
+
+	_mali_osk_lock_signal(device.secure_id_map_lock, _MALI_OSK_LOCKMODE_RW);
+	return ret;
+}
+

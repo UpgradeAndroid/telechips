@@ -45,6 +45,7 @@ typedef enum
 	_UMP_IOC_MAP_MEM,    /* not used in Linux */
 	_UMP_IOC_UNMAP_MEM,  /* not used in Linux */
 	_UMP_IOC_MSYNC,
+	_UMP_IOC_PHYSADDR_GET,
 }_ump_uk_functions;
 
 typedef enum
@@ -91,6 +92,17 @@ typedef struct _ump_uk_size_get_s
 	u32 secure_id;                          /**< Input to DD */
 	u32 size;                               /**< Returned size; output */
 } _ump_uk_size_get_s;
+
+/**
+ * PHYSADDR_GET ([in] u32 secure_id, [out]size )
+ */
+typedef struct _ump_uk_physaddr_get_s
+{
+	void *ctx;                              /**< [in,out] user-kernel context (trashed on output) */
+	u32 secure_id;                          /**< Input to DD */
+	u32 addr; /**< The physical address of the block */
+	u32 size; /**< The length of the block, typically page aligned */
+} _ump_uk_physaddr_get_s;
 
 /**
  * Release ([in] u32 secure_id)

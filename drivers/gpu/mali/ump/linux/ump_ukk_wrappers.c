@@ -171,3 +171,42 @@ int ump_msync_wrapper(u32 __user * argument, struct ump_session_data  * session_
 
 	return 0; /* success */
 }
+
+
+int ump_physaddr_get_wrapper(u32 __user * argument, struct ump_session_data  * session_data)
+{
+	_ump_uk_physaddr_get_s user_interaction;
+	_mali_osk_errcode_t err;
+
+	/* Sanity check input parameters */
+	if (NULL == argument || NULL == session_data)
+	{
+		MSG_ERR(("NULL parameter in ump_ioctl_physaddr_get()\n"));
+		return -ENOTTY;
+	}
+
+	if (0 != copy_from_user(&user_interaction, argument, sizeof(_ump_uk_physaddr_get_s)))
+	{
+		MSG_ERR(("copy_from_user() in ump_ioctl_physaddr_get()\n"));
+		return -EFAULT;
+	}
+
+	user_interaction.ctx = (void *) session_data;
+	err = _ump_ukk_physaddr_get( &user_interaction );
+	if( _MALI_OSK_ERR_OK != err )
+	{
+		MSG_ERR(("_ump_ukk_size_get() failed in ump_ioctl_physaddr_get()\n"));
+		return map_errcode(err);
+	}
+
+	user_interaction.ctx = NULL;
+
+	if (0 != copy_to_user(argument, &user_interaction, sizeof(_ump_uk_physaddr_get_s)))
+	{
+		MSG_ERR(("copy_to_user() failed in ump_ioctl_physaddr_get()\n"));
+		return -EFAULT;
+	}
+
+	return 0; /* success */
+}
+

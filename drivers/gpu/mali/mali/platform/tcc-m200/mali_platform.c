@@ -92,6 +92,32 @@ _mali_osk_errcode_t mali_platform_powerup(u32 cores)
 
 _mali_osk_errcode_t mali_platform_power_mode_change(mali_power_mode power_mode)
 {
+	if(power_mode == MALI_POWER_MODE_ON)
+	{
+		if(mali_clk_enable != MALI_CLK_ENABLED)
+		{
+//			printk("mali_platform_power_mode_change() clk_enable\n");
+			if (mali_clk == NULL)
+				mali_clk = clk_get(NULL, "mali_clk");	
+			clk_enable(mali_clk);
+			tcc_cpufreq_set_limit_table(&gtMaliClockLimitTable, TCC_FREQ_LIMIT_MALI, 1);
+			mali_clk_enable = MALI_CLK_ENABLED;
+		}
+	}
+
+	else
+	{
+		if( mali_clk_enable == MALI_CLK_ENABLED)
+		{
+//			printk("mali_platform_power_mode_change() clk_disable\n");
+			if (mali_clk == NULL)
+				mali_clk = clk_get(NULL, "mali_clk");	
+			tcc_cpufreq_set_limit_table(&gtMaliClockLimitTable, TCC_FREQ_LIMIT_MALI, 0);
+			clk_disable(mali_clk);
+			mali_clk_enable = MALI_CLK_DISABLED;
+		}
+
+	}
     MALI_SUCCESS;
 }
 

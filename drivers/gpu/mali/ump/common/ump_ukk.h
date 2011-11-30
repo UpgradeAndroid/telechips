@@ -38,6 +38,8 @@ _mali_osk_errcode_t _ump_ukk_size_get( _ump_uk_size_get_s *user_interaction );
 
 _mali_osk_errcode_t _ump_ukk_map_mem( _ump_uk_map_mem_s *args );
 
+_mali_osk_errcode_t _ump_ukk_physaddr_get( _ump_uk_physaddr_get_s *user_interaction );
+
 _mali_osk_errcode_t _ump_uku_get_api_version( _ump_uk_api_version_s *args );
 
 void _ump_ukk_unmap_mem( _ump_uk_unmap_mem_s *args );

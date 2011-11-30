@@ -299,6 +299,7 @@ _mali_osk_errcode_t _ump_ukk_map_mem( _ump_uk_map_mem_s *args )
 		return err;
 	}
 
+	args->phys_addr = descriptor->phys_addr= ((NULL != mem->block_array) ? mem->block_array->addr : 0);
 	DBG_MSG(4, ("Mapping virtual to physical memory: ID: %u, size:%lu, first physical addr: 0x%08lx, number of regions: %lu\n",
 	        mem->secure_id,
 	        mem->size_bytes,
