@@ -27,7 +27,7 @@ static const struct gpio_event_direct_entry m801_88_gpio_keymap[] = {
 	{ TCC_GPF(3),	KEY_BACK },	// back
 	{ TCC_GPF(4), 	KEY_VOLUMEUP }, // home
 	{ TCC_GPF(5), 	KEY_VOLUMEDOWN }, // home
-	{ TCC_GPF(6), 	KEY_HOME }, // home		
+	{ TCC_GPF(6), 	KEY_HOMEPAGE }, // home
 };
 
 static struct gpio_event_input_info m801_88_gpio_key_input_info = {
