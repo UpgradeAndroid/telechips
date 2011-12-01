@@ -85,6 +85,14 @@ choice
 		  to the screen and notifies user-space when it should resume.
 endchoice
 
+config EARLY_SUSPEND_ONLY
+	bool "Early suspend only"
+	depends on SUSPEND && HAS_EARLYSUSPEND
+	default n
+	---help---
+	  This makes system call only early suspend handlers when the user requested power state changes.
+	  If this is enabled, system will not enter to suspend state.
+
 config HIBERNATE_CALLBACKS
 	bool
 
@@ -210,6 +218,63 @@ config PM_TEST_SUSPEND
 
 	You probably want to have your system's RTC driver statically
 	linked, ensuring that it's available when this test runs.
+
+choice
+	prompt "Measurement Level"
+	depends on PM_TEST_SUSPEND
+	default PM_TEST_SUSPEND_LEVEL_1
+	help
+	  Select measurement level about PM transition.
+	  In case of level 0, measure the total excution time it takes to PM transition.
+	  In case of level 1, include level 0, measure the excution time it takes to PM transition of each callbacks about non-sysdev devices.
+	  In case of level 2, include level 1, measure the total excution time it takes to PM transition of sysdev devices. 
+		In case of level 3, it is reserved.
+
+config PM_TEST_SUSPEND_LEVEL_0
+	bool "level 0"
+	help
+
+config PM_TEST_SUSPEND_LEVEL_1
+	bool "level 1"
+	help
+
+config PM_TEST_SUSPEND_LEVEL_2
+	bool "level 2"
+	help
+
+config PM_TEST_SUSPEND_LEVEL_3
+	bool "level 3"
+	help
+
+endchoice
+
+config PM_VERBOSE
+	bool "Verbose Power Management debugging"
+	depends on PM_DEBUG
+	default n
+	---help---
+	This option enables verbose messages from the Power Management code.
+
+config PM_VERBOSE_WAKELOCK
+	bool "Verbose Wake lock debugging"
+	depends on PM_DEBUG
+	default n
+	---help---
+	This option enables verbose messages from the wake lock code.
+
+config PM_VERBOSE_EARLYSUSPEND
+	bool "Verbose early suspend/late resume debugging"
+	depends on PM_DEBUG
+	default n
+	---help---
+	This option enables verbose messages from the early suspend/late resume code.
+
+config PM_CONSOLE_NOT_SUSPEND
+	bool "Prevent suspending console"
+	depends on PM_DEBUG
+	default n
+	---help---
+	This option prevent suspending the console driver.
 
 config CAN_PM_TRACE
 	def_bool y
