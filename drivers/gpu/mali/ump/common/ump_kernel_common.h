@@ -101,7 +101,8 @@ typedef struct ump_dev
 {
 	_mali_osk_lock_t * secure_id_map_lock;
 	ump_descriptor_mapping * secure_id_map;
-	ump_memory_backend * backend;
+	ump_memory_backend * backend_os;
+	ump_memory_backend * backend_dedicate;
 } ump_dev;
 
 

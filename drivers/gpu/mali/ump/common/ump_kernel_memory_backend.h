@@ -42,8 +42,8 @@ typedef struct ump_memory_backend
 	void * ctx;
 } ump_memory_backend;
 
-ump_memory_backend * ump_memory_backend_create ( void );
-void ump_memory_backend_destroy( void );
+ump_memory_backend * ump_memory_backend_create ( int ump_backend  );
+void ump_memory_backend_destroy(  int ump_backend  );
 
 #endif /*__UMP_KERNEL_MEMORY_BACKEND_H__ */
 

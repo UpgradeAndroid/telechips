@@ -19,9 +19,9 @@
 #include "ump_kernel_memory_backend_dedicated.h"
 
 /* Configure which dynamic memory allocator to use */
-int ump_backend = ARCH_UMP_BACKEND_DEFAULT;
-module_param(ump_backend, int, S_IRUGO); /* r--r--r-- */
-MODULE_PARM_DESC(ump_backend, "0 = dedicated memory backend (default), 1 = OS memory backend");
+//int ump_backend = ARCH_UMP_BACKEND_DEFAULT;
+//module_param(ump_backend, int, S_IRUGO); /* r--r--r-- */
+//MODULE_PARM_DESC(ump_backend, "0 = dedicated memory backend (default), 1 = OS memory backend");
 
 /* The base address of the memory block for the dedicated memory backend */
 unsigned int ump_memory_address = ARCH_UMP_MEMORY_ADDRESS_DEFAULT;
@@ -33,13 +33,15 @@ unsigned int ump_memory_size = ARCH_UMP_MEMORY_SIZE_DEFAULT;
 module_param(ump_memory_size, uint, S_IRUGO); /* r--r--r-- */
 MODULE_PARM_DESC(ump_memory_size, "The size of fixed memory to map in the dedicated memory backend");
 
-ump_memory_backend* ump_memory_backend_create ( void )
+ump_memory_backend* ump_memory_backend_create ( int ump_backend  )
 {
 	ump_memory_backend * backend = NULL;
 
 	/* Create the dynamic memory allocator backend */
 	if (0 == ump_backend)
 	{
+		ump_memory_address = ARCH_UMP_DEDICATED_MEMORY_ADDRESS_DEFAULT;
+		ump_memory_size = ARCH_UMP_DEDICATED_MEMORY_SIZE_DEFAULT;
 		DBG_MSG(2, ("Using dedicated memory backend\n"));
 
 		DBG_MSG(2, ("Requesting dedicated memory: 0x%08x, size: %u\n", ump_memory_address, ump_memory_size));
@@ -60,7 +62,7 @@ ump_memory_backend* ump_memory_backend_create ( void )
 	return backend;
 }
 
-void ump_memory_backend_destroy( void )
+void ump_memory_backend_destroy( int ump_backend )
 {
 	if (0 == ump_backend)
 	{

@@ -71,10 +71,18 @@ _mali_osk_errcode_t ump_kernel_constructor(void)
 	}
 
 	/* Init memory backend */
-	device.backend = ump_memory_backend_create();
-	if (NULL == device.backend)
+	device.backend_os = ump_memory_backend_create(1);
+	if (NULL == device.backend_os)
 	{
-		MSG_ERR(("Failed to create memory backend\n"));
+		MSG_ERR(("Failed to create memory backend_os\n"));
+		_mali_osk_lock_term(device.secure_id_map_lock);
+		ump_descriptor_mapping_destroy(device.secure_id_map);
+		return _MALI_OSK_ERR_NOMEM;
+	}
+	device.backend_dedicate= ump_memory_backend_create(0);
+	if (NULL == device.backend_dedicate)
+	{
+		MSG_ERR(("Failed to create memory backend_dedicate\n"));
 		_mali_osk_lock_term(device.secure_id_map_lock);
 		ump_descriptor_mapping_destroy(device.secure_id_map);
 		return _MALI_OSK_ERR_NOMEM;
@@ -94,10 +102,14 @@ void ump_kernel_destructor(void)
 	ump_descriptor_mapping_destroy(device.secure_id_map);
 	device.secure_id_map = NULL;
 
-	device.backend->shutdown(device.backend);
-	device.backend = NULL;
+	device.backend_os->shutdown(device.backend_os);
+	device.backend_os = NULL;
 
-	ump_memory_backend_destroy();
+	device.backend_dedicate->shutdown(device.backend_dedicate);
+	device.backend_dedicate = NULL;
+
+	ump_memory_backend_destroy(1);
+	ump_memory_backend_destroy(0);
 
 	_ump_osk_term();
 }
