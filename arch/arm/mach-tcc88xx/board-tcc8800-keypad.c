@@ -89,7 +89,7 @@ static const struct gpio_event_direct_entry tcc8803_2cs_gpio_keymap[] = {
 	{ TCC_GPF(3), KEY_BACK },
 	{ TCC_GPF(4), KEY_UP },
 	{ TCC_GPF(5), KEY_DOWN },
-	{ TCC_GPF(6), KEY_HOME },
+	{ TCC_GPF(6), KEY_HOMEPAGE },
 };
 
 static struct gpio_event_input_info tcc8803_2cs_gpio_key_input_info = {
@@ -136,7 +136,7 @@ static const unsigned short tcc8801_keymap[] = {
 	[KEYMAP_INDEX(1, 1)] = KEY_VOLUMEDOWN,
 	[KEYMAP_INDEX(1, 2)] = KEY_RESERVED,
 	
-	[KEYMAP_INDEX(2, 0)] = KEY_HOME,
+	[KEYMAP_INDEX(2, 0)] = KEY_HOMEPAGE,
 	[KEYMAP_INDEX(2, 1)] = KEY_BACK,
 	[KEYMAP_INDEX(2, 2)] = KEY_RESERVED,
 };
@@ -190,7 +190,7 @@ static const unsigned short tcc8803_2cs_keymap[] = {
 	[KEYMAP_INDEX_TCC8803_2CS(1, 1)] = KEY_VOLUMEDOWN,
 	[KEYMAP_INDEX_TCC8803_2CS(1, 2)] = KEY_RESERVED,
 
-	[KEYMAP_INDEX_TCC8803_2CS(2, 0)] = KEY_HOME,
+	[KEYMAP_INDEX_TCC8803_2CS(2, 0)] = KEY_HOMEPAGE,
 	[KEYMAP_INDEX_TCC8803_2CS(2, 1)] = KEY_BACK,
 	[KEYMAP_INDEX_TCC8803_2CS(2, 2)] = KEY_RESERVED,
 };

@@ -658,7 +658,6 @@ static u32 subsystem_mali200_irq_handler_upper_half(mali_core_renderunit * core)
 		return (core->current_job ? 1 : 0); /* simulate irq is pending when a job is pending */
 	}
 
-	MALI_DEBUG_PRINT(5, ("Mali PP: subsystem_mali200_irq_handler_upper_half: %s\n", core->description)) ;
 	irq_readout = mali_core_renderunit_register_read(core, MALI200_REG_ADDR_MGMT_INT_STATUS);
 
 	if ( MALI200_REG_VAL_IRQ_MASK_NONE != irq_readout )

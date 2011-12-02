@@ -248,9 +248,16 @@ static long has_wake_lock_locked(int type)
 				expire_wake_lock(lock);
 			else if (timeout > max_timeout)
 				max_timeout = timeout;
-		} else
+		}
+		else {
+			if (debug_mask & DEBUG_WAKE_LOCK)
+				pr_info("has_wake_lock_locked: %s, retrun -1, lock->flags=0x%x\n", lock->name, lock->flags);
 			return -1;
+		}
 	}
+
+	if (debug_mask & DEBUG_WAKE_LOCK)
+		pr_info("has_wake_lock_locked: None!! max_timeout=%d\n", (int)max_timeout);
 	return max_timeout;
 }
 
@@ -514,7 +521,7 @@ void wake_unlock(struct wake_lock *lock)
 	wake_unlock_stat_locked(lock, 0);
 #endif
 	if (debug_mask & DEBUG_WAKE_LOCK)
-		pr_info("wake_unlock: %s\n", lock->name);
+		pr_info("wake_unlock: %s, type=%d\n", lock->name, type);
 	lock->flags &= ~(WAKE_LOCK_ACTIVE | WAKE_LOCK_AUTO_EXPIRE);
 	list_del(&lock->link);
 	list_add(&lock->link, &inactive_locks);

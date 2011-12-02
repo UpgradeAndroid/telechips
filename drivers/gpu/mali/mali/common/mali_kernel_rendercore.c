@@ -520,6 +520,7 @@ void mali_core_subsystem_attach_mmu(mali_core_subsystem* subsys)
 		core = mali_core_renderunit_get_mali_core_nr(subsys,i);
 		if ( NULL==core ) break;
 		core->mmu = mali_memory_core_mmu_lookup(core->mmu_id);
+		mali_memory_core_mmu_owner(core,core->mmu);
 		MALI_DEBUG_PRINT(2, ("Attach mmu: 0x%x to core: %s in subsystem: %s\n", core->mmu, core->description, subsys->name));
 	}
 
@@ -1353,7 +1354,6 @@ void mali_core_session_close(mali_core_session * session)
 		core = _MALI_OSK_LIST_ENTRY(session->renderunits_working_head.next, mali_core_renderunit, list);
 		MALI_DEBUG_PRINT(3, ("Core: session_close: Core was working: %s\n", core->description )) ;
 		mali_core_renderunit_detach_job_from_core(core, SUBSYSTEM_RESCHEDULE, JOB_STATUS_END_SHUTDOWN );
-		break;
 	}
 	_MALI_OSK_INIT_LIST_HEAD(&session->renderunits_working_head); /* Not necessary - we will _mali_osk_free session*/
 
@@ -1662,6 +1662,11 @@ static _mali_osk_errcode_t  mali_core_irq_handler_upper_half (void * data)
 
     core  = (mali_core_renderunit * )data;
 
+	if(core && (CORE_OFF == core->state))
+	{
+		MALI_SUCCESS;
+	}
+
 	if ( (NULL == core) ||
 		 (NULL == core->subsystem) ||
 		 (NULL == core->subsystem->irq_handler_upper_half) )
@@ -1698,7 +1703,7 @@ static void mali_core_irq_handler_bottom_half ( void *data )
 	MALI_CHECK_SUBSYSTEM(subsystem);
 
 	MALI_CORE_SUBSYSTEM_MUTEX_GRAB( subsystem );
-	if ( CORE_IDLE == core->state ) goto end_function;
+	if ( CORE_IDLE == core->state || CORE_OFF == core->state ) goto end_function;
 
 	MALI_DEBUG_PRINT(5, ("IRQ: handling irq from core %s\n", core->description )) ;
 
@@ -1769,7 +1774,7 @@ _mali_osk_errcode_t mali_core_subsystem_signal_power_down(mali_core_subsystem *s
 	{
 		/* Couldn't find the core */
 		MALI_CORE_SUBSYSTEM_MUTEX_RELEASE(subsys);
-		MALI_DEBUG_PRINT( 5, ("Core: Failed to find core to power down\n") );
+		MALI_DEBUG_PRINT( 1, ("Core: Failed to find core to power down\n") );
         MALI_ERROR(_MALI_OSK_ERR_FAULT);
 	}
 	else if ( core->state != CORE_IDLE )
@@ -1809,7 +1814,7 @@ _mali_osk_errcode_t mali_core_subsystem_signal_power_up(mali_core_subsystem *sub
 	{
 		/* Couldn't find the core */
 		MALI_CORE_SUBSYSTEM_MUTEX_RELEASE(subsys);
-		MALI_DEBUG_PRINT( 5, ("Core: Failed to find core to power up\n") );
+		MALI_DEBUG_PRINT( 1, ("Core: Failed to find core to power up\n") );
         MALI_ERROR(_MALI_OSK_ERR_FAULT);
 	}
 	else if( core->state != CORE_OFF )
@@ -1817,7 +1822,7 @@ _mali_osk_errcode_t mali_core_subsystem_signal_power_up(mali_core_subsystem *sub
 		/* This will usually happen because we are trying to cancel a pending power down */
 		core->pend_power_down = MALI_FALSE;
 		MALI_CORE_SUBSYSTEM_MUTEX_RELEASE(subsys);
-		MALI_DEBUG_PRINT( 5, ("Core: No powered off core to power up (cancelled power down?)\n") );
+		MALI_DEBUG_PRINT( 1, ("Core: No powered off core to power up (cancelled power down?)\n") );
         MALI_ERROR(_MALI_OSK_ERR_BUSY);
 	}
 

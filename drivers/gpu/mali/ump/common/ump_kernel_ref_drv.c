@@ -165,18 +165,34 @@ _mali_osk_errcode_t _ump_ukk_allocate( _ump_uk_allocate_s *user_interaction )
 	new_allocation->size_bytes = UMP_SIZE_ALIGN(user_interaction->size); /* Page align the size */
 
 	/* Now, ask the active memory backend to do the actual memory allocation */
-	if (!device.backend->allocate( device.backend->ctx, new_allocation ) )
+	if(UMP_REF_DRV_UK_CONSTRAINT_PHYSICALLY_LINEAR & user_interaction->constraints)
 	{
-		DBG_MSG(3, ("OOM: No more UMP memory left. Failed to allocate memory in ump_ioctl_allocate(). Size: %lu, requested size: %lu\n", new_allocation->size_bytes, (unsigned long)user_interaction->size));
-		ump_descriptor_mapping_free(device.secure_id_map, map_id);
-		_mali_osk_lock_signal(device.secure_id_map_lock, _MALI_OSK_LOCKMODE_RW);
-		_mali_osk_free(new_allocation);
-		_mali_osk_free(session_memory_element);
-		return _MALI_OSK_ERR_INVALID_FUNC;
+		if (!device.backend_dedicate->allocate( device.backend_dedicate->ctx, new_allocation ) )
+		{
+			DBG_MSG(3, ("OOM: No more UMP memory left. Failed to allocate memory in ump_ioctl_allocate(). Size: %lu, requested size: %lu\n", new_allocation->size_bytes, (unsigned long)user_interaction->size));
+			ump_descriptor_mapping_free(device.secure_id_map, map_id);
+			_mali_osk_lock_signal(device.secure_id_map_lock, _MALI_OSK_LOCKMODE_RW);
+			_mali_osk_free(new_allocation);
+			_mali_osk_free(session_memory_element);
+			return _MALI_OSK_ERR_INVALID_FUNC;
+		}
+		new_allocation->ctx = device.backend_dedicate->ctx;
+		new_allocation->release_func = device.backend_dedicate->release;
 	}
-
-	new_allocation->ctx = device.backend->ctx;
-	new_allocation->release_func = device.backend->release;
+	else
+	{
+		if (!device.backend_os->allocate( device.backend_os->ctx, new_allocation ) )
+		{
+			DBG_MSG(3, ("OOM: No more UMP memory left. Failed to allocate memory in ump_ioctl_allocate(). Size: %lu, requested size: %lu\n", new_allocation->size_bytes, (unsigned long)user_interaction->size));
+			ump_descriptor_mapping_free(device.secure_id_map, map_id);
+			_mali_osk_lock_signal(device.secure_id_map_lock, _MALI_OSK_LOCKMODE_RW);
+			_mali_osk_free(new_allocation);
+			_mali_osk_free(session_memory_element);
+			return _MALI_OSK_ERR_INVALID_FUNC;
+		}
+		new_allocation->ctx = device.backend_os->ctx;
+		new_allocation->release_func = device.backend_os->release;
+	}
 
 	_mali_osk_lock_signal(device.secure_id_map_lock, _MALI_OSK_LOCKMODE_RW);
 

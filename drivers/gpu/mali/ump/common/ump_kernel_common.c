@@ -71,10 +71,18 @@ _mali_osk_errcode_t ump_kernel_constructor(void)
 	}
 
 	/* Init memory backend */
-	device.backend = ump_memory_backend_create();
-	if (NULL == device.backend)
+	device.backend_os = ump_memory_backend_create(1);
+	if (NULL == device.backend_os)
 	{
-		MSG_ERR(("Failed to create memory backend\n"));
+		MSG_ERR(("Failed to create memory backend_os\n"));
+		_mali_osk_lock_term(device.secure_id_map_lock);
+		ump_descriptor_mapping_destroy(device.secure_id_map);
+		return _MALI_OSK_ERR_NOMEM;
+	}
+	device.backend_dedicate= ump_memory_backend_create(0);
+	if (NULL == device.backend_dedicate)
+	{
+		MSG_ERR(("Failed to create memory backend_dedicate\n"));
 		_mali_osk_lock_term(device.secure_id_map_lock);
 		ump_descriptor_mapping_destroy(device.secure_id_map);
 		return _MALI_OSK_ERR_NOMEM;
@@ -94,10 +102,14 @@ void ump_kernel_destructor(void)
 	ump_descriptor_mapping_destroy(device.secure_id_map);
 	device.secure_id_map = NULL;
 
-	device.backend->shutdown(device.backend);
-	device.backend = NULL;
+	device.backend_os->shutdown(device.backend_os);
+	device.backend_os = NULL;
 
-	ump_memory_backend_destroy();
+	device.backend_dedicate->shutdown(device.backend_dedicate);
+	device.backend_dedicate = NULL;
+
+	ump_memory_backend_destroy(1);
+	ump_memory_backend_destroy(0);
 
 	_ump_osk_term();
 }
@@ -299,7 +311,7 @@ _mali_osk_errcode_t _ump_ukk_map_mem( _ump_uk_map_mem_s *args )
 		return err;
 	}
 
-	args->phys_addr = descriptor->phys_addr= ((NULL != mem->block_array) ? mem->block_array->addr : 0);
+	args->phys_addr = descriptor->phys_addr = (void *) ((NULL != mem->block_array) ? mem->block_array->addr : 0);
 	DBG_MSG(4, ("Mapping virtual to physical memory: ID: %u, size:%lu, first physical addr: 0x%08lx, number of regions: %lu\n",
 	        mem->secure_id,
 	        mem->size_bytes,
@@ -385,4 +397,12 @@ void _ump_ukk_unmap_mem( _ump_uk_unmap_mem_s *args )
 
 	_ump_osk_mem_mapregion_term( descriptor );
 	_mali_osk_free(descriptor);
+}
+
+u32 _ump_ukk_report_memory_usage( void )
+{
+	if(device.backend_os->stat)
+		return device.backend_os->stat(device.backend_os);
+	else
+		return 0;
 }
