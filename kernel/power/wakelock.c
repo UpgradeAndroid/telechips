@@ -31,7 +31,12 @@ enum {
 	DEBUG_EXPIRE = 1U << 3,
 	DEBUG_WAKE_LOCK = 1U << 4,
 };
+#ifndef CONFIG_PM_VERBOSE_WAKELOCK
 static int debug_mask = DEBUG_EXIT_SUSPEND | DEBUG_WAKEUP;
+#else
+static int debug_mask = DEBUG_EXIT_SUSPEND | DEBUG_WAKEUP | DEBUG_SUSPEND | DEBUG_EXPIRE | DEBUG_WAKE_LOCK;
+//static int debug_mask = DEBUG_EXIT_SUSPEND | DEBUG_WAKEUP | DEBUG_SUSPEND;
+#endif
 module_param_named(debug_mask, debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP);
 
 #define WAKE_LOCK_TYPE_MASK              (0x0f)
@@ -243,9 +248,16 @@ static long has_wake_lock_locked(int type)
 				expire_wake_lock(lock);
 			else if (timeout > max_timeout)
 				max_timeout = timeout;
-		} else
+		}
+		else {
+			if (debug_mask & DEBUG_WAKE_LOCK)
+				pr_info("has_wake_lock_locked: %s, retrun -1, lock->flags=0x%x\n", lock->name, lock->flags);
 			return -1;
+		}
 	}
+
+	if (debug_mask & DEBUG_WAKE_LOCK)
+		pr_info("has_wake_lock_locked: None!! max_timeout=%d\n", (int)max_timeout);
 	return max_timeout;
 }
 
@@ -509,7 +521,7 @@ void wake_unlock(struct wake_lock *lock)
 	wake_unlock_stat_locked(lock, 0);
 #endif
 	if (debug_mask & DEBUG_WAKE_LOCK)
-		pr_info("wake_unlock: %s\n", lock->name);
+		pr_info("wake_unlock: %s, type=%d\n", lock->name, type);
 	lock->flags &= ~(WAKE_LOCK_ACTIVE | WAKE_LOCK_AUTO_EXPIRE);
 	list_del(&lock->link);
 	list_add(&lock->link, &inactive_locks);

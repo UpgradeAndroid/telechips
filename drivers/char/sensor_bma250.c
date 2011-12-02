@@ -21,6 +21,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -30,277 +31,259 @@
 #include <linux/errno.h>
 #include <asm/uaccess.h>
 #include <linux/earlysuspend.h>
+#include <linux/interrupt.h>
+#include <linux/irq.h>
 
 #include <asm/io.h>
 #include <asm/uaccess.h>
 #include <asm/mach-types.h>
 #include <linux/delay.h>
-
-
-//#if defined(CONFIG_ARCH_TCC92X) || defined (CONFIG_ARCH_TCC93XX)
 #include <mach/bsp.h>
-//#endif
 
 #ifdef CONFIG_I2C
 #include <linux/i2c.h>
 #endif
 #include <asm/gpio.h>
-#include <linux/i2c/sensor_i2c.h>
 #include <linux/input.h>
-
 #include <linux/slab.h>
-
 #include <mach/sensor_ioctl.h>
 #include "bma250.h"
 
+#define SENSOR_DEV_NAME		"sensor"
+#define SENSOR_DEV_MAJOR		249
+#define SENSOR_DEV_MINOR		1
 
-#define BMA250_DEBUG    0
-#define BMA250_DEBUG_D  0
+#define SENSOR_ENABLE			1
+#define SENSOR_DISABLE			0
 
-#if BMA250_DEBUG
+#define BMA_DEBUG    	0
+#define BMA_DEBUG_D  	0
+
+#if BMA_DEBUG
 #define sensor_dbg(fmt, arg...)     printk(fmt, ##arg)
 #else
 #define sensor_dbg(arg...)
 #endif
 
-#if BMA250_DEBUG_D
+#if BMA_DEBUG_D
 #define sensor_dbg_d(fmt, arg...)     printk(fmt, ##arg)
 #else
 #define sensor_dbg_d(arg...)
 #endif
 
-
-#define SENSOR_DEV_NAME			"sensor"
-#define SENSOR_DEV_MAJOR		249
-#define SENSOR_DEV_MINOR		1
-
-#define M_RESOLUTIOIN    (256) // BMA250
-
 typedef struct {
     int x;
     int y;
     int z;
-	int resolution;
+    int resolution;
     int delay_time;
 } tcc_sensor_accel_t;
 
+typedef struct _matrix3by3 {
+	short	_11;
+	short	_12;
+	short	_13;
+	short	_21;
+	short 	_22;
+	short 	_23;
+	short	_31;
+	short 	_32;
+	short 	_33;
+} matrix3by3;
+
+#define LAYOUT_CHIP2HAL	0
+#define LAYOUT_HAL2CHIP	1
+
+matrix3by3 gsenlayout[2] = 
+{
+    // LAYOUT_CHIP2HAL
+    // LAYOUT_HAL2CHIP
+#if defined(CONFIG_GSEN_TOP)
+    #if defined(CONFIG_GSEN_ROTATE_0)
+    {1,	0,	0,	0,	1,	0,	0,	0,	1},
+    {1,	0,	0,	0,	1,	0,	0,	0,	1},
+    #elif defined(CONFIG_GSEN_ROTATE_90)
+    {0,	1,	0,	-1,	0,	0,	0,	0,	1},
+    {0,	-1,	0,	1,	0,	0,	0,	0,	1},
+    #elif defined(CONFIG_GSEN_ROTATE_180)
+    {-1,	0,	0,	0,	-1,	0,	0,	0,	1},
+    {-1,	0,	0,	0,	-1,	0,	0,	0,	1},
+    #else // CONFIG_GSEN_ROTATE_270
+    {0,	-1,	0,	1,	0,	0,	0,	0,	1},
+    {0,	1,	0,	-1,	0,	0,	0,	0,	1},
+    #endif
+#else // CONFIG_GSEN_BOTTOM
+    #if defined(CONFIG_GSEN_ROTATE_0)
+    {-1,	0,	0,	0,	1,	0,	0,	0,	-1},
+    {-1,	0,	0,	0,	1,	0,	0,	0,	-1},
+    #elif defined(CONFIG_GSEN_ROTATE_90)
+    {0,	-1,	0,	-1,	0,	0,	0,	0,	-1},
+    {0,	1,	0,	1,	0,	0,	0,	0,	-1},
+    #elif defined(CONFIG_GSEN_ROTATE_180)
+    {1,	0,	0,	0,	-1,	0,	0,	0,	-1},
+    {1,	0,	0,	0,	-1,	0,	0,	0,	-1},
+    #else // CONFIG_GSEN_ROTATE_270
+    {0,	1,	0,	1,	0,	0,	0,	0,	-1},
+    {0,	-1,	0,	-1,	0,	0,	0,	0,	-1},
+    #endif
+#endif
+};
+
+struct bmasensoracc{
+	short	x;
+	short	y;
+	short	z;
+} ;
+
+struct bmacalib{
+	atomic_t x;
+	atomic_t y;
+	atomic_t z;
+};
+
+enum{
+	AXIS_X,
+	AXIS_Y,
+	AXIS_Z,
+	AXIS_MAX
+};
+
+enum{
+	DEVICE_TYPE_CHAR,
+	DEVICE_TYPE_INPUT,
+	DEVICE_TYPE_MAX
+};
+
+enum{
+	CALIBRATION_SOFT,
+	CALIBRATION_HW_AUTO,
+	CALIBRATION_HW_MANUAL,
+	CALIBRATION_MAX
+};
+
+//#define SENSOR_TUNING
+
+#ifdef SENSOR_TUNING
+#define SENSOR_TUNING_DIVIDE_2	2  	// 0.5
+#define SENSOR_TUNING_DIVIDE_4	4 	// 0.25
+#define SENSOR_TUNING_DIVIDE_5	5 	// 0.2
+#define SENSOR_TUNING_DIVIDE_10	10 	// 0.1
+
+#define SENSOR_TUNING_DIVIDE 	SENSOR_TUNING_DIVIDE_5
+
+#define SENSOR_TUNING_BIT_WIDTH_EXTEND
+#endif 
+
+struct bmasensor_data {
+	struct i2c_client * i2cClient;
+	#ifdef SENSOR_TUNING
+	atomic_t realDelayCnt;
+	atomic_t realDelayTriggerCnt;
+	atomic_t realDelay;
+	struct bmasensoracc avgValue;
+	#endif
+	atomic_t delay;
+	atomic_t enable;
+	atomic_t inputDevice;
+	atomic_t resolution;
+	atomic_t calibMode;
+	unsigned short mode;
+	struct input_dev *input;
+	struct bmasensoracc value;
+	struct bmacalib calibOffset;
+	struct mutex value_mutex;
+	struct mutex enable_mutex;
+	struct mutex mode_mutex;
+	struct delayed_work work;
+	//struct work_struct irq_work;
+#if 0 //def CONFIG_HAS_EARLYSUSPEND
+	struct early_suspend early_suspend;
+#endif
+	int IRQ;
+};
+
+struct bmasensor_data *mData;
+
+static int sensor_used_count=0;
+
+#define BMA_MAX_DELAY			200 
+#define BMA_DEFAULT_DELAY		20 
+
+#define BMA_CHIP_ID				2
+#define BMA_ORG_DATA_BIT_WIDTH	10
+#ifdef SENSOR_TUNING_BIT_WIDTH_EXTEND
+#define BMA_DATA_TUNING_WIDTH	2
+#else
+#define BMA_DATA_TUNING_WIDTH	0
+#endif
+#define BMA_DATA_BIT_WIDTH		(BMA_ORG_DATA_BIT_WIDTH + BMA_DATA_TUNING_WIDTH)
+#define BMA_1G_RESOLUTIOIN    	(1<<(BMA_DATA_BIT_WIDTH-2))
+#define BMA_DATA_ABS			(1<<(BMA_DATA_BIT_WIDTH-1))
+#define ABSMIN					(-BMA_DATA_ABS)
+#define ABSMAX					(BMA_DATA_ABS)
+
+#define BMA250_I2C_ADDRESS      	0x18
+#define BMA_CHIP_ID_REG		BMA250_CHIP_ID_REG
+#define BMA_CHIP_ID				BMA250_CHIP_ID
+
+#define SENSOR_I2C_ADDRESS		(BMA250_I2C_ADDRESS)
+#define SENSOR_DEFAULT_RANGE	(BMA250_RANGE_SET)
+#define SENSOR_DEFAULT_BW		(BMA250_BW_SET)
+#define SENSOR_NAME 			"tcc-accel"
+#define SENSOR_HAL_NAME		"BMA250 3-axis Accelerometer"
+#define SENSOR_CALIBRATION_MODE	(CALIBRATION_HW_AUTO)
+#define SENSOR_DEF_DEVICE_TYPE	(DEVICE_TYPE_INPUT)
+
+static void tcc_sensor_landscapeDevice2AndroidPortrait(struct bmasensoracc *sensor_accel);
+static void tcc_sensor_PortraitAndroid2AndroidPortrait(struct bmasensoracc *sensor_accel);
+static void tcc_sensor_convertCoordination(struct bmasensoracc *sensor_accel, matrix3by3 *layout);
+static void tcc_sensor_set_enable_by_client_for_calibration(struct bmasensor_data *sensor_data, int enable);
 
 #ifdef CONFIG_I2C
-#define BMA250_I2C_ADDRESS      0x18
-
 static struct i2c_driver sensor_i2c_driver;
-static struct i2c_client *sensor_i2c_client;
-
-static struct timer_list *sensor_timer;
-static int sensor_used_count=0;
-volatile static unsigned int sensor_state_flag=0;
-volatile static unsigned int sensor_duration=60;//200;
-volatile static tcc_sensor_accel_t tcc_sensor_accel;
-static tcc_sensor_accel_t calib_data;
-static struct work_struct sensor_work_q;
 
 static const struct i2c_device_id sensor_i2c_id[] = {
-    { "tcc-accel-sensor", 0, },
+    { SENSOR_NAME, 0, },
     { }
 };
 
-struct sensor_i2c_chip_info {
-    unsigned gpio_start;
-    uint16_t reg_output;
-    uint16_t reg_direction;
-
-    struct i2c_client *client;
-    struct gpio_chip gpio_chip;
-};
-
-static atomic_t suspend_flag = ATOMIC_INIT(0);
-static struct mutex suspend_flag_mutex;
-
-static void sensor_timer_handler(unsigned long data)
+static int bma250_smbus_read_byte_block(struct i2c_client *client,
+		unsigned char reg_addr, unsigned char *data, unsigned char len)
 {
-    sensor_dbg("%s\n", __func__);
-    if (schedule_work(&sensor_work_q) == 0) {
-        sensor_dbg("cannot schedule work !!!\n");
-    }
+	s32 dummy;
+	dummy = i2c_smbus_read_i2c_block_data(client, reg_addr, len, data);
+	if (dummy < 0)
+		return -1;
+	return 0;
 }
 
-static void sensor_timer_registertimer(struct timer_list* ptimer, unsigned int timeover )
-{
-    sensor_dbg("%s\n", __func__);
-    init_timer(ptimer);
-    ptimer->expires = jiffies+msecs_to_jiffies(timeover);
-    ptimer->data = (unsigned long)NULL;
-    ptimer->function = sensor_timer_handler;
-
-    add_timer(ptimer);
-}
-
-static void SENSOR_SEND_CMD(unsigned char reg, unsigned char val)
+static void SENSOR_SEND_CMD(struct i2c_client *client,unsigned char reg, unsigned char val)
 {
     unsigned char cmd[2];
-    sensor_dbg_d("%s\n", __func__);
+    sensor_dbg_d("%s reg=0x%x val=0x%x\n", __func__,reg,val);
     cmd[0] = reg;
     cmd[1] = val;	
-    if (!atomic_read(&suspend_flag))
-        i2c_master_send(sensor_i2c_client, cmd, 2);
+    i2c_master_send(client, cmd, 2);
 }
 
-
-static unsigned char SENSOR_READ_DAT(unsigned char reg)
+static unsigned char SENSOR_READ_DAT(struct i2c_client *client,unsigned char reg)
 {
     unsigned char buf;
-    sensor_dbg_d("%s\n", __func__);
-    mutex_lock(&suspend_flag_mutex);
-    if (!atomic_read(&suspend_flag)) {
-        i2c_master_send(sensor_i2c_client, &reg, 1);
-        i2c_master_recv(sensor_i2c_client, &buf, 1);
-    }
-    mutex_unlock(&suspend_flag_mutex);
+    //sensor_dbg_d("%s\n", __func__);
+    i2c_master_send(client, &reg, 1);
+    i2c_master_recv(client, &buf, 1);
+    sensor_dbg_d("%s reg=0x%x val=0x%x\n", __func__,reg,buf);
     return 	buf;
 }
 
-static void SENOSR_READ_DAT_S(unsigned char reg, unsigned char *buf, int size)
-{
-    mutex_lock(&suspend_flag_mutex);
-    if (!atomic_read(&suspend_flag)) {
-        i2c_master_send(sensor_i2c_client, (const char *) &reg, 1);
-        i2c_master_recv(sensor_i2c_client, buf, size);
-    }
-    mutex_unlock(&suspend_flag_mutex);
-}
+ #endif  /* #ifdef CONFIG_I2C */
 
-static int sensor_i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
-{
-    struct sensor_i2c_chip_info 	*chip;
-
-    sensor_dbg("\n sensor_i2c_probe  :  bma250 %s \n", client->name);
-
-    chip = kzalloc(sizeof(struct sensor_i2c_chip_info), GFP_KERNEL);
-    if(chip == NULL)
-    {		
-        sensor_dbg("\n tcc_sensor_i2c  :  no chip info. \n");
-        return -ENOMEM;
-    }
-
-    chip->client = client;
-    i2c_set_clientdata(client, chip);
-
-    return 0;
-}
-
-static int sensor_i2c_remove(struct i2c_client *client)
-{
-    struct sensor_i2c_chip_info 		*chip  = i2c_get_clientdata(client);
-
-    kfree(chip);
-
-    return 0;
-}
-
-static int sensor_i2c_suspend(struct i2c_client *client, pm_message_t mesg)
-{
-	//printk("sensor_i2c_suspend \n");
-	mutex_lock(&suspend_flag_mutex);
-	atomic_set(&suspend_flag, 1);
-	mutex_unlock(&suspend_flag_mutex);
-	//printk("sensor_i2c_suspend e\n");
-	
-	return 0;
-}
-
-static int sensor_i2c_resume(struct i2c_client *client)
-{
-	//printk("sensor_i2c_resume \n");
-	mutex_lock(&suspend_flag_mutex);
-	atomic_set(&suspend_flag, 0);
-	mutex_unlock(&suspend_flag_mutex);
-	//printk("sensor_i2c_resume e\n");
-	return 0;
-}
-
-/* bma250 i2c control layer */
-static struct i2c_driver sensor_i2c_driver = {
-    .driver = {
-        .name   = "tcc-accel-sensor",
-        .owner  = THIS_MODULE,
-    },
-    .probe      = sensor_i2c_probe,
-    .remove     = sensor_i2c_remove,
-    .suspend    = sensor_i2c_suspend,
-    .resume     = sensor_i2c_resume,
-    .id_table   = sensor_i2c_id,
-};
-
-static int bma250_i2c_register(void)
-{
-    struct i2c_board_info info;
-    struct i2c_adapter *adapter;
-    struct i2c_client *client;
-
-    memset(&info, 0, sizeof(struct i2c_board_info));
-    info.addr = BMA250_I2C_ADDRESS;
-    strlcpy(info.type, "tcc-accel-sensor", I2C_NAME_SIZE);
-
-    sensor_dbg(KERN_INFO "%s : bma250_i2c_register\n", __FUNCTION__);
-    	  
-#if defined(CONFIG_ARCH_TCC93XX)
-    adapter = i2c_get_adapter(3);
-#else
-    if(machine_is_m57te()){
-        adapter = i2c_get_adapter(1);
-    }
-    else if(machine_is_m801())  // 89_froyo
-    {
-        adapter = i2c_get_adapter(0);
-    }
-    else{  // 88_froyo (88_93 demo black board)  // M8801_8803
-        sensor_dbg(KERN_INFO "%s : i2c_get_adapter(0)\n", __FUNCTION__);
-        adapter = i2c_get_adapter(0);
-    }
-#endif
-    if (!adapter) 
-    {
-        sensor_dbg(KERN_ERR "can't get i2c adapter 0 for tcc-accel-sensor\n");
-        return -ENODEV;
-    }
-
-    client = i2c_new_device(adapter, &info);
-    i2c_put_adapter(adapter);
-    if (!client) 
-    {
-        sensor_dbg(KERN_ERR "can't add i2c device at 0x%x\n", (unsigned int)info.addr);
-        return -ENODEV;
-    }
-
-    sensor_i2c_client = client;
-
-    return 0;
-}
-
-#endif  /* #ifdef CONFIG_I2C */
-
-
-
-///// bama250 API ///////////////////////////////////////////////////////////////////////////////////////////////
-//	unsigned char chip_id;
-//int bma250_init(bma250_t *bma250) 
-static unsigned char bma250_init(void) 
-{
-    unsigned char data;
-    unsigned char chip_id;
-
-    data = SENSOR_READ_DAT(BMA250_CHIP_ID__REG);
-	
-    chip_id = BMA250_GET_BITSLICE(data, BMA250_CHIP_ID);						/* get bitslice */
-    return chip_id;
-}
-
-static int bma250_set_range(unsigned char Range)
+static int bma250_set_range(struct i2c_client *client,unsigned char Range)
 {
 	unsigned char data;
 
 	if (Range < 4) {
-		data = SENSOR_READ_DAT(BMA250_RANGE_SEL_REG);
+		data = SENSOR_READ_DAT(client,BMA250_RANGE_SEL_REG);
 		switch (Range) {
 			case 0:
 				data  = BMA250_SET_BITSLICE(data,
@@ -321,7 +304,7 @@ static int bma250_set_range(unsigned char Range)
 			default:
 				break;
 		}
-		SENSOR_SEND_CMD(BMA250_RANGE_SEL_REG, data);
+		SENSOR_SEND_CMD(client,BMA250_RANGE_SEL_REG, data);
 	} else{
 		return -1;
 	}
@@ -330,7 +313,7 @@ static int bma250_set_range(unsigned char Range)
 	return 0;
 }
 
-static int bma250_set_bandwidth(unsigned char BW)
+static int bma250_set_bandwidth(struct i2c_client *client,unsigned char BW)
 {
 	unsigned char data;
 	int Bandwidth = 0;
@@ -364,11 +347,11 @@ static int bma250_set_bandwidth(unsigned char BW)
 			default:
 				break;
 		}
-		data = SENSOR_READ_DAT(BMA250_BANDWIDTH__REG);
+		data = SENSOR_READ_DAT(client,BMA250_BANDWIDTH__REG);
 
 		data = BMA250_SET_BITSLICE(data, BMA250_BANDWIDTH,
 				Bandwidth);
-		SENSOR_SEND_CMD(BMA250_BANDWIDTH__REG, data);
+		SENSOR_SEND_CMD(client,BMA250_BANDWIDTH__REG, data);
 	} else{
 		return -1;
 	}
@@ -376,72 +359,190 @@ static int bma250_set_bandwidth(unsigned char BW)
 	return 0;
 }
 
-static unsigned char bma250_set_sleep_duration(unsigned char Mode)
+void bma250_set_offset_target_x(struct i2c_client *client,unsigned char offsettarget)
 {
 	unsigned char data;
-	if(Mode < 11){
-		data = SENSOR_READ_DAT(BMA250_EN_LOW_POWER__REG);
-		switch(Mode){
-			case BMA250_WAKE_UP_PAUSE_0_5MS:
-				data = BMA250_SET_BITSLICE(data,
-					BMA250_SLEEP_DUR,5);
-				break;
-			case BMA250_WAKE_UP_PAUSE_1MS:
-				data = BMA250_SET_BITSLICE(data,
-					BMA250_SLEEP_DUR,6);
-				break;
-			case BMA250_WAKE_UP_PAUSE_2MS:
-				data = BMA250_SET_BITSLICE(data,
-					BMA250_SLEEP_DUR,7);
-				break;
-			case BMA250_WAKE_UP_PAUSE_4MS:
-				data = BMA250_SET_BITSLICE(data,
-					BMA250_SLEEP_DUR,8);
-				break;
-			case BMA250_WAKE_UP_PAUSE_6MS:
-				data = BMA250_SET_BITSLICE(data,
-					BMA250_SLEEP_DUR,9);
-				break;
-			case BMA250_WAKE_UP_PAUSE_10MS:
-				data = BMA250_SET_BITSLICE(data,
-					BMA250_SLEEP_DUR,10);
-				break;
-			case BMA250_WAKE_UP_PAUSE_25MS:
-				data = BMA250_SET_BITSLICE(data,
-					BMA250_SLEEP_DUR,11);
-				break;
-			case BMA250_WAKE_UP_PAUSE_50MS:
-				data = BMA250_SET_BITSLICE(data,
-					BMA250_SLEEP_DUR,12);
-				break;
-			case BMA250_WAKE_UP_PAUSE_100MS:
-				data = BMA250_SET_BITSLICE(data,
-					BMA250_SLEEP_DUR,13);
-				break;
-			case BMA250_WAKE_UP_PAUSE_500MS:
-				data = BMA250_SET_BITSLICE(data,
-					BMA250_SLEEP_DUR,14);
-				break;
-			case BMA250_WAKE_UP_PAUSE_1000MS:
-				data = BMA250_SET_BITSLICE(data,
-					BMA250_SLEEP_DUR,15);
-				break;
-			default:
-				break;
-		}
-		SENSOR_SEND_CMD(BMA250_EN_LOW_POWER__REG, data);
-	}	else{
-		return -1;
-	}
+
+	data = SENSOR_READ_DAT(client,BMA250_COMP_TARGET_OFFSET_X__REG);
+	data = BMA250_SET_BITSLICE(data, BMA250_COMP_TARGET_OFFSET_X, offsettarget );
+	SENSOR_SEND_CMD(client,BMA250_COMP_TARGET_OFFSET_X__REG, data);
+}
+
+unsigned char bma250_get_offset_target_x(struct i2c_client *client)
+{
+	unsigned char data;
+	
+	data = SENSOR_READ_DAT(client, BMA250_OFFSET_PARAMS_REG);
+	data = BMA250_GET_BITSLICE(data, BMA250_COMP_TARGET_OFFSET_X);
+
+	return data;
+}
+
+void  bma250_set_offset_target_y(struct i2c_client *client,unsigned char offsettarget)
+{
+	unsigned char data;
+
+	data = SENSOR_READ_DAT(client, BMA250_COMP_TARGET_OFFSET_Y__REG);
+	data = BMA250_SET_BITSLICE(data, BMA250_COMP_TARGET_OFFSET_Y, offsettarget );
+	SENSOR_SEND_CMD(client,BMA250_COMP_TARGET_OFFSET_Y__REG, data);
+}
+
+unsigned char bma250_get_offset_target_y(struct i2c_client *client)
+{
+	unsigned char data;
+
+	data = SENSOR_READ_DAT(client, BMA250_OFFSET_PARAMS_REG);
+	data = BMA250_GET_BITSLICE(data, BMA250_COMP_TARGET_OFFSET_Y);
+
+	return data;
+}
+
+void bma250_set_offset_target_z(struct i2c_client *client,unsigned char offsettarget)
+{
+	unsigned char data;
+
+	data = SENSOR_READ_DAT(client, BMA250_COMP_TARGET_OFFSET_Z__REG);
+	data = BMA250_SET_BITSLICE(data, BMA250_COMP_TARGET_OFFSET_Z, offsettarget );
+	SENSOR_SEND_CMD(client,BMA250_COMP_TARGET_OFFSET_Z__REG, data);
+}
+
+unsigned char bma250_get_offset_target_z(struct i2c_client *client)
+{
+	unsigned char data;
+
+	data = SENSOR_READ_DAT( client,BMA250_OFFSET_PARAMS_REG);
+	data = BMA250_GET_BITSLICE(data, BMA250_COMP_TARGET_OFFSET_Z);
+
+	return data;
+}
+
+unsigned char bma250_get_cal_ready(struct i2c_client *client)
+{
+	unsigned char data;
+
+	data = SENSOR_READ_DAT(client,BMA250_OFFSET_CTRL_REG);
+	data = BMA250_GET_BITSLICE(data, BMA250_FAST_COMP_RDY_S);
+	return data;
+}
+
+void bma250_set_cal_trigger(struct i2c_client *client,unsigned char caltrigger)
+{
+	unsigned char data;
+
+	data = SENSOR_READ_DAT(client,BMA250_EN_FAST_COMP__REG);
+	data = BMA250_SET_BITSLICE(data, BMA250_EN_FAST_COMP, caltrigger );
+	SENSOR_SEND_CMD(client,BMA250_EN_FAST_COMP__REG, data);
+}
+
+unsigned char bma250_get_fast_calibration_x(struct i2c_client *client)
+{
+	return bma250_get_offset_target_x(client);
+}
+
+int bma250_set_fast_calibration_x(struct i2c_client *client,unsigned char target)
+{
+	signed char tmp;
+	unsigned char timeout = 0;
+
+	bma250_set_offset_target_x(client,target);
+
+	bma250_set_cal_trigger(client,1);
+
+	do {
+		msleep(4);
+		tmp = bma250_get_cal_ready(client);
+
+		//printk(KERN_INFO "wait 2ms and got cal ready flag is %d\n",tmp);
+		timeout++;
+		if(timeout==100) {
+			printk(KERN_INFO "get fast calibration ready error\n");
+			return -EINVAL;
+		};
+
+	}while(tmp==0);
+
+	printk(KERN_INFO "x axis fast calibration finished\n");
 	return 0;
 }
 
-static int bma250_set_mode(unsigned char Mode)
+unsigned char bma250_get_fast_calibration_y(struct i2c_client *client)
+{
+	return bma250_get_offset_target_y(client);
+}
+
+int bma250_set_fast_calibration_y(struct i2c_client *client,unsigned char target)
+{
+	signed char tmp;
+	unsigned char timeout = 0;
+
+	bma250_set_offset_target_y(client,target);
+
+	bma250_set_cal_trigger(client,2);
+
+	do {
+		msleep(4);
+		tmp = bma250_get_cal_ready(client);
+
+		//printk(KERN_INFO "wait 2ms and got cal ready flag is %d\n",tmp);
+		timeout++;
+		if(timeout==100) {
+			printk(KERN_INFO "get fast calibration ready error\n");
+			return -EINVAL;
+		};
+
+	}while(tmp==0);
+
+	printk(KERN_INFO "y axis fast calibration finished\n");
+	return 0;
+}
+
+unsigned char bma250_get_fast_calibration_z(struct i2c_client *client)
+{
+	return bma250_get_offset_target_z(client);
+}
+
+int bma250_set_fast_calibration_z(struct i2c_client *client,unsigned char target)
+{
+	signed char tmp;
+	unsigned char timeout = 0;
+
+	bma250_set_offset_target_z(client,target);
+
+	bma250_set_cal_trigger(client,3);
+
+	do {
+		msleep(4);
+		tmp = bma250_get_cal_ready(client);
+
+		//printk(KERN_INFO "wait 2ms and got cal ready flag is %d\n",tmp);
+		timeout++;
+		if(timeout==100) {
+			printk(KERN_INFO "get fast calibration ready error\n");
+			return -EINVAL;
+		};
+
+	}while(tmp==0);
+
+	printk(KERN_INFO "z axis fast calibration finished\n");
+	return 0;
+}
+
+void bma250_print_calib(struct i2c_client *client)
+{
+	int i;
+	unsigned char data;
+	for(i = 0x3D ; i >= 0x38;i--){
+		data = SENSOR_READ_DAT(client,i);
+		printk(" [0x%x] 0x%x   %d\n",i,data,data);
+	}
+}
+
+static int bma250_set_mode(struct i2c_client *client,unsigned char Mode)
 {
 	unsigned char data;
 
 	if (Mode < 3) {
-		data = SENSOR_READ_DAT(BMA250_EN_LOW_POWER__REG);
+		data = SENSOR_READ_DAT(client,BMA250_EN_LOW_POWER__REG);
 		switch (Mode) {
 		case BMA250_MODE_NORMAL:
 			data  = BMA250_SET_BITSLICE(data,
@@ -465,7 +566,7 @@ static int bma250_set_mode(unsigned char Mode)
 			break;
 		}
 
-		SENSOR_SEND_CMD(BMA250_EN_LOW_POWER__REG, data);
+		SENSOR_SEND_CMD(client,BMA250_EN_LOW_POWER__REG, data);
 
 	} else{
 		return -1;
@@ -474,12 +575,34 @@ static int bma250_set_mode(unsigned char Mode)
 	return 0;
 }
 
-int bma250_read_accel_xyz(bma250acc_t * acc)
+void bma250_calibration(struct bmasensor_data *sensor_data)
+{
+	struct i2c_client *client = sensor_data->i2cClient;
+	printk(KERN_INFO" bma250_calibration start \n");
+
+	tcc_sensor_set_enable_by_client_for_calibration(sensor_data,0);
+	
+	bma250_set_mode(client,BMA250_MODE_NORMAL);
+	//bma250_print_calib(client);
+	bma250_set_fast_calibration_x(client,0);
+	bma250_set_fast_calibration_y(client,0);
+	bma250_set_fast_calibration_z(client,2);
+	//bma250_print_calib(client);
+	bma250_set_mode(client,BMA250_MODE_LOWPOWER);
+
+	tcc_sensor_set_enable_by_client_for_calibration(sensor_data,1);
+
+	printk(KERN_INFO" bma250_calibration end\n");
+}
+
+static int bma250_read_accel_xyz(struct i2c_client *client,
+		struct bmasensoracc *acc)
 {
 	int comres;
 	unsigned char data[6];
 
-	SENOSR_READ_DAT_S(BMA250_ACC_X_LSB__REG, &data[0], 6);
+	comres = bma250_smbus_read_byte_block(client,
+			BMA250_ACC_X_LSB__REG, data, 6);
 
 	acc->x = BMA250_GET_BITSLICE(data[0], BMA250_ACC_X_LSB)
 		|(BMA250_GET_BITSLICE(data[1],
@@ -499,121 +622,428 @@ int bma250_read_accel_xyz(bma250acc_t * acc)
 	acc->z = BMA250_GET_BITSLICE(data[4], BMA250_ACC_Z_LSB)
 		| (BMA250_GET_BITSLICE(data[5],
 					BMA250_ACC_Z_MSB)<<BMA250_ACC_Z_LSB__LEN);
-	acc->z = acc->z << (sizeof(short)*8-(BMA250_ACC_Z_LSB__LEN
-				+ BMA250_ACC_Z_MSB__LEN));
-	acc->z = acc->z >> (sizeof(short)*8-(BMA250_ACC_Z_LSB__LEN
-				+ BMA250_ACC_Z_MSB__LEN));
+	acc->z = acc->z << (sizeof(short)*8-(BMA250_ACC_Z_LSB__LEN+ BMA250_ACC_Z_MSB__LEN));
+	acc->z = acc->z >> (sizeof(short)*8-(BMA250_ACC_Z_LSB__LEN+ BMA250_ACC_Z_MSB__LEN));
 
-	return 1;	
+
+	return comres;
 }
 
-///// bama250 API END //////////////////////////////////////////////////////////////////////////////////////////
 
-typedef struct _matrix3by3 {
-	short	_11;
-	short	_12;
-	short	_13;
-	short	_21;
-	short 	_22;
-	short 	_23;
-	short	_31;
-	short 	_32;
-	short 	_33;
-} matrix3by3;
-
-matrix3by3 gsenlayout[1] = 
-{
-#if defined(CONFIG_GSEN_TOP)
-    #if defined(CONFIG_GSEN_ROTATE_0)
-    {1,	0,	0,	0,	1,	0,	0,	0,	1},
-    #elif defined(CONFIG_GSEN_ROTATE_90)
-    {0,	1,	0,	-1,	0,	0,	0,	0,	1},
-    #elif defined(CONFIG_GSEN_ROTATE_180)
-    {-1,	0,	0,	0,	-1,	0,	0,	0,	1},
-    #else // CONFIG_GSEN_ROTATE_270
-    {0,	-1,	0,	1,	0,	0,	0,	0,	1},
-    #endif
-#else // CONFIG_GSEN_BOTTOM
-    #if defined(CONFIG_GSEN_ROTATE_0)
-    {-1,	0,	0,	0,	1,	0,	0,	0,	-1},
-    #elif defined(CONFIG_GSEN_ROTATE_90)
-    {0,	-1,	0,	-1,	0,	0,	0,	0,	-1},
-    #elif defined(CONFIG_GSEN_ROTATE_180)
-    {1,	0,	0,	0,	-1,	0,	0,	0,	-1},
-    #else // CONFIG_GSEN_ROTATE_270
-    {0,	1,	0,	1,	0,	0,	0,	0,	-1},
-    #endif
-#endif
-};
-#define ACC_DATA_STORE_CNT	16
-#define ACC_DATA_REAL_USED	8
-volatile static tcc_sensor_accel_t acc_data_store[ACC_DATA_STORE_CNT];
-volatile static tcc_sensor_accel_t acc_data_avg;
-static int store_used_count=0;
-static int store_used_limit=ACC_DATA_REAL_USED;
-static int store_save_pos=0;
-
-static int tcc_sensor_avg_init(void)
-{
-	int i;
-	for(i = 0 ; i < ACC_DATA_STORE_CNT;i++)
-	{
-		acc_data_store[i].x =0;
-		acc_data_store[i].y =0;
-		acc_data_store[i].z =0;
-	}
-	acc_data_avg.x =0;
-	acc_data_avg.y =0;
-	acc_data_avg.z =0;
-	store_used_count = 0;
-	store_save_pos = 0;
+int tcc_sensor_set_range(struct i2c_client *client,char range) 
+{			
+	return bma250_set_range(client,range);
 }
 
-static void tcc_sensor_avg_count(int duration)
+int tcc_sensor_set_bandwidth(struct i2c_client *client,char bw) 
 {
-    if(duration >= 200)
-        store_used_limit = 1; // 2 ;
-    else if(duration >= 100)
-        store_used_limit = 2; // 4;	
-    else if(duration >= 40)
-        store_used_limit = 4;// 8;
-    else
-        store_used_limit = 6;// 16;
+	return bma250_set_bandwidth(client,bw);
 }
 
-static void tcc_sensor_avg(int *data)
+int tcc_sensor_auto_calibration(struct bmasensor_data *sensor_data)
 {
-	int i;
-	tcc_sensor_accel_t acc_data_sum;
-	if(store_save_pos >= store_used_limit)
-		store_save_pos = 0;
+	// TODO
+	bma250_calibration(sensor_data);
+	return 0;
+}
+
+int tcc_sensor_calibration(struct bmasensor_data *sensor_data, short x_offset,short y_offset, short z_offset)
+{
+	int calibMode = atomic_read(&sensor_data->calibMode);
+	struct bmasensoracc calib; // calibOffset
 	
-	acc_data_store[store_save_pos].x =data[0];
-	acc_data_store[store_save_pos].y =data[1];
-	acc_data_store[store_save_pos].z =data[2];	
-	acc_data_sum.x = 0;
-	acc_data_sum.y = 0;
-	acc_data_sum.z = 0;
-	store_save_pos++;
+	calib.x = (BMA_1G_RESOLUTIOIN * x_offset)/100;
+	calib.y = (BMA_1G_RESOLUTIOIN * y_offset)/100;
+	calib.z = (BMA_1G_RESOLUTIOIN * z_offset)/100;
 
-	store_used_count++;
-	if(store_used_count >= store_used_limit)
-		store_used_count = store_used_limit;
-	for(i = 0; i < store_used_count;i++)
-	{
-		acc_data_sum.x += acc_data_store[i].x;
-		acc_data_sum.y += acc_data_store[i].y;
-		acc_data_sum.z += acc_data_store[i].z;
+	sensor_dbg_d("%s: A %d %d %d\n", __func__, calib.x,calib.y,calib.z);
+
+	atomic_set(&sensor_data->calibOffset.x,calib.x);
+	atomic_set(&sensor_data->calibOffset.y,calib.y);
+	atomic_set(&sensor_data->calibOffset.z,calib.z);
+
+	if(calibMode == CALIBRATION_HW_MANUAL){
+		#ifdef SENSOR_TUNING_BIT_WIDTH_EXTEND
+		calib.x= calib.x >> BMA_DATA_TUNING_WIDTH;
+		calib.y= calib.y >> BMA_DATA_TUNING_WIDTH;
+		calib.z= calib.z >> BMA_DATA_TUNING_WIDTH;
+		#endif
+		tcc_sensor_convertCoordination(&calib, &gsenlayout[LAYOUT_HAL2CHIP]);
+
+		sensor_dbg_d("%s: B %d %d %d\n", __func__, calib.x,calib.y,calib.z);
+		
+		tcc_sensor_PortraitAndroid2AndroidPortrait(&calib);
+
+		sensor_dbg_d("%s: C %d %d %d\n", __func__, calib.x,calib.y,calib.z);
+		
+		//bma220_set_offset_xyz(sensor_data->i2cClient,-calib.x,-calib.y,-calib.z);
 	}
-	acc_data_avg.x = acc_data_sum.x /store_used_count;
-	acc_data_avg.y = acc_data_sum.y /store_used_count;
-	acc_data_avg.z = acc_data_sum.z /store_used_count;
-//printk("%s: %d, %d, %d  - %d %d %d , delay = %d\n", acc_data_sum.x, acc_data_sum.y, acc_data_sum.z,acc_data_avg.x, acc_data_avg.y, acc_data_avg.z, tcc_sensor_accel.delay_time);
+
+	return 0;
 }
 
-static void tcc_sensor_landscapeDevice2AndroidPortrait(tcc_sensor_accel_t *sensor_accel)
+static int tcc_sensor_read_accel_xyz(struct i2c_client *client,
+		struct bmasensoracc *acc)
 {
-    int x,y,z;
+	// TODO : get the accelerometer data form chip
+	return bma250_read_accel_xyz(client, acc);
+}
+
+static int tcc_sensor_chip_init(struct i2c_client *client)
+{
+	int err = 0;
+	unsigned char tempvalue;
+
+	/* read chip id */
+	tempvalue = SENSOR_READ_DAT(client,BMA_CHIP_ID_REG);;
+
+	if (tempvalue == BMA250_CHIP_ID) {
+		printk(KERN_INFO "Bosch Sensortec Device detected!\n" 
+				"BMA250 registered I2C driver!\n");
+	} else{
+		printk(KERN_INFO "Bosch Sensortec Device not found"
+				"i2c error %d \n", tempvalue);
+		err = -ENODEV;
+		return err;
+	}
+
+	
+       tcc_sensor_set_range(client,SENSOR_DEFAULT_RANGE);
+       tcc_sensor_set_bandwidth(client,SENSOR_DEFAULT_BW);		
+	return 0;
+}
+
+static ssize_t tcc_sensor_attr_autocalibration_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct i2c_client *client = to_i2c_client(dev);
+	struct bmasensor_data *sensor_data = i2c_get_clientdata(client);
+	
+	return sprintf(buf, "%d\n", (atomic_read(&sensor_data->calibMode) == CALIBRATION_HW_AUTO)? 1:0);
+}
+
+static ssize_t tcc_sensor_attr_autocalibration_store(struct device *dev,
+		struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+	struct i2c_client *client = to_i2c_client(dev);
+	struct bmasensor_data *sensor_data = i2c_get_clientdata(client);
+
+	tcc_sensor_auto_calibration(sensor_data);
+
+	return count;
+}
+
+static ssize_t tcc_sensor_attr_calibration_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", 0);
+}
+
+static ssize_t tcc_sensor_attr_calibration_store(struct device *dev,
+		struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+	long data1,data2,data3;
+	int error;
+	struct i2c_client *client = to_i2c_client(dev);
+	struct bmasensor_data *sensor_data = i2c_get_clientdata(client);
+
+	sensor_dbg(KERN_INFO "%s  count = %d\n", __FUNCTION__,count);	
+	//error = strict_strtol(buf, 10, &data);
+	error = sscanf(buf, "%d %d %d\n",&data1,&data2,&data3);
+	sensor_dbg(KERN_INFO "%s : data = %d %d %d error = %d \n", __FUNCTION__,data1,data2,data3,error);	
+	if (error != 3)
+		return error;
+
+	tcc_sensor_calibration(sensor_data,data1,data2,data3);
+
+	sensor_dbg(KERN_INFO "%s end\n", __FUNCTION__);	
+
+	return count;
+}
+
+static ssize_t tcc_sensor_attr_resolution_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct i2c_client *client = to_i2c_client(dev);
+	struct bmasensor_data *sensor_data = i2c_get_clientdata(client);
+
+	return sprintf(buf, "%d\n", atomic_read(&sensor_data->resolution));
+
+}
+
+static ssize_t tcc_sensor_attr_resolution_store(struct device *dev,
+		struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+	unsigned long data;
+	int error;
+	struct i2c_client *client = to_i2c_client(dev);
+	struct bmasensor_data *sensor_data = i2c_get_clientdata(client);
+
+	error = strict_strtoul(buf, 10, &data);
+	sensor_dbg(KERN_INFO "%s : data = %d error = %d \n", __FUNCTION__,data,error);	
+	if (error)
+		return error;
+	if (data > BMA_MAX_DELAY)
+		data = BMA_MAX_DELAY;
+	atomic_set(&sensor_data->resolution, (unsigned int) data);
+
+	return count;
+}
+
+static ssize_t tcc_sensor_attr_usingindev_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct i2c_client *client = to_i2c_client(dev);
+	struct bmasensor_data *sensor_data = i2c_get_clientdata(client);
+
+	return sprintf(buf, "%d\n", atomic_read(&sensor_data->inputDevice));
+
+}
+
+static ssize_t tcc_sensor_attr_usingindev_store(struct device *dev,
+		struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+	unsigned long data;
+	int error;
+	struct i2c_client *client = to_i2c_client(dev);
+	struct bmasensor_data *sensor_data = i2c_get_clientdata(client);
+
+	error = strict_strtoul(buf, 10, &data);
+	sensor_dbg(KERN_INFO "%s : data = %d error = %d \n", __FUNCTION__,data,error);	
+	if (error)
+		return error;
+	if (data > BMA_MAX_DELAY)
+		data = BMA_MAX_DELAY;
+	atomic_set(&sensor_data->inputDevice, (unsigned int) data);
+
+	return count;
+}
+
+static ssize_t tcc_sensor_attr_delay_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct i2c_client *client = to_i2c_client(dev);
+	struct bmasensor_data *sensor_data = i2c_get_clientdata(client);
+
+	return sprintf(buf, "%d\n", atomic_read(&sensor_data->delay));
+
+}
+
+static ssize_t tcc_sensor_attr_delay_store(struct device *dev,
+		struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+	unsigned long data;
+	int error;
+	struct i2c_client *client = to_i2c_client(dev);
+	struct bmasensor_data *sensor_data = i2c_get_clientdata(client);
+
+	error = strict_strtoul(buf, 10, &data);
+	sensor_dbg(KERN_INFO "%s : data = %d error = %d \n", __FUNCTION__,data,error);	
+	if (error)
+		return error;
+	if (data > BMA_MAX_DELAY)
+		data = BMA_MAX_DELAY;
+	atomic_set(&sensor_data->delay, (unsigned int) data);
+#ifdef SENSOR_TUNING
+	atomic_set(&sensor_data->realDelay, (unsigned int) data/SENSOR_TUNING_DIVIDE);
+	atomic_set(&sensor_data->realDelayCnt, 0);
+	atomic_set(&sensor_data->realDelayTriggerCnt, SENSOR_TUNING_DIVIDE);
+#endif
+	return count;
+}
+
+static ssize_t tcc_sensor_attr_enable_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct i2c_client *client = to_i2c_client(dev);
+	struct bmasensor_data *sensor_data = i2c_get_clientdata(client);
+
+	return sprintf(buf, "%d\n", atomic_read(&sensor_data->enable));
+
+}
+
+static void tcc_sensor_set_enable_by_client_for_calibration(struct bmasensor_data *sensor_data, int enable)
+{
+	int pre_enable = atomic_read(&sensor_data->enable);
+
+	sensor_dbg(KERN_INFO "%s : enable = %d \n", __FUNCTION__,enable);	
+
+	mutex_lock(&sensor_data->enable_mutex);
+	
+	if (enable) {
+		if (pre_enable ==1) {
+			#ifdef SENSOR_TUNING
+			schedule_delayed_work(&sensor_data->work,
+					msecs_to_jiffies(atomic_read(&sensor_data->realDelay)));
+			#else
+			schedule_delayed_work(&sensor_data->work,
+					msecs_to_jiffies(atomic_read(&sensor_data->delay)));
+			#endif
+		}
+
+	} else {
+		if (pre_enable ==1) {
+			cancel_delayed_work_sync(&sensor_data->work);
+		}
+	}
+	mutex_unlock(&sensor_data->enable_mutex);
+
+}
+
+static void tcc_sensor_attr_set_enable_by_client(struct bmasensor_data *sensor_data, int enable)
+{
+	int pre_enable = atomic_read(&sensor_data->enable);
+
+	sensor_dbg(KERN_INFO "%s : enable = %d \n", __FUNCTION__,enable);	
+
+	mutex_lock(&sensor_data->enable_mutex);
+	
+	if (enable) {
+		if (pre_enable ==0) {
+			//TODO : set the sensor mode to normal mode
+			#ifdef SENSOR_TUNING
+			schedule_delayed_work(&sensor_data->work,
+					msecs_to_jiffies(atomic_read(&sensor_data->realDelay)));
+			#else			
+			schedule_delayed_work(&sensor_data->work,
+					msecs_to_jiffies(atomic_read(&sensor_data->delay)));
+			#endif
+			atomic_set(&sensor_data->enable, 1);
+		}
+
+	} else {
+		if (pre_enable ==1) {
+			//TODO : set the sensor mode to suspend mode
+			cancel_delayed_work_sync(&sensor_data->work);
+			atomic_set(&sensor_data->enable, 0);
+		}
+	}
+	mutex_unlock(&sensor_data->enable_mutex);
+
+}
+
+static void tcc_sensor_attr_set_enable(struct device *dev, int enable)
+{
+	struct i2c_client *client = to_i2c_client(dev);
+	struct bmasensor_data *sensor_data = i2c_get_clientdata(client);
+	tcc_sensor_attr_set_enable_by_client(sensor_data,enable);
+}
+
+static ssize_t tcc_sensor_attr_enable_store(struct device *dev,
+		struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+	unsigned long data;
+	int error;
+
+	error = strict_strtoul(buf, 10, &data);
+
+	sensor_dbg(KERN_INFO "%s : data = %d error = %d  \n", __FUNCTION__,data,error);	
+	
+	if (error)
+		return error;
+	if ((data == 0)||(data==1)) {
+		tcc_sensor_attr_set_enable(dev,data);
+	}
+
+	return count;
+}
+
+static ssize_t tcc_sensor_attr_halname_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%s\n", SENSOR_HAL_NAME);
+}
+
+static ssize_t tcc_sensor_attr_halname_store(struct device *dev,
+		struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+	return 0;
+}
+
+static DEVICE_ATTR(delay, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
+		tcc_sensor_attr_delay_show, tcc_sensor_attr_delay_store);
+static DEVICE_ATTR(enable, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
+		tcc_sensor_attr_enable_show, tcc_sensor_attr_enable_store);
+static DEVICE_ATTR(resolution, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
+		tcc_sensor_attr_resolution_show, tcc_sensor_attr_resolution_store);
+static DEVICE_ATTR(usingindev, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
+		tcc_sensor_attr_usingindev_show, tcc_sensor_attr_usingindev_store);
+static DEVICE_ATTR(calibration, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
+		tcc_sensor_attr_calibration_show, tcc_sensor_attr_calibration_store);
+static DEVICE_ATTR(autocalibration, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
+		tcc_sensor_attr_autocalibration_show, tcc_sensor_attr_autocalibration_store);
+static DEVICE_ATTR(halname, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
+		tcc_sensor_attr_halname_show, tcc_sensor_attr_halname_store);
+	
+static struct attribute *tcc_sensor_attributes[] = {
+	&dev_attr_delay.attr,
+	&dev_attr_enable.attr,
+	&dev_attr_resolution.attr,
+	&dev_attr_usingindev.attr,
+	&dev_attr_calibration.attr,
+	&dev_attr_autocalibration.attr,
+	&dev_attr_halname.attr,
+	NULL
+};
+
+static struct attribute_group tcc_sensor_attribute_group = {
+	.attrs = tcc_sensor_attributes
+};
+
+static int tcc_sensor_i2c_register(void)
+{
+    struct i2c_board_info info;
+    struct i2c_adapter *adapter;
+    struct i2c_client *client;
+
+    memset(&info, 0, sizeof(struct i2c_board_info));
+    info.addr = SENSOR_I2C_ADDRESS;
+    strlcpy(info.type, SENSOR_NAME, I2C_NAME_SIZE);
+
+    sensor_dbg(KERN_INFO "%s \n",__FUNCTION__);
+    	  
+#if defined(CONFIG_ARCH_TCC93XX)
+    adapter = i2c_get_adapter(3);
+#else
+    if(machine_is_m57te()){
+        adapter = i2c_get_adapter(1);
+    }
+    else if(machine_is_m801())  // 89_froyo
+    {
+        adapter = i2c_get_adapter(0);
+    }
+    else{  // 88_froyo (88_93 demo black board)  // M8801_8803
+        sensor_dbg(KERN_INFO "%s : i2c_get_adapter(0)\n", __FUNCTION__);
+        adapter = i2c_get_adapter(0);
+    }
+#endif
+    if (!adapter) 
+    {
+        sensor_dbg(KERN_ERR "can't get i2c adapter 0 for tcc-accel-sensor\n");
+        return -ENODEV;
+    }
+
+    client = i2c_new_device(adapter, &info);
+    i2c_put_adapter(adapter);
+    if (!client) 
+    {
+        sensor_dbg(KERN_ERR "can't add i2c device at 0x%x\n", (unsigned int)info.addr);
+        return -ENODEV;
+    }
+
+    return 0;
+}
+
+static void tcc_sensor_landscapeDevice2AndroidPortrait(struct bmasensoracc *sensor_accel)
+{
+    short x,y,z;
     x = sensor_accel->x;
     y = sensor_accel->y;
     z = sensor_accel->z;
@@ -622,9 +1052,20 @@ static void tcc_sensor_landscapeDevice2AndroidPortrait(tcc_sensor_accel_t *senso
     sensor_accel->z = z;
 }
 
-static void tcc_sensor_convertCoordination(tcc_sensor_accel_t *sensor_accel, matrix3by3 *layout)
+static void tcc_sensor_PortraitAndroid2AndroidPortrait(struct bmasensoracc *sensor_accel)
 {
     int x,y,z;
+    x = sensor_accel->x;
+    y = sensor_accel->y;
+    z = sensor_accel->z;
+    sensor_accel->x = -y;
+    sensor_accel->y = x;
+    sensor_accel->z = z;
+}
+
+static void tcc_sensor_convertCoordination(struct bmasensoracc *sensor_accel, matrix3by3 *layout)
+{
+    short x,y,z;
     if(sensor_accel == NULL)
         return;
     x = sensor_accel->x;
@@ -636,79 +1077,272 @@ static void tcc_sensor_convertCoordination(tcc_sensor_accel_t *sensor_accel, mat
     sensor_accel->z = x*layout->_31 + y*layout->_32 + z*layout->_33;	
 }
 
-static void tcc_sensor_set_compensation_data(tcc_sensor_accel_t compenPercentData)
+static void tcc_sensor_compensation(struct bmasensor_data *sensor_data,struct bmasensoracc *accelData)
 {
-    calib_data.x = (M_RESOLUTIOIN * compenPercentData.x)/100;
-    calib_data.y = (M_RESOLUTIOIN * compenPercentData.y)/100;
-    calib_data.z = (M_RESOLUTIOIN * compenPercentData.z)/100;
+	if(atomic_read(&sensor_data->calibMode) == CALIBRATION_SOFT){
+		accelData->x += (short)atomic_read(&sensor_data->calibOffset.x);
+		accelData->y += (short)atomic_read(&sensor_data->calibOffset.y);
+		accelData->z += (short)atomic_read(&sensor_data->calibOffset.z);
+	}
 }
 
-static void tcc_sensor_compensation(void)
+static void tcc_sensor_set_data(struct bmasensor_data *sensor_data,struct bmasensoracc *accelData)
 {
-    tcc_sensor_accel.x += (int)(calib_data.x);
-    tcc_sensor_accel.y += (int)(calib_data.y);
-    tcc_sensor_accel.z += (int)(calib_data.z);	
-}
+	short x,y,z;
+	struct bmasensoracc tmpData;
 
-static void tcc_sensor_set_data(tcc_sensor_accel_t accelData)
-{
-    int x,y,z;
-    x = accelData.x;
-    y = accelData.y;
-    z = accelData.z;
+	x = accelData->x;
+	y = accelData->y;
+	z = accelData->z;
 
-    tcc_sensor_accel.resolution = M_RESOLUTIOIN;
-
-    tcc_sensor_accel.x = x;
-    tcc_sensor_accel.y = y;
-    tcc_sensor_accel.z = z;
-    tcc_sensor_convertCoordination(&tcc_sensor_accel, &gsenlayout[0]);
+	tmpData.x = x;
+	tmpData.y = y;
+	tmpData.z = z;
+	tcc_sensor_convertCoordination(&tmpData, &gsenlayout[LAYOUT_CHIP2HAL]);
 
 #if !defined(CONFIG_GSEN_PORTRAIT)
-    tcc_sensor_landscapeDevice2AndroidPortrait(&tcc_sensor_accel);
+	tcc_sensor_landscapeDevice2AndroidPortrait(&tmpData);
 #endif
+
+	tcc_sensor_compensation(sensor_data,&tmpData);
+
+	accelData->x = tmpData.x;
+	accelData->y = tmpData.y;
+	accelData->z = tmpData.z;
+	
 }
 
-static int tcc_sensor_get_accel(void)
+#ifdef SENSOR_TUNING
+static void tcc_sensor_avg_data(struct bmasensoracc *avgAcc,struct bmasensoracc *acc)
 {
-	bma250acc_t acc;
-    tcc_sensor_accel_t accelData;
-    int data[3];
-    int flag = 0;
-    mutex_lock(&suspend_flag_mutex);
-    if (atomic_read(&suspend_flag))
-    	flag = 1;
-    mutex_unlock(&suspend_flag_mutex);
-    if(flag)
-    	return 0;
+	int data[3];
+	int readData[3];
+	int avgData[3];
+	int alpha = 100/SENSOR_TUNING_DIVIDE;
 
-    bma250_read_accel_xyz(&acc);
-    #if 0
-    data[0] = (int)(acc.x);
-    data[1] = (int)(acc.y);
-    data[2] = (int)(acc.z);
-    tcc_sensor_avg(&data[0]);
-    tcc_sensor_set_data(acc_data_avg);
-#else
-    accelData.x = (int)(acc.x);
-    accelData.y = (int)(acc.y);
-    accelData.z = (int)(acc.z);	
+	readData[0] = (int)acc->x;
+	readData[1] = (int)acc->y;
+	readData[2] = (int)acc->z;
 
-    // G-sensor coordination -> Device coordination
-    tcc_sensor_set_data(accelData);
+	#ifdef SENSOR_TUNING_BIT_WIDTH_EXTEND
+	readData[0] = readData[0]<<BMA_DATA_TUNING_WIDTH;
+	readData[1] = readData[1]<<BMA_DATA_TUNING_WIDTH;
+	readData[2] = readData[2]<<BMA_DATA_TUNING_WIDTH;
+	#endif
+
+	avgData[0] = (int)avgAcc->x;
+	avgData[1] = (int)avgAcc->y;
+	avgData[2] = (int)avgAcc->z;	
+	
+	data[0] = ((int)(avgData[0] * (100 - alpha)) + (int)(readData[0] * (alpha)))/100;
+	data[1] = ((int)(avgData[1] * (100 - alpha)) + (int)(readData[1] * (alpha)))/100;
+	data[2] = ((int)(avgData[2]* (100 - alpha)) + (int)(readData[2] * (alpha)))/100;
+	avgAcc->x = (short)data[0];
+	avgAcc->y = (short)data[1];
+	avgAcc->z = (short)data[2];
+	acc->x = (short)data[0];
+	acc->y = (short)data[1];
+	acc->z = (short)data[2];
+}
 #endif
-    tcc_sensor_compensation();
 
-    //printk("%s:accel : %d, %d, %d - [%d:%d:%d]\n", __func__, tcc_sensor_accel.x, tcc_sensor_accel.y, tcc_sensor_accel.z,calib_data.x,calib_data.y,calib_data.z);
+static void tcc_sensor_work_func(struct work_struct *work)
+{
+	int pre_enable;
+
+	struct bmasensor_data *sensor_data = container_of((struct delayed_work *)work,
+			struct bmasensor_data, work);
+	static struct bmasensoracc acc;
+	#ifdef SENSOR_TUNING
+	struct bmasensoracc *avgAcc = &sensor_data->avgValue;
+	unsigned long delay = msecs_to_jiffies(atomic_read(&sensor_data->realDelay));
+	int checkCnt = atomic_read(&sensor_data->realDelayCnt);
+	int triggerCnt = atomic_read(&sensor_data->realDelayTriggerCnt); 
+	#else	
+	unsigned long delay = msecs_to_jiffies(atomic_read(&sensor_data->delay));
+	#endif			
+	struct i2c_client *client = sensor_data->i2cClient;
+
+	tcc_sensor_read_accel_xyz(client, &acc);
+
+	tcc_sensor_set_data(sensor_data,&acc);
+
+	#ifdef SENSOR_TUNING
+	if(delay == 0)
+		delay = 1;
+	tcc_sensor_avg_data(avgAcc,&acc);
+	checkCnt++;
+	atomic_set(&sensor_data->realDelayCnt, checkCnt);
+	if(checkCnt < triggerCnt){
+		goto set_schedule;
+	}
+	atomic_set(&sensor_data->realDelayCnt, 0);
+	#endif
+
+	sensor_dbg(KERN_INFO "%s %d %d %d \n", __FUNCTION__,acc.x,acc.y,acc.z);
+	
+       if(atomic_read(&sensor_data->inputDevice))
+       {
+	    input_report_abs(sensor_data->input, ABS_X, acc.x);
+	    input_report_abs(sensor_data->input, ABS_Y, acc.y);
+	    input_report_abs(sensor_data->input, ABS_Z, acc.z);
+	    input_sync(sensor_data->input);
+       }
+	mutex_lock(&sensor_data->value_mutex);
+	sensor_data->value = acc;
+	mutex_unlock(&sensor_data->value_mutex);
+set_schedule:
+	mutex_lock(&sensor_data->enable_mutex);
+	pre_enable = atomic_read(&sensor_data->enable);
+	schedule_delayed_work(&sensor_data->work, delay);
+	mutex_unlock(&sensor_data->enable_mutex);
+}
+
+static int sensor_i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
+{
+	int err = 0;
+	unsigned char tempvalue;
+	struct bmasensor_data *data;
+	struct input_dev *dev;
+
+	sensor_dbg(KERN_INFO "%s  :  %s \n", __func__,client->name);
+
+	data = kzalloc(sizeof(struct bmasensor_data), GFP_KERNEL);
+	if (!data) {
+		err = -ENOMEM;
+		goto exit;
+	}
+
+	atomic_set(&data->resolution, BMA_1G_RESOLUTIOIN);
+	atomic_set(&data->calibOffset.x, 0);
+	atomic_set(&data->calibOffset.y, 0);
+	atomic_set(&data->calibOffset.z, 0);
+	atomic_set(&data->inputDevice, SENSOR_DEF_DEVICE_TYPE);
+	atomic_set(&data->calibMode,SENSOR_CALIBRATION_MODE);
+
+	data->i2cClient = client;
+	mutex_init(&data->value_mutex);
+	mutex_init(&data->mode_mutex);
+	mutex_init(&data->enable_mutex);
+
+       mData = NULL;	
+
+	tempvalue = tcc_sensor_chip_init(data->i2cClient);
+	if( tempvalue < 0){
+		printk(KERN_INFO "sensor_init fail %d \n", tempvalue);
+		err = -ENODEV;
+		goto kfree_exit;
+	}
+
+	INIT_DELAYED_WORK(&data->work, tcc_sensor_work_func);
+	atomic_set(&data->delay, BMA_MAX_DELAY);
+	#ifdef SENSOR_TUNING
+	atomic_set(&data->realDelay, BMA_MAX_DELAY/SENSOR_TUNING_DIVIDE);
+	atomic_set(&data->realDelayCnt, 0);
+	atomic_set(&data->realDelayTriggerCnt, SENSOR_TUNING_DIVIDE);
+	#endif
+	atomic_set(&data->enable, 0);
+
+	dev = input_allocate_device();
+	if (!dev)
+		return -ENOMEM;
+	dev->name = SENSOR_NAME;
+	dev->id.bustype = BUS_I2C;
+
+	set_bit(EV_ABS, dev->evbit);
+	input_set_abs_params(dev, ABS_X, ABSMIN, ABSMAX, 0, 0);
+	input_set_abs_params(dev, ABS_Y, ABSMIN, ABSMAX, 0, 0);
+	input_set_abs_params(dev, ABS_Z, ABSMIN, ABSMAX, 0, 0);
+
+	input_set_drvdata(dev, data);
+
+	err = input_register_device(dev);
+	if (err < 0) {
+		input_free_device(dev);
+		goto kfree_exit;
+	}
+
+	data->input = dev;
+
+	err = sysfs_create_group(&data->input->dev.kobj,
+			&tcc_sensor_attribute_group);
+	if (err < 0)
+		goto error_sysfs;
+
+       mData = (struct bmasensor_data *)input_get_drvdata(dev);
+
+	return 0;
+
+error_sysfs:
+	input_unregister_device(data->input);
+
+kfree_exit:
+	kfree(data);
+exit:
+	return err;
+}
+
+static int sensor_i2c_remove(struct i2c_client *client)
+{
+    struct bmasensor_data *data  = i2c_get_clientdata(client);
+    sysfs_remove_group(&data->input->dev.kobj, &tcc_sensor_attribute_group);
+    input_unregister_device(data->input);
+    kfree(data);
+    mData = NULL;
+
     return 0;
 }
 
-static void sensor_fetch_thread(struct work_struct *work)
+#ifdef CONFIG_PM
+static int sensor_i2c_suspend(struct i2c_client *client, pm_message_t mesg)
 {
-    sensor_dbg("%s: sensor_duration =%d \n", __func__, sensor_duration);
-    tcc_sensor_get_accel();
-    sensor_timer_registertimer( sensor_timer, sensor_duration );
+	struct bmasensor_data *sensor_data = i2c_get_clientdata(client);
+
+	mutex_lock(&sensor_data->enable_mutex);
+	if (atomic_read(&sensor_data->enable)==1) {
+		cancel_delayed_work_sync(&sensor_data->work);
+	}
+	mutex_unlock(&sensor_data->enable_mutex);
+
+	return 0;
 }
+
+static int sensor_i2c_resume(struct i2c_client *client)
+{
+	struct bmasensor_data *sensor_data = i2c_get_clientdata(client);
+
+	mutex_lock(&sensor_data->enable_mutex);
+	if (atomic_read(&sensor_data->enable)==1) {
+		#ifdef SENSOR_TUNING
+		schedule_delayed_work(&sensor_data->work,
+				msecs_to_jiffies(atomic_read(&sensor_data->realDelay)));	
+		#else
+		schedule_delayed_work(&sensor_data->work,
+				msecs_to_jiffies(atomic_read(&sensor_data->delay)));
+		#endif
+	}
+	mutex_unlock(&sensor_data->enable_mutex);
+
+	return 0;
+}
+
+#else
+#define sensor_i2c_suspend		NULL
+#define sensor_i2c_resume		NULL
+#endif /* CONFIG_PM */
+
+/* bmaxxx i2c control layer */
+static struct i2c_driver sensor_i2c_driver = {
+    .driver = {
+	.owner	= THIS_MODULE,
+	.name	= SENSOR_NAME,
+    },
+    .probe      = sensor_i2c_probe,
+    .remove     = sensor_i2c_remove,
+//    .suspend   = sensor_i2c_suspend,
+//    .resume   = sensor_i2c_resume,
+    .id_table   = sensor_i2c_id,
+};
 
 static ssize_t tcc_sensor_write(struct file *file, const char __user *user, size_t size, loff_t *o)
 {
@@ -718,10 +1352,20 @@ static ssize_t tcc_sensor_write(struct file *file, const char __user *user, size
 
 static ssize_t tcc_sensor_read(struct file *file, char __user *user, size_t size, loff_t *o)
 {
-    sensor_dbg("%s\n", __func__);    
-//    sensor_dbg("%s: IOCTL_read_SENSORS_ACCELERATION  %d, %d, %d\n", __func__, tcc_sensor_accel.x, tcc_sensor_accel.y, tcc_sensor_accel.z);
+    tcc_sensor_accel_t tccData;
+    //sensor_dbg("%s\n", __func__);    
 
-    if(copy_to_user(( tcc_sensor_accel_t*) user, (const void *)&tcc_sensor_accel, sizeof( tcc_sensor_accel_t))!=0)
+    mutex_lock(&mData->value_mutex);
+    tccData.x = mData->value.x;
+    tccData.y = mData->value.y;
+    tccData.z = mData->value.z;
+    mutex_unlock(&mData->value_mutex);
+
+    tccData.delay_time = (int)atomic_read(&mData->delay);
+    tccData.resolution = (int)atomic_read(&mData->resolution);	
+    sensor_dbg("%s: %d, %d, %d\n", __func__, tccData.x, tccData.y, tccData.z);
+
+    if(copy_to_user(( tcc_sensor_accel_t*) user, (const void *)&tccData, sizeof( tcc_sensor_accel_t))!=0)
     {
         sensor_dbg("tcc_gsensor_read error\n");
     }
@@ -730,70 +1374,10 @@ static ssize_t tcc_sensor_read(struct file *file, char __user *user, size_t size
 
 static int tcc_sensor_ioctl(struct inode *inode, struct file *filp, unsigned int cmd, void *arg)
 {
-//    if (!sensor_used_count)
-//        return -1;
-
     sensor_dbg("%s  (0x%x)  \n", __FUNCTION__, cmd);
-
+	
     switch (cmd)
     {
-
-        case IOCTL_SENSOR_GET_DATA_ACCEL:
-
-            if(copy_to_user((tcc_sensor_accel_t*)arg, (const void *)&tcc_sensor_accel, sizeof(tcc_sensor_accel_t))!=0)
-            {
-                sensor_dbg("copy_to error\n");
-            }
-            sensor_dbg("%s: IOCTL_SENSOR_GET_DATA_ACCEL %d, %d, %d\n", __func__, tcc_sensor_accel.x, tcc_sensor_accel.y, tcc_sensor_accel.z);
-		    break;
-
-        case IOCTL_SENSOR_SET_DELAY_ACCEL:
-            if(copy_from_user((void *)&sensor_duration, (unsigned int*) arg, sizeof(unsigned int))!=0)
-            {
-                sensor_dbg("copy_from error\n");
-            }					
-            sensor_dbg(KERN_INFO "%s:  IOCTL_SENSOR_SET_DELAY_ACCEL (0x%x) %d \n", __FUNCTION__, cmd, sensor_duration);
-            tcc_sensor_accel.delay_time = sensor_duration;
-            tcc_sensor_avg_count(sensor_duration);
-            break;
-
-        case IOCTL_SENSOR_GET_STATE_ACCEL:
-            sensor_state_flag = 1;
-            if(copy_to_user((unsigned int*) arg, (const void *)&sensor_state_flag, sizeof(unsigned int))!=0)
-            {
-                sensor_dbg("copy_to error\n");
-            }			
-			
-            sensor_dbg(KERN_INFO "%s: IOCTL_SENSOR_GET_STATE_ACCEL  (0x%x) %d \n", __FUNCTION__, cmd, sensor_state_flag);	
-            break;
-			
-        case IOCTL_SENSOR_SET_STATE_ACCEL:
-        //    arg = sensor_state_flag;
-	
-            if(copy_from_user((void *)&sensor_state_flag, (unsigned int*) arg, sizeof(unsigned int))!=0)
-            {
-                sensor_dbg("copy_from error\n");
-            }			
-            sensor_dbg(KERN_INFO "%s: IOCTL_SENSOR_SET_STATE_ACCEL  (0x%x) %d \n", __FUNCTION__, cmd, sensor_state_flag);			
-            break;
-
-        case IOCTL_SENSOR_SET_CALIB_ACCEL:
-            {
-            tcc_sensor_accel_t stTmp;
-            stTmp.x = 0;
-            stTmp.y = 0;
-            stTmp.z = 0;
-            if(copy_from_user((void *)&stTmp, (unsigned int*) arg, sizeof(tcc_sensor_accel_t))!=0)
-            {
-                sensor_dbg("copy_from error\n");
-                return -1;
-            }			
-
-            tcc_sensor_set_compensation_data(stTmp);
-
-            //printk(KERN_INFO "%s:  IOCTL_SENSOR_SET_CALIB_ACCEL %d, %d, %d\n", __func__, calib_data.x, calib_data.y, calib_data.z);
-            }
-            break;
         default:
             sensor_dbg("sensor: unrecognized ioctl (0x%x)\n", cmd); 
             return -EINVAL;
@@ -801,29 +1385,6 @@ static int tcc_sensor_ioctl(struct inode *inode, struct file *filp, unsigned int
     }
     return 0;
 }
-
-/*
-static void tcc_sensor_suspend(struct early_suspend *handler)
-{
-	//printk("tcc_sensor_early_suspend \n");
-	mutex_lock(&suspend_flag_mutex);
-	atomic_set(&suspend_flag, 1);
-	mutex_unlock(&suspend_flag_mutex);
-}
-
-static void tcc_sensor_resume(struct early_suspend *handler)
-{
-	//printk("tcc_sensor_early_resume \n");
-	mutex_lock(&suspend_flag_mutex);
-	atomic_set(&suspend_flag, 0);
-	mutex_unlock(&suspend_flag_mutex);
-}
-
-static struct early_suspend tcc_sensor_suspend_desc = {
-	.suspend = tcc_sensor_suspend,
-	.resume = tcc_sensor_resume,
-};
-*/
 
 static int tcc_sensor_release(struct inode *inode, struct file *filp)
 {
@@ -836,33 +1397,58 @@ static int tcc_sensor_release(struct inode *inode, struct file *filp)
 
     if (sensor_used_count == 0)
     {
-        flush_scheduled_work();
-        del_timer_sync( sensor_timer );
-        //del_timer( sensor_timer);
-        kfree( sensor_timer);
-
-#ifdef CONFIG_I2C
-        i2c_unregister_device(sensor_i2c_client);
-        i2c_del_driver(&sensor_i2c_driver);
-        sensor_i2c_client = NULL;
-#endif
-
-        //unregister_early_suspend(&tcc_sensor_suspend_desc);
+        if(mData != NULL && mData->i2cClient != NULL)
+            tcc_sensor_attr_set_enable_by_client(mData, SENSOR_DISABLE);
+        atomic_set(&mData->inputDevice,DEVICE_TYPE_INPUT);
     }
     return 0;
 }
 
 static int tcc_sensor_open(struct inode *inode, struct file *filp)
 {
-    int ret;
-    unsigned char old_ctrl;
-    //int num = MINOR(inode->i_rdev);
-	
-    sensor_dbg("%s : bma250 \n", __FUNCTION__);
+    sensor_dbg("%s : \n", __FUNCTION__);
 
+    if(mData == NULL && mData->i2cClient == NULL)
+    {
+        printk(KERN_INFO "%s:   mData == NULL(%d) or mData.i2cClient == NULL(%d)\n", __func__,(mData ==NULL)? 1: 0,(mData->i2cClient == NULL)? 1:0);
+        return -1;
+    }
     if (sensor_used_count == 0)
     {
-    	mutex_init(&suspend_flag_mutex);    
+        atomic_set(&mData->delay, BMA_DEFAULT_DELAY);
+	#ifdef SENSOR_TUNING
+		atomic_set(&mData->realDelay, BMA_MAX_DELAY/SENSOR_TUNING_DIVIDE);
+		atomic_set(&mData->realDelayCnt, 0);
+		atomic_set(&mData->realDelayTriggerCnt, SENSOR_TUNING_DIVIDE);
+	#endif		
+        tcc_sensor_attr_set_enable_by_client(mData, SENSOR_ENABLE);
+        sensor_used_count++;
+    }
+
+    //atomic_set(&mData->inputDevice,0);
+    return 0;
+}
+
+struct file_operations tcc_sensor_fops =
+{
+    .owner    = THIS_MODULE,
+    .open     = tcc_sensor_open,
+    .release  = tcc_sensor_release,
+    .unlocked_ioctl    = tcc_sensor_ioctl,
+    .read     = tcc_sensor_read,
+    .write    = tcc_sensor_write,	
+};
+
+int __init tcc_sensor_init(void)
+{
+    int ret,ret1;
+    struct class *sensor_class;
+    //int num = MINOR(inode->i_rdev);
+
+    sensor_dbg(KERN_INFO "%s \n", __FUNCTION__);
+
+    //if (sensor_used_count == 0)
+    {
         if(machine_is_m57te())
         {  // 89_froyo m57te
             //output gpio_f17
@@ -885,8 +1471,6 @@ static int tcc_sensor_open(struct inode *inode, struct file *filp)
             gpio_request(TCC_GPB(28), NULL);
             tcc_gpio_config(TCC_GPB(28), GPIO_FN(0));
             gpio_direction_input(TCC_GPB(28));
-            
-            sensor_duration=60;
         }else {
             sensor_dbg("%s : machine is demo board \n", __FUNCTION__);
         #if defined(CONFIG_ARCH_TCC88XX)
@@ -894,117 +1478,41 @@ static int tcc_sensor_open(struct inode *inode, struct file *filp)
             gpio_request(TCC_GPF(25), NULL);
             tcc_gpio_config(TCC_GPF(25), GPIO_FN(0));
             gpio_direction_input(TCC_GPF(25));
-        #elif defined(CONFIG_ARCH_TCC892X)
-            //GPIOE(28)
-            gpio_request(TCC_GPE(28), NULL);
-            tcc_gpio_config(TCC_GPE(28), GPIO_FN(0));
-            gpio_direction_input(TCC_GPE(28));
         #endif
         }
+    }
 #ifdef CONFIG_I2C
-        // Initialize I2C driver for BMA250
+        // Initialize I2C driver for BMA150
         ret = i2c_add_driver(&sensor_i2c_driver);
         if(ret < 0) 
         {
             sensor_dbg("%s() [Error] failed i2c_add_driver() = %d\n", __func__, ret);
             return ret;
         }
-        ret = bma250_i2c_register();   // call register after ( called probe )
+        ret = tcc_sensor_i2c_register();   // call register after ( called probe )
         if(ret < 0) 
         {
-            sensor_dbg("%s() [Error] Failed register i2c client driver for bma250, return is %d\n", __func__, ret);
+            sensor_dbg("%s() [Error] Failed register i2c client driver for bma150, return is %d\n", __func__, ret);
             return ret;
         }
-        sensor_dbg("%s: post bma250_i2c_register : %x\n", __func__, old_ctrl);
+        sensor_dbg("%s: post bmaxx_i2c_register : %x\n", __func__, ret);
 #endif
 
-// bma250 -->
-        old_ctrl = SENSOR_READ_DAT(BMA250_RESET_REG);
-        old_ctrl |= BMA250_SW_RESET_VALUE;
-        SENSOR_SEND_CMD(BMA250_RESET_REG, old_ctrl);
-        mdelay(30);
-// bma250 <--
-
-        old_ctrl = SENSOR_READ_DAT(BMA250_CHIP_ID_REG);
-        if (old_ctrl == 0xFF || old_ctrl != BMA250_CHIP_ID) {
-            sensor_dbg("%s: No such device or address\n", __func__);
-#ifdef CONFIG_I2C
-            i2c_unregister_device(sensor_i2c_client);
-            i2c_del_driver(&sensor_i2c_driver);
-            sensor_i2c_client = NULL;
-#endif			
-            return -ENXIO;
-        }
-        sensor_dbg("%s: identification : %x\n", __func__, old_ctrl);
-
-// bma250 -->
-
-        bma250_set_range(BMA250_RANGE_2G);
-		
-        bma250_set_bandwidth(1);	
-
-        bma250_set_sleep_duration(BMA250_WAKE_UP_PAUSE_10MS);
-
-        bma250_set_mode(BMA250_MODE_LOWPOWER);
-// bma250 <--
-
-        //register_early_suspend(&tcc_sensor_suspend_desc);
-
-        sensor_timer= kmalloc( sizeof( struct timer_list ), GFP_KERNEL ); 
-        if (sensor_timer == NULL){
-            sensor_dbg("%s: mem alloc fail\n", __func__);
-#ifdef CONFIG_I2C
-            i2c_unregister_device(sensor_i2c_client);
-            i2c_del_driver(&sensor_i2c_driver);
-            sensor_i2c_client = NULL;
-#endif
-            return -ENOMEM;
-        }
-        memset(sensor_timer, 0, sizeof(struct timer_list));
-        sensor_timer_registertimer( sensor_timer, sensor_duration );
-		tcc_sensor_avg_init();
+    ret1 = register_chrdev(SENSOR_DEV_MAJOR, SENSOR_DEV_NAME, &tcc_sensor_fops);
+    sensor_dbg("%s: register_chrdev ret1 : %d\n", __func__, ret1);
+    if(ret1 >= 0)
+    {
+        sensor_class = class_create(THIS_MODULE, SENSOR_DEV_NAME);
+        device_create(sensor_class,NULL,MKDEV(SENSOR_DEV_MAJOR,SENSOR_DEV_MINOR),NULL,SENSOR_DEV_NAME);
     }
-    sensor_used_count++;	
-    sensor_dbg("%s successed... \n", __FUNCTION__);
 
-    return 0;
-}
-
-struct file_operations tcc_sensor_fops =
-{
-    .owner    = THIS_MODULE,
-    .open     = tcc_sensor_open,
-    .release  = tcc_sensor_release,
-    .ioctl    = tcc_sensor_ioctl,
-    .read     = tcc_sensor_read,
-    .write    = tcc_sensor_write,	
-};
-
-static struct class *sensor_class;
-
-int __init tcc_sensor_init(void)
-{
-    int ret;
-
-    sensor_dbg(KERN_INFO "tcc_sensor_init bma250 \n", __FUNCTION__);
-    ret = register_chrdev(SENSOR_DEV_MAJOR, SENSOR_DEV_NAME, &tcc_sensor_fops);
-    if (ret < 0)
-        return ret;
-
-    sensor_class = class_create(THIS_MODULE, SENSOR_DEV_NAME);
-    device_create(sensor_class,NULL,MKDEV(SENSOR_DEV_MAJOR,SENSOR_DEV_MINOR),NULL,SENSOR_DEV_NAME);
-
-    INIT_WORK(&sensor_work_q, sensor_fetch_thread);
-
-    tcc_sensor_accel.delay_time = sensor_duration;
-
-    sensor_dbg(KERN_INFO "%s\n", __FUNCTION__);
-    return 0;
+    return ret;
 }
 
 void __exit tcc_sensor_exit(void)
 {
     sensor_dbg(KERN_INFO "%s\n", __FUNCTION__);
+    i2c_del_driver(&sensor_i2c_driver);
     unregister_chrdev(SENSOR_DEV_MAJOR, SENSOR_DEV_NAME);
 }
 
@@ -1014,3 +1522,4 @@ module_exit(tcc_sensor_exit);
 MODULE_AUTHOR("Telechips Inc. c2-g2-2 linux@telechips.com");
 MODULE_DESCRIPTION("TCCxxx accel-gsensor driver");
 MODULE_LICENSE("GPL");
+

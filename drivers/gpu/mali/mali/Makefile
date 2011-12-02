@@ -11,7 +11,7 @@
 OSKOS=linux
 FILES_PREFIX=
 
-MALI_RELEASE_NAME = r2p3-00dev1
+MALI_RELEASE_NAME = r2p3-01rel0
 
 include $(src)/Makefile.common
 

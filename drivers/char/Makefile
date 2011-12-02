@@ -87,12 +87,8 @@ obj-$(CONFIG_TCC_OUTPUT_STARTER)    += tcc_output_starter.o
 obj-$(CONFIG_CPU_FREQ)		+= tcc_clockctrl.o
 
 # S: telechips
-obj-$(CONFIG_SENSOR_CMA3000)		+= sensor_cma3000.o
-obj-$(CONFIG_SENSOR_BMA150)		+= sensor_bma150_only.o
+obj-$(CONFIG_SENSOR_BMA150)		+= sensor_bma150.o
 obj-$(CONFIG_SENSOR_BMA220)		+= sensor_bma220.o
 obj-$(CONFIG_SENSOR_BMA023)		+= sensor_bma023.o
-obj-$(CONFIG_TUNNING_BMA220)       += sensor_bma220_demo.o
 obj-$(CONFIG_SENSOR_BMA250)		+= sensor_bma250.o
-obj-$(CONFIG_SENSOR_BMA220_AK8975C)		+= sensor_bma220.o
-obj-$(CONFIG_SENSOR_BMA150_AK8975C)		+= sensor_bma150.o
 # E: telechips
