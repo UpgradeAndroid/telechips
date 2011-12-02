@@ -18,6 +18,8 @@
 #include "ump_kernel_memory_backend_os.h"
 #include "ump_kernel_memory_backend_dedicated.h"
 
+#include <plat/pmap.h>
+
 /* Configure which dynamic memory allocator to use */
 //int ump_backend = ARCH_UMP_BACKEND_DEFAULT;
 //module_param(ump_backend, int, S_IRUGO); /* r--r--r-- */
@@ -40,7 +42,10 @@ ump_memory_backend* ump_memory_backend_create ( int ump_backend  )
 	/* Create the dynamic memory allocator backend */
 	if (0 == ump_backend)
 	{
-		ump_memory_address = ARCH_UMP_DEDICATED_MEMORY_ADDRESS_DEFAULT;
+		pmap_t pmap_cam;
+		pmap_get_info("camera", &pmap_cam);
+
+		ump_memory_address = pmap_cam.base;
 		ump_memory_size = ARCH_UMP_DEDICATED_MEMORY_SIZE_DEFAULT;
 		DBG_MSG(2, ("Using dedicated memory backend\n"));
 
