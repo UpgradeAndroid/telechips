@@ -56,10 +56,6 @@
 #include <mach/tcc_component_ioctl.h>
 #include <mach/tca_fb_hdmi.h>
 
-#if defined(CONFIG_ARCH_TCC88XX)
-#include "tcc_mouse_icon.h"
-#endif /* CONFIG_ARCH_TCC88XX */
-
 #if (defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC93XX)) && defined(CONFIG_DRAM_DDR2)
 #define FB_SCALE_MAX_WIDTH		1920
 #define FB_SCALE_MAX_HEIGHT		1080
@@ -102,9 +98,11 @@ static char *exclusive_ui_viqe_pbuf;
 #endif
 
 #if defined(CONFIG_ARCH_TCC88XX)
-static char *pMouseBuffer;
-static unsigned int mouse_cursor_width;
-static unsigned int mouse_cursor_height;
+static char *pMouseBuffer1;
+static char *pMouseBuffer2;
+static char MouseBufIdx = 0;
+static unsigned int mouse_cursor_width = 0;
+static unsigned int mouse_cursor_height = 0;
 
 dma_addr_t		Gmap_dma;	/* physical */
 u_char *		Gmap_cpu;	/* virtual */
@@ -213,14 +211,8 @@ extern void tcc_composite_display_image(exclusive_ui_update UpdateImage);
 
 extern unsigned int tcc_output_fb_get_disable(void);
 
-#define MOUSE_CURSOR_MAX_WIDTH			30
-#define MOUSE_CURSOR_MAX_HEIGHT			30
-#define MOUSE_CURSOR_WIDTH_30			30
-#define MOUSE_CURSOR_HEIGHT_30			30
-#define MOUSE_CURSOR_WIDTH_20			20
-#define MOUSE_CURSOR_HEIGHT_20			20
-#define MOUSE_CURSOR_WIDTH_12			12
-#define MOUSE_CURSOR_HEIGHT_12			12
+#define MOUSE_CURSOR_MAX_WIDTH			200
+#define MOUSE_CURSOR_MAX_HEIGHT			200
 
 #define MOUSE_CURSOR_BUFF_SIZE		(MOUSE_CURSOR_MAX_WIDTH*MOUSE_CURSOR_MAX_HEIGHT*4)
 
@@ -465,8 +457,8 @@ void TCC_OUTPUT_LCDC_Init(void)
 		Gmap_cpu = dma_alloc_writecombine(0, size, &Gmap_dma, GFP_KERNEL);
 		memset(Gmap_cpu, 0x00, MOUSE_CURSOR_BUFF_SIZE);
 
-		pMouseBuffer = (char *)Gmap_dma;
-		TCC_OUTPUT_FB_MouseIconSelect(0);
+		pMouseBuffer1 = (char *)Gmap_dma;
+		pMouseBuffer2 = (char *)(Gmap_dma + MOUSE_CURSOR_BUFF_SIZE/2);
 	}
 #endif /* CONFIG_ARCH_TCC88XX */
 }
@@ -3087,37 +3079,6 @@ int TCC_OUTPUT_EXCLUSIVE_UI_Process_Deinterlace(struct tcc_lcdc_image_update *Im
 #endif //CONFIG_TCC_EXCLUSIVE_UI_LAYER
 
 #if defined(CONFIG_ARCH_TCC88XX)
-int TCC_OUTPUT_FB_MouseIconSelect(unsigned int output_type)
-{
-	unsigned int regl, lcd_width, lcd_height;
-	
-	regl = pLCDC_OUTPUT[output_type]->LDS; // get LCD size 
-	lcd_width = (regl & 0xFFFF);
-	lcd_height = ((regl>>16) & 0xFFFF);
-
-	dprintk("%s : lcd_width = %d, lcd_height = %d\n", __func__, lcd_width, lcd_height);
-
-	if( lcd_width > 1280 && lcd_height > 720 )
-	{
-		mouse_cursor_width = MOUSE_CURSOR_WIDTH_30;
-		mouse_cursor_height = MOUSE_CURSOR_HEIGHT_30;
-		memcpy(Gmap_cpu,(char *)&gMouseIcon30X30[0], mouse_cursor_width*mouse_cursor_height*4);
-	}
-	else if( lcd_width == 1280 || lcd_height == 720 )
-	{
-		mouse_cursor_width = MOUSE_CURSOR_WIDTH_20;
-		mouse_cursor_height = MOUSE_CURSOR_HEIGHT_20;
-		memcpy(Gmap_cpu,(char *)&gMouseIcon20X20[0], mouse_cursor_width*mouse_cursor_height*4);
-	}
-	else
-	{
-		mouse_cursor_width = MOUSE_CURSOR_WIDTH_12;
-		mouse_cursor_height = MOUSE_CURSOR_WIDTH_12;
-		memcpy(Gmap_cpu,(char *)&gMouseIcon12X12[0], mouse_cursor_width*mouse_cursor_height*4);
-	}
-}
-
-
 int TCC_OUTPUT_FB_MouseShow(unsigned int enable, unsigned int type)
 {
 	if( enable )
@@ -3156,7 +3117,12 @@ int TCC_OUTPUT_FB_MouseMove(unsigned int width, unsigned int height, tcc_mouse *
 		pLCDC_OUTPUT[type]->LI3S = (mouse_cursor_height << 16) | lcd_width - mouse_x;
 	else
 		pLCDC_OUTPUT[type]->LI3S = (mouse_cursor_height << 16) | mouse_cursor_width;
-	pLCDC_OUTPUT[type]->LI3BA0 = pMouseBuffer;
+
+	if( MouseBufIdx )
+		pLCDC_OUTPUT[type]->LI3BA0 = pMouseBuffer1;
+	else
+		pLCDC_OUTPUT[type]->LI3BA0 = pMouseBuffer2;
+
 	pLCDC_OUTPUT[type]->LI3O = mouse_cursor_width * 4;
 	
 	if(ISZERO(pLCDC_OUTPUT[type]->LCTRL, HwLCTRL_NI))
@@ -3172,5 +3138,47 @@ int TCC_OUTPUT_FB_MouseMove(unsigned int width, unsigned int height, tcc_mouse *
 
 	return 1;
 }
+
+int TCC_OUTPUT_FB_MouseSetIcon(tcc_mouse_icon *mouse_icon)
+{
+	char *dst;
+	char *src = mouse_icon->buf;
+	int i, j , k;
+
+	if( !MouseBufIdx )
+		dst = (char *)Gmap_cpu;
+	else
+		dst = (char *)(Gmap_cpu + MOUSE_CURSOR_BUFF_SIZE/2);
+
+	MouseBufIdx = !MouseBufIdx;
+
+	mouse_cursor_width = ((mouse_icon->width + 3) >> 2) << 2;
+	mouse_cursor_height = mouse_icon->height;
+
+	for(i=0; i<mouse_icon->height; i++)
+	{
+		for(j=0; j<mouse_icon->width; j++)
+		{
+			*(dst+3) = *(src+3);
+			*(dst+2) = *(src+0);
+			*(dst+1) = *(src+1);
+			*(dst+0) = *(src+2);
+			dst+=4;
+			src+=4;
+	    }
+		for(k=0; k<(mouse_cursor_width-mouse_icon->width); k++)
+		{
+			*(dst+3) = 0;
+			*(dst+2) = 0;
+			*(dst+1) = 0;
+			*(dst+0) = 0;
+	        dst+=4;
+		}
+	}
+
+	return 1;
+}
+
+
 #endif
 

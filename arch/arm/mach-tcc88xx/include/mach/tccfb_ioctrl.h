@@ -101,10 +101,9 @@ typedef enum{
 
 #define TCC_LCD_BL_SET					0x0100
 
-//[Khcho - 20111114 :  ]
 #define TCC_LCDC_MOUSE_SHOW				0x0200
 #define TCC_LCDC_MOUSE_MOVE				0x0201
-//[Khcho - 20111114]
+#define TCC_LCDC_MOUSE_ICON				0x0202
 
 #define TCC_FB_FLUSH					0x1000
 
@@ -189,11 +188,18 @@ typedef struct
 	int frame_hz;
 }tcc_display_size;
 
-typedef struct 
+typedef struct
 {
 	int x;
 	int y;
 }tcc_mouse;
+
+typedef struct
+{
+	unsigned int width;
+	unsigned int height;
+	unsigned char *buf;
+}tcc_mouse_icon;
 
 struct tcc_rect {
 	uint32_t x;
