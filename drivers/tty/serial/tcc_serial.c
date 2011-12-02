@@ -1026,10 +1026,10 @@ static struct uart_ops tcc_serial_ops = {
 
 static struct uart_driver tcc_uart_drv = {
 	.owner          = THIS_MODULE,
-	.dev_name       = "tcc-uart",
+	.dev_name       = TCC_SERIAL_NAME,
 	.nr             = NR_PORTS,
 	.cons           = TCC_SERIAL_CONSOLE,
-	.driver_name    = TCC_SERIAL_NAME,
+	.driver_name    = DRV_NAME,
 	.major          = TCC_SERIAL_MAJOR,
 	.minor          = TCC_SERIAL_MINOR,
 };
