@@ -26,7 +26,7 @@
 
 
 
-#define UMP_BLOCK_SIZE (256UL * 1024UL)  /* 256kB, remember to keep the ()s */
+#define UMP_BLOCK_SIZE (256UL * 1024UL * 12UL)  /* 256kB, remember to keep the ()s */
 
 
 
