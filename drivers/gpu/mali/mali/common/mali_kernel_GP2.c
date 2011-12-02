@@ -736,7 +736,6 @@ static u32 subsystem_maligp_irq_handler_upper_half(mali_core_renderunit * core)
 
 	irq_readout = mali_core_renderunit_register_read(core, MALIGP2_REG_ADDR_MGMT_INT_STAT);
 
-	MALI_DEBUG_PRINT(5, ("Mali GP: IRQ: %04x\n", irq_readout)) ;
 
 	if ( MALIGP2_REG_VAL_IRQ_MASK_NONE != irq_readout )
 	{

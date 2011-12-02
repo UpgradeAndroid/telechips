@@ -44,6 +44,7 @@ static mali_physical_memory_allocation_result os_allocator_allocate_page_table_b
 static void os_allocator_release(void * ctx, void * handle);
 static void os_allocator_page_table_block_release( mali_page_table_block *page_table_block );
 static void os_allocator_destroy(mali_physical_memory_allocator * allocator);
+static u32 os_allocator_stat(mali_physical_memory_allocator * allocator);
 
 mali_physical_memory_allocator * mali_os_allocator_create(u32 max_allocation, u32 cpu_usage_adjust, const char *name)
 {
@@ -70,6 +71,7 @@ mali_physical_memory_allocator * mali_os_allocator_create(u32 max_allocation, u3
 			    allocator->allocate = os_allocator_allocate;
 			    allocator->allocate_page_table_block = os_allocator_allocate_page_table_block;
 			    allocator->destroy = os_allocator_destroy;
+				allocator->stat = os_allocator_stat;
 			    allocator->ctx = info;
 				allocator->name = name;
 
@@ -81,6 +83,13 @@ mali_physical_memory_allocator * mali_os_allocator_create(u32 max_allocation, u3
 	}
 
 	return NULL;
+}
+
+static u32 os_allocator_stat(mali_physical_memory_allocator * allocator)
+{
+	os_allocator * info;
+	info = (os_allocator*)allocator->ctx;
+	return info->num_pages_allocated * _MALI_OSK_MALI_PAGE_SIZE;
 }
 
 static void os_allocator_destroy(mali_physical_memory_allocator * allocator)
