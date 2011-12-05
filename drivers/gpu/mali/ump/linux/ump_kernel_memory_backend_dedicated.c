@@ -26,7 +26,7 @@
 
 
 
-#define UMP_BLOCK_SIZE (256UL * 1024UL * 12UL)  /* 256kB, remember to keep the ()s */
+#define UMP_BLOCK_SIZE (256UL * 1024UL)  /* 256kB, remember to keep the ()s */
 
 
 
@@ -95,7 +95,7 @@ ump_memory_backend * ump_block_allocator_create(u32 base_address, u32 size)
 				allocator->base = base_address;
 				sema_init(&allocator->mutex, 1);
 
-				for (i = 0; i < num_blocks; i++)
+				for (i = num_blocks-1; i >= 0; i--)
 				{
 					allocator->all_blocks[i].next = allocator->first_free;
 					allocator->first_free = &allocator->all_blocks[i];
