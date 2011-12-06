@@ -67,6 +67,7 @@ Defines a read-only address of the fuse ROM of the AK8975.*/
 #define ECS_IOCTL_GET_DELAY             _IOR(AKMIO, 0x30, short)
 #define ECS_IOCTL_GET_PROJECT_NAME      _IOR(AKMIO, 0x0D, char[64])
 #define ECS_IOCTL_GET_MATRIX            _IOR(AKMIO, 0x0E, short [4][3][3])
+#define ECS_IOCTL_GET_SUSPEND_STATUS		_IOR(AKMIO, 0x10, int)
 
 /* IOCTLs for APPs */
 #define ECS_IOCTL_APP_SET_MODE		_IOW(AKMIO, 0x10, short)
@@ -87,6 +88,18 @@ struct akm8975_platform_data {
 	char project_name[64];
 	int gpio_DRDY;
 };
+
+typedef struct _matrix3by3 {
+	short	_11;
+	short	_12;
+	short	_13;
+	short	_21;
+	short 	_22;
+	short 	_23;
+	short	_31;
+	short 	_32;
+	short 	_33;
+} matrix3by3;
 
 #endif
 

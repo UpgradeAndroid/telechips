@@ -1372,7 +1372,7 @@ static ssize_t tcc_sensor_read(struct file *file, char __user *user, size_t size
     return 0;
 }
 
-static int tcc_sensor_ioctl(struct inode *inode, struct file *filp, unsigned int cmd, void *arg)
+static long tcc_sensor_ioctl(struct file *filp, unsigned int cmd, void *arg)
 {
     sensor_dbg("%s  (0x%x)  \n", __FUNCTION__, cmd);
 	
