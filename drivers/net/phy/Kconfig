@@ -92,6 +92,16 @@ config MICREL_PHY
 	---help---
 	  Supports the KSZ9021, VSC8201, KS8001 PHYs.
 
+config TCC__RTL8211_PHY 
+	tristate "Drivers for RTL8211 PHY Telechips support"
+	---help---
+	  Supports the Realtek 8211 PHY for telechips evaluation board.
+
+config TCC_RTL8201_PHY 
+	tristate "Drivers for RTL8201 PHY Telechips support"
+	---help---
+	  Supports the Realtek 8201 PHY for telechips evaluation board.
+
 config FIXED_PHY
 	bool "Driver for MDIO Bus/PHY emulation with fixed speed/link PHYs"
 	depends on PHYLIB=y
