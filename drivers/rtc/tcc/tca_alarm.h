@@ -58,10 +58,11 @@ extern
 #endif
 #include <mach/bsp.h>
 
-volatile void tca_alarm_gettime(unsigned int devbaseaddresss, rtctime *pTime);
-volatile void tca_alarm_settime(unsigned int devbaseaddresss,rtctime *pTime);
-volatile void tca_alarm_setint(unsigned int devbaseaddresss);
-volatile void tca_alarm_setpmwkup(unsigned int rtcbaseaddresss,unsigned int vicbaseaddresss);
+volatile void tca_alarm_gettime(unsigned int rtcbaseaddress, rtctime *pTime);
+volatile void tca_alarm_settime(unsigned int rtcbaseaddress, rtctime *pTime);
+volatile void tca_alarm_setint(unsigned int rtcbaseaddress);
+volatile void tca_alarm_setpmwkup(unsigned int rtcbaseaddress, unsigned int vicbaseaddress);
+volatile void tca_alarm_disable(unsigned int rtcbaseaddress);
 
 #ifdef __cplusplus
  } 

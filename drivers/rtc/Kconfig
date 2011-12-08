@@ -1096,4 +1096,13 @@ config RTC_DRV_PUV3
 	  This drive can also be built as a module. If so, the module
 	  will be called rtc-puv3.
 
+config RTC_DISABLE_ALARM_FOR_PWROFF_STATE
+	bool "Disable the RTC Alarm during the power-off state"
+	default y
+	depends on RTC_DRV_TCC9200 || RTC_DRV_TCC9300 || RTC_DRV_TCC8800 || RTC_DRV_TCC8920
+	help
+	  Android platform has not considered about power-off.
+	  So, Disable the RTC Alarm during the power off state.
+	  pm.c -> tcc_pm_power_off()
+
 endif # RTC_CLASS

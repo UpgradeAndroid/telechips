@@ -116,6 +116,30 @@ FUNCTION
 ===========================================================================*/
 static int tcc_pm_enter(suspend_state_t state)
 {
+	unsigned long flags;
+//	unsigned reg_backup[20];
+
+// -------------------------------------------------------------------------
+// disable interrupt
+	local_irq_save(flags);
+	local_irq_disable();
+
+// -------------------------------------------------------------------------
+// replace pm functions
+	memcpy((void*)SRAM_BOOT_ADDR,       (void*)SRAM_Boot,  SRAM_BOOT_SIZE);
+	memcpy((void*)SHUTDOWN_FUNC_ADDR,   (void*)shutdown,   SHUTDOWN_FUNC_SIZE);
+	memcpy((void*)WAKEUP_FUNC_ADDR,     (void*)wakeup,     WAKEUP_FUNC_SIZE);
+	memcpy((void*)SDRAM_INIT_FUNC_ADDR, (void*)sdram_init, SDRAM_INIT_FUNC_SIZE);
+
+// -------------------------------------------------------------------------
+// enter shutdown mode
+	shutdown_mode();
+
+// -------------------------------------------------------------------------
+// enable interrupt
+	local_irq_restore(flags);
+
+	return 0;
 }
 
 /*===========================================================================
@@ -123,6 +147,11 @@ FUNCTION
 ===========================================================================*/
 static void tcc_pm_power_off(void)
 {
+#ifdef CONFIG_RTC_DISABLE_ALARM_FOR_PWROFF_STATE		//Disable the RTC Alarm during the power off state
+	extern volatile void tca_alarm_disable(unsigned int rtcbaseaddress);
+
+	tca_alarm_disable(tcc_p2v(HwRTC_BASE));
+#endif
 }
 
 /*===========================================================================
@@ -145,7 +174,9 @@ static void tcc_pm_restart(char str)
 {
 	/* store restart_reason to USTS register */
 	if (restart_reason != 0x776655AA)
-		//writel((readl(PMU_CONFIG1) & 0xFFFFFF00) | (restart_reason & 0xFF), PMU_CONFIG1);
+		((PPMU)tcc_p2v(HwPMU_BASE))->PMU_USSTATUS.nREG = restart_reason;
+
+	//printk(KERN_DEBUG "reboot: reason=0x%x\n", restart_reason);
 
 	arch_reset(str, NULL);
 }
