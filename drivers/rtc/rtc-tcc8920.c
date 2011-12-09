@@ -1,5 +1,5 @@
 /*
- * linux/drivers/rtc/rtc-tcc8800.c
+ * linux/drivers/rtc/rtc-tcc8920.c
  *
  * Author: <linux@telechips.com>
  * Created: Dec 7, 2011
@@ -85,19 +85,6 @@ static struct clk *_rtc_clk;
 #define tcc_writeb(v,a)	(*(volatile unsigned char  *)(a) = (v))
 #define tcc_writew(v,a)	(*(volatile unsigned short *)(a) = (v))
 #define tcc_writel(v,a)	(*(volatile unsigned int   *)(a) = (v))
-
-#if 0
-#pragma pack(push, 4)
-struct tcc_rtc_regs {
-    volatile unsigned long RTCCON, INTCON, RTCALM,
-             ALMSEC, ALMMIN, ALMHOUR, ALMDATE, ALMDAY, ALMMON, ALMYEAR,
-             BCDSEC, BCDMIN, BCDHOUR, BCDDATE, BCDDAY, BCDMON, BCDYEAR,
-             RTCIM, RTCPEND;
-};
-#pragma pack(pop)
-
-volatile struct tcc_rtc_regs *rtc_regs;
-#endif
 
 static void __iomem *rtc_base;
 static int tcc_rtc_alarmno = NO_IRQ;
@@ -412,7 +399,8 @@ static int tcc_rtc_probe(struct platform_device *pdev)
 
 	ulINTCON = tcc_readl(rtc_base + INTCON);
 
-	while( (ulINTCON & 0x0000B700) != 0x00009000 && iLoop > 0 )
+//	while( (ulINTCON & 0x0000B700) != 0x00009000 && iLoop > 0 )	// 32.768KHz(3.3V)
+	while( (ulINTCON & 0x0000B700) != 0x00008000 && iLoop > 0 )	// 32.768KHz (1.8V)
 	{
 		// to clear PROT
 		//   - RTCWR == 1 && INTWREN == 1 && STARTB == 1
@@ -422,8 +410,8 @@ static int tcc_rtc_probe(struct platform_device *pdev)
 		printk("OLD INTCON[0x%x] iLoop [%d] RTCCON[0x%x]=================================\n", ulINTCON, iLoop, tcc_readl(rtc_base + RTCCON));
 
 		ulINTCON = tcc_readl(rtc_base + INTCON);
-		ulINTCON &= ~0x00003700;  //  START XDRV[13:12] 00 - 32K(1.8V)  FSEL[10:8] 32.768Mhz - 000
-		ulINTCON |= 0x00001000;   //  START XDRV[13:12] 01 - 32k(3.3v)  FSEL[10:8] 32.768Mhz - 000
+		ulINTCON &= ~0x00003700;  //  START XDRV[13:12] 00 - 32.768KHz (1.8V)  /  FSEL[10:8] 32.768KHz - 000
+		//ulINTCON |= 0x00001000;   //  START XDRV[13:12] 01 - 32.768KHz(3.3V)  /  FSEL[10:8] 32.768KHz - 000
 
 		tcc_writel( ulINTCON, rtc_base + INTCON); // Write XDRV
 		tcc_writel( tcc_readl(rtc_base + INTCON) | Hw15, rtc_base + INTCON); // protect bit - enable

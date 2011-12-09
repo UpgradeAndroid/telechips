@@ -410,6 +410,42 @@ config SENSORS_AK8975
 	  If you say yes here you get support for Asahi Kasei's
 	  orientation sensor AK8975.
 
+if SENSORS_AK8975
+
+choice
+    prompt "Compass sensor position"
+    default COMPASS_TOP
+    depends on SENSORS_AK8975
+    
+config COMPASS_TOP
+    bool "top"
+
+config COMPASS_BOTTOM
+    bool "bottom"
+    
+endchoice
+
+choice
+    prompt "Compass sensor orientation"
+    default COMPASS_ROTATE_0
+    depends on SENSORS_AK8975
+    
+config COMPASS_ROTATE_0
+    bool "rotate 0"
+
+config COMPASS_ROTATE_90
+    bool "rotate 90"
+
+config COMPASS_ROTATE_180
+    bool "rotate 180"
+
+config COMPASS_ROTATE_270
+    bool "rotate 270"
+
+endchoice
+    
+endif # SENSORS_AK8975
+
 config EP93XX_PWM
 	tristate "EP93xx PWM support"
 	depends on ARCH_EP93XX

@@ -52,11 +52,11 @@
 /*****************************************************************************
 * Function Name : tca_rtcgettime()
 ******************************************************************************/
-volatile void tca_alarm_gettime(unsigned int devbaseaddresss, rtctime *pTime)
+volatile void tca_alarm_gettime(unsigned int rtcbaseaddress, rtctime *pTime)
 {
 	unsigned uCON;
 
-	PRTC	pRTC = (PRTC)devbaseaddresss;
+	PRTC	pRTC = (PRTC)rtcbaseaddress;
 #if 0
 	BITSET(pRTC->RTCCON, Hw1);	// RTC Register write enabled
 	BITSET(pRTC->INTCON, Hw0);	// Interrupt Block Write Enable
@@ -123,10 +123,10 @@ volatile void tca_alarm_gettime(unsigned int devbaseaddresss, rtctime *pTime)
 /*****************************************************************************
 * Function Name : tca_rtcsettime()
 ******************************************************************************/
-volatile void tca_alarm_settime(unsigned int devbaseaddresss, rtctime *pTime)
+volatile void tca_alarm_settime(unsigned int rtcbaseaddress, rtctime *pTime)
 {
 	unsigned	uCON;
-	PRTC	pRTC = (PRTC)devbaseaddresss;
+	PRTC	pRTC = (PRTC)rtcbaseaddress;
 #if defined(CONFIG_ARCH_TCC93XX)
 	PPIC	pPIC = (PPIC)tcc_p2v(HwPIC_BASE);
 #endif
@@ -255,12 +255,12 @@ volatile void tca_alarm_settime(unsigned int devbaseaddresss, rtctime *pTime)
 * DESCRIPTION	:
 *
 ************************************************************************************************/
-volatile void tca_alarm_setint(unsigned int devbaseaddresss)
+volatile void tca_alarm_setint(unsigned int rtcbaseaddress)
 {
 	volatile rtctime lpTime;
 
 	//Set Alarm
-    tca_rtc_gettime(devbaseaddresss, (rtctime *)&lpTime);
+    tca_rtc_gettime(rtcbaseaddress, (rtctime *)&lpTime);
 #if defined(WINCE_ONLY)
 	if(lpTime.wSecond < 57){
 		lpTime.wSecond += 3;
@@ -289,7 +289,7 @@ volatile void tca_alarm_setint(unsigned int devbaseaddresss)
 		lpTime.wSecond += 5;
 #endif
 
-	tca_alarm_settime(devbaseaddresss, (rtctime *)&lpTime);
+	tca_alarm_settime(rtcbaseaddress, (rtctime *)&lpTime);
 }
 /************************************************************************************************
 * FUNCTION		:  tca_alarm_setpmwkup
@@ -297,14 +297,14 @@ volatile void tca_alarm_setint(unsigned int devbaseaddresss)
 * DESCRIPTION	:
 *
 ************************************************************************************************/
-volatile void tca_alarm_setpmwkup(unsigned int rtcbaseaddresss,unsigned int vicbaseaddresss)
+volatile void tca_alarm_setpmwkup(unsigned int rtcbaseaddress,unsigned int vicbaseaddress)
 {
 	rtctime lpTime;
-	PRTC	pRTC = (PRTC)rtcbaseaddresss;
-	PPIC    pPIC = (PPIC)vicbaseaddresss;
+	PRTC	pRTC = (PRTC)rtcbaseaddress;
+	PPIC    pPIC = (PPIC)vicbaseaddress;
 
 	//Set Alarm
-    tca_rtc_gettime(rtcbaseaddresss, (rtctime *)&lpTime);
+    tca_rtc_gettime(rtcbaseaddress, (rtctime *)&lpTime);
 
 
 #if defined(WINCE_ONLY)
@@ -323,11 +323,11 @@ volatile void tca_alarm_setpmwkup(unsigned int rtcbaseaddresss,unsigned int vicb
 				lpTime.wMinute = 0;
 				lpTime.wSecond = 0;
 			}
-	else{
+			else{
 				lpTime.wHour = 0;
 				lpTime.wMinute = 0;
-		lpTime.wSecond = 0;
-	}
+				lpTime.wSecond = 0;
+			}
 		}
 	}
 
@@ -336,7 +336,7 @@ volatile void tca_alarm_setpmwkup(unsigned int rtcbaseaddresss,unsigned int vicb
 		lpTime.wSecond += 5;
 #endif
 
-	tca_alarm_settime(rtcbaseaddresss, (rtctime *)&lpTime);
+	tca_alarm_settime(rtcbaseaddress, (rtctime *)&lpTime);
 
 #if defined(CONFIG_ARCH_TCC93XX)
 	pPIC->CLR0		= HwINT0_RTC;
@@ -346,6 +346,10 @@ volatile void tca_alarm_setpmwkup(unsigned int rtcbaseaddresss,unsigned int vicb
 	pPIC->CLR1 		= HwINT1_RTC;
 	pPIC->MSTS1 		|= HwINT1_RTC;
 	pPIC->SEL1		|= HwINT1_RTC;
+#elif defined(CONFIG_ARCH_TCC892X)
+	pPIC->CLR1.bREG.RTC 		= 1;
+	pPIC->MSTS1.bREG.RTC 		|= 1;
+	pPIC->SEL1.bREG.RTC		|= 1;
 #endif
 
 	BITSET(pRTC->RTCCON, Hw1);// Enable RTCEN
@@ -363,3 +367,29 @@ volatile void tca_alarm_setpmwkup(unsigned int rtcbaseaddresss,unsigned int vicb
 	//PMWKUP Disable End
 }
 
+/************************************************************************************************
+* FUNCTION		:  tca_alarm_disable
+*
+* DESCRIPTION	:  Disable the RTC Alarm during the power off state
+*
+************************************************************************************************/
+volatile void tca_alarm_disable(unsigned int rtcbaseaddress)
+{
+	PRTC pRTC = (PRTC)rtcbaseaddress;
+	if (pRTC == NULL) {
+		printk("failed RTC ioremap()\n");
+	}
+	else {
+		BITCLR(pRTC->RTCCON, Hw7|Hw6);	// Disable - Wake Up Interrupt Output(Hw7), Alarm Interrupt Output(Hw6)
+
+		BITSET(pRTC->RTCCON, Hw1);	// Enable - RTC Write
+		BITSET(pRTC->INTCON, Hw0);	// Enable - Interrupt Block Write
+
+		BITCLR(pRTC->RTCALM, Hw7|Hw6|Hw5|Hw4|Hw3|Hw2|Hw1|Hw0);	// Disable - Alarm Control
+
+		BITCSET(pRTC->RTCIM, Hw3|Hw2|Hw1|Hw0, Hw3|Hw2);	// Power down mode, Active HIGH, Disable alarm interrupt
+
+		BITCLR(pRTC->INTCON, Hw0);	// Disable - Interrupt Block Write
+		BITCLR(pRTC->RTCCON, Hw1);	// Disable - RTC Write
+	}
+}

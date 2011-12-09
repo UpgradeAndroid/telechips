@@ -3845,23 +3845,9 @@ FUNCTION
 static void tcc_pm_power_off(void)
 {
 #ifdef CONFIG_RTC_DISABLE_ALARM_FOR_PWROFF_STATE		//Disable the RTC Alarm during the power off state
-	PRTC pRTC = (PRTC)tcc_p2v(HwRTC_BASE);
-	if (pRTC == NULL) {
-		printk("failed RTC ioremap()\n");
-	}
-	else {
-		BITCLR(pRTC->RTCCON, Hw7|Hw6);	// Disable - Wake Up Interrupt Output(Hw7), Alarm Interrupt Output(Hw6)
+	extern volatile void tca_alarm_disable(unsigned int rtcbaseaddresss);
 
-		BITSET(pRTC->RTCCON, Hw1);	// Enable - RTC Write
-		BITSET(pRTC->INTCON, Hw0);	// Enable - Interrupt Block Write
-
-		BITCLR(pRTC->RTCALM, Hw7|Hw6|Hw5|Hw4|Hw3|Hw2|Hw1|Hw0);	// Disable - Alarm Control
-
-		BITCSET(pRTC->RTCIM, Hw3|Hw2|Hw1|Hw0, Hw3|Hw2);	// Power down mode, Active HIGH, Disable alarm interrupt
-
-		BITCLR(pRTC->INTCON, Hw0);	// Disable - Interrupt Block Write
-		BITCLR(pRTC->RTCCON, Hw1);	// Disable - RTC Write
-	}
+	tca_alarm_disable(tcc_p2v(HwRTC_BASE));
 #endif
 
 #if defined(CONFIG_REGULATOR_AXP192)
