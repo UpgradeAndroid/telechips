@@ -112,6 +112,8 @@ static int ht121wx2_set_power(struct lcd_panel *panel, int on)
 		gpio_set_value(pdata->power_on, 0);
 
 	}
+	mutex_unlock(&panel_lock);
+	
 	return 0;
 }
 

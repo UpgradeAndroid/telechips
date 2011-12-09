@@ -17,5 +17,6 @@ obj-$(CONFIG_LCD_TD070RDH) += lcd_td070rdh.o
 obj-$(CONFIG_LCD_N101L6) += lcd_n101l6.o
 obj-$(CONFIG_LCD_TW8816) += lcd_tw8816.o
 obj-$(CONFIG_LCD_CLAA102NA0DCW) += lcd_claa102na0dcw.o
+obj-$(CONFIG_LCD_ED090NA) 	+= lcd_ED090NA.o
 obj-$(CONFIG_TCC_VIDEO_DISPLAY_DEINTERLACE_MODE)	+= viqe/
 EXTRA_CFLAGS += -Idrivers/video/tcc/viqe

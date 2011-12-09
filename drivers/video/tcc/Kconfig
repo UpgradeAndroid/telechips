@@ -164,4 +164,7 @@ config LCD_CLAA102NA0DCW
 	bool "CPT 1024 * 600 LVDS support"
 	depends on FB_TCC
 
+config LCD_ED090NA
+	bool "CPT 1024 * 600 LVDS support"
+	depends on FB_TCC
 endmenu
