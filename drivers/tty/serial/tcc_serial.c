@@ -1120,12 +1120,12 @@ static int tcc_serial_suspend(struct platform_device *dev, pm_message_t state)
             if(port->line == TCC_GPS_UART){
 #if defined(CONFIG_GPS)
                 if(gps_k_flag){
-#if defined(CONFIG_MACH_TCC9300) || defined(CONFIG_MACH_TCC8800)                	
+#if defined(CONFIG_MACH_TCC9300) || defined(CONFIG_MACH_TCC8800) || defined(CONFIG_MACH_TCC8920)                	
                 if(machine_is_m801_88() || machine_is_m803()) // demo set
                 {
                     gpio_set_value(TCC_GPG(4), 0);
                 }
-                else if(machine_is_tcc8800())
+                else if(machine_is_tcc8800() || machine_is_tcc8920())
                 {
                     gpio_direction_output(TCC_GPEXT1(6), 0);
                 }
@@ -1171,12 +1171,12 @@ static int tcc_serial_resume(struct platform_device *dev)
             if(port->line == TCC_GPS_UART){
 #if defined(CONFIG_GPS)
                 if(gps_k_flag){
-#if defined(CONFIG_MACH_TCC9300) || defined(CONFIG_MACH_TCC8800)                	
+#if defined(CONFIG_MACH_TCC9300) || defined(CONFIG_MACH_TCC8800) || defined(CONFIG_MACH_TCC8920)              	
                 if(machine_is_m801_88() || machine_is_m803()) // demo set
                 {
                     gpio_set_value(TCC_GPG(4), 1);
                 }
-                else if(machine_is_tcc8800())
+                    else if(machine_is_tcc8800() || machine_is_tcc8920())
                 {
                     gpio_direction_output(TCC_GPEXT1(6), 1);
                 }
