@@ -62,7 +62,7 @@
 extern unsigned long volatile __jiffy_data jiffies;
 extern int tcc_is_camera_enable;
 
-#if 0
+#if 1
 static int debug	   = 1;
 #else
 static int debug	   = 0;
@@ -353,28 +353,29 @@ int tcc_videobuf_s_fbuf(struct v4l2_framebuffer *fargbuf)
 
 int tcc_videobuf_reqbufs(struct v4l2_requestbuffers *req)
 {	
-	if (req->count < 1) {
+	#if (0) //20111209 ysseung   test...
+	if(req->count < 1) {
 		printk("reqbufs: count invalid (%d)\n",req->count);
 		return -EINVAL;
 	}
+	#endif
 
-	if (req->memory != V4L2_MEMORY_MMAP     &&
-	    req->memory != V4L2_MEMORY_USERPTR  &&
-	    req->memory != V4L2_MEMORY_OVERLAY) 
-    {
+	if(req->memory != V4L2_MEMORY_MMAP && req->memory != V4L2_MEMORY_USERPTR \
+		&& req->memory != V4L2_MEMORY_OVERLAY) {
 		printk("reqbufs: memory type invalid\n");
 		return -EINVAL;
 	}
 	
-	if (req->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
-	{
+	if(req->type != V4L2_BUF_TYPE_VIDEO_CAPTURE) {
 		printk("reqbufs: video type invalid\n");
-		return -EINVAL;			
+		return -EINVAL;
 	}
-	
-	if (req->count > TCC_CAMERA_MAX_BUFNBRS)
+
+	#if (0) //20111209 ysseung   test...
+	if(req->count > TCC_CAMERA_MAX_BUFNBRS)
 		req->count = TCC_CAMERA_MAX_BUFNBRS;
-	
+	#endif
+
 	return tccxxx_cif_buffer_set(req);
 }
 

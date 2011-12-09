@@ -271,7 +271,12 @@ static void cif_data_init(void *priv)
 	data->cif_cfg.oper_mode 		= OPER_PREVIEW;
 	data->cif_cfg.zoom_step			= 0;
 	
+	#if (1) //20111209 ysseung   test...
+	data->cif_cfg.base_buf			= NULL;
+	#else
 	data->cif_cfg.base_buf			= hardware_data.cif_buf.addr;
+	#endif
+
 	data->cif_cfg.pp_num			= 0;//TCC_CAMERA_MAX_BUFNBRS;
 #if defined(CONFIG_VIDEO_ATV_SENSOR_TVP5150) || defined(CONFIG_VIDEO_ATV_SENSOR_RDA5888)
 	data->cif_cfg.fmt				= M420_EVEN;
@@ -352,9 +357,9 @@ static irqreturn_t isp_cam_isr1(int irq, void *client_data/*, struct pt_regs *re
 				curr_buf = data->buf + data->cif_cfg.now_frame_num;
 				curr_num = data->cif_cfg.now_frame_num;
 #ifndef TCCISP_GEN_CFG_UPD
-				next_buf = list_entry(data->list.next->next, struct tccxxx_cif_buffer, buf_list);	
+				next_buf = list_entry(data->list.next->next, struct tccxxx_cif_buffer, buf_list);
 				next_num = next_buf->v4lbuf.index;
-
+				printk("next_num=%d. \n", next_num);
 				if(next_buf != &data->list && curr_buf != next_buf )
 				{
 					//exception process!!
@@ -1462,6 +1467,66 @@ int tccxxx_jpeg_make_header(unsigned int *uiBitStreamSize, unsigned int *uiHeade
 }
 #endif
 
+#if (1) //20111209 ysseung   test...
+int tccxxx_cif_buffer_set(struct v4l2_requestbuffers *req)
+{
+	struct TCCxxxCIF *data = (struct TCCxxxCIF *) &hardware_data;
+	struct tccxxx_cif_buffer *buf = NULL;
+	unsigned int y_offset = data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y;
+	unsigned int uv_offset = 0;
+	unsigned int buff_size;
+
+	printk("tccxxx_cif_buffer_set y_offset[%d]\n",y_offset);
+
+	if(req->count == 0) {
+		data->cif_cfg.now_frame_num = 0;
+
+		if(data->cif_cfg.fmt == M420_ZERO)
+			buff_size = PAGE_ALIGN(y_offset*2);
+		else
+			buff_size = PAGE_ALIGN(y_offset + y_offset/2);
+
+		data->buf->v4lbuf.length = buff_size;
+
+		memset(data->static_buf, 0x00, req->count * sizeof(struct tccxxx_cif_buffer));
+
+		data->done_list.prev = data->done_list.next = &data->done_list;
+		data->list.prev 	 = data->list.next 		= &data->list;
+
+		data->cif_cfg.base_buf = (unsigned int)req->reserved[0];
+	}
+
+	buf = &(data->static_buf[req->count]);
+
+	INIT_LIST_HEAD(&buf->buf_list);
+
+	buf->mapcount 		= 0;
+	buf->cam 			= data;
+	buf->v4lbuf.index 	= req->count;
+	buf->v4lbuf.type 	= V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	buf->v4lbuf.field 	= V4L2_FIELD_NONE;
+	buf->v4lbuf.memory 	= V4L2_MEMORY_MMAP;
+	buf->v4lbuf.length 	= buff_size;
+
+	if(data->cif_cfg.fmt == M420_ZERO)
+		uv_offset = (data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y)/2;
+	else
+		uv_offset = (data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y)/4;
+
+	data->cif_cfg.preview_buf[req->count].p_Y  = (unsigned int)req->reserved[0];
+	data->cif_cfg.preview_buf[req->count].p_Cb = (unsigned int)data->cif_cfg.preview_buf[req->count].p_Y + y_offset;
+	data->cif_cfg.preview_buf[req->count].p_Cr = (unsigned int)data->cif_cfg.preview_buf[req->count].p_Cb + uv_offset;
+
+	data->cif_cfg.pp_num = req->count;
+
+	printk("preview buffer address[%d]:  Y:0x%08x, U:0x%08x, V:0x%08x. \n", req->count, \
+										data->cif_cfg.preview_buf[req->count].p_Y, 		\
+										data->cif_cfg.preview_buf[req->count].p_Cb, 	\
+										data->cif_cfg.preview_buf[req->count].p_Cr);
+
+	return 0;
+}
+#else
 int tccxxx_cif_buffer_set(struct v4l2_requestbuffers *req)
 {
 	struct TCCxxxCIF *data = (struct TCCxxxCIF *) &hardware_data;
@@ -1571,6 +1636,7 @@ retry:
 	
 	return 0;	
 }
+#endif
 
 int tccxxx_cif_cam_restart(struct v4l2_pix_format *pix, unsigned long xclk)
 {
@@ -1656,7 +1722,10 @@ int tccxxx_cif_start_stream(void)
 
 	//cif_scaler_calc();
 	//cif_scaler_set(NULL, data->cif_cfg.oper_mode); //20101124 ysseung   test code.
+	#if (0) //20111209 ysseung   test...
 	cif_preview_dma_set();
+	#endif
+
 	cif_dma_hw_reg(0);
 	
 	data->stream_state = STREAM_ON;
@@ -2256,6 +2325,7 @@ int  tccxxx_cif_init(void)
 	memset(&hardware_data,0x00,sizeof(struct TCCxxxCIF));
 	hardware_data.buf = hardware_data.static_buf;
 
+#if (0) //20111209 ysseung   test...
 #ifdef JPEG_ENCODE_WITH_CAPTURE
 	buf->bytes = PAGE_ALIGN(CAPTURE_MEM+JPEG_MEM);
 	buf->addr = PA_VIDEO_BASE;
@@ -2282,7 +2352,8 @@ int  tccxxx_cif_init(void)
 		printk(KERN_ERR CAM_NAME ": cannot remap buffer\n");
 		return ENODEV;
 	}
-  
+#endif
+
 	/* Init the camera IF */
 	cif_data_init((void*)&hardware_data);
 	/* enable it. This is needed for sensor detection */
