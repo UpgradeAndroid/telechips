@@ -379,6 +379,12 @@ int tcc_videobuf_reqbufs(struct v4l2_requestbuffers *req)
 	return tccxxx_cif_buffer_set(req);
 }
 
+int tcc_videobuf_set_preview_addr(struct v4l2_requestbuffers *req)
+{
+	tccxxx_set_preview_addr(req->count, req->reserved[0]);
+	return 0;
+}
+
 int tcc_videobuf_querybuf(struct v4l2_buffer *buf)
 {
 	struct TCCxxxCIF *data = (struct TCCxxxCIF *)(&hardware_data);
@@ -849,6 +855,9 @@ static long camera_core_do_ioctl(struct file *file, unsigned int cmd, void *arg)
 
 		case VIDIOC_USER_GET_ZOOM_SUPPORT:
 			return tcc_videobuf_get_zoom_support((int *)arg);
+
+		case VIDIOC_USER_SET_PREVIEW_ADDR:
+			return tcc_videobuf_set_preview_addr((struct v4l2_requestbuffers *)arg);
 
 		default:
 		{

@@ -357,6 +357,7 @@ struct TCCxxxCIF{
 #define VIDIOC_USER_GET_MAX_RESOLUTION 			_IOWR ('V', BASE_VIDIOC_PRIVATE+5, int)
 #define VIDIOC_USER_GET_SENSOR_FRAMERATE		_IOWR ('V', BASE_VIDIOC_PRIVATE+6, int)
 #define VIDIOC_USER_GET_ZOOM_SUPPORT			_IOWR ('V', BASE_VIDIOC_PRIVATE+7, int)
+#define VIDIOC_USER_SET_PREVIEW_ADDR			_IOWR ('V', BASE_VIDIOC_PRIVATE+8, struct v4l2_requestbuffers)
 
 
 extern int	tccxxx_cif_buffer_set(struct v4l2_requestbuffers *req);
@@ -372,4 +373,5 @@ extern int 	tccxxx_cif_open(void);
 extern int 	tccxxx_cif_close(void);
 extern int 	tccxxx_cif_init(void);
 extern int 	tcc_get_sensor_info(int index);
+extern void tccxxx_set_preview_addr(int index, unsigned int addr);
 #endif /* TCCXX_CIF_H */

@@ -420,8 +420,8 @@ static irqreturn_t isp_cam_isr1(int irq, void *client_data/*, struct pt_regs *re
 						#ifndef TCCISP_GEN_CFG_UPD
 						ISP_Zoom_Apply (1);
 						ISP_SetPreviewH_StartAddress((unsigned int)data->cif_cfg.preview_buf[next_num].p_Y,
-														(unsigned int)data->cif_cfg.preview_buf[next_num].p_Cb,
-														(unsigned int)data->cif_cfg.preview_buf[next_num].p_Cr);
+														(unsigned int)data->cif_cfg.preview_buf[next_num].p_Cr,
+														(unsigned int)data->cif_cfg.preview_buf[next_num].p_Cb);
 						#else
 							#ifdef TCCISP_UPDATE
 
@@ -1525,6 +1525,22 @@ int tccxxx_cif_buffer_set(struct v4l2_requestbuffers *req)
 										data->cif_cfg.preview_buf[req->count].p_Cr);
 
 	return 0;
+}
+
+void tccxxx_set_preview_addr(int index, unsigned int addr)
+{
+	struct TCCxxxCIF *data = (struct TCCxxxCIF *) &hardware_data;
+	unsigned int y_offset = 0, uv_offset = 0;
+
+	y_offset = data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y;
+	if(data->cif_cfg.fmt == M420_ZERO)
+		uv_offset = (data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y)/2;
+	else
+		uv_offset = (data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y)/4;
+
+	data->cif_cfg.preview_buf[index].p_Y  = addr;
+	data->cif_cfg.preview_buf[index].p_Cb = (unsigned int)data->cif_cfg.preview_buf[index].p_Y + y_offset;
+	data->cif_cfg.preview_buf[index].p_Cr = (unsigned int)data->cif_cfg.preview_buf[index].p_Cb + uv_offset;
 }
 #else
 int tccxxx_cif_buffer_set(struct v4l2_requestbuffers *req)
