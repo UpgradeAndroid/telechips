@@ -757,7 +757,7 @@ static irqreturn_t tccxxx_grp_handler(int irq, void *dev)
 }
 
 
-int tccxxx_grp_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long arg)
+int tccxxx_grp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	int iRet = 0, ret = 0;
 	intr_data_t *g2d_data = (intr_data_t *)file->private_data;

@@ -229,16 +229,16 @@ extern unsigned int tcc_output_fb_get_disable(void);
 struct inode scaler_inode;
 struct file scaler_filp;
 
-int (*scaler_ioctl) (struct inode *, struct file *, unsigned int, unsigned long);
+int (*scaler_ioctl) (struct file *, unsigned int, unsigned long);
 int (*scaler_open) (struct inode *, struct file *);
 int (*scaler_release) (struct inode *, struct file *);
 
 	#ifdef FB_UPSCALE_SCALER0
-	int tccxxx_scaler_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long arg);
+	int tccxxx_scaler_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 	int tccxxx_scaler_release(struct inode *inode, struct file *filp);
 	int tccxxx_scaler_open(struct inode *inode, struct file *filp);
 	#else
-	int tccxxx_scaler1_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long arg);
+	int tccxxx_scaler1_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 	int tccxxx_scaler1_release(struct inode *inode, struct file *filp);
 	int tccxxx_scaler1_open(struct inode *inode, struct file *filp);
 	#endif//FB_UPSCALE_SCALER0
@@ -249,11 +249,11 @@ int (*scaler_release) (struct inode *, struct file *);
 struct inode g2d_inode;
 struct file g2d_filp;
 
-int tccxxx_grp_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long arg);
+int tccxxx_grp_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 int tccxxx_grp_release(struct inode *inode, struct file *filp);
 int tccxxx_grp_open(struct inode *inode, struct file *filp);
 
-int (*g2d_ioctl) (struct inode *, struct file *, unsigned int, unsigned long);
+int (*g2d_ioctl) (struct file *, unsigned int, unsigned long);
 int (*g2d_open) (struct inode *, struct file *);
 int (*g2d_release) (struct inode *, struct file *);
 
@@ -713,7 +713,7 @@ char TCC_FB_G2D_FmtConvert(unsigned int width, unsigned int height, unsigned int
 	#if defined(CONFIG_TCC_EXCLUSIVE_UI_LAYER)
 		grp_rotate_ctrl(&g2d_p);
 	#else
-		g2d_ioctl((struct inode *)&g2d_inode, (struct file *)&g2d_filp, TCC_GRP_ROTATE_IOCTRL_KERNEL, &g2d_p);
+		g2d_ioctl((struct file *)&g2d_filp, TCC_GRP_ROTATE_IOCTRL_KERNEL, &g2d_p);
 	#endif
 
 	return 1;
@@ -1108,7 +1108,7 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 			#endif//
 			
 			#ifdef TCC_SCALER_TEST
-				scaler_ioctl((struct inode *)&scaler_inode, (struct file *)&scaler_filp, TCC_SCALER_IOCTRL_KERENL, &fbscaler);
+				scaler_ioctl((struct file *)&scaler_filp, TCC_SCALER_IOCTRL_KERENL, &fbscaler);
 			#else
 				#ifdef FB_UPSCALE_SCALER0
 				M2M_Scaler_Ctrl_Detail(&fbscaler);
