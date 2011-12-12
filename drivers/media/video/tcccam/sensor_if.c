@@ -249,7 +249,7 @@ unsigned int sensor_control[] =
 #if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
 extern TCC_SENSOR_INFO_TYPE tcc_sensor_info;
 extern int CameraID;
-spinlock_t sensor_lock = SPIN_LOCK_UNLOCKED;
+spinlock_t sensor_lock = __SPIN_LOCK_UNLOCKED(sensor_lock);
 #endif
 
 #ifndef USE_SENSOR_EFFECT_IF
