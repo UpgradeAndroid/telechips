@@ -191,7 +191,6 @@ Disclaimer
  *
  */
 
-#define SENSOR_NAME 			"bma250"
 //#define ABSMIN				-512
 //#define ABSMAX				512
 #define SLOPE_THRESHOLD_VALUE 		32
