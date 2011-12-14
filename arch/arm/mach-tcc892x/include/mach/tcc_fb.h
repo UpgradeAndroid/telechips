@@ -15,7 +15,7 @@
 #ifndef __TCC_FB_H
 #define __TCC_FB_H
 
-#define TCC_LCDC1_USE
+//#define TCC_LCDC1_USE //mc min. becasue m805_8923 use lcdc0
 
 #define ATAG_TCC_PANEL	0x54434364 /* TCCd */
 
@@ -75,7 +75,7 @@ struct lcd_panel {
 	int sync_invert;
 
 	int (*init)(struct lcd_panel *panel);
-	int (*set_power)(struct lcd_panel *panel, int on);
+	int (*set_power)(struct lcd_panel *panel, int on, unsigned int lcd_num);
 	int (*set_backlight_level)(struct lcd_panel *panel, int level);
 
 	int state; //current state 0 off , 0: on

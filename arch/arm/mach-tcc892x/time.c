@@ -54,7 +54,6 @@
 #include <mach/bsp.h>
 
 #define TCC_TIMER_FREQ (12000000L) /* 12M */
-#define TCC_ENABLE_BIT(X) (1 << (X))
 
 #if (TCC_TIMER_FREQ < (USEC_PER_SEC))
 #   define PRESCALE_TO_MICROSEC(X) ((X) * ((USEC_PER_SEC) / (TCC_TIMER_FREQ)))
@@ -67,6 +66,9 @@ static volatile PTIMER pTIMER;
 static volatile PPIC pPIC;
 
 #undef TICKLESS_DEBUG_TCC
+
+//#define TCC_USE_BIT_FIELD
+
 
 #if defined(TICKLESS_DEBUG_TCC)
 static unsigned int  gInt_cnt = 0;
@@ -84,7 +86,7 @@ static unsigned long gdelta_max = 0;
  */
 static unsigned long tcc892x_timer_gettimeoffset(void)
 {
-	unsigned long ret = PRESCALE_TO_MICROSEC(pTIMER->TC32PCNT);
+	unsigned long ret = PRESCALE_TO_MICROSEC(pTIMER->TC32PCNT.nREG);
 	if (pPIC->IRQ0 & Hw1) {
 		/* Timer intrrupt occured. But the jiffies was not updated at now.  */
 		/* So, it returns the time of a jiffies */
@@ -159,7 +161,12 @@ static irqreturn_t tcc892x_ost0_interrupt(int irq, void *dev_id)
 	struct clock_event_device *c = dev_id;
 
 	pTIMER->TC32IRQ.bREG.IRQEN0 = 0;			/* Disable interrupt when the counter value matched with CMP0 */
-	pPIC->CLR.nREG |= TCC_ENABLE_BIT(irq);		/* Interrupt clear */
+	if (irq >= 32) {
+		pPIC->CLR1.nREG |= (1 << (irq-32));		/* Interrupt clear */
+	}
+	else {
+		pPIC->CLR0.nREG |= (1 << irq);		/* Interrupt clear */
+	}
 	if (pTIMER->TC32IRQ.bREG.IRQCLR)			/* IRQ clear */
 		pTIMER->TC32IRQ.bREG.IRQCLR = 1;
 
@@ -246,7 +253,7 @@ tcc892x_osmr0_set_mode(enum clock_event_mode mode, struct clock_event_device *c)
 	case CLOCK_EVT_MODE_SHUTDOWN:
 		raw_local_irq_save(flags);
 		pTIMER->TC32IRQ.bREG.IRQEN0 = 0;		/* Disable interrupt when the counter value matched with CMP0 */
-		pPIC->CLR.bREG.TC1 = 1;					/* PIC Interrupt clear */
+		pPIC->CLR0.bREG.TC1 = 1;					/* PIC Interrupt clear */
 		if (pTIMER->TC32IRQ.bREG.IRQCLR)		/* IRQ clear */
 			pTIMER->TC32IRQ.bREG.IRQCLR = 1;
 		raw_local_irq_restore(flags);
@@ -364,10 +371,10 @@ static void __init tcc892x_timer_init(void)
 	cksrc_tcc892x_oscr.mult =
 		clocksource_hz2mult(CLOCK_TICK_RATE, cksrc_tcc892x_oscr.shift);
 
-	pPIC->SEL.bREG.TC1 = 1;
-	pPIC->IEN.bREG.TC1 = 1;
-	pPIC->INTMSK.bREG.TC1 = 1;
-	pPIC->MODEA.bREG.TC1 = 1;
+	pPIC->SEL0.bREG.TC1 = 1;
+	pPIC->IEN0.bREG.TC1 = 1;
+	pPIC->INTMSK0.bREG.TC1 = 1;
+	pPIC->MODEA0.bREG.TC1 = 1;
 
 	setup_irq(INT_TC32, &tcc892x_timer_irq);
 

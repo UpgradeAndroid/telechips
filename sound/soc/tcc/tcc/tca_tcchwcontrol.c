@@ -19,6 +19,7 @@
 
 #include <mach/bsp.h>
 #include <mach/io.h>
+#include <mach/gpio.h>
 #include <asm/mach-types.h>
 #include "tca_tcchwcontrol.h"
 
@@ -55,7 +56,11 @@ unsigned int tca_dma_clrstatus(void *pADMABaseAddr, unsigned int nDmanum)
 ******************************************************************************/
 unsigned int tca_irq_getnumber(void)
 {
-	return IRQ_ADMA;  // audio output interrupt.
+#if defined(CONFIG_ARCH_TCC892X) || defined(CONFIG_ARCH_TCC93XX)
+    return INT_ADMA0;
+#else
+    return IRQ_ADMA;
+#endif
 }
 
 /*****************************************************************************
@@ -78,6 +83,28 @@ unsigned int tca_dma_getstatus(void *pADMABaseAddr, unsigned int nDmanum)
 * Parameter     : 
 * Return        :  
 ******************************************************************************/
+#if defined(CONFIG_ARCH_TCC892X)
+unsigned int tca_tcc_initport(void)
+{
+	if(machine_is_m805_892x()) {
+		tcc_gpio_config(TCC_GPG(0), GPIO_FN1);
+		tcc_gpio_config(TCC_GPG(1), GPIO_FN1);
+		tcc_gpio_config(TCC_GPG(2), GPIO_FN1);
+		tcc_gpio_config(TCC_GPG(3), GPIO_FN1);
+		tcc_gpio_config(TCC_GPG(4), GPIO_FN1);
+	}
+	else {
+	    tcc_gpio_config(TCC_GPG(5), GPIO_FN1);
+	    tcc_gpio_config(TCC_GPG(6), GPIO_FN1);
+	    tcc_gpio_config(TCC_GPG(7), GPIO_FN1);
+	    tcc_gpio_config(TCC_GPG(8), GPIO_FN1);
+	    tcc_gpio_config(TCC_GPG(9), GPIO_FN1);
+	    tcc_gpio_config(TCC_GPG(10), GPIO_FN1);
+	}
+
+    return 0/*SUCCESS*/;
+}
+#else
 unsigned int tca_tcc_initport(void)
 {
 	GPIO *pStrGPIOBaseReg = (GPIO *)tcc_p2v(HwGPIO_BASE);
@@ -127,7 +154,7 @@ unsigned int tca_tcc_initport(void)
             ;
     }
 
-    if(machine_is_tcc9300() || machine_is_tcc9300cm() || machine_is_tcc9300st() || machine_is_tcc8800st()) {
+    if(machine_is_tcc9300() || machine_is_tcc9300cm() || machine_is_tcc9300st() || machine_is_tcc8800st() || machine_is_tcc8920st()) {
         // Set GPIO for DAI
         pStrGPIOBaseReg->GPDFN0 |= 0
             | Hw0   //BCLK(1)
@@ -177,6 +204,7 @@ unsigned int tca_tcc_initport(void)
 
     return 0/*SUCCESS*/;
 }
+#endif
 
 /*****************************************************************************
 * Function Name : tca_dma_setsrcaddr()

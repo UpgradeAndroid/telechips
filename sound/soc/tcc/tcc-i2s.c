@@ -255,11 +255,11 @@ static int tcc_i2s_init(void)
 
     /* clock enable */
     tcc_dai_clk = clk_get(NULL, CLK_NAME_DAI);
-    if(tcc_dai_clk == NULL)     return (-EINVAL);
+    if(IS_ERR(tcc_dai_clk))     return (-EINVAL);
     clk_enable(tcc_dai_clk);
 
     tcc_adma_clk = clk_get(NULL, CLK_NAME_ADMA);
-    if(tcc_adma_clk == NULL)    return (-EINVAL);
+    if(IS_ERR(tcc_adma_clk))    return (-EINVAL);
     clk_enable(tcc_adma_clk);
 
 #if defined(CONFIG_MEM_CLK_SYNC_MODE)
@@ -273,17 +273,6 @@ static int tcc_i2s_init(void)
 	tca_i2s_dai_init(pADMA_DAI);
 
     BITSET(pADMA_DAI->MCCR0, Hw31 | Hw30 | Hw29 | Hw28);
-
-	//Config DMA Interrupt
-#if defined(CONFIG_ARCH_TCC93XX)
-	BITSET(pPIC->SEL1 , 1 << (INT_ADMA0 - 32));
-	BITSET(pPIC->MODE1, 1 << (INT_ADMA0 - 32));
-	BITCLR(pPIC->POL1 , 1 << (INT_ADMA0 - 32));
-#else
-	BITSET(pPIC->SEL1 , 1 << (INT_ADMA - 32));
-	BITSET(pPIC->MODE1, 1 << (INT_ADMA - 32));
-	BITCLR(pPIC->POL1 , 1 << (INT_ADMA - 32));
-#endif
 
 	tca_i2s_stop(pADMA_DAI, AMDA_RX);         // ADMA Rx disable
 	tca_i2s_stop(pADMA_DAI, AMDA_TX);         // ADMA Tx disable

@@ -1128,4 +1128,5 @@ tcc9300                 MACH_TCC9300            TCC9300                 4104
 tcc8800st               MACH_TCC8800ST          TCC8800ST               4105
 m803                    MACH_M803               M803                    4106
 tcc8920                 MACH_TCC8920            TCC8920                 4007
-
+tcc8920st               MACH_TCC8920ST          TCC8920ST               4008
+m805_892x               MACH_M805_892X          M805_892X               4009

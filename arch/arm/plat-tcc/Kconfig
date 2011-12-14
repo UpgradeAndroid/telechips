@@ -105,11 +105,11 @@ config TCC_MEM_128MB
 endchoice
 
 choice
-	bool "DDR2 BandWidth"
-	depends on DRAM_DDR2 && ARCH_TCC92XX
+	bool "DRAM BandWidth"
+	depends on (DRAM_DDR2 && ARCH_TCC92XX) || (DRAM_DDR3 && ARCH_TCC892X)
 	default DRAM_32BIT_USED
 	help
-	  select DDR2 BandWidth.
+	  select DRAM BandWidth.
 
 config DRAM_16BIT_USED
 	bool "16Bit"
@@ -215,7 +215,7 @@ config DDR3_H5TQ1G83BFR_H9C
   bool "Hynix DDR3_H5TQ1G83BFR_H9C"
 
 config DDR3_H5TQ2G83BFR_H9C
-  depends on TCC_MEM_1024MB
+  depends on TCC_MEM_1024MB || TCC_MEM_512MB
   bool "Hynix DDR3_H5TQ2G83BFR_H9C"
 endchoice
 

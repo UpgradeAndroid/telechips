@@ -60,8 +60,14 @@ static struct platform_device tcc8920_gpio_key_device = {
 /*******************************************************************
 		TCC METRIX KEY
 *******************************************************************/
+#if	1	// For Camera uses, you have to use below key map. 
 static unsigned int tcc8920_col_gpios[] = { TCC_GPF(3), TCC_GPF(4), TCC_GPF(5) };
 static unsigned int tcc8920_row_gpios[] = { TCC_GPF(6), TCC_GPF(7), TCC_GPG(16) };
+#else
+static unsigned int tcc8920_col_gpios[] = { TCC_GPF(30), TCC_GPF(28), TCC_GPF(16) }; 
+static unsigned int tcc8920_row_gpios[] = { TCC_GPF(15), TCC_GPB(7), TCC_GPG(16) };
+#endif
+
 #define KEYMAP_INDEX(col, row) ((col)*ARRAY_SIZE(tcc8920_row_gpios) + (row))
 
 static const unsigned short tcc8920_keymap[] = {
@@ -135,10 +141,8 @@ static int __init tcc8920_keypad_init(void)
 	if (!machine_is_tcc8920())
 		return 0;
 
-	if(system_rev == 0x1000)
-		platform_device_register(&tcc8920_matrix_key_device);
-	else
-		platform_device_register(&tcc8920_gpio_key_device);
+	platform_device_register(&tcc8920_matrix_key_device);
+	//platform_device_register(&tcc8920_gpio_key_device);
 
 	#ifdef CONFIG_KEYPAD_TCC_ADC
 	platform_device_register(&tcc8920_keypad_device);

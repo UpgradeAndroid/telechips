@@ -121,7 +121,17 @@ static const struct snd_pcm_hardware tcc_pcm_hardware_capture = {
 static int alsa_get_intr_num(struct snd_pcm_substream *substream)
 {
     if (substream) {
-        return IRQ_ADMA;
+#if defined(CONFIG_ARCH_TCC892X) || defined(CONFIG_ARCH_TCC93XX)
+
+#if defined(CONFIG_MACH_M805_892X)
+        return INT_ADMA1;
+#else
+        return INT_ADMA0;
+#endif	/* #if defined(CONFIG_MACH_M805_892X) */
+
+#else
+        return INT_ADMA;
+#endif
     }
     return -1;
 }
@@ -463,14 +473,26 @@ static int tcc_pcm_hw_params(struct snd_pcm_substream *substream, struct snd_pcm
     BITCLR(pADMA_DAI->MCCR0, Hw31 | Hw30 | Hw29 | Hw28);
     if (chs > 2) {                                  // 5.1ch or 7.1ch
         pADMA_DAI->DAMR |= (Hw29 | Hw28);
-//        pADMA->RptCtrl  |= (Hw26 | Hw25 | Hw24);
+#if defined(CONFIG_ARCH_TCC892X)
+        pADMA->RptCtrl  |= (Hw26 | Hw25 | Hw24);
+#else
         pADMA->RptCtrl  |= (Hw25 | Hw24);
+#endif
         pADMA->ChCtrl   |= (Hw24 | Hw21 | Hw20);
     }
     else {                                          // 2 ch
         BITSET(pADMA_DAI->DAMR, (Hw29));
-//        BITSET(pADMA->RptCtrl, (Hw26 | Hw25 | Hw24));
+#if defined(CONFIG_ARCH_TCC892X)
+
+#if defined(CONFIG_MACH_M805_892X)
+        BITSET(pADMA->RptCtrl, (Hw24));
+#else
+        BITSET(pADMA->RptCtrl, (Hw26 | Hw25 | Hw24));
+#endif
+
+#else
         BITSET(pADMA->RptCtrl, (Hw25 | Hw24));
+#endif
         BITCLR(pADMA_DAI->DAMR, (Hw28));
         BITCLR(pADMA->ChCtrl,(Hw24 | Hw21 | Hw20));
     }

@@ -46,6 +46,7 @@ typedef enum{
 	SCALER_RGB555,
 	SCALER_RGB454,
 	SCALER_RGB444,
+	SCALER_ARGB8888,
 	SCALER_FMT_MAX
 } SCALER_DATA_FM;
 
@@ -55,7 +56,7 @@ typedef struct
 	char 				*src_Yaddr;		// source address
 	char 				*src_Uaddr;		// source address
 	char 				*src_Vaddr;		// source address
-	SCALER_DATA_FM 		src_fmt;		// source image format
+	unsigned int 		src_fmt;		// source image format
 	unsigned int  		src_ImgWidth;	// source image width
 	unsigned int  		src_ImgHeight;	// source image height
 	unsigned int 		src_winLeft;
@@ -65,7 +66,7 @@ typedef struct
 	char 				*dest_Yaddr;	// destination image address
 	char 				*dest_Uaddr;	// destination image address
 	char 				*dest_Vaddr;	// destination image address
-	SCALER_DATA_FM 		dest_fmt;		// destination image format
+	unsigned int 		dest_fmt;		// destination image format
 	unsigned int  		dest_ImgWidth;	// destination image width
 	unsigned int  		dest_ImgHeight;	// destination image height
 	unsigned int		dest_winLeft;

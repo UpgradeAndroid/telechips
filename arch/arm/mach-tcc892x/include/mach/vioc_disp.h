@@ -92,6 +92,8 @@ extern void VIOC_DISP_SetDefaultTimingParam(VIOC_DISP *pDISP, unsigned int nType
 extern void VIOC_DISP_SetControlConfigure(VIOC_DISP *pDISP, stLCDCTR *pCtrlParam);
 
 extern void VIOC_DISP_SetSize (VIOC_DISP *pDISP, unsigned int nWidth, unsigned int nHeight);
+extern void VIOC_DISP_GetSize(VIOC_DISP *pDISP, unsigned int *nWidth, unsigned int *nHeight);
+
 extern void VIOC_DISP_SetBGColor(VIOC_DISP *pDISP, unsigned int BG0, unsigned int BG1, unsigned int BG2);
 extern void VIOC_DISP_SetPosition(VIOC_DISP *pDISP, unsigned int startX, unsigned int startY );
 extern void VIOC_DISP_GetPosition(VIOC_DISP *pDISP, unsigned int *startX, unsigned int *startY );

@@ -22,31 +22,22 @@
 
 tcc_hdmi_power_s hdmipwr;
 
-#if defined(CONFIG_REGULATOR)
-static struct regulator *vdd_hdmi_osc = NULL;
-#endif
 
 int tcc_hdmi_power(struct device *dev, tcc_hdmi_power_s pwr)
 {
+	unsigned hdmi_5p, hdmi_en;
+
 	hdmipwr = pwr;
 	
- 	if (machine_is_tcc8920()) {
-		unsigned hdmi_5p, hdmi_en;
+ 	if (machine_is_tcc8920()) 
+	{
 		printk("%s  tcc88xx  pwr:%d system_rev:0x%x \n", __func__, pwr, system_rev);
-		if(system_rev ==0x0500)
-		{
-			hdmi_5p = TCC_GPEXT4(0);
-			hdmi_en = TCC_GPEXT4(3);
-		}
-		else
-		{
-			hdmi_5p = GPIO_V_5P0_EN;
-			hdmi_en = GPIO_HDMI_EN;
-		}
-			
 
+		hdmi_5p = GPIO_V_5P0_EN;
+		hdmi_en = GPIO_HDMI_EN;
 		switch(pwr)
 		{
+
 			case TCC_HDMI_PWR_INIT:
 				tcc_power_control(TCC_V5P_POWER, TCC_POWER_INIT);
 //				gpio_request(hdmi_5p, "hdmi_lvds_on");
@@ -67,48 +58,14 @@ int tcc_hdmi_power(struct device *dev, tcc_hdmi_power_s pwr)
 //				gpio_set_value(hdmi_5p, 0);
 				gpio_set_value(hdmi_en, 0);	
 				break;
-		}		
-	}
-	else if (machine_is_m801_88() || machine_is_m803())
-	{
-		printk("%s  tcc88xx  pwr:%d \n", __func__, pwr);
-		switch(pwr)
-		{
-			case TCC_HDMI_PWR_INIT:
-#if defined(CONFIG_REGULATOR)
-				if (vdd_hdmi_osc == NULL)
-				{
-					vdd_hdmi_osc = regulator_get(NULL, "vdd_hdmi_osc");
-					if (IS_ERR(vdd_hdmi_osc)) {
-						printk("Failed to obtain vdd_hdmi_osc\n");
-						vdd_hdmi_osc = NULL;
-					}
-				}
-#endif
-				gpio_request(TCC_GPG(3), "hdmi_on");						
-				gpio_direction_output(TCC_GPG(3), 1);
-				break;
-				
-			case TCC_HDMI_PWR_ON:	
-#if defined(CONFIG_REGULATOR)
-				if (vdd_hdmi_osc)
-					regulator_enable(vdd_hdmi_osc);
-#endif
-				gpio_set_value(TCC_GPG(3), 1);
-				break;
-			case TCC_HDMI_PWR_OFF:
-#if defined(CONFIG_REGULATOR)
-				if (vdd_hdmi_osc)
-					regulator_disable(vdd_hdmi_osc);
-#endif
-				gpio_set_value(TCC_GPG(3), 0);
-				break;
+
 		}		
 	}
 	else
 	{
 		printk("ERROR : can not find HDMI POWER SETTING ");
-	}	
+	}
+
 	return 0;
 
 }
@@ -136,7 +93,7 @@ struct platform_device tcc_cec_device = {
 };
 
 static struct tcc_hpd_platform_data hpd_pdata = {
-	.hpd_port = TCC_GPD(25),
+	.hpd_port = TCC_GPHDMI(1),
 };
 
 struct platform_device tcc_hpd_device = {
@@ -149,7 +106,6 @@ struct platform_device tcc_hpd_device = {
 static int __init tcc8920_init_hdmi(void)
 {
 
-	volatile PGPION pGPIOD = (volatile PGPION)tcc_p2v(HwGPIOD_BASE);
 	printk("%s (built %s %s)\n", __func__, __DATE__, __TIME__);
 
 	platform_device_register(&tcc_hdmi_device);
@@ -158,14 +114,6 @@ static int __init tcc8920_init_hdmi(void)
 
 	platform_device_register(&tcc_cec_device);
 
-	if (machine_is_tcc8920())
-	{
-		BITCSET(pGPIOD->GPPD1, Hw19|Hw18, 0);
-	}
-	else
-	{
-		BITCSET(pGPIOD->GPPD1, Hw19|Hw18, Hw19);
-	}
 	platform_device_register(&tcc_hpd_device);
 
 	return 0;

@@ -229,10 +229,10 @@ extern "C" {
 		PERI_SDMMC1,
 		PERI_SDMMC2,
 		PERI_SDMMC3,
-		PERI_ADMA1,			// 25
+		PERI_ADAI1,			// 25
 		PERI_ADAM1,
 		PERI_SPDIF1,
-		PERI_ADMA0,
+		PERI_ADAI0,
 		PERI_ADAM0,
 		PERI_SPDIF0,		// 30
 		PERI_PDM,
@@ -317,14 +317,15 @@ extern "C" {
 		RB_TSIF0,                   // 15 47
 		RB_TSIF1,                   // 16 48
 		RB_TSIF2,                   // 17 49
-		RB_GPSB0,                   // 18 50
-		RB_GPSB1,                   // 19 51
-		RB_GPSB2,                   // 20 52
-		RB_GPSB3,                   // 21 53
-		RB_GPSB4,                   // 22 54
-		RB_GPSB5,                   // 23 55
-		RB_GPSB_CONTROLLER,         // 24 56
-		RB_USB20OTG,                // 25 57
+		RB_TSIF_CONTROLLER,         // 18 50
+		RB_GPSB0,                   // 19 51
+		RB_GPSB1,                   // 20 52
+		RB_GPSB2,                   // 21 53
+		RB_GPSB3,                   // 22 54
+		RB_GPSB4,                   // 23 55
+		RB_GPSB5,                   // 24 56
+		RB_GPSB_CONTROLLER,         // 25 57
+		RB_USB20OTG,                // 26 58
 		RB_MAX,
 	};
 	
@@ -341,7 +342,9 @@ extern "C" {
 	};
 
 	enum{ /* video bus pwdn/swreset */
-		VIDEOBUS_ = 0,
+		VIDEOBUS_JENC = 0,
+		VIDEOBUS_COD = 2,
+		VIDEOBUS_BUS,
 		VIDEOBUS_MAX,
 	};
 
