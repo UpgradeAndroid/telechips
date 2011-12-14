@@ -35,8 +35,8 @@
  * 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#ifndef __ASM_ARCH_TCC88XX_HARDWARE_H
-#define __ASM_ARCH_TCC88XX_HARDWARE_H
+#ifndef __ASM_ARCH_TCC892X_HARDWARE_H
+#define __ASM_ARCH_TCC892X_HARDWARE_H
 
 #include <asm/sizes.h>
 #ifndef __ASSEMBLER__
@@ -44,7 +44,4 @@
 #endif
 #include <mach/io.h>
 
-
-#define TCC_TSADC_BASE (0xF05F4000)
-
-#endif	/* __ASM_ARCH_TCC88XX_HARDWARE_H */
+#endif	/* __ASM_ARCH_TCC892X_HARDWARE_H */

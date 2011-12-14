@@ -255,8 +255,8 @@ static int tcc_adc_probe(struct platform_device *pdev)
 	 goto err_clk;
 	}
 
-	pPMU->PMU_TSADC.bREG.STOP = 1;
-	pPMU->PMU_TSADC.bREG.PWREN = 0;
+	pPMU->PMU_TSADC.bREG.PWREN = 1;
+	pPMU->PMU_TSADC.bREG.STOP = 0;
 	pPMU->PMU_ISOL.bREG.TSADC = 0;
 
 #if 0	
@@ -268,7 +268,8 @@ static int tcc_adc_probe(struct platform_device *pdev)
 
 	// 1. ADC Bus Clock Enable
 	adc->clk = clk_get(NULL, "adc");
-	if (!adc->clk) {
+	if (IS_ERR(adc->clk)) {
+		adc->clk = NULL;
 		printk("can't get ADC clock\n");
 	} else {
 		clk_enable(adc->clk);	
@@ -309,15 +310,16 @@ static int tcc_adc_remove(struct platform_device *pdev)
 static int tcc_adc_suspend(struct platform_device *pdev, pm_message_t state)
 {
     tca_adc_powerdown();
-	//tca_ckc_setiobus(RB_TSADCCONTROLLER,0);
 
 	return 0;
 }
 
 static int tcc_adc_resume(struct platform_device *pdev)
 {
+	volatile PTSADC pTSADC = (volatile PTSADC)tcc_p2v(HwTSADC_BASE);
+
+	tca_adc_adcinitialize((unsigned int)pTSADC, NULL);
     tca_adc_powerup();
-	//tca_ckc_setiobus(RB_TSADCCONTROLLER,1);
 
 	return 0;
 }

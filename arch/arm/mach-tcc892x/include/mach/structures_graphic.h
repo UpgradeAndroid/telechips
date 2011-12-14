@@ -40,48 +40,48 @@
 ************************************************************************/
 
 typedef struct {
-	unsigned GRP				:1;
-	unsigned					:31;
+    unsigned GRP            :1;
+    unsigned                :31;
 } GRPBUSCFG_IDX_TYPE;
 
 typedef union {
-	unsigned long				nREG;
-	GRPBUSCFG_IDX_TYPE			bREG;
+    unsigned long           nREG;
+    GRPBUSCFG_IDX_TYPE      bREG;
 } GRPBUSCFG_TYPE;
 
 typedef struct {
-	unsigned L2C					:1;
-	unsigned GPMMU				:1;
-	unsigned GP					:1;
-	unsigned PPMMU				:1;
-	unsigned PP					:1;
-	unsigned						:27;
-} GPU_IDLE_STATUS_IDX_TYPE;
+    unsigned L2C            :1;
+    unsigned GPMMU          :1;
+    unsigned GP             :1;
+    unsigned PPMMU          :1;
+    unsigned PP             :1;
+    unsigned                :27;
+} GPU_IDLESTS_IDX_TYPE;
 
 typedef union {
-	unsigned long					nREG;
-	GPU_IDLE_STATUS_IDX_TYPE		bREG;
+    unsigned long           nREG;
+    GPU_IDLESTS_IDX_TYPE    bREG;
 } GPU_IDLESTS_TYPE;
 
 typedef struct {
-	unsigned WC_SEL				:4;
-	unsigned WC					:4;
-	unsigned RC_SEL				:4;
-	unsigned RC					:4;
-	unsigned 						:16;
+    unsigned WC_SEL         :4;
+    unsigned WC             :4;
+    unsigned RC_SEL         :4;
+    unsigned RC             :4;
+    unsigned                :16;
 } GPU_CACHE_CTRL_TYPE;
 
 typedef union {
-	unsigned long					nREG;
-	GPU_CACHE_CTRL_TYPE			bREG;
+    unsigned long           nREG;
+    GPU_CACHE_CTRL_TYPE     bREG;
 } GPU_CACHE_CTRL;
 
 typedef struct _GRPBUSCFG {
-	volatile GRPBUSCFG_TYPE		PWDN;				// 0x000  R/W  0x00000001	Graphics bus power down
-	volatile GRPBUSCFG_TYPE		SWRESET;			// 0x004  R/W  0x00000001	Graphics bus software reset
-	volatile unsigned int 			reserved0;			// 0x008
-	volatile GPU_IDLESTS_TYPE		GPU_IDLESTS;			// 0x00C  R    -		GPU idle status
-	volatile GPU_CACHE_CTRL		GPU_CACHECTRL;		// 0x010  R/W  0x00000000	GPU system level cache control
-}GRPBUSCFG, *PGRPBUSCFG;
+    volatile GRPBUSCFG_TYPE     PWDN;           // 0x000  R/W  0x00000001   Graphics bus power down
+    volatile GRPBUSCFG_TYPE     SWRESET;        // 0x004  R/W  0x00000001   Graphics bus software reset
+    unsigned :32;
+    volatile GPU_IDLESTS_TYPE   GPU_IDLESTS;    // 0x00C  R    -            GPU idle status
+    volatile GPU_CACHE_CTRL     GPU_CACHECTRL;  // 0x010  R/W  0x00000000   GPU system level cache control
+} GRPBUSCFG, *PGRPBUSCFG;
 
 #endif /* _STRUCTURES_GRAPHIC_H_ */

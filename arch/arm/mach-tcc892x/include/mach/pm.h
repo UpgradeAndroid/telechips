@@ -31,6 +31,10 @@
 
 ===========================================================================*/
 
+
+//#define TCC_PM_PMU_CTRL
+
+
 /*===========================================================================
 
                               Shut-down MAP
@@ -41,73 +45,44 @@
  1) Shut-down (shut down + sram boot + sdram self-refresh)
 
      << sram >>
-     0x10000000(0xEFF00000) ------------------
+     0xF0000000(0x10000000) ------------------
                            |    Boot code     | 0x700
                      0x700  ------------------
                            |      Stack       | 0x100
                      0x800  ------------------
-                           |   I/O restore    | 0x200
-                     0xA00  ------------------
-                           |   SDRAM Init     | 0x700
-                    0x1100  ------------------
-                           | GPIO Backup Data | 0x300
-                    0x1400  ------------------
-                           |  Enter Shutdown  | 0x400
-                    0x1800  ------------------
-                           |   mmu on code    | 0x50
-                    0x1850  ------------------
-                           | cpu_reg/mmu data | 0x100
-                    0x1950  ------------------
-#ifdef PORT_ARRANGE_USED
-                           | GPIO Backup Data | 0x300
-                    0x1C50  ------------------
-#endif
-                           |                  |
-                             : : : : : : : : :
-                           |                  |
-                    0x2000  ------------------  
-                           | core power ctrl. | 0x1000
-                    0x3000  ------------------
+                           |     Shutdown     | 0x400
+                     0xC00  ------------------
+                           |     Wake-up      | 0x400
+                    0x1000  ------------------
+                           |    SDRAM Init    | 0x700
+                    0x1700  ------------------
+                           |   GPIO Storage   | 0x300
+                    0x1A00  ------------------
+                           |   cpu_reg/mmu data | 0x100
+                    0x1B00  ------------------
 
 ---------------------------------------------------------------------------*/
 
-#define SRAM_BOOT_ADDR           0xEFF00000
+#define SRAM_BOOT_ADDR           0xF0000000
 #define SRAM_BOOT_SIZE           0x00000700
 
-#define SHUTDOWN_STACK_ADDR      0xEFF00700
-#define SHUTDOWN_STACK_SIZE      0x00000100
-#define SHUTDOWN_STACK_PHY       0x10000700
+#define SRAM_STACK_ADDR          0xF0000700
+#define SRAM_STACK_SIZE          0x00000100
 
-#define IO_RESTORE_FUNC_ADDR     0xEFF00800
-#define IO_RESTORE_FUNC_SIZE     0x00000200
-
-#define GPIO_BUF_ADDR            0xEFF01100
-#define GPIO_BUF_PHY             0x10001100
-
-#define SHUTDOWN_FUNC_ADDR       0xEFF01400
+#define SHUTDOWN_FUNC_ADDR       0xF0000800
 #define SHUTDOWN_FUNC_SIZE       0x00000400
-#define SHUTDOWN_FUNC_PHY        0x10001400
 
-#define MMU_SWITCH_FUNC_ADDR     0xEFF01800
-#define MMU_SWITCH_FUNC_SIZE     0x00000020
-#define MMU_SWITCH_FUNC_PHY      0x10001800
+#define WAKEUP_FUNC_ADDR         0xF0000C00
+#define WAKEUP_FUNC_SIZE         0x00000400
 
-#define REG_MMU_DATA_ADDR        0xEFF01850
-#define REG_MMU_DATA_PHY         0x10001850
-
-#define MMU_SWITCH_EXEC_ADDR     0xF0700100
-
-#define SDRAM_INIT_FUNC_ADDR     0xEFF00A00
+#define SDRAM_INIT_FUNC_ADDR     0xF0001000
 #define SDRAM_INIT_FUNC_SIZE     0x00000700
-#define SDRAM_INIT_FUNC_PHY      0x10000A00
 
-#define COREPWR_FUNC_ADDR        0xEFF02000
-#define COREPWR_FUNC_SIZE        0x00000FE0
-#define COREPWR_FUNC_PHY         0x10002000
+#define GPIO_REPOSITORY_ADDR     0xF0001700
+#define GPIO_REPOSITORY_SIZE     0x00000300
 
-#define COREPWR_PARAM_ADDR       0xEFF02FE0
-#define COREPWR_PARAM_SIZE       0x00000020
-#define COREPWR_PARAM_PHY        0x10002FE0
+#define CPU_DATA_REPOSITORY_ADDR 0xF0001A00
+#define CPU_DATA_REPOSITORY_SIZE 0x00000100
 
 /*-------------------------------------------------------------------------*/
 
@@ -123,14 +98,13 @@ typedef struct _TCC_REG_{
 	PIC pic;
 	VIC vic;
 	TIMER timer;
+#if defined(TCC_PM_PMU_CTRL)
 	PMU pmu;
+#endif
 	SMUCONFIG smuconfig;
-	//GPIO gpio;
-
 	IOBUSCFG iobuscfg;
-
-	volatile unsigned int backup_peri_iobus0;
-	volatile unsigned int backup_peri_iobus1;
+	MEMBUSCFG membuscfg;
+	unsigned L2_aux;
 } TCC_REG, *PTCC_REG;
 
 /*-------------------------------------------------------------------------*/

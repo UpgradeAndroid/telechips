@@ -155,7 +155,7 @@ typedef struct {
 #endif
 
 
-#if defined(CONFIG_ARCH_TCC92XX) || defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC92XX) || defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 extern void tea_spdif_setclock(unsigned int clock_rate);
 #endif
 

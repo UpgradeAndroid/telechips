@@ -85,9 +85,7 @@ ENTRY(IO_ARM_GetCPSR)
 ENTRY(IO_ARM_ChangeStackSRAM)
 
 	mov		r0, r13
-//	ldr		r13, =0xF0803FA0  			@	0x10000000 ~ 0x10003FFF SRAM(16KB)    
-//	ldr		r13, =0xEFF03FA0  			@	0x10000000 ~ 0x10003FFF SRAM(16KB)    
-	ldr		r13, =0xEFF00800 //;SHUTDOWN_STACK_ADDR+SHUTDOWN_STACK_SIZE
+	ldr		r13, =0xF0000800 //;SHUTDOWN_STACK_ADDR+SHUTDOWN_STACK_SIZE
 	mov		pc, lr
 
 
@@ -115,40 +113,40 @@ ENTRY(save_cpu_reg)
 	mov	r12, r0
 
 	//; save svc_reg (r4-r12,lr)
-	stmdb   sp!, {r4-r12}
-	stmdb   sp!, {lr}
+	stmdb sp!, {r4-r12}
+	stmdb sp!, {lr}
 
 	//; mark shut down mode
-	ldr     r3, =0x18C818C8
-	str     r3, [r1, #0x00]
+	ldr r3, =0x18C818C8
+	str r3, [r1, #0x00]
 
 	//; save restore func address
-	str     r2, [r1, #0x04]
-	mov		r3, r1
+	str r2, [r1, #0x04]
+	mov r3, r1
 
 	//; save SCTLR
-	mrc		p15, 0, r2, c1, c0, 0
-	ldr		r0, =0x853AC780 // Should Be Zero Mask for System Control Register
-	bic		r2, r2, r0
-	ldr		r0, =0x00C50078 // Should Be One Mask for System Control Register
-	orr		r2, r2, r0
-	str		r2, [r3, #0x08]
+	mrc p15, 0, r2, c1, c0, 0
+	ldr r0, =0x853AC780 // Should Be Zero Mask for System Control Register
+	bic r2, r2, r0
+	ldr r0, =0x00C50078 // Should Be One Mask for System Control Register
+	orr r2, r2, r0
+	str r2, [r3, #0x08]
 
 	//; save TTBR0
-	mrc     p15, 0, r2, c2, c0, 0
-	str		r2, [r3, #0x0C]
+	mrc p15, 0, r2, c2, c0, 0
+	str r2, [r3, #0x0C]
 
 	//; save TTBR1
-	mrc		p15, 0, r2, c2, c0, 1
-	str		r2, [r3, #0x10]
+	mrc p15, 0, r2, c2, c0, 1
+	str r2, [r3, #0x10]
 
 	//; save TTBCR
-	mrc     p15, 0, r2, c2, c0, 2
-	str		r2, [r3, #0x14]
+	mrc p15, 0, r2, c2, c0, 2
+	str r2, [r3, #0x14]
 
 	//; save DACR
-	mrc		p15, 0, r2, c3, c0, 0
-	str		r2, [r3, #0x18]
+	mrc p15, 0, r2, c3, c0, 0
+	str r2, [r3, #0x18]
 
 	//; save DFSR
 	mrc p15, 0, r2, c5, c0, 0
@@ -183,79 +181,82 @@ ENTRY(save_cpu_reg)
 	str r2, [r3, #0x38]
 
 	//; save svc_reg (spsr)
-	str		sp, [r3, #0x3C]
-	mrs		r2, spsr
-	str		r2, [r3, #0x40]
+	str sp, [r3, #0x3C]
+	mrs r2, spsr
+	str r2, [r3, #0x40]
 
-	add 	r3, r1, #0x00000044
+	add r3, r1, #0x00000044
 
 	//; save fiq_reg
-	mov		r1, #Mode_FIQ | NOINT		// Enter FIQ mode, no interrupts
-	msr		cpsr, r1
-	mrs		r2, spsr					// Status Register
-	stmia	r3!, {r2, r8-r12, sp, lr}		// Store FIQ mode registers [SleepState_FIQ_SPSR~SleepState_FIQ_LR]
+	mov r1, #Mode_FIQ | NOINT		// Enter FIQ mode, no interrupts
+	msr cpsr, r1
+	mrs r2, spsr					// Status Register
+	stmia r3!, {r2, r8-r12, sp, lr}		// Store FIQ mode registers [SleepState_FIQ_SPSR~SleepState_FIQ_LR]
 
 	//; save abort_reg
-	mov		r1, #Mode_ABT | NOINT		// Enter ABT mode, no interrupts
-	msr		cpsr, r1
-	mrs		r0, spsr					// Status Register
-	stmia	r3!, {r0, sp, lr}			// Store ABT mode Registers [SleepState_ABT_SPSR~SleepState_ABT_LR]
+	mov r1, #Mode_ABT | NOINT		// Enter ABT mode, no interrupts
+	msr cpsr, r1
+	mrs r0, spsr					// Status Register
+	stmia r3!, {r0, sp, lr}			// Store ABT mode Registers [SleepState_ABT_SPSR~SleepState_ABT_LR]
 
 	//; save irq_reg
-	mov		r1, #Mode_IRQ | NOINT		// Enter IRQ mode, no interrupts
-	msr		cpsr, r1
-	mrs		r0, spsr					// Status Register
-	stmia	r3!, {r0, sp, lr}			// Store the IRQ Mode Registers [SleepState_IRQ_SPSR~SleepState_IRQ_LR]
+	mov r1, #Mode_IRQ | NOINT		// Enter IRQ mode, no interrupts
+	msr cpsr, r1
+	mrs r0, spsr					// Status Register
+	stmia r3!, {r0, sp, lr}			// Store the IRQ Mode Registers [SleepState_IRQ_SPSR~SleepState_IRQ_LR]
 	
 	//; save undef_reg
-	mov		r1, #Mode_UND | NOINT		// Enter UND mode, no interrupts
-	msr		cpsr, r1
-	mrs		r0, spsr					// Status Register
-	stmia	r3!, {r0, sp, lr}			// Store the UND mode Registers [SleepState_UND_SPSR~SleepState_UND_LR]
+	mov r1, #Mode_UND | NOINT		// Enter UND mode, no interrupts
+	msr cpsr, r1
+	mrs r0, spsr					// Status Register
+	stmia r3!, {r0, sp, lr}			// Store the UND mode Registers [SleepState_UND_SPSR~SleepState_UND_LR]
 
 	//; save usr(sys)_reg
-	mov		r1, #Mode_SYS | NOINT		// Enter SYS mode, no interrupts
-	msr		cpsr, r1
-	stmia	r3!, {sp, lr}				// Store the SYS mode Registers [SleepState_SYS_SP, SleepState_SYS_LR]
+	mov r1, #Mode_SYS | NOINT		// Enter SYS mode, no interrupts
+	msr cpsr, r1
+	stmia r3!, {sp, lr}				// Store the SYS mode Registers [SleepState_SYS_SP, SleepState_SYS_LR]
 
 	//; Return to SVC mode
-	mov		r1, #Mode_SVC | NOINT		// Back to SVC mode, no interrupts
-	msr		cpsr, r1
+	mov r1, #Mode_SVC | NOINT		// Back to SVC mode, no interrupts
+	msr cpsr, r1
 	
-	ldr		r2, [sp]
-	str		r2, [r3], #4	
+	ldr r2, [sp]
+	str r2, [r3], #4	
 
 	//; invalidate entire tlb & btb & prefetch buffer.
-	mov		r0, #0x0
-	dsb     sy
-	mcr     p15,0x0,r0,c8,c7,0x0 //; p15,0,r3,c8,c7,0 (itlb+dtlb flush all)
-	mcr     p15,0x0,r0,c7,c5,0x6 //; p15,0,r3,c7,c5,6 (invalidate btb)
-	mcr     p15, 0, r0, c7, c5, 4 //; flush prefetch buffer
-	dsb     sy
-	isb     sy
+	mov r0, #0x0
+	dsb sy
+	mcr p15,0x0,r0,c8,c7,0x0 //; p15,0,r3,c8,c7,0 (itlb+dtlb flush all)
+	mcr p15,0x0,r0,c7,c5,0x6 //; p15,0,r3,c7,c5,6 (invalidate btb)
+	mcr p15, 0, r0, c7, c5, 4 //; flush prefetch buffer
+	dsb sy
+	isb sy
 
-	//; clean & invalidate cache(L1, L2)
-	bl      v7_flush_kern_cache_all
+	//; clean & invalidate cache(L1)
+	bl v7_flush_kern_cache_all
 
 	//; Data synchronization barrier operation
 	mov r0, #0
-	mcr	p15, 0, r0, c7, c10, 4
+	mcr p15, 0, r0, c7, c10, 4
 
-	//; mmu off
-	ldr	sp, =0x10000800 //;SHUTDOWN_STACK_PHY+SHUTDOWN_STACK_SIZE
-	mrc p15, 0, r0, c1, c0, 0
-	bic r0, r0, #(1<<12) //ICache
-	bic r0, r0, #(1<<2)  //DCache
-	bic r0, r0, #(1<<0)  //MMU
+	//; set stack to SRAM
+	ldr sp, =0xF0000800 //;SRAM_STACK_ADDR+SRAM_STACK_SIZE
 
-	//; ret_address
-	mov r1, r12
-	ldr pc, =0xF0700100 //; MMU_SWITCH_EXEC_ADDR
+	//; Jump to shutdown()
+	mov pc, r12
 
 //---------------------------------------------------------------------
 ENTRY(SRAM_Boot)
+	ldr	pc,	=0xF0000004 //;Jump to remap address for MMU control.
 
-	ldr	pc,	=0x10000004
+	//;for J-tag debugging
+	//;*(volatile unsigned long *)0x77000018 = 0xf0000000;
+	ldr r0, =0x77000018
+	ldr r1, =0xf0000000
+	str r1, [r0]
+
+//wakeup_test_loop:
+//	b wakeup_test_loop
 
 	//; Mask IRQ/FIQ
 	mrs	r0, cpsr
@@ -263,32 +264,27 @@ ENTRY(SRAM_Boot)
 	msr	cpsr_cf, r0
 
 	//; Set sp(stack point)
-	ldr r13, =0x10000800 //;SHUTDOWN_STACK_PHY+SHUTDOWN_STACK_SIZE
+	ldr r13, =0xF0000800 //;SRAM_STACK_ADDR+SRAM_STACK_SIZE
 
-	//; CONFIG1.BBEN : Backup RAM Boot Enable //;*((volatile unsigned long *)0xB0503014) |= Hw12;
-	ldr r0, =0xF0404000
-	bic r1, r1, #0x1000
-	str r1, [r0, #0x14]
-
-	//; I/O restore suspend_wakeup
+	//; Jump to wakeup()
 	mov lr, pc
-	ldr pc, =0x10000800 //IO_RESTORE_FUNC_ADDR, io_restore()
+	ldr pc, =0xF0000C00 //;WAKEUP_FUNC_ADDR
 
-	//; SDRAM Init - Jump InitRoutine_Start for SDRAM Initialize
+	//; Jump to sdram_init()
 	mov lr, pc
-	ldr pc, =0x10000A00 //SDRAM_INIT_FUNC_PHY, sdram_init()
+	ldr pc, =0xF0001000 //;SDRAM_INIT_FUNC_ADDR
 
 	//; Check whether Shutdown is enabled or not.
 	//; cpu_reg/mmu data backup address
-	ldr r12, =0x10001850 //; REG_MMU_DATA_PHY
+	ldr r12, =0xF0001A00 //; CPU_DATA_REPOSITORY_ADDR
 	ldr r1, [r12]
 	ldr r2, =0x18C818C8
 	cmp r1, r2
 	ldr r1, =0x0
 	str r1, [r12]
 
-resume_err_loop:
-	bne resume_err_loop
+wakeup_err_loop:
+	bne wakeup_err_loop
 
 	//; DCache Invalidate..
 	dmb					@ ensure ordering with previous memory accesses
@@ -395,39 +391,19 @@ finished:
 	mcr p15, 0, r0, c10, c2, 1
 
 	//; restore SCTLR
-	ldr r0, [r12, #0x08]	// System Control Register
+	ldr r0, [r12, #0x08]	//; System Control Register
+	mcr p15, 0, r0, c1, c0, 0 //; mmu & cache on
+	nop
 
-	//; Return Address
+	//; Jump to resore_cpu_reg()
 	ldr r1, [r12, #0x04]
-
-	//; mmu on routine, jump VA=PA area
-	ldr r8,=0x10001800 //; MMU_SWITCH_FUNC_PHY
-	ldr r7,=0xF0700100 //; MMU_SWITCH_EXEC_ADDR
-	ldr r9,	[r8, #0x0]
-	str r9,	[r7, #0x0]
-	ldr r9,	[r8, #0x4]
-	str r9,	[r7, #0x4]
-	ldr r9,	[r8, #0x8]
-	str r9,	[r7, #0x8]
-	ldr r9,	[r8, #0xc]
-	str r9,	[r7, #0xc]
-	mov pc, r7
-
-//---------------------------------------------------------------------
-// r0 : sys_ctrl_reg
-// r1 : ret_address)
-//---------------------------------------------------------------------
-ENTRY(tcc_mmu_switch)
-	mcr p15, 0, r0, c1, c0, 0
-	nop
 	mov pc, r1
-	nop
 
 //---------------------------------------------------------------------
 ENTRY(resore_cpu_reg)
 
 	//; cpu_reg/mmu data backup address
-	ldr r3, =0xEFF01850 //; REG_MMU_DATA_ADDR
+	ldr r3, =0xF0001A00 //; CPU_DATA_REPOSITORY_ADDR
 
 	//; restore fiq_reg
 	mov r1, #Mode_FIQ | NOINT

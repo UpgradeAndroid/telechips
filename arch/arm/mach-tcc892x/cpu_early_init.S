@@ -12,8 +12,9 @@
  * GNU General Public License for more details.
  */
 
-	.text
-
+//=================================================================
+// __cpu_early_init
+//=================================================================
 	.global __cpu_early_init
 __cpu_early_init:
 	//Bruce, CortexA-5 does not have internal L2 Cache.
@@ -21,4 +22,21 @@ __cpu_early_init:
 	//mrc	p15, 0, r0, c1, c0, 1	@ read auxiliary control reg
 	//orr	r0, r0, #(1<<1)
 	//mcr	p15, 0, r0, c1, c0, 1	@ write auxiliary control reg
+
+	//Bruce, for using VFP of the Cortex-A5,
+	// 1. Non-Secure mode should be permitted to access to CP10 and CP11.
+	// 2. Enable Advenced SIMD extention instructions that are not VFP instructions ard undefined.
+	// 3. Enable D16-D31 of the VFP register file.
+	MRC p15, 0, r0, c1, c1, 2
+	ORR r0, r0, #1<<10
+	ORR r0, r0, #1<<11
+	MCR p15, 0, r0, c1, c1, 2
+
+	LDR r0, =(0xF << 20)
+	MCR p15, 0, r0, c1, c0, 2
+
+	//MOV r0, #0x40000000
+	//VMSR FPEXC, r0
+
 	bx	lr
+

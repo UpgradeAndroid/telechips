@@ -42,7 +42,7 @@
 #if defined(CONFIG_MMC_TCC_SDHC0) || defined(CONFIG_MMC_TCC_SDHC0_MODULE)
 static u64 tcc_device_sdhc0_dmamask = 0xffffffffUL;
 static struct resource tcc_sdhc0_resource[] = {
-	#if defined(CONFIG_MMC_TCC_SDHC2)	//for eMMC Booting
+	#if defined(CONFIG_MMC_TCC_SDHC2) || defined(CONFIG_MACH_TCC8920ST)	//for eMMC Booting
 	[0] = {
 		.start	= tcc_p2v(HwSDMMC1_BASE),
 		.end	= tcc_p2v(HwSDMMC1_BASE + 0x1ff),
@@ -53,7 +53,8 @@ static struct resource tcc_sdhc0_resource[] = {
 		.end	= INT_SD1,
 		.flags	= IORESOURCE_IRQ,
 	},
-	#else	//for NAND Booting
+	#else		//for NAND Booting
+	#if defined (CONFIG_MACH_M805_892X)
 	[0] = {
 		.start	= tcc_p2v(HwSDMMC0_BASE),
 		.end	= tcc_p2v(HwSDMMC0_BASE + 0x1ff),
@@ -64,6 +65,19 @@ static struct resource tcc_sdhc0_resource[] = {
 		.end	= INT_SD0,
 		.flags	= IORESOURCE_IRQ,
 	},
+	#else
+	[0] = {
+		.start	= tcc_p2v(HwSDMMC2_BASE),
+		.end	= tcc_p2v(HwSDMMC2_BASE + 0x1ff),
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= INT_SD2,
+		.end	= INT_SD2,
+		.flags	= IORESOURCE_IRQ,
+	},
+
+	#endif
 	#endif
 };
 struct platform_device tcc_sdhc0_device = {
@@ -81,7 +95,7 @@ struct platform_device tcc_sdhc0_device = {
 #if defined(CONFIG_MMC_TCC_SDHC1) || defined(CONFIG_MMC_TCC_SDHC1_MODULE)
 static u64 tcc_device_sdhc1_dmamask = 0xffffffffUL;
 static struct resource tcc_sdhc1_resource[] = {
-	#if defined(CONFIG_MMC_TCC_SDHC2)	//for eMMC Booting
+	#if defined(CONFIG_MMC_TCC_SDHC3)     // for eMMC Booting + SD3.0 + SD + WiFi (1,0,2,3)
 	[0] = {
 		.start	= tcc_p2v(HwSDMMC0_BASE),
 		.end	= tcc_p2v(HwSDMMC0_BASE + 0x1ff),
@@ -92,7 +106,7 @@ static struct resource tcc_sdhc1_resource[] = {
 		.end	= INT_SD0,
 		.flags	= IORESOURCE_IRQ,
 	},
-	#elif defined(CONFIG_WIFI_SUB_BOARD)	//for NAND Booting + (BT+WiFi)
+	#elif defined(CONFIG_MMC_TCC_SDHC2) || defined (CONFIG_MACH_TCC8920ST) // for eMMC Booting + SD + WiFi (1,2,3,0)
 	[0] = {
 		.start	= tcc_p2v(HwSDMMC2_BASE),
 		.end	= tcc_p2v(HwSDMMC2_BASE + 0x1ff),
@@ -103,7 +117,7 @@ static struct resource tcc_sdhc1_resource[] = {
 		.end	= INT_SD2,
 		.flags	= IORESOURCE_IRQ,
 	},
-	#else	//for NAND Booting + WiFi
+	#else		//for NAND Booting + SD + WiFi (2,3,1,0)
 	[0] = {
 		.start	= tcc_p2v(HwSDMMC3_BASE),
 		.end	= tcc_p2v(HwSDMMC3_BASE + 0x1ff),
@@ -131,8 +145,7 @@ struct platform_device tcc_sdhc1_device = {
 #if defined(CONFIG_MMC_TCC_SDHC2) || defined(CONFIG_MMC_TCC_SDHC2_MODULE)
 static u64 tcc_device_sdhc2_dmamask = 0xffffffffUL;
 static struct resource tcc_sdhc2_resource[] = {
-	#if defined(CONFIG_MMC_TCC_SDHC2)	//for eMMC Booting
-	#if defined(CONFIG_WIFI_SUB_BOARD)	//for eMMC Booting + (BT+WiFi)
+	#if defined(CONFIG_MMC_TCC_SDHC3)     // for eMMC Booting + SD3.0 + SD + WiFi (1,0,2,3)
 	[0] = {
 		.start	= tcc_p2v(HwSDMMC2_BASE),
 		.end	= tcc_p2v(HwSDMMC2_BASE + 0x1ff),
@@ -143,7 +156,7 @@ static struct resource tcc_sdhc2_resource[] = {
 		.end	= INT_SD2,
 		.flags	= IORESOURCE_IRQ,
 	},
-	#else	//for eMMC Booting + WiFi
+	#elif defined(CONFIG_MMC_TCC_SDHC2)  // for eMMC Booting + SD + WiFi (1,2,3,0)
 	[0] = {
 		.start	= tcc_p2v(HwSDMMC3_BASE),
 		.end	= tcc_p2v(HwSDMMC3_BASE + 0x1ff),
@@ -154,8 +167,7 @@ static struct resource tcc_sdhc2_resource[] = {
 		.end	= INT_SD3,
 		.flags	= IORESOURCE_IRQ,
 	},
-	#endif
-	#else	//for NAND Booting
+	#else		//for NAND Booting + SD + WiFi (2,3,1,0)
 	[0] = {
 		.start	= tcc_p2v(HwSDMMC1_BASE),
 		.end	= tcc_p2v(HwSDMMC1_BASE + 0x1ff),
@@ -183,7 +195,7 @@ struct platform_device tcc_sdhc2_device = {
 #if defined(CONFIG_MMC_TCC_SDHC3) || defined(CONFIG_MMC_TCC_SDHC3_MODULE)
 static u64 tcc_device_sdhc3_dmamask = 0xffffffffUL;
 static struct resource tcc_sdhc3_resource[] = {
-	#if defined(CONFIG_WIFI_SUB_BOARD)	//for (BT+WiFi)
+	#if defined(CONFIG_MMC_TCC_SDHC3)     // for eMMC Booting + SD3.0 + SD + WiFi (1,0,2,3)
 	[0] = {
 		.start	= tcc_p2v(HwSDMMC3_BASE),
 		.end	= tcc_p2v(HwSDMMC3_BASE + 0x1ff),
@@ -194,15 +206,15 @@ static struct resource tcc_sdhc3_resource[] = {
 		.end	= INT_SD3,
 		.flags	= IORESOURCE_IRQ,
 	},
-	#else	//for eMMC Booting + WiFi
+	#else
 	[0] = {
-		.start	= tcc_p2v(HwSDMMC2_BASE),
-		.end	= tcc_p2v(HwSDMMC2_BASE + 0x1ff),
+		.start	= tcc_p2v(HwSDMMC0_BASE),
+		.end	= tcc_p2v(HwSDMMC0_BASE + 0x1ff),
 		.flags	= IORESOURCE_MEM,
 	},
 	[1] = {
-		.start	= INT_SD2,
-		.end	= INT_SD2,
+		.start	= INT_SD0,
+		.end	= INT_SD0,
 		.flags	= IORESOURCE_IRQ,
 	},
 	#endif
@@ -278,7 +290,7 @@ static struct resource tcc8920_i2c_core2_resources[] = {
 };
 struct platform_device tcc8920_i2c_core2_device = {
     .name           = "tcc-i2c",
-    .id             = 0,
+    .id             = 2,
     .resource       = tcc8920_i2c_core2_resources,
     .num_resources  = ARRAY_SIZE(tcc8920_i2c_core2_resources),
 };
@@ -294,7 +306,7 @@ static struct resource tcc8920_i2c_core3_resources[] = {
 };
 struct platform_device tcc8920_i2c_core3_device = {
     .name           = "tcc-i2c",
-    .id             = 1,
+    .id             = 3,
     .resource       = tcc8920_i2c_core3_resources,
     .num_resources  = ARRAY_SIZE(tcc8920_i2c_core3_resources),
 };
@@ -310,7 +322,7 @@ static struct resource tcc8920_i2c_smu_resources[] = {
 };
 struct platform_device tcc8920_i2c_smu_device = {
     .name           = "tcc-i2c",
-    .id             = 2,
+    .id             = 4,
     .resource       = tcc8920_i2c_smu_resources,
     .num_resources  = ARRAY_SIZE(tcc8920_i2c_smu_resources),
 };
@@ -712,9 +724,18 @@ static struct resource spi0_resources[] = {
 		.end   = INT_GPSB0_DMA,
 		.flags = IORESOURCE_IRQ,
 	},
-	[2] = {
-		.start	= 0xD,/* GPIO_D[5:8] */
-		.end	= 0xD,
+	[2] = {	    
+	    .name   = "gpsb0",
+#if   defined(CONFIG_MACH_TCC8920ST)		        
+   		.start	= 6,/* Port6 GPIO_B[11:14] */
+		.end	= 6,		
+#elif   defined(CONFIG_MACH_M805_892X)	
+  		.start	= 13,/* Port13 GPIO_E[28:31] */
+		.end	= 13,
+#else        
+		.start	= 4,/* Port4 GPIO_D[17:20] */
+		.end	= 4,
+#endif		
 		.flags	= IORESOURCE_IO,
 	},
 };
@@ -794,8 +815,27 @@ static inline void tcc8920_init_remote(void)
 #if defined(CONFIG_SPI_TCCXXXX_TSIF_SLAVE) || defined(CONFIG_SPI_TCCXXXX_TSIF_SLAVE_MODULE)
 static struct resource tsif_resources[] = {
 	[0] = {
-   		.start	= 0xE,	/* GPIO_E[2,3,6,7] */
-		.end	= 0xE,
+		.start = tcc_p2v(HwGPSB1_BASE),
+		.end   = tcc_p2v(HwGPSB1_BASE + 0x38),
+		.flags = IORESOURCE_MEM,
+	},
+	[1] = {
+		.start = INT_GPSB1_DMA,
+		.end   = INT_GPSB1_DMA,
+		.flags = IORESOURCE_IRQ,
+	},
+	[2] = {
+	    .name   = "gpsb1",
+#if   defined(CONFIG_MACH_TCC8920ST)		        
+   		.start	= 4,/* Port4 GPIO_D[17:20] */
+		.end	= 4,
+#elif   defined(CONFIG_MACH_M805_892X)		
+   		.start	= 10,/* Port10 GPIO_C[10:13] */
+		.end	= 10,
+#else        
+   		.start	= 6,/* Port6 GPIO_B[11:14] */
+		.end	= 6,
+#endif        
 		.flags	= IORESOURCE_IO,
 	}
 };
@@ -814,9 +854,20 @@ struct platform_device tcc_tsif_device = {
  *----------------------------------------------------------------------*/
 #if defined(CONFIG_TSIF_TCCXXXX)
 static struct resource tsif_module_resources[] = {
-	[0] = {
-		.start	= 0xE,		/* GPIO_C[28:31] */
-		.end	= 0xE,
+    [0] = {
+		.start = tcc_p2v(HwTSIF0_BASE),
+		.end   = tcc_p2v(HwTSIF0_BASE + 0x10000),
+		.flags = IORESOURCE_MEM,
+	},
+	[1] = {
+		.start = INT_TSIF,
+		.end   = INT_TSIF,
+		.flags = IORESOURCE_IRQ,
+	},
+	[2] = {
+	    .name   = "tsif0",
+   		.start	= 5,/* PortX GPIO_X[X:X] */
+		.end	= 5,
 		.flags	= IORESOURCE_IO,
 	}
 };
@@ -836,9 +887,36 @@ struct platform_device tcc_cpu_id_device = {
 };
 #endif
 
+#if defined(CONFIG_SND_SOC) || defined(CONFIG_SND_SOC_MODULE)
+static struct platform_device tcc_pcm = {
+	.name	= "tcc-pcm-audio",
+	.id	= -1,
+};
+
+static struct platform_device tcc_dai = {
+	.name	= "tcc-dai",
+	.id	= -1,
+};
+
+static struct platform_device tcc_iec958 = {
+	.name	= "tcc-iec958",
+	.id	= -1,
+};
+
+static void tcc_init_audio(void)
+{
+	platform_device_register(&tcc_pcm);
+	platform_device_register(&tcc_dai);
+	platform_device_register(&tcc_iec958);
+}
+#else
+static void tcc_init_audio(void){;}
+#endif
+
 static int __init tcc892x_init_devices(void)
 {
 	tcc_add_pmem_devices();
+    tcc_init_audio();
 	return 0;
 }
 arch_initcall(tcc892x_init_devices);

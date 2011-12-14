@@ -24,6 +24,20 @@ config MACH_TCC8924
 	  Support for the TCC8924 evaluation board. Say Y here if you
 	  have such a device.
 
+config MACH_TCC8920ST
+	bool "TCC8920 STB evaluation board"
+	depends on ARCH_TCC892X
+	help
+	  Support for the TCC8924 evaluation board. Say Y here if you
+	  have such a device.
+
+config MACH_M805_892X
+	bool "M805_TCC8923 board"
+	depends on ARCH_TCC892X
+	help
+	  Support for the TCC892X evaluation board. Say Y here if you
+	  have such a device.
+
 config CPU_HIGHSPEED
     bool "CPU high-speed clock"
     depends on ARCH_TCC892X

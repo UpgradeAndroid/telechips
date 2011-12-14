@@ -74,7 +74,7 @@
 #define	INT_HSGDMA		46	// 46 14 General DMA controller interrupt enable  (HSIOBUS)
 #define	INT_UART		47	// 47 15 UART interrupt enable 
 #define	INT_UOTG		48	// 48 16 USB 2.0 OTG interrupt enable 
-#define	INT_UB20H		49	// 49 17 USB 2.0 HOST interrupt enable 
+#define	INT_USB20H		49	// 49 17 USB 2.0 HOST interrupt enable 
 
 #define	INT_GMAC		51	// 51 19 GMAC interrupt enable 
 #define	INT_CIPHER		52	// 52 20 Cipher interrupt enable 
@@ -94,7 +94,7 @@
 /*
  * IRQ_UT numbers for UART[0:7]
  */
-#define INT_UT_BASE	70
+#define INT_UT_BASE	(INT_NUM + 1)
 #define INT_UART0	(0 + INT_UT_BASE)
 #define INT_UART1	(1 + INT_UT_BASE)
 #define INT_UART2	(2 + INT_UT_BASE)
@@ -108,7 +108,7 @@
 /*
  * GPSB-IRQ numbers for GPSB0 & GPSB0
  */
-#define INT_GPSB_BASE	80
+#define INT_GPSB_BASE	(INT_UART_NUM + 1)
 #define INT_GPSB0_DMA	(0 + INT_GPSB_BASE)
 #define INT_GPSB1_DMA	(1 + INT_GPSB_BASE)
 #define INT_GPSB2_DMA	(2 + INT_GPSB_BASE)
@@ -124,7 +124,7 @@
 /*
  * DMA-IRQ numbers
  */
-#define INT_DMA_BASE	90
+#define INT_DMA_BASE	(INT_GPSB_NUM + 1)
 #define INT_DMA0_CH0	(0 + INT_DMA_BASE)
 #define INT_DMA0_CH1	(1 + INT_DMA_BASE)
 #define INT_DMA0_CH2	(2 + INT_DMA_BASE)
@@ -139,7 +139,7 @@
 /*
  * TC0-IRQ numbers for Timer/Counter 0~5
  */
-#define INT_TC_BASE		100
+#define INT_TC_BASE		(INT_DMA_NUM + 1)
 #define INT_TC_TI0		(0 + INT_TC_BASE)
 #define INT_TC_TI1		(1 + INT_TC_BASE)
 #define INT_TC_TI2		(2 + INT_TC_BASE)
@@ -149,10 +149,80 @@
 #define INT_TC_NUM		INT_TC_TI5
 
 /*
+ * DMA-IRQ numbers
+ */
+#define INT_VIOC_BASE          	(INT_TC_NUM + 1)
+#define INT_VIOC_DEV0           (0 + INT_VIOC_BASE)
+#define INT_VIOC_DEV1           (1 + INT_VIOC_BASE)
+#define INT_VIOC_DEV2           (2 + INT_VIOC_BASE)
+#define INT_VIOC_TIMER          (3 + INT_VIOC_BASE)
+#define INT_VIOC_RD0            (4 + INT_VIOC_BASE)
+#define INT_VIOC_RD1            (5 + INT_VIOC_BASE)
+#define INT_VIOC_RD2            (6 + INT_VIOC_BASE)
+#define INT_VIOC_RD3            (7 + INT_VIOC_BASE)
+#define INT_VIOC_RD4            (8 + INT_VIOC_BASE)
+#define INT_VIOC_RD5            (9 + INT_VIOC_BASE)
+#define INT_VIOC_RD6            (10 + INT_VIOC_BASE)
+#define INT_VIOC_RD7            (11 + INT_VIOC_BASE)
+#define INT_VIOC_RD8            (12 + INT_VIOC_BASE)
+#define INT_VIOC_RD9            (13 + INT_VIOC_BASE)
+#define INT_VIOC_RD10           (14 + INT_VIOC_BASE)
+#define INT_VIOC_RD11           (15 + INT_VIOC_BASE)
+#define INT_VIOC_RD12           (16 + INT_VIOC_BASE)
+#define INT_VIOC_RD13           (17 + INT_VIOC_BASE)
+#define INT_VIOC_RD14           (18 + INT_VIOC_BASE)
+#define INT_VIOC_RD15           (19 + INT_VIOC_BASE)
+#define INT_VIOC_RD16           (20 + INT_VIOC_BASE)
+#define INT_VIOC_RD17           (21 + INT_VIOC_BASE)
+#define INT_VIOC_RESERVED_22    (22 + INT_VIOC_BASE)
+#define INT_VIOC_RESERVED_23    (23 + INT_VIOC_BASE)
+#define INT_VIOC_MMU            (24 + INT_VIOC_BASE)
+#define INT_VIOC_RESERVED_25    (25 + INT_VIOC_BASE)
+#define INT_VIOC_RESERVED_26    (26 + INT_VIOC_BASE)
+#define INT_VIOC_RESERVED_27    (27 + INT_VIOC_BASE)
+#define INT_VIOC_FIFO0          (28 + INT_VIOC_BASE)
+#define INT_VIOC_FIFO1          (29 + INT_VIOC_BASE)
+#define INT_VIOC_RESERVED_30    (30 + INT_VIOC_BASE)
+#define INT_VIOC_RESERVED_31    (31 + INT_VIOC_BASE)
+
+#define INT_VIOC_WD0            (32 + INT_VIOC_BASE)
+#define INT_VIOC_WD1            (33 + INT_VIOC_BASE)
+#define INT_VIOC_WD2            (34 + INT_VIOC_BASE)
+#define INT_VIOC_WD3            (35 + INT_VIOC_BASE)
+#define INT_VIOC_WD4            (36 + INT_VIOC_BASE)
+#define INT_VIOC_WD5            (37 + INT_VIOC_BASE)
+#define INT_VIOC_WD6            (38 + INT_VIOC_BASE)
+#define INT_VIOC_WD7            (39 + INT_VIOC_BASE)
+#define INT_VIOC_WD8            (40 + INT_VIOC_BASE)
+#define INT_VIOC_RESERVED_41    (41 + INT_VIOC_BASE)
+#define INT_VIOC_RESERVED_42    (42 + INT_VIOC_BASE)
+#define INT_VIOC_RESERVED_43    (43 + INT_VIOC_BASE)
+#define INT_VIOC_RESERVED_44    (44 + INT_VIOC_BASE)
+#define INT_VIOC_RESERVED_45    (45 + INT_VIOC_BASE)
+#define INT_VIOC_RESERVED_46    (46 + INT_VIOC_BASE)
+#define INT_VIOC_RESERVED_47    (47 + INT_VIOC_BASE)
+#define INT_VIOC_WMIX0          (48 + INT_VIOC_BASE)
+#define INT_VIOC_WMIX1          (49 + INT_VIOC_BASE)
+#define INT_VIOC_WMIX2          (50 + INT_VIOC_BASE)
+#define INT_VIOC_WMIX3          (51 + INT_VIOC_BASE)
+#define INT_VIOC_WMIX4          (52 + INT_VIOC_BASE)
+#define INT_VIOC_WMIX5          (53 + INT_VIOC_BASE)
+#define INT_VIOC_RESERVED54     (54 + INT_VIOC_BASE)
+#define INT_VIOC_RESERVED55     (55 + INT_VIOC_BASE)
+#define INT_VIOC_RESERVED56     (56 + INT_VIOC_BASE)
+#define INT_VIOC_VIQE           (57 + INT_VIOC_BASE)
+#define INT_VIOC_SC0            (58 + INT_VIOC_BASE)
+#define INT_VIOC_SC1            (59 + INT_VIOC_BASE)
+#define INT_VIOC_SC2            (60 + INT_VIOC_BASE)
+#define INT_VIOC_SC3            (61 + INT_VIOC_BASE)
+#define INT_VIOC_NUM		    INT_VIOC_SC3
+
+
+/*
  * NR_IRQ:
  */
 #if 1
-#define NR_IRQS         (INT_TC_NUM + 1)
+#define NR_IRQS         (INT_VIOC_NUM + 1)
 #else
 #define NR_IRQS ((INT_NUM + 1)					\
 		 + (INT_UART_NUM - INT_UT_BASE + 1)		\

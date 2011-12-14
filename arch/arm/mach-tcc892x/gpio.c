@@ -141,7 +141,7 @@ static inline gpioregs *tcc892x_gpio_to_reg(unsigned gpio_port)
 
 int tcc_gpio_config(unsigned gpio, unsigned flags)
 {
-	gpioregs *r = tcc892x_gpio_to_reg((gpio&GPIO_REGMASK)>>GPIO_REG_SHIFT);
+	gpioregs *r = tcc892x_gpio_to_reg((gpio&GPIO_REGMASK));
 	unsigned num = gpio & GPIO_BITMASK;;
 	unsigned bit = (1<<num);
 
@@ -152,42 +152,42 @@ int tcc_gpio_config(unsigned gpio, unsigned flags)
 		unsigned fn = ((flags & GPIO_FN_BITMASK) >> GPIO_FN_SHIFT) - 1;
 
 		if (num < 8)
-			RMWREG32(r->func_select0, num*4, 4, fn);
+			RMWREG32(&r->func_select0, num*4, 4, fn);
 		else if (num < 16)
-			RMWREG32(r->func_select1, (num-8)*4, 4, fn);
+			RMWREG32(&r->func_select1, (num-8)*4, 4, fn);
 		else if (num < 24)
-			RMWREG32(r->func_select2, (num-16)*4, 4, fn);
+			RMWREG32(&r->func_select2, (num-16)*4, 4, fn);
 		else
-			RMWREG32(r->func_select3, (num-24)*4, 4, fn);
+			RMWREG32(&r->func_select3, (num-24)*4, 4, fn);
 	}
 
 	if (flags & GPIO_CD_BITMASK) {
 		unsigned cd = ((flags & GPIO_CD_BITMASK) >> GPIO_CD_SHIFT) - 1;
 
 		if (num < 16)
-			RMWREG32(r->strength0, num*2, 2, cd);
+			RMWREG32(&r->strength0, num*2, 2, cd);
 		else
-			RMWREG32(r->strength1, (num-16)*2, 2, cd);
+			RMWREG32(&r->strength1, (num-16)*2, 2, cd);
 	}
 
 	if (flags & GPIO_OUTPUT) {
 		if (flags & GPIO_HIGH)
-			writel(readl(r->data) | bit, r->data);
+			writel(readl(&r->data) | bit, &r->data);
 		if (flags & GPIO_LOW)
-			writel(readl(r->data) & (~bit), r->data);
-		writel(readl(r->out_en) | bit, r->out_en);
+			writel(readl(&r->data) & (~bit),& r->data);
+		writel(readl(&r->out_en) | bit, &r->out_en);
 	} else if (flags & GPIO_INPUT) {
-		writel(readl(r->out_en) & (~bit), r->out_en);
+		writel(readl(&r->out_en) & (~bit), &r->out_en);
 	}
 
 	if (flags & GPIO_PULLUP){
-		writel(readl(r->pull_select) | bit, r->pull_select);
-		writel(readl(r->pull_enable) | bit, r->pull_enable);
+		writel(readl(&r->pull_select) | bit, &r->pull_select);
+		writel(readl(&r->pull_enable) | bit, &r->pull_enable);
 	} else if (flags & GPIO_PULLDOWN) {
-		writel(readl(r->pull_select) & (~bit), r->pull_select);
-		writel(readl(r->pull_enable) | bit, r->pull_enable);
+		writel(readl(&r->pull_select) & (~bit), &r->pull_select);
+		writel(readl(&r->pull_enable) | bit, &r->pull_enable);
 	} else if (flags & GPIO_PULL_DISABLE) {
-		writel(readl(r->pull_enable) & (~bit), r->pull_enable);
+		writel(readl(&r->pull_enable) & (~bit), &r->pull_enable);
 	}
   
 	return 0;

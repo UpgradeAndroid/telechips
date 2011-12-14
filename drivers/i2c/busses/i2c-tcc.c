@@ -90,7 +90,7 @@ static int wait_intr(struct tcc_i2c *i2c)
 
 	if (!i2c->smu_i2c_flag) {
 #if defined (CONFIG_ARCH_TCC892X)
-		while (!(tcc_readl(i2c->IRQSTR) & (1<<i2c->ch))) {
+		while (!(tcc_readl(i2c->IRQSTR) & (1<<i2c->core))) {
 #else
 		while (!(tcc_readl(i2c->IRQSTR) & (i2c->ch?Hw1:Hw0))) {
 #endif
@@ -283,13 +283,12 @@ static int tcc_i2c_init(struct tcc_i2c *i2c)
     volatile struct tcc_i2c_regs *i2c_reg = i2c->regs;
 
 	if (!i2c->smu_i2c_flag) {
-		/* I2C GPIO setting */
-		tca_i2c_setgpio(i2c->core, i2c->ch);
 
         /* I2C clock Enable */
         if(i2c->pclk == NULL) {
             i2c->pclk = clk_get(NULL, i2c->core_clk_name);
-    		if (!i2c->pclk) {
+    		if (IS_ERR(i2c->pclk)) {
+				i2c->pclk = NULL;
     			dev_err(&i2c->dev, "can't get i2c clock\n");
     			return -1;
     		}
@@ -306,6 +305,9 @@ static int tcc_i2c_init(struct tcc_i2c *i2c)
     	writel(prescale, &i2c_reg->PRES);
     	writel(Hw7 | Hw6 | HwZERO, &i2c_reg->CTRL);		// start enable, stop enable, 8bit mode
     	writel(Hw0 | readl(&i2c_reg->CMD), &i2c_reg->CMD);	// clear pending interrupt
+
+		/* I2C GPIO setting */
+		tca_i2c_setgpio(i2c->core, i2c->ch);
 
         msleep(100);    // Why does it need ?
 	} 

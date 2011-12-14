@@ -23,9 +23,9 @@
     .macro  arch_ret_to_user, tmp1, tmp2
     .endm
 
-    /* tcc88xx dependent code */
+    /* tcc892x dependent code */
     .macro  get_irqnr_and_base, irqnr, irqstat, base, tmp 
-        ldr \base, =0xF0401000     @ load base address of IRQ registers 
+        ldr \base, =0xF5100000     @ load base address of IRQ registers 
 
         /* A intr */
         ldr \irqstat, [\base, #0x50]    /* MIRQ0 */

@@ -679,7 +679,7 @@ endif # TCC_BT_DEV
 config TCC_HDMI
 	tristate "Support for Telechips HDMI"
 	default y
-	depends on ARCH_TCC88XX || ARCH_TCC92XX || ARCH_TCC93XX
+	depends on ARCH_TCC88XX || ARCH_TCC92XX || ARCH_TCC93XX || ARCH_TCC892X
 
 config HPET_MMAP
 	bool "Allow mmap of HPET"
@@ -721,21 +721,21 @@ config UV_MMTIMER
 config TCC_GRAPHIC
     tristate "TCC Graphic engine Driver"
 	default y
-	depends on (ARCH_TCC88XX || ARCH_TCC92XX || ARCH_TCC93XX)
+	depends on (ARCH_TCC88XX || ARCH_TCC92XX || ARCH_TCC93XX || ARCH_TCC892X)
 	help
 	  TCC 2D graphic engine driver.
 
 config TCC_MEMSCALER
 	tristate "TCC memory scaler Driver"
 	default y
-	depends on (ARCH_TCC88XX || ARCH_TCC92XX || ARCH_TCC93XX)
+	depends on (ARCH_TCC88XX || ARCH_TCC92XX || ARCH_TCC93XX || ARCH_TCC892X)
 	help
 	  TCC memmory scaler driver.
 
 config TCC_MEMSCALER1
 	tristate "TCC memory scaler1 Driver"
 	default y
-	depends on (ARCH_TCC88XX || ARCH_TCC92XX || ARCH_TCC93XX)
+	depends on (ARCH_TCC88XX || ARCH_TCC92XX || ARCH_TCC93XX || ARCH_TCC892X)
 	help
 	  TCC memmory scaler1 driver.
 

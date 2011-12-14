@@ -44,83 +44,159 @@ static volatile PGPSBPORTCFG pPGPSBPORTCFG;
 static volatile PUARTPORTCFG pUARTPORTCFG;
 static volatile PGDMACTRL pPGDMACTRL0, pPGDMACTRL1, pPGDMACTRL2, pPGDMACTRL3;
 static volatile PTIMER pTIMER;
+static volatile PVIOC_IREQ_CONFIG pVIOC_IREQ_CONFIG;
+static unsigned int gvioc_mask0, gvioc_mask1;
 
 /******************************************
  * Disable IRQ
  *
  * If mask_ack exist, this is not called.
  *****************************************/
-static void tcc8920_mask_irq(unsigned int irq)
+static void tcc8920_mask_irq(struct irq_data *data)
 {
-	pPIC->INTMSK.nREG &= ~(1<<irq);
+	unsigned int irq = data->irq;
+
+	if (irq >= 32)
+		pPIC->INTMSK1.nREG &= ~(1<<(irq-32));
+	else
+		pPIC->INTMSK0.nREG &= ~(1<<irq);
 }
 
-static void tcc8920_mask_irq_uart(unsigned int irq)
+static void tcc8920_mask_irq_uart(struct irq_data *data)
 {
+	unsigned int irq = data->irq;
+
 	if (irq != INT_UART) {
-		pPIC->INTMSK.bREG.UART = 0;
+		pPIC->INTMSK1.bREG.UART = 0;
 	}
 }
 
-static void tcc8920_mask_irq_gpsb(unsigned int irq)
+static void tcc8920_mask_irq_gpsb(struct irq_data *data)
 {
+	unsigned int irq = data->irq;
+
     if (irq != INT_GPSB) {
-        pPIC->INTMSK.bREG.GPSB = 0;
+        pPIC->INTMSK1.bREG.GPSB = 0;
     }
 }
 
-static void tcc8920_mask_irq_dma(unsigned int irq)
+static void tcc8920_mask_irq_dma(struct irq_data *data)
 {
+	unsigned int irq = data->irq;
+
     if (irq != INT_GDMA) {
-        pPIC->INTMSK.bREG.GDMA = 0;
+        pPIC->INTMSK0.bREG.GDMA = 0;
     }
 }
 
-static void tcc8920_mask_irq_tc0(unsigned int irq)
+static void tcc8920_mask_irq_tc0(struct irq_data *data)
 {
+	unsigned int irq = data->irq;
+
     if (irq != INT_TC0) {
-        pPIC->INTMSK.bREG.TC0 = 0;
+        pPIC->INTMSK0.bREG.TC0 = 0;
     }
 }
+
+static void tcc8920_mask_irq_vioc(struct irq_data *data)
+{
+	unsigned int irq = data->irq;
+
+    if (irq != INT_LCD) {
+        pPIC->INTMSK0.bREG.LCDC = 0;
+    }
+}
+
 
 /******************************************
  * Enable IRQ
  *****************************************/
-static void tcc8920_irq_enable(unsigned int irq)
+static void tcc8920_irq_enable(struct irq_data *data)
 {
-	pPIC->CLR.nREG |= (1 << irq);
-	pPIC->IEN.nREG |= (1 << irq);
-	pPIC->INTMSK.nREG |= (1 << irq);
+	unsigned int irq = data->irq;
+
+	if (irq >= 32) {
+		pPIC->CLR1.nREG |= (1 << (irq-32));
+		pPIC->IEN1.nREG |= (1 << (irq-32));
+		pPIC->INTMSK1.nREG |= (1 << (irq-32));
+	}
+	else {
+		pPIC->CLR0.nREG |= (1 << irq);
+		pPIC->IEN0.nREG |= (1 << irq);
+		pPIC->INTMSK0.nREG |= (1 << irq);
+	}
 }
 
-static void tcc8920_unmask_irq(unsigned int irq)
+static void tcc8920_irq_enable_vioc(struct irq_data *data)
 {
-	pPIC->INTMSK.nREG |= (1 << irq);
-	pPIC->CLR.nREG |= (1 << irq);
+	unsigned int irq = data->irq;
+
+    if (irq != INT_LCD) {
+        irq -= INT_VIOC_BASE;
+    	if (irq >= 32) {
+            gvioc_mask1 |= (1 << (irq-32));
+    		pVIOC_IREQ_CONFIG->nIRQMASKCLR.nREG[1] = (1 << (irq-32));
+    	}
+    	else {
+            gvioc_mask0 |= (1 << irq);
+    		pVIOC_IREQ_CONFIG->nIRQMASKCLR.nREG[0] = (1 << irq);
+    	}
+    }
 }
-static void tcc8920_unmask_irq_uart(unsigned int irq)
+
+static void tcc8920_unmask_irq(struct irq_data *data)
 {
+	unsigned int irq = data->irq;
+
+	if (irq >= 32) {
+		pPIC->INTMSK1.nREG |= (1 << (irq-32));
+		pPIC->CLR1.nREG |= (1 << (irq-32));
+	}
+	else {
+		pPIC->INTMSK0.nREG |= (1 << irq);
+		pPIC->CLR0.nREG |= (1 << irq);
+	}
+}
+static void tcc8920_unmask_irq_uart(struct irq_data *data)
+{
+	unsigned int irq = data->irq;
+
     if (irq != INT_UART) {
-		pPIC->INTMSK.bREG.UART = 1;
+		pPIC->INTMSK1.bREG.UART = 1;
     }
 }
-static void tcc8920_unmask_irq_gpsb(unsigned int irq)
+static void tcc8920_unmask_irq_gpsb(struct irq_data *data)
 {
+	unsigned int irq = data->irq;
+
     if (irq != INT_GPSB) {
-        pPIC->INTMSK.bREG.GPSB = 1;
+        pPIC->INTMSK1.bREG.GPSB = 1;
     }
 }
-static void tcc8920_unmask_irq_dma(unsigned int irq)
+static void tcc8920_unmask_irq_dma(struct irq_data *data)
 {
+	unsigned int irq = data->irq;
+
     if (irq != INT_GDMA) {
-        pPIC->INTMSK.bREG.GDMA = 1;
+        pPIC->INTMSK0.bREG.GDMA = 1;
     }
 }
 
-static void tcc8920_unmask_irq_tc0(unsigned int irq)
+static void tcc8920_unmask_irq_tc0(struct irq_data *data)
 {
+	unsigned int irq = data->irq;
+
     if (irq != INT_TC0) {
-        pPIC->INTMSK.bREG.TC0 = 1;
+        pPIC->INTMSK0.bREG.TC0 = 1;
+    }
+}
+
+static void tcc8920_unmask_irq_vioc(struct irq_data *data)
+{
+	unsigned int irq = data->irq;
+
+    if (irq != INT_LCD) {
+        pPIC->INTMSK0.bREG.LCDC = 1;
     }
 }
 
@@ -128,75 +204,128 @@ static void tcc8920_unmask_irq_tc0(unsigned int irq)
  * Ack IRQ (Disable IRQ)
  *****************************************/
 
-static void tcc8920_irq_disable(unsigned int irq)
+static void tcc8920_irq_disable(struct irq_data *data)
 {
-	pPIC->IEN.nREG &= ~(1 << irq);
-	pPIC->INTMSK.nREG &= ~(1 << irq);
+	unsigned int irq = data->irq;
+
+	if (irq >= 32) {
+		pPIC->IEN1.nREG &= ~(1 << (irq-32));
+		pPIC->INTMSK1.nREG &= ~(1 << (irq-32));
+	}
+	else {
+		pPIC->IEN0.nREG &= ~(1 << irq);
+		pPIC->INTMSK0.nREG &= ~(1 << irq);
+	}
+}
+
+static void tcc8920_irq_disable_vioc(struct irq_data *data)
+{
+	unsigned int irq = data->irq;
+
+    if (irq != INT_LCD) {
+        irq -= INT_VIOC_BASE;
+    	if (irq >= 32) {
+            gvioc_mask1 &= ~(1 << (irq-32));
+    		pVIOC_IREQ_CONFIG->nIRQMASKSET.nREG[1] = (1 << (irq-32));
+    	}
+    	else {
+            gvioc_mask0 &= ~(1 << irq);
+    		pVIOC_IREQ_CONFIG->nIRQMASKSET.nREG[0] = (1 << irq);
+    	}
+    }
 }
 
 
-static void tcc8920_mask_ack_irq(unsigned int irq)
+static void tcc8920_mask_ack_irq(struct irq_data *data)
 {
-	pPIC->INTMSK.nREG &= ~(1 << irq);
+	unsigned int irq = data->irq;
+
+	if (irq >= 32)
+		pPIC->INTMSK1.nREG &= ~(1 << (irq-32));
+	else
+		pPIC->INTMSK0.nREG &= ~(1 << irq);
 }
 
-static void tcc8920_mask_ack_irq_uart(unsigned int irq)
+static void tcc8920_mask_ack_irq_uart(struct irq_data *data)
 {
+	unsigned int irq = data->irq;
+
     if (irq != INT_UART) {
-        pPIC->INTMSK.bREG.UART = 0;
+        pPIC->INTMSK1.bREG.UART = 0;
     }
 }
 
-static void tcc8920_mask_ack_irq_gpsb(unsigned int irq)
+static void tcc8920_mask_ack_irq_gpsb(struct irq_data *data)
 {
+	unsigned int irq = data->irq;
+
     if (irq != INT_GPSB) {
-        pPIC->INTMSK.bREG.GPSB = 0;
+        pPIC->INTMSK1.bREG.GPSB = 0;
     }
 }
 
-static void tcc8920_mask_ack_irq_dma(unsigned int irq)
+static void tcc8920_mask_ack_irq_dma(struct irq_data *data)
 {
+	unsigned int irq = data->irq;
+
     if (irq != INT_GDMA) {
-        pPIC->INTMSK.bREG.GDMA = 0;
+        pPIC->INTMSK0.bREG.GDMA = 0;
     }
 }
 
-static void tcc8920_mask_ack_irq_tc0(unsigned int irq)
+static void tcc8920_mask_ack_irq_tc0(struct irq_data *data)
 {
+	unsigned int irq = data->irq;
+
     if (irq != INT_TC0) {
-        pPIC->INTMSK.bREG.TC0 = 0;
+        pPIC->INTMSK0.bREG.TC0 = 0;
     }
 }
+
+static void tcc8920_mask_ack_irq_vioc(struct irq_data *data)
+{
+	unsigned int irq = data->irq;
+
+    if (irq != INT_LCD) {
+        pPIC->INTMSK0.bREG.LCDC = 0;
+    }
+}
+
 
 /******************************************
  * wake IRQ
  *****************************************/
-static int tcc8920_wake_irq(unsigned int irq, unsigned int enable)
+static int tcc8920_wake_irq(struct irq_data *data, unsigned int enable)
 {
     return 0;
 }
 
-static int tcc8920_wake_irq_uart(unsigned int irq, unsigned int enable)
+static int tcc8920_wake_irq_uart(struct irq_data *data, unsigned int enable)
 {
     return 0;
 }
 
-static int tcc8920_wake_irq_gpsb(unsigned int irq, unsigned int enable)
+static int tcc8920_wake_irq_gpsb(struct irq_data *data, unsigned int enable)
 {
     return 0;
 }
 
-static int tcc8920_wake_irq_dma(unsigned int irq, unsigned int enable)
+static int tcc8920_wake_irq_dma(struct irq_data *data, unsigned int enable)
 {
     return 0;
 }
 
-static int tcc8920_wake_irq_tc0(unsigned int irq, unsigned int enable)
+static int tcc8920_wake_irq_tc0(struct irq_data *data, unsigned int enable)
 {
     return 0;
 }
 
-static void tcc8920_irq_dummy(unsigned int irq)
+static int tcc8920_wake_irq_vioc(struct irq_data *data, unsigned int enable)
+{
+    return 0;
+}
+
+static void tcc8920_irq_dummy(struct irq_data *data)
 {
 }
 
@@ -204,8 +333,10 @@ static void tcc8920_irq_dummy(unsigned int irq)
 /******************************************
  * set type IRQ
  *****************************************/
-static int tcc8920_irq_set_type(unsigned int irq, unsigned int type)
+static int tcc8920_irq_set_type(struct irq_data *data, unsigned int type)
 {
+	unsigned int irq = data->irq;
+
     type &= IRQ_TYPE_SENSE_MASK;
 
     if(type == IRQ_TYPE_NONE)
@@ -213,26 +344,58 @@ static int tcc8920_irq_set_type(unsigned int irq, unsigned int type)
 
     /* Edge trigger mode */
     if(type == IRQ_TYPE_EDGE_BOTH) {
-		pPIC->MODE.nREG &= ~(1 << irq);   // trigger
-		pPIC->MODEA.nREG |= (1 << irq);   // both
+		if (irq >= 32) {
+			pPIC->MODE1.nREG &= ~(1 << (irq-32));   // trigger
+			pPIC->MODEA1.nREG |= (1 << (irq-32));   // both
+		}
+		else {
+			pPIC->MODE0.nREG &= ~(1 << irq);   // trigger
+			pPIC->MODEA0.nREG |= (1 << irq);   // both
+		}
     }
     else if(type == IRQ_TYPE_EDGE_RISING) {
-		pPIC->MODE.nREG &= ~(1 << irq);
-		pPIC->MODEA.nREG &= ~(1 << irq);
-		pPIC->POL.nREG &= ~(1 << irq);
+		if (irq >= 32) {
+			pPIC->MODE1.nREG &= ~(1 << (irq-32));
+			pPIC->MODEA1.nREG &= ~(1 << (irq-32));
+			pPIC->POL1.nREG &= ~(1 << (irq-32));
+		}
+		else {
+			pPIC->MODE0.nREG &= ~(1 << irq);
+			pPIC->MODEA0.nREG &= ~(1 << irq);
+			pPIC->POL0.nREG &= ~(1 << irq);
+		}
     }
     else if(type == IRQ_TYPE_EDGE_FALLING) {
-		pPIC->MODE.nREG &= ~(1 << irq);
-		pPIC->MODEA.nREG &= ~(1 << irq);
-		pPIC->POL.nREG |= (1 << irq);
+		if (irq >= 32) {
+			pPIC->MODE1.nREG &= ~(1 << (irq-32));
+			pPIC->MODEA1.nREG &= ~(1 << (irq-32));
+			pPIC->POL1.nREG |= (1 << (irq-32));
+		}
+		else {
+			pPIC->MODE0.nREG &= ~(1 << irq);
+			pPIC->MODEA0.nREG &= ~(1 << irq);
+			pPIC->POL0.nREG |= (1 << irq);
+		}
     }
     else if(type == IRQ_TYPE_LEVEL_HIGH) {  /* Edge trigger mode */
- 		pPIC->MODE.nREG |= (1 << irq);   // level
- 		pPIC->POL.nREG &= ~(1 << irq);
+		if (irq >= 32) {
+	 		pPIC->MODE1.nREG |= (1 << (irq-32));   // level
+	 		pPIC->POL1.nREG &= ~(1 << (irq-32));
+		}
+		else {
+	 		pPIC->MODE0.nREG |= (1 << irq);   // level
+	 		pPIC->POL0.nREG &= ~(1 << irq);
+		}
     }
     else {  /* Edge trigger mode */
-		pPIC->MODE.nREG |= (1 << irq);   // level
-		pPIC->POL.nREG |= (1 << irq);
+		if (irq >= 32) {
+			pPIC->MODE1.nREG |= (1 << (irq-32));   // level
+			pPIC->POL1.nREG |= (1 << (irq-32));
+		}
+		else {
+			pPIC->MODE0.nREG |= (1 << irq);   // level
+			pPIC->POL0.nREG |= (1 << irq);
+		}
     }
 
     return 0;
@@ -258,12 +421,12 @@ static void tcc8920_irq_uart_handler(unsigned irq, struct irq_desc *desc)
 	else if (pUARTPORTCFG->ISTS.bREG.U7)
 		irq = INT_UART7;
 	else {
-		pPIC->CLR.bREG.UART = 1;
+		pPIC->CLR1.bREG.UART = 1;
 		goto out;
 	}
 
 	desc = irq_desc + irq;
-	desc_handle_irq(irq, desc);
+	desc->handle_irq(irq, desc);
 out:
 	return;
 }
@@ -289,12 +452,12 @@ static void tcc8920_irq_gpsb_handler(unsigned irq, struct irq_desc *desc)
 	else if (pPGPSBPORTCFG->CIRQST.bREG.ISTC5)
 		irq = INT_GPSB5_CORE;
 	else {
-		pPIC->CLR.bREG.GPSB = 1;
+		pPIC->CLR1.bREG.GPSB = 1;
 		goto out;
 	}
 
 	desc = irq_desc + irq;
-	desc_handle_irq(irq, desc);
+	desc->handle_irq(irq, desc);
 out:
 	return;
 }
@@ -320,12 +483,12 @@ static void tcc8920_irq_dma_handler(unsigned irq, struct irq_desc *desc)
 	else if (pPGDMACTRL2->CHCONFIG.bREG.MIS2)
 		irq = INT_DMA2_CH2;
 	else {
-		pPIC->CLR.bREG.GDMA = 1;
+		pPIC->CLR0.bREG.GDMA = 1;
 		goto out;
 	}
 
 	desc = irq_desc + irq;
-	desc_handle_irq(irq, desc);
+	desc->handle_irq(irq, desc);
 out:
 	return;
 }
@@ -345,71 +508,126 @@ static void tcc8920_irq_tc_handler(unsigned irq, struct irq_desc *desc)
 	else if (pTIMER->TIREQ.bREG.TI5)
 		irq = INT_TC_TI5;
 	else {
-		pPIC->CLR.bREG.TC0 = 1;
+		pPIC->CLR0.bREG.TC0 = 1;
 		goto out;
 	}
 
 	desc = irq_desc + irq;
-	desc_handle_irq(irq, desc);
+	desc->handle_irq(irq, desc);
 out:
 	return;
 }
 
 
+static void tcc8920_irq_vioc_handler(unsigned irq, struct irq_desc *desc)
+{
+    int i;
+    int flag;
+    unsigned int bitmask;
+
+
+
+    // SYNCSTATUS ==>  0: async interrupt, 1: sync interrupt
+    for (i = 0;i < (INT_VIOC_NUM - INT_VIOC_BASE + 1);i++) {
+        if (i < 32) {
+			bitmask = 1 << i;
+            if (gvioc_mask0 & bitmask) {
+                flag = pVIOC_IREQ_CONFIG->uIREQSELECT.nREG[0] & bitmask ? 
+                        (pVIOC_IREQ_CONFIG->uSYNCSTATUS.nREG[0] & bitmask) : 
+                        (pVIOC_IREQ_CONFIG->uRAWSTATUS.nREG[0] & bitmask);
+                if (flag)       break;
+            }
+        }
+        else {
+			bitmask = 1 << (i-32);
+            if (gvioc_mask1 & bitmask) {
+                flag = pVIOC_IREQ_CONFIG->uIREQSELECT.nREG[1] & bitmask ? 
+                        (pVIOC_IREQ_CONFIG->uSYNCSTATUS.nREG[1] & bitmask) : 
+                        (pVIOC_IREQ_CONFIG->uRAWSTATUS.nREG[1] & bitmask);
+                if (flag)       break;
+            }
+        }
+    }
+
+    if (i >= (INT_VIOC_NUM - INT_VIOC_BASE)) {
+        /* clear interrupt */
+        pPIC->CLR0.bREG.LCDC = 1;
+        goto out;
+    }
+
+	desc = irq_desc + INT_VIOC_BASE + i;
+	desc->handle_irq(irq, desc);
+out:
+	return;
+}
+
+
+
 static struct irq_chip tcc8920_irq_chip = {
     .name       = "IRQ",
-    .enable     = tcc8920_irq_enable,
-    .disable    = tcc8920_irq_disable,
-    .ack        = tcc8920_mask_ack_irq,
-    .mask_ack   = tcc8920_mask_ack_irq,
-    .mask       = tcc8920_mask_irq,
-    .unmask     = tcc8920_unmask_irq,
-    .set_wake   = tcc8920_wake_irq,
-    .set_type   = tcc8920_irq_set_type,
+    .irq_enable     = tcc8920_irq_enable,
+    .irq_disable    = tcc8920_irq_disable,
+    .irq_ack        = tcc8920_mask_ack_irq,
+    .irq_mask_ack   = tcc8920_mask_ack_irq,
+    .irq_mask       = tcc8920_mask_irq,
+    .irq_unmask     = tcc8920_unmask_irq,
+    .irq_set_wake   = tcc8920_wake_irq,
+    .irq_set_type   = tcc8920_irq_set_type,
 };
 
 static struct irq_chip tcc8920_irq_uart_chip = {
     .name       = "IRQ_UART",
-    .enable     = tcc8920_irq_dummy,
-    .disable    = tcc8920_irq_dummy,
-    .ack        = tcc8920_mask_ack_irq_uart,
-    .mask_ack   = tcc8920_mask_ack_irq_uart,
-    .mask       = tcc8920_mask_irq_uart,
-    .unmask     = tcc8920_unmask_irq_uart,
-    .set_wake   = tcc8920_wake_irq_uart,
+    .irq_enable     = tcc8920_irq_dummy,
+    .irq_disable    = tcc8920_irq_dummy,
+    .irq_ack        = tcc8920_mask_ack_irq_uart,
+    .irq_mask_ack   = tcc8920_mask_ack_irq_uart,
+    .irq_mask       = tcc8920_mask_irq_uart,
+    .irq_unmask     = tcc8920_unmask_irq_uart,
+    .irq_set_wake   = tcc8920_wake_irq_uart,
 };
 
 static struct irq_chip tcc8920_irq_gpsb_chip = {
     .name       = "IRQ_GPSB",
-    .enable     = tcc8920_irq_dummy,
-    .disable    = tcc8920_irq_dummy,
-    .ack        = tcc8920_mask_ack_irq_gpsb,
-    .mask_ack   = tcc8920_mask_ack_irq_gpsb,
-    .mask       = tcc8920_mask_irq_gpsb,
-    .unmask     = tcc8920_unmask_irq_gpsb,
-    .set_wake   = tcc8920_wake_irq_gpsb,
+    .irq_enable     = tcc8920_irq_dummy,
+    .irq_disable    = tcc8920_irq_dummy,
+    .irq_ack        = tcc8920_mask_ack_irq_gpsb,
+    .irq_mask_ack   = tcc8920_mask_ack_irq_gpsb,
+    .irq_mask       = tcc8920_mask_irq_gpsb,
+    .irq_unmask     = tcc8920_unmask_irq_gpsb,
+    .irq_set_wake   = tcc8920_wake_irq_gpsb,
 };
 
 static struct irq_chip tcc8920_irq_dma_chip = {
     .name       = "IRQ_DMA",
-    .enable     = tcc8920_irq_dummy,
-    .disable    = tcc8920_irq_dummy,
-    .ack        = tcc8920_mask_ack_irq_dma,
-    .mask_ack   = tcc8920_mask_ack_irq_dma,
-    .mask       = tcc8920_mask_irq_dma,
-    .unmask     = tcc8920_unmask_irq_dma,
-    .set_wake   = tcc8920_wake_irq_dma,
+    .irq_enable     = tcc8920_irq_dummy,
+    .irq_disable    = tcc8920_irq_dummy,
+    .irq_ack        = tcc8920_mask_ack_irq_dma,
+    .irq_mask_ack   = tcc8920_mask_ack_irq_dma,
+    .irq_mask       = tcc8920_mask_irq_dma,
+    .irq_unmask     = tcc8920_unmask_irq_dma,
+    .irq_set_wake   = tcc8920_wake_irq_dma,
 };
 
 static struct irq_chip tcc8920_irq_tc_chip = {
     .name       = "IRQ_TC",
-    .enable     = tcc8920_irq_dummy,
-    .disable    = tcc8920_irq_dummy,
-    .ack        = tcc8920_mask_ack_irq_tc0,
-    .mask_ack   = tcc8920_mask_ack_irq_tc0,
-    .mask       = tcc8920_mask_irq_tc0,
-    .unmask     = tcc8920_unmask_irq_tc0,
-    .set_wake   = tcc8920_wake_irq_tc0,
+    .irq_enable     = tcc8920_irq_dummy,
+    .irq_disable    = tcc8920_irq_dummy,
+    .irq_ack        = tcc8920_mask_ack_irq_tc0,
+    .irq_mask_ack   = tcc8920_mask_ack_irq_tc0,
+    .irq_mask       = tcc8920_mask_irq_tc0,
+    .irq_unmask     = tcc8920_unmask_irq_tc0,
+    .irq_set_wake   = tcc8920_wake_irq_tc0,
+};
+
+static struct irq_chip tcc8920_irq_vioc_chip = {
+    .name       = "IRQ_VIOC",
+    .irq_enable     = tcc8920_irq_enable_vioc,
+    .irq_disable    = tcc8920_irq_disable_vioc,
+    .irq_ack        = tcc8920_mask_ack_irq_vioc,
+    .irq_mask_ack   = tcc8920_mask_ack_irq_vioc,
+    .irq_mask       = tcc8920_mask_irq_vioc,
+    .irq_unmask     = tcc8920_unmask_irq_vioc,
+    .irq_set_wake   = tcc8920_wake_irq_vioc,
 };
 
 void __init tcc_init_irq(void)
@@ -427,36 +645,46 @@ void __init tcc_init_irq(void)
 	pPGDMACTRL1 = (volatile PGDMACTRL)tcc_p2v(HwGDMA1_BASE);
 	pPGDMACTRL2 = (volatile PGDMACTRL)tcc_p2v(HwGDMA2_BASE);
 	pTIMER = (volatile PTIMER)tcc_p2v(HwTMR_BASE);
+    pVIOC_IREQ_CONFIG = (volatile PVIOC_IREQ_CONFIG)tcc_p2v(HwVIOC_IREQ);
 
 
 	/* ADD IOREMAP */
 
 	//clear IEN Field
-	pPIC->IEN.nREG = (unsigned long long)0x0000000000000000LL; // All Interrupt Disable
+	pPIC->IEN0.nREG = (unsigned long long)0x00000000; // All Interrupt Disable
+	pPIC->IEN1.nREG = (unsigned long long)0x00000000; // All Interrupt Disable
 
 	//clear SEL Field
-	pPIC->SEL.nREG = (unsigned long long)0xFFFFFFFFFFFFFFFFLL; //using IRQ
+	pPIC->SEL0.nREG = (unsigned long long)0xFFFFFFFF; //using IRQ
+	pPIC->SEL1.nREG = (unsigned long long)0xFFFFFFFF; //using IRQ
 
 	//clear TIG Field
-	pPIC->TIG.nREG = (unsigned long long)0x0000000000000000LL; //Test Interrupt Disable
+	pPIC->TIG0.nREG = (unsigned long long)0x00000000; //Test Interrupt Disable
+	pPIC->TIG1.nREG = (unsigned long long)0x00000000; //Test Interrupt Disable
 
 	//clear POL Field
-	pPIC->POL.nREG = (unsigned long long)0x0000000000000000LL; //Default ACTIVE Low
+	pPIC->POL0.nREG = (unsigned long long)0x00000000; //Default ACTIVE Low
+	pPIC->POL1.nREG = (unsigned long long)0x00000000; //Default ACTIVE Low
 
 	//clear MODE Field
-	pPIC->MODE.nREG = (unsigned long long)0xFFFFFFFFFFFFFFFFLL; //Trigger Mode - Level Trigger Mode
+	pPIC->MODE0.nREG = (unsigned long long)0xFFFFFFFF; //Trigger Mode - Level Trigger Mode
+	pPIC->MODE1.nREG = (unsigned long long)0xFFFFFFFF; //Trigger Mode - Level Trigger Mode
 
 	//clear SYNC Field
-	pPIC->SYNC.nREG = (unsigned long long)0xFFFFFFFFFFFFFFFFLL; //SYNC Enable
+	pPIC->SYNC0.nREG = (unsigned long long)0xFFFFFFFF; //SYNC Enable
+	pPIC->SYNC1.nREG = (unsigned long long)0xFFFFFFFF; //SYNC Enable
 
 	//clear WKEN Field
-	pPIC->WKEN.nREG = (unsigned long long)0x0000000000000000LL; //Wakeup all disable
+	pPIC->WKEN0.nREG = (unsigned long long)0x00000000; //Wakeup all disable
+	pPIC->WKEN1.nREG = (unsigned long long)0x00000000; //Wakeup all disable
 
 	//celar MODEA Field
-	pPIC->MODEA.nREG = (unsigned long long)0x0000000000000000LL; //both edge - all disable
+	pPIC->MODEA0.nREG = (unsigned long long)0x00000000; //both edge - all disable
+	pPIC->MODEA1.nREG = (unsigned long long)0x00000000; //both edge - all disable
 
 	//clear INTMSK Field
-	pPIC->INTMSK.nREG = (unsigned long long)0x0000000000000000LL; //not using INTMSK
+	pPIC->INTMSK0.nREG = (unsigned long long)0x00000000; //not using INTMSK
+	pPIC->INTMSK1.nREG = (unsigned long long)0x00000000; //not using INTMSK
 
 	//clear ALLMSK Field
 	pPIC->ALLMSK.bREG.IRQ = 1; //using only IRQ
@@ -466,61 +694,79 @@ void __init tcc_init_irq(void)
 	for(irqno = INT_TC0; irqno <= INT_NUM; irqno++)
 	{
 		if (irqno == INT_UART) {
-			set_irq_chip(INT_UART, &tcc8920_irq_uart_chip);
-			set_irq_chained_handler(INT_UART, tcc8920_irq_uart_handler);
+			irq_set_chip(INT_UART, &tcc8920_irq_uart_chip);
+			irq_set_chained_handler(INT_UART, tcc8920_irq_uart_handler);
 		} else if (irqno == INT_GPSB) {
-			set_irq_chip(INT_GPSB, &tcc8920_irq_gpsb_chip);
-			set_irq_chained_handler(INT_GPSB, tcc8920_irq_gpsb_handler);
+			irq_set_chip(INT_GPSB, &tcc8920_irq_gpsb_chip);
+			irq_set_chained_handler(INT_GPSB, tcc8920_irq_gpsb_handler);
 		} else if (irqno == INT_GDMA) {
-			set_irq_chip(INT_GDMA, &tcc8920_irq_dma_chip);
-			set_irq_chained_handler(INT_GDMA, tcc8920_irq_dma_handler);
+			irq_set_chip(INT_GDMA, &tcc8920_irq_dma_chip);
+			irq_set_chained_handler(INT_GDMA, tcc8920_irq_dma_handler);
 		} else if (irqno == INT_TC0) {
-			set_irq_chip(INT_TC0, &tcc8920_irq_tc_chip);
-			set_irq_chained_handler(INT_TC0, tcc8920_irq_tc_handler);
+			irq_set_chip(INT_TC0, &tcc8920_irq_tc_chip);
+			irq_set_chained_handler(INT_TC0, tcc8920_irq_tc_handler);
+		} else if (irqno == INT_LCD) {
+			irq_set_chip(INT_LCD, &tcc8920_irq_vioc_chip);
+			irq_set_chained_handler(INT_LCD, tcc8920_irq_vioc_handler);
 		} else {
-			set_irq_chip(irqno, &tcc8920_irq_chip);
-			set_irq_handler(irqno, handle_level_irq);
+			irq_set_chip(irqno, &tcc8920_irq_chip);
+			irq_set_handler(irqno, handle_level_irq);
 			set_irq_flags(irqno, IRQF_VALID);
 		}
 	}
 
 	/* Install the interrupt UART Group handlers */
 	for (irqno = INT_UT_BASE; irqno <= INT_UART_NUM; irqno++) {
-		set_irq_chip(irqno, &tcc8920_irq_uart_chip);
-		set_irq_handler(irqno, handle_level_irq);
+		irq_set_chip(irqno, &tcc8920_irq_uart_chip);
+		irq_set_handler(irqno, handle_level_irq);
 		set_irq_flags(irqno, IRQF_VALID);
 	}
 
 	/* Install the interrupt GPSB Group handlers */
 	for (irqno = INT_GPSB_BASE; irqno <= INT_GPSB_NUM; irqno++) {
-		set_irq_chip(irqno, &tcc8920_irq_gpsb_chip);
-		set_irq_handler(irqno, handle_level_irq);
+		irq_set_chip(irqno, &tcc8920_irq_gpsb_chip);
+		irq_set_handler(irqno, handle_level_irq);
 		set_irq_flags(irqno, IRQF_VALID);
 	}
 
 	/* Install the interrupt DMA Group handlers */
 	for (irqno = INT_DMA_BASE; irqno <= INT_DMA_NUM; irqno++) {
-		set_irq_chip(irqno, &tcc8920_irq_dma_chip);
-		set_irq_handler(irqno, handle_level_irq);
+		irq_set_chip(irqno, &tcc8920_irq_dma_chip);
+		irq_set_handler(irqno, handle_level_irq);
 		set_irq_flags(irqno, IRQF_VALID);
 	}
 
 	/* Install the interrupt TC0 Group handlers */
 	for (irqno = INT_TC_BASE; irqno <= INT_TC_NUM; irqno++) {
-		set_irq_chip(irqno, &tcc8920_irq_tc_chip);
-		set_irq_handler(irqno, handle_level_irq);
+		irq_set_chip(irqno, &tcc8920_irq_tc_chip);
+		irq_set_handler(irqno, handle_level_irq);
+		set_irq_flags(irqno, IRQF_VALID);
+	}
+
+	/* Install the interrupt VIOC Group handlers */
+	for (irqno = INT_VIOC_BASE; irqno <= INT_VIOC_NUM; irqno++) {
+		irq_set_chip(irqno, &tcc8920_irq_vioc_chip);
+		irq_set_handler(irqno, handle_level_irq);
 		set_irq_flags(irqno, IRQF_VALID);
 	}
 
     /* IEN SET */
-	pPIC->IEN.bREG.UART = 1;
-	pPIC->INTMSK.bREG.UART = 1;
-	pPIC->IEN.bREG.GPSB = 1;
-	pPIC->INTMSK.bREG.GPSB = 1;
-	pPIC->IEN.bREG.GDMA = 1;
-	pPIC->INTMSK.bREG.GDMA = 1;
-	pPIC->IEN.bREG.TC0 = 1;
-	pPIC->INTMSK.bREG.TC0 = 1;
+	pPIC->IEN1.bREG.UART = 1;
+	pPIC->INTMSK1.bREG.UART = 1;
+	pPIC->IEN1.bREG.GPSB = 1;
+	pPIC->INTMSK1.bREG.GPSB = 1;
+	pPIC->IEN0.bREG.GDMA = 1;
+	pPIC->INTMSK0.bREG.GDMA = 1;
+	pPIC->IEN0.bREG.TC0 = 1;
+	pPIC->INTMSK0.bREG.TC0 = 1;
+
+    /* Video Input Output Control */
+    pVIOC_IREQ_CONFIG->nIRQMASKSET.nREG[0] = 0xffffffff;    /* Disable VIOC IRQ */
+    pVIOC_IREQ_CONFIG->nIRQMASKSET.nREG[1] = 0xffffffff;
+    pPIC->IEN0.bREG.LCDC = 1;                               /* Enable LCDC interrupt */
+    pPIC->INTMSK0.bREG.LCDC = 1;                            /* unmask LCDC */
+    gvioc_mask0 = 0;                                        /* Clear mask value for VIOC */
+    gvioc_mask1 = 0;
 	}
 
 /* end of file */

@@ -56,6 +56,12 @@
 #define SENSOR_ENABLE			1
 #define SENSOR_DISABLE			0
 
+#define SENSOR_SUPPORT			1
+#define SENSOR_NOT_SUPPORT	0
+
+#define SENSOR_G_MASK			0x1
+#define SENSOR_T_MASK			0x2
+
 #define BMA_DEBUG    	0
 #define BMA_DEBUG_D  	0
 
@@ -221,6 +227,8 @@ static int sensor_used_count=0;
 #define BMA_DATA_ABS			(1<<(BMA_DATA_BIT_WIDTH-1))
 #define ABSMIN					(-BMA_DATA_ABS)
 #define ABSMAX					(BMA_DATA_ABS)
+#define BMA_TEMPERATURE_RESOLUTION	2
+#define BMA_TEMPERATURE_CENTER		24
 
 #define BMA250_I2C_ADDRESS      	0x18
 #define BMA_CHIP_ID_REG		BMA250_CHIP_ID_REG
@@ -232,7 +240,10 @@ static int sensor_used_count=0;
 #define SENSOR_NAME 			"tcc-accel"
 #define SENSOR_HAL_NAME		"BMA250 3-axis Accelerometer"
 #define SENSOR_CALIBRATION_MODE	(CALIBRATION_HW_AUTO)
-#define SENSOR_DEF_DEVICE_TYPE	(DEVICE_TYPE_INPUT)
+#define SENSOR_DEF_DEVICE_TYPE	(DEVICE_TYPE_CHAR)
+#define SENSOR_TEMPERATURE_SUPPORT	(SENSOR_SUPPORT)
+#define SENSOR_TEMPERATURE_RESOLUTION (BMA_TEMPERATURE_RESOLUTION)
+#define SENSOR_TEMPERATURE_CENTER	(BMA_TEMPERATURE_CENTER)
 
 static void tcc_sensor_landscapeDevice2AndroidPortrait(struct bmasensoracc *sensor_accel);
 static void tcc_sensor_PortraitAndroid2AndroidPortrait(struct bmasensoracc *sensor_accel);
@@ -629,6 +640,16 @@ static int bma250_read_accel_xyz(struct i2c_client *client,
 	return comres;
 }
 
+static int bma250_read_temperature(struct i2c_client *client,
+		signed char *temperature)
+{
+	signed char data;
+
+	data = SENSOR_READ_DAT(client,BMA250_TEMP_RD_REG);	
+	*temperature = data;
+	//printk("    temperature = %d \n",data);
+	return 0;
+}
 
 int tcc_sensor_set_range(struct i2c_client *client,char range) 
 {			
@@ -687,6 +708,13 @@ static int tcc_sensor_read_accel_xyz(struct i2c_client *client,
 {
 	// TODO : get the accelerometer data form chip
 	return bma250_read_accel_xyz(client, acc);
+}
+
+static int tcc_sensor_read_temperature(struct i2c_client *client,
+		signed char *temperature)
+{
+	// TODO : get the accelerometer data form chip
+	return bma250_read_temperature(client, temperature);
 }
 
 static int tcc_sensor_chip_init(struct i2c_client *client)
@@ -793,7 +821,7 @@ static ssize_t tcc_sensor_attr_resolution_store(struct device *dev,
 	return count;
 }
 
-static ssize_t tcc_sensor_attr_usingindev_show(struct device *dev,
+static ssize_t tcc_sensor_attr_inputdevice_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
 	struct i2c_client *client = to_i2c_client(dev);
@@ -803,7 +831,7 @@ static ssize_t tcc_sensor_attr_usingindev_show(struct device *dev,
 
 }
 
-static ssize_t tcc_sensor_attr_usingindev_store(struct device *dev,
+static ssize_t tcc_sensor_attr_inputdevice_store(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf, size_t count)
 {
@@ -876,7 +904,7 @@ static void tcc_sensor_set_enable_by_client_for_calibration(struct bmasensor_dat
 	mutex_lock(&sensor_data->enable_mutex);
 	
 	if (enable) {
-		if (pre_enable ==1) {
+		if (pre_enable !=0) {
 			#ifdef SENSOR_TUNING
 			schedule_delayed_work(&sensor_data->work,
 					msecs_to_jiffies(atomic_read(&sensor_data->realDelay)));
@@ -887,7 +915,7 @@ static void tcc_sensor_set_enable_by_client_for_calibration(struct bmasensor_dat
 		}
 
 	} else {
-		if (pre_enable ==1) {
+		if (pre_enable !=0) {
 			cancel_delayed_work_sync(&sensor_data->work);
 		}
 	}
@@ -898,12 +926,14 @@ static void tcc_sensor_set_enable_by_client_for_calibration(struct bmasensor_dat
 static void tcc_sensor_attr_set_enable_by_client(struct bmasensor_data *sensor_data, int enable)
 {
 	int pre_enable = atomic_read(&sensor_data->enable);
+	int what = ((enable&SENSOR_T_MASK) != 0)? 2:1;
+	int enableDisable = enable&SENSOR_ENABLE;
 
 	sensor_dbg(KERN_INFO "%s : enable = %d \n", __FUNCTION__,enable);	
 
 	mutex_lock(&sensor_data->enable_mutex);
 	
-	if (enable) {
+	if (enableDisable) {
 		if (pre_enable ==0) {
 			//TODO : set the sensor mode to normal mode
 			#ifdef SENSOR_TUNING
@@ -913,16 +943,18 @@ static void tcc_sensor_attr_set_enable_by_client(struct bmasensor_data *sensor_d
 			schedule_delayed_work(&sensor_data->work,
 					msecs_to_jiffies(atomic_read(&sensor_data->delay)));
 			#endif
-			atomic_set(&sensor_data->enable, 1);
 		}
-
+		pre_enable |= what;
+		atomic_set(&sensor_data->enable, pre_enable);
 	} else {
-		if (pre_enable ==1) {
+		pre_enable = pre_enable&(~what);
+		if (pre_enable ==0) {
 			//TODO : set the sensor mode to suspend mode
 			cancel_delayed_work_sync(&sensor_data->work);
-			atomic_set(&sensor_data->enable, 0);
 		}
+		atomic_set(&sensor_data->enable, pre_enable);
 	}
+	//printk(" ~~~~set enable = 0x%x enableDisable=0x%x pre_enable =0x%x\n",enable,enableDisable,pre_enable);
 	mutex_unlock(&sensor_data->enable_mutex);
 
 }
@@ -947,7 +979,7 @@ static ssize_t tcc_sensor_attr_enable_store(struct device *dev,
 	
 	if (error)
 		return error;
-	if ((data == 0)||(data==1)) {
+	if ((data >= 0) && (data<4)) {
 		tcc_sensor_attr_set_enable(dev,data);
 	}
 
@@ -967,29 +999,47 @@ static ssize_t tcc_sensor_attr_halname_store(struct device *dev,
 	return 0;
 }
 
+static ssize_t tcc_sensor_attr_temperature_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d %d %d\n", SENSOR_TEMPERATURE_SUPPORT, 
+		SENSOR_TEMPERATURE_CENTER,SENSOR_TEMPERATURE_RESOLUTION);
+	//return sprintf(buf, "%d %d %d\n", 1,24,2);
+}
+
+static ssize_t tcc_sensor_attr_temperature_store(struct device *dev,
+		struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+	return 0;
+}
+
 static DEVICE_ATTR(delay, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
 		tcc_sensor_attr_delay_show, tcc_sensor_attr_delay_store);
 static DEVICE_ATTR(enable, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
 		tcc_sensor_attr_enable_show, tcc_sensor_attr_enable_store);
 static DEVICE_ATTR(resolution, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
 		tcc_sensor_attr_resolution_show, tcc_sensor_attr_resolution_store);
-static DEVICE_ATTR(usingindev, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
-		tcc_sensor_attr_usingindev_show, tcc_sensor_attr_usingindev_store);
+static DEVICE_ATTR(inputdevice, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
+		tcc_sensor_attr_inputdevice_show, tcc_sensor_attr_inputdevice_store);
 static DEVICE_ATTR(calibration, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
 		tcc_sensor_attr_calibration_show, tcc_sensor_attr_calibration_store);
 static DEVICE_ATTR(autocalibration, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
 		tcc_sensor_attr_autocalibration_show, tcc_sensor_attr_autocalibration_store);
 static DEVICE_ATTR(halname, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
 		tcc_sensor_attr_halname_show, tcc_sensor_attr_halname_store);
+static DEVICE_ATTR(temperature, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
+		tcc_sensor_attr_temperature_show, tcc_sensor_attr_temperature_store);
 	
 static struct attribute *tcc_sensor_attributes[] = {
 	&dev_attr_delay.attr,
 	&dev_attr_enable.attr,
 	&dev_attr_resolution.attr,
-	&dev_attr_usingindev.attr,
+	&dev_attr_inputdevice.attr,
 	&dev_attr_calibration.attr,
 	&dev_attr_autocalibration.attr,
 	&dev_attr_halname.attr,
+	&dev_attr_temperature.attr,
 	NULL
 };
 
@@ -1149,6 +1199,7 @@ static void tcc_sensor_avg_data(struct bmasensoracc *avgAcc,struct bmasensoracc 
 static void tcc_sensor_work_func(struct work_struct *work)
 {
 	int pre_enable;
+	int usedAsInputDevice = 0;
 
 	struct bmasensor_data *sensor_data = container_of((struct delayed_work *)work,
 			struct bmasensor_data, work);
@@ -1162,32 +1213,50 @@ static void tcc_sensor_work_func(struct work_struct *work)
 	unsigned long delay = msecs_to_jiffies(atomic_read(&sensor_data->delay));
 	#endif			
 	struct i2c_client *client = sensor_data->i2cClient;
+	int sensorWhat = atomic_read(&sensor_data->enable);
 
-	tcc_sensor_read_accel_xyz(client, &acc);
+	if(sensorWhat & SENSOR_G_MASK){
+		tcc_sensor_read_accel_xyz(client, &acc);
 
-	tcc_sensor_set_data(sensor_data,&acc);
+		tcc_sensor_set_data(sensor_data,&acc);
 
-	#ifdef SENSOR_TUNING
-	if(delay == 0)
-		delay = 1;
-	tcc_sensor_avg_data(avgAcc,&acc);
-	checkCnt++;
-	atomic_set(&sensor_data->realDelayCnt, checkCnt);
-	if(checkCnt < triggerCnt){
-		goto set_schedule;
+		#ifdef SENSOR_TUNING
+		if(delay == 0)
+			delay = 1;
+		tcc_sensor_avg_data(avgAcc,&acc);
+		checkCnt++;
+		atomic_set(&sensor_data->realDelayCnt, checkCnt);
+		if(checkCnt < triggerCnt){
+			goto set_schedule;
+		}
+		atomic_set(&sensor_data->realDelayCnt, 0);
+		#endif
 	}
-	atomic_set(&sensor_data->realDelayCnt, 0);
-	#endif
 
 	sensor_dbg(KERN_INFO "%s %d %d %d \n", __FUNCTION__,acc.x,acc.y,acc.z);
+
+	usedAsInputDevice = atomic_read(&sensor_data->inputDevice);
+
+	//if(SENSOR_TEMPERATURE_SUPPORT == SENSOR_SUPPORT)
+	if(sensorWhat & SENSOR_T_MASK)
+	{
+		signed char temperature = 0;		
+		tcc_sensor_read_temperature(client, &temperature);		
+		input_report_abs(sensor_data->input, ABS_THROTTLE, (int)temperature);
+	}
 	
-       if(atomic_read(&sensor_data->inputDevice))
+       if(usedAsInputDevice && (sensorWhat & SENSOR_G_MASK))
        {
 	    input_report_abs(sensor_data->input, ABS_X, acc.x);
 	    input_report_abs(sensor_data->input, ABS_Y, acc.y);
 	    input_report_abs(sensor_data->input, ABS_Z, acc.z);
-	    input_sync(sensor_data->input);
        }
+
+	if(usedAsInputDevice || (sensorWhat & SENSOR_T_MASK))
+	{
+	    input_sync(sensor_data->input);
+	}
+
 	mutex_lock(&sensor_data->value_mutex);
 	sensor_data->value = acc;
 	mutex_unlock(&sensor_data->value_mutex);
@@ -1253,6 +1322,7 @@ static int sensor_i2c_probe(struct i2c_client *client, const struct i2c_device_i
 	input_set_abs_params(dev, ABS_X, ABSMIN, ABSMAX, 0, 0);
 	input_set_abs_params(dev, ABS_Y, ABSMIN, ABSMAX, 0, 0);
 	input_set_abs_params(dev, ABS_Z, ABSMIN, ABSMAX, 0, 0);
+	input_set_abs_params(dev, ABS_THROTTLE, -128, 128, 0, 0);
 
 	input_set_drvdata(dev, data);
 
@@ -1299,7 +1369,7 @@ static int sensor_i2c_suspend(struct i2c_client *client, pm_message_t mesg)
 	struct bmasensor_data *sensor_data = i2c_get_clientdata(client);
 
 	mutex_lock(&sensor_data->enable_mutex);
-	if (atomic_read(&sensor_data->enable)==1) {
+	if (atomic_read(&sensor_data->enable)!=0) {
 		cancel_delayed_work_sync(&sensor_data->work);
 	}
 	mutex_unlock(&sensor_data->enable_mutex);
@@ -1312,7 +1382,7 @@ static int sensor_i2c_resume(struct i2c_client *client)
 	struct bmasensor_data *sensor_data = i2c_get_clientdata(client);
 
 	mutex_lock(&sensor_data->enable_mutex);
-	if (atomic_read(&sensor_data->enable)==1) {
+	if (atomic_read(&sensor_data->enable)!=0) {
 		#ifdef SENSOR_TUNING
 		schedule_delayed_work(&sensor_data->work,
 				msecs_to_jiffies(atomic_read(&sensor_data->realDelay)));	
@@ -1378,6 +1448,42 @@ static long tcc_sensor_ioctl(struct file *filp, unsigned int cmd, void *arg)
 	
     switch (cmd)
     {
+        case IOCTL_SENSOR_SET_INPUTDEVICE:
+        {
+            unsigned int value = 0;
+            if(copy_from_user((void *)&value, (unsigned int*) arg, sizeof(unsigned int))!=0)
+            {
+                sensor_dbg("copy_from error\n");
+            }					
+            sensor_dbg(KERN_INFO "%s:  IOCTL_SENSOR_SET_INPUTDEVICE (0x%x) %d \n", __FUNCTION__, cmd, value);
+            atomic_set(&mData->inputDevice, value);		
+        }
+            break;
+        case IOCTL_SENSOR_GET_RESOLUTION:
+        {
+            unsigned int value = 0;
+            value = BMA_1G_RESOLUTIOIN;
+            if(copy_to_user((unsigned int*) arg, (const void *)&value, sizeof(unsigned int))!=0)
+            {
+                sensor_dbg("copy_to error\n");
+            }			
+            sensor_dbg(KERN_INFO "%s:  IOCTL_SENSOR_GET_RESOLUTION (0x%x) %d \n", __FUNCTION__, cmd, value);			
+        }
+            break;
+        case IOCTL_SENSOR_GET_TEMP_INFO:
+        {
+            unsigned int value[3];
+            value[0] = SENSOR_TEMPERATURE_SUPPORT;
+            value[1] = SENSOR_TEMPERATURE_CENTER;
+            value[2] = SENSOR_TEMPERATURE_RESOLUTION;
+	
+            if(copy_to_user((unsigned int*) arg, (const void *)&value[0], sizeof(unsigned int)*3)!=0)
+            {
+                sensor_dbg("copy_to error\n");
+            }			
+            sensor_dbg(KERN_INFO "%s:  IOCTL_SENSOR_GET_TEMP_INFO (0x%x) %d %d %d \n", __FUNCTION__, cmd, value[0],value[1],value[2]);				
+        }
+            break;  
         default:
             sensor_dbg("sensor: unrecognized ioctl (0x%x)\n", cmd); 
             return -EINVAL;
@@ -1399,7 +1505,7 @@ static int tcc_sensor_release(struct inode *inode, struct file *filp)
     {
         if(mData != NULL && mData->i2cClient != NULL)
             tcc_sensor_attr_set_enable_by_client(mData, SENSOR_DISABLE);
-        atomic_set(&mData->inputDevice,DEVICE_TYPE_INPUT);
+        //atomic_set(&mData->inputDevice,DEVICE_TYPE_INPUT);
     }
     return 0;
 }

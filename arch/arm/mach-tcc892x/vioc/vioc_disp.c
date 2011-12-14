@@ -18,7 +18,7 @@
 *    2011/08/15     0.1            created                      hskim
 *******************************************************************************/
 #include <mach/vioc_disp.h>
-
+#include <mach/globals.h>
 VIOC_TIMING_INFO gVIOC_DefaultTimeSet[VIOC_DEFAUKLT_TIME_MAX] = 
 {
 	{VIOC_HDMI_1920X1080P_60Hz, 	0, 0, 0, 0, 0, 1, 0, 43, 1919, 147, 87, 4, 1079, 35, 3, 4, 1079, 35, 3},
@@ -84,22 +84,38 @@ void VIOC_DISP_SetDefaultTimingParam	(VIOC_DISP *pDISP, unsigned int  nType)
 
 void VIOC_DISP_SetSize(VIOC_DISP *pDISP, unsigned int nWidth, unsigned int nHeight)
 {
-	pDISP->uLSIZE.bREG.HSIZE = nWidth;
-	pDISP->uLSIZE.bREG.VSIZE = nHeight;
+	//pDISP->uLSIZE.bREG.HSIZE = nWidth;
+	//pDISP->uLSIZE.bREG.VSIZE = nHeight;
+
+	BITCSET(pDISP->uLSIZE.nREG, 0xFFFFFFFF, (nHeight << 16) | (nWidth) );	
 }
 
+
+void VIOC_DISP_GetSize(VIOC_DISP *pDISP, unsigned int *nWidth, unsigned int *nHeight)
+{
+	*nWidth = pDISP->uLSIZE.bREG.HSIZE;
+	*nHeight = pDISP->uLSIZE.bREG.VSIZE;
+}
+
+// BG0 : Red, 	BG1 : Green , 	BG2, Blue
 void VIOC_DISP_SetBGColor(VIOC_DISP *pDISP, unsigned int BG0, unsigned int BG1, unsigned int BG2)
 {
+	/*
 	pDISP->uBG.bREG.BG0 = BG0;
 	pDISP->uBG.bREG.BG1 = BG1;
 	pDISP->uBG.bREG.BG2 = BG2;
 	pDISP->uBG.bREG.BG3 = 1;
+	*/
+
+	BITCSET(pDISP->uBG.nREG,0xFFFFFFFF, 1 << 24 | BG2 << 16 | BG1 << 8 | BG0);
 }
 
 void VIOC_DISP_SetPosition(VIOC_DISP *pDISP, unsigned int startX, unsigned int startY )
 {
-	pDISP->uLPOS.bREG.XPOS = startX;
-	pDISP->uLPOS.bREG.YPOS = startY;
+	//pDISP->uLPOS.bREG.XPOS = startX;
+	//pDISP->uLPOS.bREG.YPOS = startY;
+
+	BITCSET(pDISP->uLPOS.nREG, 0x1FFF1FFF, startY << 16 | startX);
 }
 
 void VIOC_DISP_GetPosition(VIOC_DISP *pDISP, unsigned int *startX, unsigned int *startY )
@@ -110,47 +126,72 @@ void VIOC_DISP_GetPosition(VIOC_DISP *pDISP, unsigned int *startX, unsigned int 
 
 void VIOC_DISP_SetColorEnhancement(VIOC_DISP *pDISP, signed char  contrast, signed char  brightness, signed char  hue )
 {
+	/*
 	pDISP->uLENH.bREG.CONRAST = contrast;
 	pDISP->uLENH.bREG.BRIGHTNESS = brightness;
 	pDISP->uLENH.bREG.HUE = hue;
+	*/
+	
+	BITCSET(pDISP->uLENH.nREG, 0x00FFFFFF, hue << 24 | brightness << 16 || contrast );
 }
 
 void VIOC_DISP_GetColorEnhancement(VIOC_DISP *pDISP, signed char  *contrast, signed char  *brightness, signed char *hue )
 {
+	/*
 	*contrast = pDISP->uLENH.bREG.CONRAST;
 	*brightness = pDISP->uLENH.bREG.BRIGHTNESS;
 	*hue = pDISP->uLENH.bREG.HUE;
+	*/
+	*contrast = pDISP->uLENH.nREG & 0xFF;
+	*brightness = pDISP->uLENH.nREG & 0xFF00; 
+	*hue = pDISP->uLENH.nREG & 0xFF0000; 
 }
 
 void VIOC_DISP_SetClippingEnable(VIOC_DISP *pDISP, unsigned int enable)
 {
-	pDISP->uCTRL.bREG.CLEN = enable;
+	//pDISP->uCTRL.bREG.CLEN = enable;
+	BITCSET(pDISP->uCTRL.nREG, 1<11,enable<<11);
 }
 
 void VIOC_DISP_GetClippingEnable(VIOC_DISP *pDISP, unsigned int *enable)
 {
-	*enable = pDISP->uCTRL.bREG.CLEN;
+	//*enable = pDISP->uCTRL.bREG.CLEN;
+	*enable = pDISP->uCTRL.nREG & (1<<11);
 }
 
 void VIOC_DISP_SetClipping(VIOC_DISP *pDISP, unsigned int uiUpperLimitY, unsigned int uiLowerLimitY, unsigned int uiUpperLimitUV, unsigned int uiLowerLimitUV)
 {
+	/*
 	pDISP->uCLIPY.bREG.CLPH = uiUpperLimitY;
 	pDISP->uCLIPY.bREG.CLPL = uiLowerLimitY;
 	pDISP->uCLIPC.bREG.CLPH = uiUpperLimitUV;
 	pDISP->uCLIPC.bREG.CLPL = uiLowerLimitUV;
+	*/
+
+	BITCSET(pDISP->uCLIPY.nREG, 0x00FF00FF, uiUpperLimitY << 16 | uiLowerLimitY );
+	BITCSET(pDISP->uCLIPC.nREG, 0x00FF00FF, uiUpperLimitUV<< 16 | uiLowerLimitUV);	
+	
 }
 
 void VIOC_DISP_GetClipping(VIOC_DISP *pDISP, unsigned int *uiUpperLimitY, unsigned int *uiLowerLimitY, unsigned int *uiUpperLimitUV, unsigned int *uiLowerLimitUV)
 {
+	/*
 	*uiUpperLimitY = pDISP->uCLIPY.bREG.CLPH;
 	*uiLowerLimitY = pDISP->uCLIPY.bREG.CLPL;
 	*uiUpperLimitUV = pDISP->uCLIPC.bREG.CLPH;
 	*uiLowerLimitUV = pDISP->uCLIPC.bREG.CLPL;
+	*/
+
+	*uiUpperLimitY = pDISP->uCLIPY.nREG & 0x00FF0000;
+	*uiLowerLimitY = pDISP->uCLIPY.nREG & 0x000000FF;
+	*uiUpperLimitUV = pDISP->uCLIPC.nREG & 0x00FF0000;
+	*uiLowerLimitUV = pDISP->uCLIPC.nREG & 0x000000FF;
+	
 }
 
 void VIOC_DISP_SetDither(VIOC_DISP *pDISP, unsigned int ditherEn, unsigned int ditherSel, unsigned char mat[4][4])
 {
-
+#if 0
 	pDISP->uDMAT.bREG.DITH00 = mat[0][0];
 	pDISP->uDMAT.bREG.DITH01 = mat[0][1];
 	pDISP->uDMAT.bREG.DITH02 = mat[0][2];
@@ -173,11 +214,20 @@ void VIOC_DISP_SetDither(VIOC_DISP *pDISP, unsigned int ditherEn, unsigned int d
 
 	pDISP->uDITHCTRL.bREG.DEN = ditherEn; /* Dither Enable*/
 	pDISP->uDITHCTRL.bREG.DSEL = ditherSel; /*Dither Mode 0: LSB Toggle mode, 1: Adder Mode */
+#endif
+	BITCSET(pDISP->uDMAT.nREG[0], 0x00007777, mat[0][3] << 12 | mat[0][2] << 8 | mat[0][1] << 4 | mat[0][0] );
+	BITCSET(pDISP->uDMAT.nREG[0], 0x77770000, mat[1][3] << 28 | mat[1][2] << 24 | mat[1][1] << 18 | mat[1][0] << 16 );
+
+	BITCSET(pDISP->uDMAT.nREG[1], 0x00007777, mat[2][3] << 12 | mat[2][2] << 8 | mat[2][1] << 4 | mat[2][0] );
+	BITCSET(pDISP->uDMAT.nREG[1], 0x77770000, mat[3][3] << 28 | mat[3][2] << 24 | mat[3][1] << 18 | mat[3][0] << 16 );
+
+	BITCSET(pDISP->uDITHCTRL.nREG, 0x3 << 30, ditherEn << 31 | ditherSel << 30 );
 
 }
 
 void VIOC_DISP_SetTimingParam (VIOC_DISP *pDISP, stLTIMING *pTimeParam)
 {
+	/*
 	pDISP->uLHTIME1.bREG.LPC = pTimeParam->lpc - 1;
 	pDISP->uLHTIME1.bREG.LPW = pTimeParam->lpw;
 	pDISP->uLHTIME2.bREG.LEWC = pTimeParam->lewc -1;
@@ -190,10 +240,29 @@ void VIOC_DISP_SetTimingParam (VIOC_DISP *pDISP, stLTIMING *pTimeParam)
 	pDISP->uLVTIME3.bREG.FPW = pTimeParam->fpw2;
 	pDISP->uLVTIME4.bREG.FEWC = pTimeParam->fewc2;
 	pDISP->uLVTIME4.bREG.FSWC = pTimeParam->fswc2;
+	*/
+
+//	Horizon
+	BITCSET(pDISP->uLHTIME1.nREG, 0x00003FFF, (pTimeParam->lpc - 1) );
+	BITCSET(pDISP->uLHTIME1.nREG, 0x01FF0000, pTimeParam->lpw << 16 );
+	BITCSET(pDISP->uLHTIME2.nREG, 0x01FF01FF, ((pTimeParam->lswc-1) << 16) | (pTimeParam->lewc -1));
+
+//	Vertical timing
+	BITCSET(pDISP->uLVTIME1.nREG, 0x00003FFF, pTimeParam->flc);
+	BITCSET(pDISP->uLVTIME1.nREG, 0x3F << 16 , pTimeParam->fpw << 16);	
+	BITCSET(pDISP->uLVTIME2.nREG, 0x01FF01FF,  pTimeParam->fswc | (pTimeParam->fewc << 16));
+
+	BITCSET(pDISP->uLVTIME3.nREG, 0x00003FFF, pTimeParam->flc2);
+	BITCSET(pDISP->uLVTIME3.nREG, 0x3F << 16 , pTimeParam->fpw2 << 16);	
+	BITCSET(pDISP->uLVTIME4.nREG, 0x01FF01FF, pTimeParam->fswc2 |  (pTimeParam->fewc2 << 16));
+	
+	
 }
 
 void VIOC_DISP_SetControlConfigure(VIOC_DISP *pDISP, stLCDCTR *pCtrlParam)
 {
+	
+#if 0
 	/* Default 0x00 */
 	pDISP->uCTRL.nREG = 0;
 	/*pDISP->uCTRL.bREG.SWAP = pCtrlParam-> */
@@ -215,18 +284,43 @@ void VIOC_DISP_SetControlConfigure(VIOC_DISP *pDISP, stLCDCTR *pCtrlParam)
 	pDISP->uCTRL.bREG.DP = pCtrlParam->dp;
 	pDISP->uCTRL.bREG.NI = pCtrlParam->ni;
 	pDISP->uCTRL.bREG.TV = pCtrlParam->tv;
+
+
+#else
+	BITCSET(pDISP->uCTRL.nREG,0xFFFFFFFF,
+								(pCtrlParam->evp << 31 ) |
+								(pCtrlParam->evs << 30 ) |
+								(pCtrlParam->r2ymd << 28 ) |
+								(pCtrlParam->ccir656 << 24 ) |								
+								(pCtrlParam->ckg << 23 ) |
+								(1  << 22 /*Reset default*/ ) |							
+								(pCtrlParam->id << 15) |
+								(pCtrlParam->iv << 14) |
+								(pCtrlParam->ih<< 13) |
+								(pCtrlParam->ip<< 12) |
+								(pCtrlParam->clen << 11 ) |
+								(pCtrlParam->r2y << 10) |
+								(pCtrlParam->pxdw << 16 ) |
+								(pCtrlParam->dp <<9) |
+								(pCtrlParam->ni << 8 ) |	
+								(pCtrlParam->tv << 7 ) 
+			);
+#endif
+	
 }
 
 
 
 void VIOC_DISP_TurnOn (VIOC_DISP *pDISP)
 {
-	pDISP->uCTRL.bREG.LEN   = 1;
+	//pDISP->uCTRL.bREG.LEN   = 1;
+	BITCSET(pDISP->uCTRL.nREG, 0x1, 0x1);
 }
 
 void VIOC_DISP_TurnOff(VIOC_DISP *pDISP)
 {
-	pDISP->uCTRL.bREG.LEN   = 0;
+	//pDISP->uCTRL.bREG.LEN   = 0;
+	BITCSET(pDISP->uCTRL.nREG, 0x1, 0x0);
 }
 
 void VIOC_DISP_SetControl(VIOC_DISP *pDISP, stLCDCPARAM *pLcdParam)
@@ -262,11 +356,13 @@ void VIOC_DISP_SetIreqMask(VIOC_DISP * pDISP, unsigned int mask, unsigned int se
 {
 	if( set == 0 ) /* Interrupt Enable*/
 	{
-		pDISP->uLIRQMASK.nREG &= ~mask;
+		//pDISP->uLIRQMASK.nREG &= ~mask;
+		BITSCLR(pDISP->uLIRQMASK.nREG, mask,mask);
 	}
 	else/* Interrupt Diable*/
 	{
-		pDISP->uLIRQMASK.nREG |= mask;
+		//pDISP->uLIRQMASK.nREG |= mask;
+		BITCSET(pDISP->uLIRQMASK.nREG, mask,mask);
 	}
 }
 

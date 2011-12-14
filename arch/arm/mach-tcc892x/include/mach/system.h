@@ -67,7 +67,8 @@ static inline void arch_reset(char mode, const char *cmd)
 	pPMU->PWRUP_DBUS.bREG.DATA = 0;
 	pPMU->PWRUP_HSBUS.bREG.DATA = 0;
 
-	pIOBUSCFG->HCLKEN.nREG = 0xFFFFFFFFFFFFFFFFLL;	// clock enable
+	pIOBUSCFG->HCLKEN0.nREG = 0xFFFFFFFF;	// clock enable
+	pIOBUSCFG->HCLKEN1.nREG = 0xFFFFFFFF;	// clock enable
 
 	while (1) {
 		pPMU->PMU_WDTCTRL.nREG = (Hw31 + 0x1);

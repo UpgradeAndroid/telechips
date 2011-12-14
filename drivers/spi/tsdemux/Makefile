@@ -1,0 +1,3 @@
+obj-$(CONFIG_SPI_TCCXXXX_TSIF_SLAVE)    += TSDEMUX_sys.o
+obj-$(CONFIG_TSIF_TCCXXXX)    += TSDEMUX_sys.o
+

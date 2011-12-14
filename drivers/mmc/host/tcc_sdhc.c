@@ -42,6 +42,7 @@
 #include <linux/mmc/card.h>
 #include <linux/clk.h>
 #include <linux/gpio.h>
+#include <linux/irq.h>
 
 #include <linux/pci.h>
 
@@ -1217,54 +1218,59 @@ static void tcc_mmc_timeout_timer(unsigned long data)
 static void init_mmc_host(struct tcc_mmc_host *host)
 {
 	unsigned int temp_val;
-//	PGPIO pGPIO = (PGPIO)tcc_p2v(HwGPIO_BASE);
 	PSDCHCTRL sdctrl = (PSDCHCTRL)tcc_p2v(HwSDMMC_CHCTRL_BASE); 	
 
 	clk_set_rate(host->fclk, 48*1000*1000);
 	host->peri_clk = clk_get_rate(host->fclk);
 	SD_DEBUG("tcc-sdhc%d: clock %lu\n", host->id, host->peri_clk);
 
+	writel(0x03ff00ff, host->iobase+TCCSDHC_INT_ENABLE);
+	writel(0x03ff01ff, host->iobase+TCCSDHC_SIGNAL_ENABLE);
+
+	temp_val= readw(host->iobase+TCCSDHC_TIMEOUT_CONTROL)&(0xFF00);
+	writew(temp_val | (0x000E),host->iobase+TCCSDHC_TIMEOUT_CONTROL);
+
+	temp_val = readw(host->iobase+TCCSDHC_HOST_CONTROL);
+	temp_val &= ~(HwSD_POWER_SD4 | HwSD_POWER_SD8);
+	writew(temp_val, host->iobase+TCCSDHC_HOST_CONTROL);
+	writew(temp_val|HwSD_POWER_POW, host->iobase+TCCSDHC_HOST_CONTROL);
+
+#if defined(CONFIG_ARCH_TCC892X)
+	switch (host->pdata->slot % 4) {
+		case 0:
+			sdctrl->SD0CMDDAT.nREG = 0x3F3F3F3F;
+			sdctrl->SD0CAPREG0.nREG = 0x0CFF9870;
+			break;
+		case 1:
+			sdctrl->SD1CMDDAT.nREG = 0x3F3F3F3F;
+			sdctrl->SD1CAPREG0.nREG = 0x0CFF9870;
+			break;
+		case 2:
+			sdctrl->SD2CMDDAT.nREG = 0x3F3F3F3F;
+			sdctrl->SD2CAPREG0.nREG = 0x0CFF9870;
+			break;
+		case 3:
+			sdctrl->SD3CMDDAT.nREG = 0x3F3F3F3F;
+			sdctrl->SD3CAPREG0.nREG = 0x0CFF9870;
+			break;
+		default:
+			break;
+	}
+#else
 	switch (host->id) {
 		case 0:
 		{
-			writel(0x03ff00ff, host->iobase+TCCSDHC_INT_ENABLE);
-			writel(0x03ff01ff, host->iobase+TCCSDHC_SIGNAL_ENABLE);
-
-			temp_val= readw(host->iobase+TCCSDHC_TIMEOUT_CONTROL)&(0xFF00);
-			writew(temp_val | (0x000E),host->iobase+TCCSDHC_TIMEOUT_CONTROL);						
-
-			temp_val = readw(host->iobase+TCCSDHC_HOST_CONTROL);
-			temp_val &= ~(HwSD_POWER_SD4 | HwSD_POWER_SD8);
-			writew(temp_val, host->iobase+TCCSDHC_HOST_CONTROL);			
-			writew(temp_val|HwSD_POWER_POW, host->iobase+TCCSDHC_HOST_CONTROL);
-
 #if defined(CONFIG_ARCH_TCC88XX)
 			sdctrl->SD1PRESET1 = 0x0CFF9870;
-
-//			BITCSET(sdctrl->SD1CMDDAT,0x3F3F3F3F, 0x003F003F);			
 #elif defined(CONFIG_ARCH_TCC93XX)
 			BITCSET(sdctrl->SD0CMDDAT,0x3F3F3F3F, 0x3F3F3F3F);			
 #endif
-			
 			break;
 		}
 		case 1:
 		{			
-			writel(0x03ff00ff, host->iobase+TCCSDHC_INT_ENABLE);   
-			writel(0x03ff01ff, host->iobase+TCCSDHC_SIGNAL_ENABLE); 		
-			
-			temp_val= readw(host->iobase+TCCSDHC_TIMEOUT_CONTROL)&(0xFF00);
-			writew(temp_val | (0x000E),host->iobase+TCCSDHC_TIMEOUT_CONTROL);	
-
-			temp_val = readw(host->iobase+TCCSDHC_HOST_CONTROL);
-			temp_val &= ~(HwSD_POWER_SD4 | HwSD_POWER_SD8);
-			writew(temp_val, host->iobase+TCCSDHC_HOST_CONTROL);			
-			writew(temp_val|HwSD_POWER_POW, host->iobase+TCCSDHC_HOST_CONTROL);
-
 #if defined(CONFIG_ARCH_TCC88XX)
 			sdctrl->SD3PRESET1 = 0x0CFF9870;
-
-//			BITCSET(sdctrl->SD3CMDDAT,0x003F003F, 0x003F003F);
 #elif defined(CONFIG_ARCH_TCC93XX)
 			BITCSET(sdctrl->SD1CMDDAT,0x3F3F3F3F, 0x3F3F3F3F);			
 #endif
@@ -1272,21 +1278,8 @@ static void init_mmc_host(struct tcc_mmc_host *host)
 		}
 		case 2:
 		{
-			writel(0x03ff00ff, host->iobase+TCCSDHC_INT_ENABLE);   
-			writel(0x03ff01ff, host->iobase+TCCSDHC_SIGNAL_ENABLE); 		
-
-			temp_val= readw(host->iobase+TCCSDHC_TIMEOUT_CONTROL)&(0xFF00);
-			writew(temp_val | (0x000E),host->iobase+TCCSDHC_TIMEOUT_CONTROL);		
-
-			temp_val = readw(host->iobase+TCCSDHC_HOST_CONTROL);
-			temp_val &= ~(HwSD_POWER_SD4 | HwSD_POWER_SD8);
-			writew(temp_val, host->iobase+TCCSDHC_HOST_CONTROL);			
-			writew(temp_val|HwSD_POWER_POW, host->iobase+TCCSDHC_HOST_CONTROL);
-
 #if defined(CONFIG_ARCH_TCC88XX)
 			sdctrl->SD2PRESET1 = 0x0CFF9870;
-			
-//			BITCSET(sdctrl->SD2CMDDAT,0x003F003F, 0x003F003F);			
 #elif defined(CONFIG_ARCH_TCC93XX)
 			BITCSET(sdctrl->SD2CMDDAT,0x3F3F3F3F, 0x3f3F3f3F);			
 #endif
@@ -1294,29 +1287,15 @@ static void init_mmc_host(struct tcc_mmc_host *host)
 		}
 		case 3:
 		{
-			//N/A in TCC8800 EVB
-			
-			writel(0x03ff00ff, host->iobase+TCCSDHC_INT_ENABLE);   
-			writel(0x03ff01ff, host->iobase+TCCSDHC_SIGNAL_ENABLE); 		
-			
-			temp_val= readw(host->iobase+TCCSDHC_TIMEOUT_CONTROL)&(0xFF00);
-			writew(temp_val | (0x000E),host->iobase+TCCSDHC_TIMEOUT_CONTROL);		
-
-			temp_val = readw(host->iobase+TCCSDHC_HOST_CONTROL);
-			temp_val &= ~(HwSD_POWER_SD4 | HwSD_POWER_SD8);
-			writew(temp_val, host->iobase+TCCSDHC_HOST_CONTROL);			
-			writew(temp_val|HwSD_POWER_POW, host->iobase+TCCSDHC_HOST_CONTROL);		
-
 #if defined(CONFIG_ARCH_TCC88XX)
 			sdctrl->SD0PRESET1 = 0x0CFF9870;			
-
-//			BITCSET(sdctrl->SD0CMDDAT,0x003F003F, 0x003F003F);
 #elif defined(CONFIG_ARCH_TCC93XX)
 			BITCSET(sdctrl->SD3CMDDAT,0x3F3F3F3F, 0x3F3F3F3F);
 #endif
 			break;
 		}
 	}
+#endif
 
 	if (host->pdata->init)
 		host->pdata->init(host->dev, host->id);
@@ -1328,7 +1307,6 @@ static int __init tcc_mmc_probe(struct platform_device *pdev)
 	struct mmc_host *mmc;
 	struct tcc_mmc_host *host = NULL;
 	volatile PPIC pPIC = (volatile PPIC)tcc_p2v(HwPIC_BASE);
-//	volatile PGPIO pGPIO = (volatile PGPIO)tcc_p2v(HwGPIO_BASE);
 	int ret = 0;
 
 	if (!pdata) {
@@ -1363,51 +1341,18 @@ static int __init tcc_mmc_probe(struct platform_device *pdev)
 		host->fclk = clk_get(NULL,"sdhc0");
 	}
 #elif defined(CONFIG_ARCH_TCC892X)
-	#if defined(CONFIG_MMC_TCC_SDHC2)	//for eMMC Booting
-	#if defined(CONFIG_WIFI_SUB_BOARD)	//for eMMC Booting + (BT+WiFi)
-	if(host->id == 0){
-		host->fclk = clk_get(NULL,"sdhc1");
-	} else if(host->id == 1){
-		host->fclk = clk_get(NULL,"sdhc0");
-	} else if(host->id == 2){
-		host->fclk = clk_get(NULL,"sdhc2");
-	} else if(host->id == 3){
-		host->fclk = clk_get(NULL,"sdhc3");
-	}
-	#else	// for eMMC Booting + WiFi
-	if(host->id == 0){
-		host->fclk = clk_get(NULL,"sdhc1");
-	} else if(host->id == 1){
-		host->fclk = clk_get(NULL,"sdhc0");
-	} else if(host->id == 2){
-		host->fclk = clk_get(NULL,"sdhc3");
-	} else if(host->id == 3){
-		host->fclk = clk_get(NULL,"sdhc2");
-	}
-	#endif
-	#else		// for NAND Booting
-	#if defined(CONFIG_WIFI_SUB_BOARD)	//for NAND Booting + (BT+WiFi)
-	if(host->id == 0){
-		host->fclk = clk_get(NULL,"sdhc0");
-	} else if(host->id == 1){
-		host->fclk = clk_get(NULL,"sdhc2");
-	} else if(host->id == 2){
-		host->fclk = clk_get(NULL,"sdhc1");
-	} else if(host->id == 3){
-		host->fclk = clk_get(NULL,"sdhc3");
-	}
-	#else	// for NAND Booting + WiFi
-	if(host->id == 0){
-		host->fclk = clk_get(NULL,"sdhc0");
-	} else if(host->id == 1){
-		host->fclk = clk_get(NULL,"sdhc3");
-	} else if(host->id == 2){
-		host->fclk = clk_get(NULL,"sdhc1");
-	} else if(host->id == 3){
-		host->fclk = clk_get(NULL,"sdhc2");
-	}
-	#endif
-	#endif
+	switch (host->pdata->slot % 4) {
+	case 0:
+		host->fclk = clk_get(NULL,"sdhc0");		break;
+	case 1:
+		host->fclk = clk_get(NULL,"sdhc1");		break;
+	case 2:
+		host->fclk = clk_get(NULL,"sdhc2");		break;
+	case 3:
+		host->fclk = clk_get(NULL,"sdhc3");		break;
+	default:
+		break;
+}
 #else
 	if(host->id == 0){
 		host->fclk = clk_get(NULL,"sdhc0");		
@@ -1526,12 +1471,18 @@ static int __init tcc_mmc_probe(struct platform_device *pdev)
 
 	setup_timer(&host->timer, tcc_mmc_timeout_timer, (unsigned long)host);
 
+#if defined(CONFIG_ARCH_TCC892X)
+	pPIC->SEL1.nREG		|= host->pdata->pic;
+	pPIC->INTMSK1.nREG	|= host->pdata->pic;
+	pPIC->MODE1.nREG 	|= host->pdata->pic;	// Level trigger
+#else
 	pPIC->SEL1		|= host->pdata->pic;
 	pPIC->INTMSK1	|= host->pdata->pic;
 	pPIC->MODE1 	|= host->pdata->pic;	// Level trigger
+#endif
 
 	snprintf(host->slot_desc, 16, "tcc-sdhc%d", host->id);
-	ret = request_irq(host->irq, tcc_mmc_interrupt_handler, IRQF_DISABLED, host->slot_desc, host);
+	ret = request_irq(host->irq, tcc_mmc_interrupt_handler, IRQF_DISABLED|IRQ_TYPE_LEVEL_HIGH, host->slot_desc, host);
 	if (ret)
 		goto error;
 
@@ -1553,7 +1504,7 @@ static int __init tcc_mmc_probe(struct platform_device *pdev)
 		if (host->pdata->cd_int_config)
 		{
 			if(host->pdata->cd_int_config(host->dev, host->id, host->cd_irq) == 0)
-				ret = request_irq(pdata->cd_irq_num, tcc_mmc_cd_irq, IRQF_DISABLED, host->slot_desc, host);
+				ret = request_irq(pdata->cd_irq_num, tcc_mmc_cd_irq, IRQF_DISABLED|IRQ_TYPE_EDGE_BOTH, host->slot_desc, host);
 		}
 		
 		if (ret)
@@ -1621,8 +1572,13 @@ static int tcc_mmc_suspend(struct platform_device *pdev, pm_message_t mesg)
 	}
 
 	//disable cd interrupt
+#if defined(CONFIG_ARCH_TCC892X)
+	if(!(host->cd_irq<0))
+		pPIC->INTMSK0.nREG &= ~(1<<host->cd_irq);
+#else
 	if(!(host->cd_irq<0))
 		pPIC->INTMSK0	&= ~(1<<host->cd_irq);
+#endif
  
 	if (host->pdata->suspend)
 		ret = host->pdata->suspend(&pdev->dev, host->id);	
@@ -1651,8 +1607,13 @@ static int tcc_mmc_resume(struct platform_device *pdev)
 	}
 
 	//enable cd interrupt
+#if defined(CONFIG_ARCH_TCC892X)
 	if(!(host->cd_irq<0))
-		pPIC->INTMSK0	|= 1<<host->cd_irq;	
+		pPIC->INTMSK0.nREG	|= 1<<host->cd_irq;
+#else
+	if(!(host->cd_irq<0))
+		pPIC->INTMSK0	|= 1<<host->cd_irq;
+#endif
 
 	return ret;
 }

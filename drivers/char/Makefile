@@ -51,8 +51,13 @@ obj-$(CONFIG_GPIO_TB0219)	+= tb0219.o
 obj-$(CONFIG_TELCLOCK)		+= tlclk.o
 
 obj-$(CONFIG_TCC_GRAPHIC)	+= tccgrp.o tcc_Gre2d.o tcc_Gre2d_api.o
-obj-$(CONFIG_TCC_MEMSCALER)	+= tcc_scaler.o tcc_scaler_ctrl.o
-obj-$(CONFIG_TCC_MEMSCALER1)	+= tcc_scaler1.o
+ifeq ($(CONFIG_ARCH_TCC892X), y)
+    obj-$(CONFIG_TCC_MEMSCALER)	 += tcc_scaler.o 
+    obj-$(CONFIG_TCC_MEMSCALER1) += tcc_scaler1.o
+else
+    obj-$(CONFIG_TCC_MEMSCALER)	 += tcc_scaler.o tcc_scaler_ctrl.o
+    obj-$(CONFIG_TCC_MEMSCALER1) += tcc_scaler1.o
+endif
 obj-$(CONFIG_TCC_HW_JPEG_ENC)	+= tcc_jpegenc.o tcc_jpegenc_app.o
 obj-$(CONFIG_TCC_HW_JPEG_DEC)	+= tcc_jpegdec.o tcc_jpegdec_app.o
 obj-$(CONFIG_TCC_VPU)		+= tcc_vpu.o
