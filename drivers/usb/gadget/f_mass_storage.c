@@ -293,10 +293,19 @@
 
 #include <linux/usb/ch9.h>
 #include <linux/usb/gadget.h>
+#include <linux/tcc_ioctl.h>
 #include <linux/usb/composite.h>
+#include <linux/dma-mapping.h>
 
 #include "gadget_chips.h"
 
+#ifdef CONFIG_ARCH_TCC
+#if defined(CONFIG_TCC_DWC_HS_ELECT_TST)
+#undef DMA_MODE
+#else
+#define DMA_MODE
+#endif
+#endif
 
 /*------------------------------------------------------------------------*/
 
@@ -440,7 +449,9 @@ struct fsg_dev {
 	struct fsg_common	*common;
 
 	u16			interface_number;
-
+#ifdef DMA_MODE
+	dma_addr_t dma;
+#endif
 	unsigned int		bulk_in_enabled:1;
 	unsigned int		bulk_out_enabled:1;
 
@@ -792,11 +803,12 @@ static int do_read(struct fsg_common *common)
 		amount = min(amount_left, FSG_BUFLEN);
 		amount = min((loff_t)amount,
 			     curlun->file_length - file_offset);
+		if (curlun->can_ioctl == 0) {				
 		partial_page = file_offset & (PAGE_CACHE_SIZE - 1);
 		if (partial_page > 0)
 			amount = min(amount, (unsigned int)PAGE_CACHE_SIZE -
 					     partial_page);
-
+		}
 		/* Wait for the next buffer to become available */
 		bh = common->next_buffhd_to_fill;
 		while (bh->state != BUF_STATE_EMPTY) {
@@ -821,9 +833,22 @@ static int do_read(struct fsg_common *common)
 
 		/* Perform the read */
 		file_offset_tmp = file_offset;
+		if (curlun->can_ioctl) {
+			struct storage_direct sdArg;
+			sdArg.buf = bh->buf;
+			sdArg.count = (size_t)amount;
+			sdArg.pos = file_offset_tmp;
+			sdArg.actual = 0;
+			sdArg.user_space = 0;
+			if(curlun->filp->f_op->unlocked_ioctl)
+				curlun->filp->f_op->unlocked_ioctl(curlun->filp, IOCTL_STORAGE_DIRECT_READ, (unsigned long)&sdArg);
+			file_offset_tmp = sdArg.pos;
+			nread = sdArg.actual;
+		} else {		
 		nread = vfs_read(curlun->filp,
 				 (char __user *)bh->buf,
 				 amount, &file_offset_tmp);
+		}		
 		VLDBG(curlun, "file read %u @ %llu -> %d\n", amount,
 		      (unsigned long long)file_offset, (int)nread);
 		if (signal_pending(current))
@@ -908,10 +933,12 @@ static int do_write(struct fsg_common *common)
 			curlun->sense_data = SS_INVALID_FIELD_IN_CDB;
 			return -EINVAL;
 		}
+		if (curlun->can_ioctl) {		
 		if (!curlun->nofua && (common->cmnd[1] & 0x08)) { /* FUA */
 			spin_lock(&curlun->filp->f_lock);
 			curlun->filp->f_flags |= O_SYNC;
 			spin_unlock(&curlun->filp->f_lock);
+			}
 		}
 	}
 	if (lba >= curlun->num_sectors) {
@@ -945,11 +972,12 @@ static int do_write(struct fsg_common *common)
 			amount = min(amount_left_to_req, FSG_BUFLEN);
 			amount = min((loff_t)amount,
 				     curlun->file_length - usb_offset);
+			if (curlun->can_ioctl == 0) {
 			partial_page = usb_offset & (PAGE_CACHE_SIZE - 1);
 			if (partial_page > 0)
 				amount = min(amount,
 	(unsigned int)PAGE_CACHE_SIZE - partial_page);
-
+			}
 			if (amount == 0) {
 				get_some_more = 0;
 				curlun->sense_data =
@@ -1018,9 +1046,22 @@ static int do_write(struct fsg_common *common)
 
 			/* Perform the write */
 			file_offset_tmp = file_offset;
+			if (curlun->can_ioctl) {
+				struct storage_direct sdArg;
+				sdArg.buf = bh->buf;
+				sdArg.count = (size_t)amount;
+				sdArg.pos = file_offset_tmp;
+				sdArg.actual = 0;
+				sdArg.user_space = 0;
+				if(curlun->filp->f_op->unlocked_ioctl)
+					curlun->filp->f_op->unlocked_ioctl(curlun->filp, IOCTL_STORAGE_DIRECT_WRITE, (unsigned long)&sdArg);
+				file_offset_tmp = sdArg.pos;
+				nwritten = sdArg.actual;
+			} else {
 			nwritten = vfs_write(curlun->filp,
 					     (char __user *)bh->buf,
 					     amount, &file_offset_tmp);
+			}		
 			VLDBG(curlun, "file write %u @ %llu -> %d\n", amount,
 			      (unsigned long long)file_offset, (int)nwritten);
 			if (signal_pending(current))
@@ -1164,9 +1205,22 @@ static int do_verify(struct fsg_common *common)
 
 		/* Perform the read */
 		file_offset_tmp = file_offset;
+		if (curlun->can_ioctl) {
+			struct storage_direct sdArg;
+			sdArg.buf = bh->buf;
+			sdArg.count = (size_t)amount;
+			sdArg.pos = file_offset_tmp;
+			sdArg.actual = 0;
+			sdArg.user_space = 0;
+			if(curlun->filp->f_op->unlocked_ioctl)
+				curlun->filp->f_op->unlocked_ioctl(curlun->filp, IOCTL_STORAGE_DIRECT_READ, (unsigned long)&sdArg);
+			file_offset_tmp = sdArg.pos;
+			nread = sdArg.actual;
+		} else {
 		nread = vfs_read(curlun->filp,
 				(char __user *) bh->buf,
 				amount, &file_offset_tmp);
+		}		
 		VLDBG(curlun, "file read %u @ %llu -> %d\n", amount,
 				(unsigned long long) file_offset,
 				(int) nread);
@@ -2422,6 +2476,9 @@ reset:
 		rc = alloc_request(common, fsg->bulk_out, &bh->outreq);
 		if (rc)
 			goto reset;
+#ifdef DMA_MODE
+		bh->inreq->dma = bh->outreq->dma = bh->dma;
+#endif
 		bh->inreq->buf = bh->outreq->buf = bh->buf;
 		bh->inreq->context = bh->outreq->context = bh;
 		bh->inreq->complete = bulk_in_complete;
@@ -2827,7 +2884,11 @@ static struct fsg_common *fsg_common_init(struct fsg_common *common,
 		bh->next = bh + 1;
 		++bh;
 buffhds_first_it:
+#ifdef DMA_MODE
+		bh->buf = dma_alloc_coherent(NULL, FSG_BUFLEN, &bh->dma, GFP_KERNEL | GFP_DMA);
+#else
 		bh->buf = kmalloc(FSG_BUFLEN, GFP_KERNEL);
+#endif		
 		if (unlikely(!bh->buf)) {
 			rc = -ENOMEM;
 			goto error_release;
@@ -2949,7 +3010,11 @@ static void fsg_common_release(struct kref *ref)
 		struct fsg_buffhd *bh = common->buffhds;
 		unsigned i = FSG_NUM_BUFFERS;
 		do {
+#ifdef DMA_MODE
+			dma_free_coherent (NULL, FSG_BUFLEN, bh->buf, bh->dma);	//for dma (AlenOh)
+#else
 			kfree(bh->buf);
+#endif			
 		} while (++bh, --i);
 	}
 

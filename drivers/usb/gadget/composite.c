@@ -25,9 +25,17 @@
 #include <linux/slab.h>
 #include <linux/device.h>
 #include <linux/utsname.h>
+#include <linux/dma-mapping.h>
 
 #include <linux/usb/composite.h>
 
+#ifdef CONFIG_ARCH_TCC
+#if defined(CONFIG_TCC_DWC_HS_ELECT_TST)
+#undef DMA_MODE
+#else
+#define DMA_MODE
+#endif
+#endif
 
 /*
  * The code in this file is utility code, used to build a gadget driver
@@ -1090,7 +1098,11 @@ composite_unbind(struct usb_gadget *gadget)
 		composite->unbind(cdev);
 
 	if (cdev->req) {
+#ifdef DMA_MODE
+		dma_free_coherent(NULL, 256, cdev->req->buf, cdev->req->dma);
+#else
 		kfree(cdev->req->buf);
+#endif
 		usb_ep_free_request(gadget->ep0, cdev->req);
 	}
 	device_remove_file(&gadget->dev, &dev_attr_suspended);
@@ -1130,7 +1142,11 @@ static int composite_bind(struct usb_gadget *gadget)
 	cdev->req = usb_ep_alloc_request(gadget->ep0, GFP_KERNEL);
 	if (!cdev->req)
 		goto fail;
+#ifdef DMA_MODE
+	cdev->req->buf = dma_alloc_coherent(NULL, 256, &cdev->req->dma, GFP_KERNEL|GFP_DMA);
+#else
 	cdev->req->buf = kmalloc(USB_BUFSIZ, GFP_KERNEL);
+#endif
 	if (!cdev->req->buf)
 		goto fail;
 	cdev->req->complete = composite_setup_complete;

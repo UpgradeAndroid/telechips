@@ -99,8 +99,8 @@ extern int32_t dwc_otg_get_param_dma_enable(dwc_otg_core_if_t * core_if);
 #ifdef CONFIG_TCC_DWC_HS_ELECT_TST
 #define dwc_param_dma_enable_default 0
 #else
-//#define dwc_param_dma_enable_default 1
-#define dwc_param_dma_enable_default 0
+#define dwc_param_dma_enable_default 1
+//#define dwc_param_dma_enable_default 0
 #endif
 
 /**

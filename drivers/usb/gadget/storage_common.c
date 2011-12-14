@@ -70,6 +70,13 @@
 
 /*-------------------------------------------------------------------------*/
 
+#ifdef CONFIG_ARCH_TCC
+#if defined(CONFIG_TCC_DWC_HS_ELECT_TST)
+#undef DMA_MODE
+#else
+#define DMA_MODE
+#endif
+#endif
 
 #ifndef DEBUG
 #undef VERBOSE_DEBUG
@@ -237,6 +244,7 @@ struct fsg_lun {
 	unsigned int	initially_ro:1;
 	unsigned int	ro:1;
 	unsigned int	removable:1;
+	unsigned int	can_ioctl:1;
 	unsigned int	cdrom:1;
 	unsigned int	prevent_medium_removal:1;
 	unsigned int	registered:1;
@@ -285,7 +293,9 @@ struct fsg_buffhd {
 #endif
 	enum fsg_buffer_state		state;
 	struct fsg_buffhd		*next;
-
+#ifdef DMA_MODE
+	dma_addr_t dma;
+#endif
 	/*
 	 * The NetChip 2280 is faster, and handles some protocol faults
 	 * better, if we don't submit any short bulk-out read requests.
@@ -535,6 +545,7 @@ static int fsg_lun_open(struct fsg_lun *curlun, const char *filename)
 	struct file			*filp = NULL;
 	int				rc = -EINVAL;
 	struct inode			*inode = NULL;
+   int            ret;
 	loff_t				size;
 	loff_t				num_sectors;
 	loff_t				min_sectors;
@@ -603,7 +614,13 @@ static int fsg_lun_open(struct fsg_lun *curlun, const char *filename)
 	curlun->filp = filp;
 	curlun->file_length = size;
 	curlun->num_sectors = num_sectors;
-	LDBG(curlun, "open backing file: %s\n", filename);
+	ret = curlun->filp->f_op->unlocked_ioctl(curlun->filp, IOCTL_STORAGE_PING, 0);
+	if (ret == 1) {
+		curlun->can_ioctl = 1;
+	} else {
+		curlun->can_ioctl = 0;
+	}
+	LDBG(curlun, "open backing file: %s (%d)\n", filename, ret);
 	rc = 0;
 
 out:
