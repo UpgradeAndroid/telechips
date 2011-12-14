@@ -46,7 +46,7 @@ ump_memory_backend* ump_memory_backend_create ( int ump_backend  )
 		pmap_get_info("camera", &pmap_cam);
 
 		ump_memory_address = pmap_cam.base;
-		ump_memory_size = ARCH_UMP_DEDICATED_MEMORY_SIZE_DEFAULT;
+		ump_memory_size = pmap_cam.size;
 		DBG_MSG(2, ("Using dedicated memory backend\n"));
 
 		DBG_MSG(2, ("Requesting dedicated memory: 0x%08x, size: %u\n", ump_memory_address, ump_memory_size));
