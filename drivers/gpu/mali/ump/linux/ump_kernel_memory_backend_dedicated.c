@@ -42,6 +42,7 @@ typedef struct block_allocator
 	struct semaphore mutex;
 	block_info * all_blocks;
 	block_info * first_free;
+	u32 first_free_start;
 	u32 base;
 	u32 num_blocks;
 	u32 num_free;
@@ -100,7 +101,7 @@ ump_memory_backend * ump_block_allocator_create(u32 base_address, u32 size)
 					allocator->all_blocks[i].next = allocator->first_free;
 					allocator->first_free = &allocator->all_blocks[i];
 				}
-
+				allocator->first_free_start = (unsigned long)allocator->first_free;
 				backend->ctx = allocator;
 				backend->allocate = block_allocator_allocate;
 				backend->release = block_allocator_release;
@@ -148,6 +149,7 @@ static int block_allocator_allocate(void* ctx, ump_dd_mem * mem)
 	u32 left;
 	block_info * last_allocated = NULL;
 	int i = 0;
+	int free_en = 0;
 
 	BUG_ON(!ctx);
 	BUG_ON(!mem);
@@ -173,6 +175,57 @@ static int block_allocator_allocate(void* ctx, ump_dd_mem * mem)
 	}
 
 	mem->size_bytes = 0;
+
+	//search for first-fit
+	{
+		int i, j;
+		unsigned int temp1, temp2;
+		unsigned int *temp3, *temp4;
+		int check;
+
+		for(i=0; i< allocator->num_blocks -1; i++)
+		{
+			temp1 = allocator->first_free;
+			if(allocator->first_free->next!=NULL)
+			{
+				temp2 = allocator->first_free->next;
+				temp3 = allocator->all_blocks[i].next;
+				if(temp2 == temp3)
+				{
+					check=0;
+					for(j=i; j<mem->nr_blocks +i; j++)
+					{
+						temp4 = allocator->all_blocks[j].next;
+						if(temp4 == NULL)
+						{
+							allocator->first_free = &allocator->all_blocks[j+1];
+							break;
+						}
+						else
+							check++;
+					}		
+					if(check == mem->nr_blocks)
+					{
+						 free_en=1;
+						DBG_MSG(2, ("free_en\n"));
+						break;
+					}		
+				}
+			}
+			else
+			{
+				for(j=i;j<allocator->num_blocks -1;j++)
+				{
+					if(allocator->all_blocks[j].next > temp1)
+					{
+						allocator->first_free = &allocator->all_blocks[j];
+						i=j-1;
+						break;
+					}					
+				}
+			}
+		}
+	}	
 
 	while ((left > 0) && (allocator->first_free))
 	{
@@ -218,6 +271,7 @@ static int block_allocator_allocate(void* ctx, ump_dd_mem * mem)
 	}
 
 	mem->backend_info = last_allocated;
+	DBG_MSG(5, ("alloc ID:%d, phy address: 0x%08x, size: 0x%08x, num_free:%d\n", mem->secure_id, mem->block_array[0].addr, mem->size_bytes, allocator->num_free));
 
 	up(&allocator->mutex);
 	mem->is_cached=0;
@@ -247,17 +301,32 @@ static void block_allocator_release(void * ctx, ump_dd_mem * handle)
 
 	while (block)
 	{
+		unsigned int temp1, temp2;
+		unsigned int *temp3, *temp4;
 		next = block->next;
 
 		BUG_ON( (block < allocator->all_blocks) || (block > (allocator->all_blocks + allocator->num_blocks)));
 
-		block->next = allocator->first_free;
-		allocator->first_free = block;
-		allocator->num_free++;
 
+		temp1 = (unsigned int)block + 4;
+		temp2 = (unsigned int)allocator->first_free;
+		
+		if(temp1  == temp2)
+		{
+			block->next = allocator->first_free;
+			allocator->first_free = block;
+		}
+		else
+		{
+			block->next = temp1;
+			if(allocator->first_free_start != temp2)
+				allocator->first_free = block;
+		}
+		allocator->num_free++;
 		block = next;
+
 	}
-	DBG_MSG(3, ("%d blocks free after release call\n", allocator->num_free));
+	DBG_MSG(3, ("ID:%d, %d blocks free after release call, block:0x%08x\n", handle->secure_id, allocator->num_free, allocator->first_free));
 	up(&allocator->mutex);
 
 	vfree(handle->block_array);
