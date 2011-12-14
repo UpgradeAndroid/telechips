@@ -27,7 +27,7 @@
 //#define FIFO_TRIGGER_LVL (32)
 
 /* Maximum number of buffers */
-#define TCC_CAMERA_MAX_BUFNBRS 	8
+#define TCC_CAMERA_MAX_BUFNBRS 		6
 
 /*
  * ---------------------------------------------------------------------------
