@@ -359,7 +359,7 @@ static irqreturn_t isp_cam_isr1(int irq, void *client_data/*, struct pt_regs *re
 #ifndef TCCISP_GEN_CFG_UPD
 				next_buf = list_entry(data->list.next->next, struct tccxxx_cif_buffer, buf_list);
 				next_num = next_buf->v4lbuf.index;
-				printk("next_num=%d. \n", next_num);
+
 				if(next_buf != &data->list && curr_buf != next_buf )
 				{
 					//exception process!!
@@ -439,7 +439,7 @@ static irqreturn_t isp_cam_isr1(int irq, void *client_data/*, struct pt_regs *re
 					//spin_lock_irqsave(&data->dev_lock, flags);
 					//cif_buf->v4lbuf.timestamp = gettimeofday(.., ..);
 
-					list_move_tail(&curr_buf->buf_list, &data->done_list);					
+					list_move_tail(&curr_buf->buf_list, &data->done_list);
 				}
 				else
 				{
@@ -466,17 +466,17 @@ static irqreturn_t isp_cam_isr1(int irq, void *client_data/*, struct pt_regs *re
 			sensor_turn_off_camera_flash();
 			
 			ISP_Stop_Irq();
-			
+/*
 			data->cif_cfg.now_frame_num = 0;
 			
 			curr_buf = data->buf + data->cif_cfg.now_frame_num;
 			
 			curr_buf->v4lbuf.bytesused 	= data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y*2;
 			curr_buf->v4lbuf.flags 		&= ~V4L2_BUF_FLAG_QUEUED;
-			curr_buf->v4lbuf.flags 		|= V4L2_BUF_FLAG_DONE;
+			curr_buf->v4lbuf.flags 		&= ~V4L2_BUF_FLAG_DONE;
 
-			list_move_tail(&curr_buf->buf_list, &data->done_list);		
-
+			list_move_tail(&curr_buf->buf_list, &data->done_list);
+*/
 			data->cif_cfg.cap_status = CAPTURE_DONE;
 
 			wake_up_interruptible(&data->frame_wait); // POLL
@@ -1047,8 +1047,7 @@ void cif_preview_dma_set(void)
         
 	total_off = y_offset + uv_offset*2;
   	total_off = PAGE_ALIGN(total_off);      
-	for(i = 0; i<data->cif_cfg.pp_num; i++)
-	{
+	for(i=0; i < data->cif_cfg.pp_num; i++) {
 		data->cif_cfg.preview_buf[i].p_Y  = (unsigned int)PAGE_ALIGN( base_addr + total_off*i);
 		data->cif_cfg.preview_buf[i].p_Cb = (unsigned int)data->cif_cfg.preview_buf[i].p_Y + y_offset;
 		data->cif_cfg.preview_buf[i].p_Cr = (unsigned int)data->cif_cfg.preview_buf[i].p_Cb + uv_offset;
@@ -1083,11 +1082,9 @@ void cif_capture_dma_set(void *priv)
 	target_height = data->cif_cfg.main_set.target_y;
 #endif
 
-#ifdef JPEG_ENCODE_WITH_CAPTURE
-	if(gIsRolling)
-	{
+#if defined(JPEG_ENCODE_WITH_CAPTURE)
+	if(gIsRolling) {
 		y_offset = JPEG_Info.JpegCaptureBuffSize/2;
-
 		if(data->cif_cfg.fmt == M420_ZERO)
 		    uv_offset = JPEG_Info.JpegCaptureBuffSize/4;
 		else
@@ -1097,78 +1094,71 @@ void cif_capture_dma_set(void *priv)
 #endif
 	{
 		y_offset = target_width*target_height;
-
 		if(data->cif_cfg.fmt == M420_ZERO)
-		    uv_offset = (target_width*target_height)/2;
+		    uv_offset = (target_width * target_height) / 2;
 		else
-		    uv_offset = (target_width*target_height)/4;
+		    uv_offset = (target_width * target_height) / 4;
 	} 
 
+	#if (0) //20111212 ysseung   test...
 	data->cif_cfg.capture_buf.p_Y  = (unsigned int)base_addr;
 	data->cif_cfg.capture_buf.p_Cb = (unsigned int)data->cif_cfg.capture_buf.p_Y + y_offset;
-	data->cif_cfg.capture_buf.p_Cr = (unsigned int)data->cif_cfg.capture_buf.p_Cb + uv_offset;	
+	data->cif_cfg.capture_buf.p_Cr = (unsigned int)data->cif_cfg.capture_buf.p_Cb + uv_offset;
+	#endif
 
 #if defined(CONFIG_USE_ISP)
 	//ISP_SetCapture_Window(data->cif_cfg.main_set.win_hor_ofst*2, data->cif_cfg.main_set.win_ver_ofst*2, 
 	//						data->cif_cfg.main_set.source_x*2, data->cif_cfg.main_set.source_y*2);	// for capture
 	//sISP_SetCapture_Window(0, 0, target_width, target_height);
 	//						data->cif_cfg.main_set.source_x*2, data->cif_cfg.main_set.source_y*2);
+	printk("cif_capture_dma_set:  yAddr=0x%08x. \n", (unsigned int)data->cif_cfg.capture_buf.p_Y);
 	ISP_SetCapture_MainImageStartAddress((unsigned int)data->cif_cfg.capture_buf.p_Y,
 									(unsigned int)data->cif_cfg.capture_buf.p_Cb,
 									(unsigned int)data->cif_cfg.capture_buf.p_Cr);
-	ISP_SetCapture_MainResolution( target_width, target_height );
+	ISP_SetCapture_MainResolution(target_width, target_height);
 
-	if(data->cif_cfg.fmt == M420_ZERO)
-	{
+	if(data->cif_cfg.fmt == M420_ZERO) {
 		ISP_SetCapture_MainImageSize(target_width*target_height, target_width*target_height/2, target_width*target_height/2);
 		ISP_SetCapture_MainFormat(ISP_FORMAT_YUV422);
-	}
-	else
-	{
+	} else {
 		ISP_SetCapture_MainImageSize(target_width*target_height, target_width*target_height/4, target_width*target_height/4);
 		ISP_SetCapture_MainFormat(ISP_FORMAT_YUV420);
 	}
-#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
-	if( data->cif_cfg.main_set.target_x < tcc_sensor_info.cam_capchg_width )
-	{
+
+	#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
+	if(data->cif_cfg.main_set.target_x < tcc_sensor_info.cam_capchg_width) {
 		ISP_SetCapture_MakeZoomTable(tcc_sensor_info.preview_zoom_offset_x, tcc_sensor_info.preview_zoom_offset_y, tcc_sensor_info.preview_w, tcc_sensor_info.preview_h, tcc_sensor_info.max_zoom_step+1);
-	}
-	else
-	{
+	} else {
 		ISP_SetCapture_MakeZoomTable(tcc_sensor_info.capture_zoom_offset_x, tcc_sensor_info.capture_zoom_offset_y, tcc_sensor_info.capture_w, tcc_sensor_info.capture_h, tcc_sensor_info.max_zoom_step+1);
 	}
-
-#else
-	if( data->cif_cfg.main_set.target_x < CAM_CAPCHG_WIDTH )
-	{
+	#else // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
+	if(data->cif_cfg.main_set.target_x < CAM_CAPCHG_WIDTH) {
 		ISP_SetCapture_MakeZoomTable(PRV_ZOFFX, PRV_ZOFFY, PRV_W, PRV_H, CAM_MAX_ZOOM_STEP);
-	}
-	else
-	{
+	} else {
 		ISP_SetCapture_MakeZoomTable(CAP_ZOFFX, CAP_ZOFFY, CAP_W, CAP_H, CAM_MAX_ZOOM_STEP);
 	}
-#endif //CONFIG_VIDEO_DUAL_CAMERA_SUPPORT 
-	ISP_SetCapture_Zoom(data->cif_cfg.zoom_step);	
+	#endif // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT 
 
-#else
+	ISP_SetCapture_Zoom(data->cif_cfg.zoom_step);	
+#else // CONFIG_USE_ISP
 	TDD_CIF_SetBaseAddr(INPUT_IMG,  (unsigned int)data->cif_cfg.capture_buf.p_Y,
 									(unsigned int)data->cif_cfg.capture_buf.p_Cb,
 									(unsigned int)data->cif_cfg.capture_buf.p_Cr);
 
-#if defined(CONFIG_VIDEO_CAMERA_SENSOR_AIT848_ISP) || defined(CONFIG_VIDEO_CAMERA_SENSOR_ISX006)
+	#if defined(CONFIG_VIDEO_CAMERA_SENSOR_AIT848_ISP) || defined(CONFIG_VIDEO_CAMERA_SENSOR_ISX006)
 	TDD_CIF_SetBaseAddr_offset(INPUT_IMG, target_width*2, target_width/2);	
 	TDD_CIF_SetEffectMode(SET_CIF_CEM_YCS);
-#elif defined(CONFIG_VIDEO_ATV_SENSOR_TVP5150) || defined(CONFIG_VIDEO_ATV_SENSOR_RDA5888)
+	#elif defined(CONFIG_VIDEO_ATV_SENSOR_TVP5150) || defined(CONFIG_VIDEO_ATV_SENSOR_RDA5888)
 	TDD_CIF_SetBaseAddr_offset(INPUT_IMG, target_width, target_width/2);
-#else
+	#else
 	TDD_CIF_SetBaseAddr_offset(INPUT_IMG, target_width, target_width/2);
-#endif
+	#endif
 
-#if defined(CONFIG_VIDEO_CAMERA_SENSOR_OV7690)
+	#if defined(CONFIG_VIDEO_CAMERA_SENSOR_OV7690)
 	TDD_CIF_SetEffectMode(SET_CIF_CEM_YCS);
-#endif
+	#endif
 
-#ifdef JPEG_ENCODE_WITH_CAPTURE
+	#ifdef JPEG_ENCODE_WITH_CAPTURE
 	if(gIsRolling)
 	{
 		if(data->cif_cfg.fmt == M420_ZERO)
@@ -1186,8 +1176,8 @@ void cif_capture_dma_set(void *priv)
 										((unsigned int)data->cif_cfg.capture_buf.p_Cr+(JPEG_Info.JpegCaptureBuffSize/2/4)-4));
 		}
 	}
-#endif
-#endif //CONFIG_USE_ISP	
+	#endif
+#endif // CONFIG_USE_ISP
 }
 
 void cif_interrupt_enable(enum cifoper_mode mode)
@@ -1476,8 +1466,6 @@ int tccxxx_cif_buffer_set(struct v4l2_requestbuffers *req)
 	unsigned int uv_offset = 0;
 	unsigned int buff_size;
 
-	printk("tccxxx_cif_buffer_set y_offset[%d]\n",y_offset);
-
 	if(req->count == 0) {
 		data->cif_cfg.now_frame_num = 0;
 
@@ -1519,15 +1507,10 @@ int tccxxx_cif_buffer_set(struct v4l2_requestbuffers *req)
 
 	data->cif_cfg.pp_num = req->count;
 
-	printk("preview buffer address[%d]:  Y:0x%08x, U:0x%08x, V:0x%08x. \n", req->count, \
-										data->cif_cfg.preview_buf[req->count].p_Y, 		\
-										data->cif_cfg.preview_buf[req->count].p_Cb, 	\
-										data->cif_cfg.preview_buf[req->count].p_Cr);
-
 	return 0;
 }
 
-void tccxxx_set_preview_addr(int index, unsigned int addr)
+void tccxxx_set_camera_addr(int index, unsigned int addr, unsigned int cameraStatus)
 {
 	struct TCCxxxCIF *data = (struct TCCxxxCIF *) &hardware_data;
 	unsigned int y_offset = 0, uv_offset = 0;
@@ -1538,9 +1521,15 @@ void tccxxx_set_preview_addr(int index, unsigned int addr)
 	else
 		uv_offset = (data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y)/4;
 
-	data->cif_cfg.preview_buf[index].p_Y  = addr;
-	data->cif_cfg.preview_buf[index].p_Cb = (unsigned int)data->cif_cfg.preview_buf[index].p_Y + y_offset;
-	data->cif_cfg.preview_buf[index].p_Cr = (unsigned int)data->cif_cfg.preview_buf[index].p_Cb + uv_offset;
+	if(cameraStatus == 1 /* MODE_PREVIEW */) {
+		data->cif_cfg.preview_buf[index].p_Y  = addr;
+		data->cif_cfg.preview_buf[index].p_Cb = (unsigned int)data->cif_cfg.preview_buf[index].p_Y + y_offset;
+		data->cif_cfg.preview_buf[index].p_Cr = (unsigned int)data->cif_cfg.preview_buf[index].p_Cb + uv_offset;
+	} else if(cameraStatus == 3 /* MODE_CAPTURE */) {
+		data->cif_cfg.capture_buf.p_Y  = addr;
+		data->cif_cfg.capture_buf.p_Cb = (unsigned int)data->cif_cfg.capture_buf.p_Y + y_offset;
+		data->cif_cfg.capture_buf.p_Cr = (unsigned int)data->cif_cfg.capture_buf.p_Cb + uv_offset;
+	}
 }
 #else
 int tccxxx_cif_buffer_set(struct v4l2_requestbuffers *req)
@@ -1967,7 +1956,6 @@ int tccxxx_cif_capture(int quality)
 	unsigned int target_width, target_height;
 	unsigned int ens_addr;
 	int skip_frame = 0;
-
 #if defined(CONFIG_USE_ISP)
 	int mode=0;
 
@@ -1977,11 +1965,12 @@ int tccxxx_cif_capture(int quality)
 
 	target_width  = data->cif_cfg.main_set.target_x;
 	target_height = data->cif_cfg.main_set.target_y;
+
 	#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
 	if(target_width >= tcc_sensor_info.cam_capchg_width && !(data->cif_cfg.retry_cnt))
 	#else
 	if(target_width >= CAM_CAPCHG_WIDTH && !(data->cif_cfg.retry_cnt))
-	#endif	
+	#endif
 	{
 		#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9T113)
 			unsigned char data_r[2];
@@ -1990,7 +1979,7 @@ int tccxxx_cif_capture(int quality)
 			unsigned char polling_cmd[2] = {0x30, 0x00};
 			unsigned short read_reg = 0x0990;
 
-			do{
+			do {
 				DDI_I2C_Write(polling_reg, 2, 0);	
 				DDI_I2C_Write(polling_cmd, 2, 0);		
 				DDI_I2C_Read(read_reg, 2, data_r, 2);
@@ -2005,8 +1994,7 @@ int tccxxx_cif_capture(int quality)
 				else
 					msleep(10);
 								
-			}
-			while(data_read != 0x0001);
+			} while(data_read != 0x0001);
 		#endif
 		
 		sensor_if_change_mode(OPER_CAPTURE);
@@ -2190,7 +2178,7 @@ int tccxxx_cif_set_resolution(unsigned int pixel_fmt, unsigned short width, unsi
 	//	&& data->cif_cfg.fmt == pixel_fmt)
 	//	return 0;
 
-	if(pixel_fmt == V4L2_PIX_FMT_YUYV)//YUV 422
+	if(pixel_fmt == V4L2_PIX_FMT_YUYV) // YUV422
 		data->cif_cfg.fmt = M420_ZERO;
 	else
 		data->cif_cfg.fmt = M420_ODD;
@@ -2198,8 +2186,7 @@ int tccxxx_cif_set_resolution(unsigned int pixel_fmt, unsigned short width, unsi
 	data->cif_cfg.main_set.target_x = width;
 	data->cif_cfg.main_set.target_y = height;
 
-	if(data->stream_state != STREAM_OFF)
-	{
+	if(data->stream_state != STREAM_OFF) {
 		tccxxx_cif_stop_stream();
 		tccxxx_cif_start_stream();
 	}

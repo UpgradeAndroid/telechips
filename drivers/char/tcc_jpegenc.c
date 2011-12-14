@@ -58,7 +58,7 @@
 #define TCC_JPEGENC_MINOR_ID 1
 #define TCC_JPEGENC_DEVICE_NAME "jpegenc"
 
-#define dprintk(msg...)	if (0) { printk( "TCC_JPEGENC: " msg); }
+#define dprintk(msg...)	if (1) { printk( "TCC_JPEGENC: " msg); }
 
 typedef struct _int_data_t {
 	wait_queue_head_t wq;
@@ -246,6 +246,15 @@ static int tccxx_enc_init(void *phy_src, int ImageWidth, int ImageHeight, enum j
 	gJPEG_ENC_Info.cbuf_size = uiOutputBufferSize;
 	gJPEG_ENC_Info.frame_cnt = FRAME_LINE_CNT;
 
+	printk("rolling capture -> %d. \n", gJPEG_ENC_Info.is_rolling);
+	printk("y_addr -> 0x%08x, u_addr -> 0x%08x, v_addr -> 0x%08x. \n", gJPEG_ENC_Info.y_addr, \
+																		gJPEG_ENC_Info.u_addr, \
+																		gJPEG_ENC_Info.v_addr);
+	printk("frm_hsize -> %d, buf_vsize -> %d. \n", gJPEG_ENC_Info.ifrm_hsize, gJPEG_ENC_Info.ibuf_vsize);
+	printk("img_width -> %d, img_height -> %d. \n", gJPEG_ENC_Info.img_hsize, gJPEG_ENC_Info.img_vsize);
+	printk("cbuf_addr -> 0x%08x, cbuf_size -> 0x%08x. \n", gJPEG_ENC_Info.cbuf_addr, gJPEG_ENC_Info.cbuf_size);
+	printk("frame_cnt -> %d. \n", gJPEG_ENC_Info.frame_cnt);
+
 	if(type == ENC_INPUT_422)
 		gJPEG_ENC_Info.chroma = HwJP_CHROMA_422;
 	else
@@ -264,24 +273,24 @@ static int tccxx_enc_meminit(void *data)
 	unsigned int raw_phy_addr, raw_size;
 	unsigned int stream_phy_addr, stream_size;
 	unsigned int header_phy_addr, header_size;
+	#if (1)
+	unsigned int jpeg_header_size = 0x30000;
+	#else
 	pmap_t pmap_jpeg_header;
-	
 	pmap_get_info("jpeg_header", &pmap_jpeg_header);
+	#endif
 
-	if(pJpegenc_remapped_header != NULL)
-	{
+	if(pJpegenc_remapped_header != NULL) {
 		iounmap(pJpegenc_remapped_header);
 		pJpegenc_remapped_header = NULL;
 	}
-
-	if(pJpegenc_remapped_rawdata != NULL)
-	{
+	
+	if(pJpegenc_remapped_rawdata != NULL) {
 		iounmap(pJpegenc_remapped_rawdata);
 		pJpegenc_remapped_rawdata = NULL;
 	}
-
-	if(pJpegenc_remapped_streamdata != NULL)
-	{
+	
+	if(pJpegenc_remapped_streamdata != NULL) {
 		iounmap(pJpegenc_remapped_streamdata);
 		pJpegenc_remapped_streamdata = NULL;
 	}
@@ -297,59 +306,56 @@ static int tccxx_enc_meminit(void *data)
 
 	//Source is Stream-data in case of Decode.
 	stream_phy_addr = Enc_data->target_addr;
-	stream_size 	= Enc_data->target_size - pmap_jpeg_header.size;
+	stream_size 	= Enc_data->target_size - jpeg_header_size;
 	header_phy_addr = stream_phy_addr + stream_size;
-	header_size		= pmap_jpeg_header.size;
+	header_size		= jpeg_header_size;
 
-	if(raw_phy_addr && raw_size > 0)
-	{
+	if((raw_phy_addr && raw_size) > 0) {
 		pJpegenc_remapped_rawdata = (void *)ioremap_nocache(raw_phy_addr, PAGE_ALIGN(raw_size/*-PAGE_SIZE*/));
-		if (pJpegenc_remapped_rawdata == NULL) {
+		if(pJpegenc_remapped_rawdata == NULL) {
 			printk(KERN_ALERT "[raw] can not remap for jpeg\n");
 			return -EFAULT;
 		}	
-	}
-	else
-	{
+	} else {
 		pJpegenc_remapped_rawdata = NULL;
 	}
 
-	if(stream_phy_addr && stream_size > 0)
-	{
+	if((stream_phy_addr && stream_size) > 0) {
 		pJpegenc_remapped_streamdata = (void *)ioremap_nocache(stream_phy_addr, PAGE_ALIGN(stream_size/*-PAGE_SIZE*/));
-		if (pJpegenc_remapped_streamdata == NULL) {
+		if(pJpegenc_remapped_streamdata == NULL) {
 			printk(KERN_ALERT "[stream] can not remap for jpeg\n");
 			return -EFAULT;
 		}
-	}
-	else
-	{
+	} else {
 		pJpegenc_remapped_streamdata = NULL;
 	}
 
-	if(header_phy_addr && header_size > 0)
-	{
+	if((header_phy_addr && header_size) > 0) {
 		pJpegenc_remapped_header = (void *)ioremap_nocache(header_phy_addr, PAGE_ALIGN(header_size/*-PAGE_SIZE*/));
-		if (pJpegenc_remapped_header == NULL) {
+		if(pJpegenc_remapped_header == NULL) {
 			printk(KERN_ALERT "[header] can not remap for jpeg\n");
 			return -EFAULT;
 		}
-	}
-	else
-	{
+	} else {
 		pJpegenc_remapped_header = NULL;
 	}
 
-	dprintk("raw 	:: phy[0x%x ~ 0x%x], virt[0x%x ~ 0x%x], size = 0x%x \n",raw_phy_addr, raw_phy_addr+raw_size, (unsigned int)pJpegenc_remapped_rawdata, (unsigned int)pJpegenc_remapped_rawdata+raw_size, raw_size);
-	dprintk("stream  :: phy[0x%x ~ 0x%x], virt[0x%x ~ 0x%x], size = 0x%x \n",stream_phy_addr, stream_phy_addr+stream_size, (unsigned int)pJpegenc_remapped_streamdata, (unsigned int)pJpegenc_remapped_streamdata+stream_size, stream_size);
-	dprintk("header  :: phy[0x%x ~ 0x%x], virt[0x%x ~ 0x%x], size = 0x%x \n",header_phy_addr, header_phy_addr + header_size, (unsigned int)pJpegenc_remapped_header, (unsigned int)pJpegenc_remapped_header + header_size, header_size);
+	dprintk("raw   :  phy[0x%x ~ 0x%x], virt[0x%x ~ 0x%x], size = 0x%x \n",raw_phy_addr, 					\
+								raw_phy_addr+raw_size, (unsigned int)pJpegenc_remapped_rawdata, 			\
+								(unsigned int)pJpegenc_remapped_rawdata+raw_size, raw_size);
+	dprintk("stream:  phy[0x%x ~ 0x%x], virt[0x%x ~ 0x%x], size = 0x%x \n",stream_phy_addr, 				\
+								stream_phy_addr+stream_size, (unsigned int)pJpegenc_remapped_streamdata, 	\
+								(unsigned int)pJpegenc_remapped_streamdata+stream_size, stream_size);
+	dprintk("header:  phy[0x%x ~ 0x%x], virt[0x%x ~ 0x%x], size = 0x%x \n",header_phy_addr, 				\
+								header_phy_addr + header_size, (unsigned int)pJpegenc_remapped_header, 		\
+								(unsigned int)pJpegenc_remapped_header + header_size, header_size);
 
 	gJPEGEnc_Buffer_Info.pBaseRawDataAddr 			= (void*)raw_phy_addr;
 	gJPEGEnc_Buffer_Info.pBaseRawDataSize 			= raw_size;
 	gJPEGEnc_Buffer_Info.pBaseBitstreamDataAddr 	= (void*)stream_phy_addr;
 	gJPEGEnc_Buffer_Info.pBaseBitstreamDataSize 	= stream_size;
-	gJPEGEnc_Buffer_Info.pBaseHeaderDataAddr 		= (void*)(stream_phy_addr + stream_size-pmap_jpeg_header.size);
-	gJPEGEnc_Buffer_Info.pBaseHeaderDataSize 		= pmap_jpeg_header.size;
+	gJPEGEnc_Buffer_Info.pBaseHeaderDataAddr 		= (void*)(stream_phy_addr + stream_size - jpeg_header_size);
+	gJPEGEnc_Buffer_Info.pBaseHeaderDataSize 		= jpeg_header_size;
 
 	return 0;
 }
@@ -416,8 +422,7 @@ static int tccxx_enc_start(void)
 {
 	int ret = 0;
 
-	if(enc_data.normal_op && jpgenc_data.dev_opened > 1)
-	{
+	if(enc_data.normal_op && jpgenc_data.dev_opened > 1) {
 		dprintk("JpegDevice(Enc) is already using \n");
 		return -EFAULT;
 	}
@@ -425,8 +430,7 @@ static int tccxx_enc_start(void)
 	ret = tccxx_enc_meminit(&enc_data);
 	dprintk("src: 0x%x, size: %d x %d !!\n", enc_data.source_addr, enc_data.width, enc_data.height);
 
-	if(ret >= 0)
-	{
+	if(ret >= 0) {
 		tccxx_enc_init((void*)enc_data.source_addr, enc_data.width, enc_data.height, enc_data.q_value, enc_data.src_format);
 
 		gJpegEncodeDone = 0;
@@ -445,8 +449,7 @@ static int tccxx_enc_finish(void)
 	ret = JPEG_ENCODE_Get_Result(enc_data.width, enc_data.height, &(enc_data.bitstream_size), &(enc_data.header_size));
 
 	dprintk("enc info :: %d = %d + %d \n", enc_data.header_size + enc_data.bitstream_size, enc_data.header_size, enc_data.bitstream_size);
-	if(ret >= 0)
-	{
+	if(ret >= 0) {
 		HeaderBuffer = pJpegenc_remapped_header;
 		memcpy(pJpegenc_remapped_streamdata+enc_data.bitstream_size, HeaderBuffer, enc_data.header_size);
 
@@ -555,14 +558,12 @@ static long tcc_jpegenc_ioctl(struct file *file, unsigned int cmd, unsigned long
 	int ret = 0;
 
 
-	switch (cmd)
-	{
+	switch(cmd) {
 		case TCC_JPEGE_IOCTL_ENC:
 			{
 				mutex_lock(&jpg_data->io_mutex);
 								
-				if(copy_from_user(&enc_data, (TCCXXX_JPEG_ENC_DATA*)arg, sizeof(TCCXXX_JPEG_ENC_DATA)))
-				{
+				if(copy_from_user(&enc_data, (TCCXXX_JPEG_ENC_DATA*)arg, sizeof(TCCXXX_JPEG_ENC_DATA))) {
 					mutex_unlock(&jpg_data->io_mutex);
 					return -EFAULT;
 				}
@@ -570,25 +571,19 @@ static long tcc_jpegenc_ioctl(struct file *file, unsigned int cmd, unsigned long
 				jpg_data->count = 0;
 				tccxx_jpgenc_set_clock(0);
 
-				if((ret = tccxx_enc_start()) >= 0) 
-				{							
+				if((ret = tccxx_enc_start()) >= 0) {
 					if(enc_data.width <= 640 && enc_data.height <= 640) //exception proc::  jpeg error in case of specific size!!
 						wait_ms = 100;
 					
 					ret = wait_event_interruptible_timeout(jpg_data->wq, jpg_data->count > 0, msecs_to_jiffies(wait_ms));
-					if(ret <= 0)
-					{
+					if(ret <= 0) {
 						printk("[%d]: jpegenc[%d x %d] timed_out!! \n", ret, enc_data.width, enc_data.height);
 						ret = -EFAULT;
-					}
-					else
-					{
-						if(!gJpegEncodeDone)
+					} else {
+						if(!gJpegEncodeDone) {
 							ret = -EINVAL;
-						else
-						{
-							if((ret = tccxx_enc_finish()) >= 0)
-							{
+						} else {
+							if((ret = tccxx_enc_finish()) >= 0) {
 								if (copy_to_user((TCCXXX_JPEG_ENC_DATA*)arg, &enc_data, sizeof(TCCXXX_JPEG_ENC_DATA)))
 									ret = -EFAULT;
 							}
@@ -624,7 +619,6 @@ static long tcc_jpegenc_ioctl(struct file *file, unsigned int cmd, unsigned long
 			printk(KERN_ALERT "Not Supported JPEG_ENC_IOCTL(%d) \n", cmd);
 			break;
 	}
-
 
 	return ret;
 }
