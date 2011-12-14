@@ -442,6 +442,26 @@ config SPI_DW_MMIO
 	tristate "Memory-mapped io interface driver for DW SPI core"
 	depends on SPI_DESIGNWARE && HAVE_CLK
 
+# S: telechips
+config SPI_TCCXXXX_MASTER
+        tristate "Telechips SPI(GPSB) MASTER controller"
+	depends on SPI && (ARCH_TCC88XX || ARCH_TCC892X)
+	help
+      SPI Controller IP from the Telechips SoCs
+
+config SPI_TCCXXXX_TSIF_SLAVE
+        tristate  "Telechips SPI(GPSB) SLAVE(TSIF) controller"
+	depends on SPI && (ARCH_TCC88XX || ARCH_TCC892X)
+	help
+	  SPI controller IP from the Telechips SoCs
+
+config TSIF_TCCXXXX
+        tristate  "Telechips TSIF controller"
+	depends on SPI && (ARCH_TCC88XX || ARCH_TCC892X)
+	help
+	  TSIF controller IP from the Telechips SoCs		
+# E: telechips
+
 #
 # There are lots of SPI device types, with sensors and memory
 # being probably the most widely used ones.

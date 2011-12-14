@@ -61,6 +61,9 @@ spi_s3c24xx_hw-y			:= spi_s3c24xx.o
 spi_s3c24xx_hw-$(CONFIG_SPI_S3C24XX_FIQ) += spi_s3c24xx_fiq.o
 
 # 	... add above this line ...
+obj-$(CONFIG_SPI_TCCXXXX_MASTER)        += tcc_spi.o
+obj-$(CONFIG_SPI_TCCXXXX_TSIF_SLAVE)    += tsdemux/ tcc_gpsb_tsif.o
+obj-$(CONFIG_TSIF_TCCXXXX)              += tsdemux/ tcc_tsif.o
 
 # SPI protocol drivers (device/link on bus)
 obj-$(CONFIG_SPI_SPIDEV)	+= spidev.o

@@ -12,7 +12,8 @@ obj-$(CONFIG_ARCH_TCC88XX)      += tca_adconv.o tcc_adc.o
 obj-$(CONFIG_ARCH_TCC88XX)      += tcc_asm.o
 obj-$(CONFIG_ARCH_TCC88XX)      += tca_serial.o
 obj-$(CONFIG_ARCH_TCC88XX)      += tca_i2c.o
-
+obj-$(CONFIG_ARCH_TCC88XX)      += tca_spi.o
+obj-$(CONFIG_ARCH_TCC88XX)      += tca_tsif.o
 obj-$(CONFIG_CPU_FREQ)          += cpufreq.o
 
 obj-$(CONFIG_TCC_ECID_SUPPORT)  += tcc_ecid.o
@@ -21,7 +22,7 @@ obj-$(CONFIG_TCC_ECID_SUPPORT)  += tcc_ecid.o
 obj-$(CONFIG_MACH_TCC8800)      += board-tcc8800.o board-tcc8800-gpio.o board-tcc8800-keypad.o board-tcc8800-power.o
 obj-$(CONFIG_MACH_TCC8800)      += board-tcc8800-panel.o
 obj-$(CONFIG_MACH_TCC8800)      += board-tcc8800-mmc.o
-#obj-$(CONFIG_MACH_TCC8800)      += board-tcc8800-dxb.o
+obj-$(CONFIG_MACH_TCC8800)      += board-tcc8800-dxb.o
 obj-$(CONFIG_MACH_TCC8800)	+= board-tcc8800-hdmi.o
 obj-$(CONFIG_MACH_M801_88)      += board-m801_88.o board-m801_88-gpio.o board-m801_88-keypad.o
 obj-$(CONFIG_MACH_M801_88)      += board-m801_88-panel.o

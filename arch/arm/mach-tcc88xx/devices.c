@@ -680,8 +680,8 @@ struct platform_device tcc_battery_device = {
 #if defined(CONFIG_SPI_TCCXXXX_MASTER) || defined(CONFIG_SPI_TCCXXXX_MASTER_MODULE)
 static struct resource spi0_resources[] = {
 	[0] = {
-		.start = HwGPSBCH0_BASE,
-		.end   = HwGPSBCH0_BASE + 0x38,
+		.start = tcc_p2v(HwGPSBCH0_BASE),
+		.end   = tcc_p2v(HwGPSBCH0_BASE + 0x38),
 		.flags = IORESOURCE_MEM,
 	},
 	[1] = {
@@ -689,14 +689,15 @@ static struct resource spi0_resources[] = {
 		.end   = INT_GPSB0_DMA,
 		.flags = IORESOURCE_IRQ,
 	},
-	[2] = {
-#if defined(CONFIG_MACH_TCC8800ST)	   
-   		.start	= 0xE,/* GPIO_E[2,3,6,7] */
-		.end	= 0xE,
-#else        
-		.start	= 0xD,/* GPIO_D[5:8] */
-		.end	= 0xD,
-#endif		
+	[2] = {	    
+	    .name   = "gpsb0",
+#if defined(CONFIG_MACH_TCC8800ST)	
+		.start	= 5,/* Port5 GPIO_E[2:3, 6:7] */
+		.end	= 5,
+#else
+		.start	= 11,/* Port11 GPIO_D[5:8] */
+		.end	= 11,
+#endif
 		.flags	= IORESOURCE_IO,
 	},
 };
@@ -779,13 +780,25 @@ static inline void tcc8800_init_remote(void)
 #if defined(CONFIG_SPI_TCCXXXX_TSIF_SLAVE) || defined(CONFIG_SPI_TCCXXXX_TSIF_SLAVE_MODULE)
 static struct resource tsif_resources[] = {
 	[0] = {
-#if defined(CONFIG_MACH_TCC8800ST)	    
-		.start	= 0xD,	/* GPIO_D[5:8] */
-		.end	= 0xD,
+		.start = tcc_p2v(HwGPSBCH1_BASE),
+		.end   = tcc_p2v(HwGPSBCH1_BASE + 0x38),
+		.flags = IORESOURCE_MEM,
+	},
+	[1] = {
+		.start = INT_GPSB1_DMA,
+		.end   = INT_GPSB1_DMA,
+		.flags = IORESOURCE_IRQ,
+	},
+	[2] = {
+	    .name   = "gpsb1",
+#if defined(CONFIG_MACH_TCC8800ST)	
+		.start	= 11,/* Port11 GPIO_D[5:8] */
+		.end	= 11,
 #else
-   		.start	= 0xE,	/* GPIO_E[2,3,6,7] */
-		.end	= 0xE,
+		.start	= 5,/* Port5 GPIO_E[2:3, 6:7] */
+		.end	= 5,
 #endif        
+
 		.flags	= IORESOURCE_IO,
 	}
 };
@@ -805,9 +818,20 @@ struct platform_device tcc_tsif_device = {
  *----------------------------------------------------------------------*/
 #if defined(CONFIG_TSIF_TCCXXXX)
 static struct resource tsif_module_resources[] = {
-	[0] = {
-		.start	= 0xE,		/* GPIO_C[28:31] */
-		.end	= 0xE,
+    [0] = {
+		.start = tcc_p2v(HwTSIF0_BASE),
+		.end   = tcc_p2v(HwTSIF0_BASE + 0x10000),
+		.flags = IORESOURCE_MEM,
+	},
+	[1] = {
+		.start = INT_TSIF,
+		.end   = INT_TSIF,
+		.flags = IORESOURCE_IRQ,
+	},
+	[2] = {
+	    .name   = "tsif0",
+   		.start	= 5,/* PortX GPIO_X[X:X] */
+		.end	= 5,
 		.flags	= IORESOURCE_IO,
 	}
 };
