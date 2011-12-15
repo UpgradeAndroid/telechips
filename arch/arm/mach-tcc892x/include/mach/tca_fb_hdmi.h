@@ -73,6 +73,7 @@ extern unsigned char TCC_HDMI_MSC_enable(char ch);
 
 
 extern void TCC_HDMI_LCDC_Timing(char hdmi_lcdc, struct lcdc_timimg_parms_t *mode);
+extern void TCC_HDMI_LCDC_OutputEnable(char hdmi_lcdc, unsigned int onoff);
 
 extern void TCC_HDMI_FB_Set_AlphaBlending(void);
 

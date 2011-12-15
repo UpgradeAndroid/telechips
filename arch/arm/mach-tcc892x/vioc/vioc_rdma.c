@@ -17,9 +17,9 @@
 *	---------	--------   ---------------       -----------------
 *    2011/08/08     0.1            created                      hskim
 *******************************************************************************/
-#include <mach/tccfb_ioctrl.h>
 #include <mach/vioc_rdma.h>
-
+#include <mach/globals.h>
+#include <mach/tccfb_ioctrl.h>
 
 #define VIOC_RDMA_IREQ_SRC_MAX	7 
 
@@ -36,22 +36,43 @@
 
 void VIOC_RDMA_SetImageUpdate(VIOC_RDMA *pRDMA)
 {
-	pRDMA->uCTRL.bREG.UPD = 1;
+	//pRDMA->uCTRL.bREG.UPD = 1;
+	BITCSET(pRDMA->uCTRL.nREG, 1<<16, 1<<16 );
 }
 
 void VIOC_RDMA_SetImageEnable(VIOC_RDMA *pRDMA )
 {
+	/*
 	pRDMA->uCTRL.bREG.IEN = 1;
 	pRDMA->uCTRL.bREG.UPD = 1;
+	*/
+	
+	BITCSET(pRDMA->uCTRL.nREG, 1<<28, 1<<28 );
+	BITCSET(pRDMA->uCTRL.nREG, 1<<16, 1<<16 );
+
+}
+
+void VIOC_RDMA_GetImageEnable(VIOC_RDMA *pRDMA, unsigned int *enable)
+{
+	/*
+	pRDMA->uCTRL.bREG.IEN = 1;
+	pRDMA->uCTRL.bREG.UPD = 1;
+	*/
+	enable = ISSET(pRDMA->uCTRL.nREG, 1<<28 );
 }
 
 void VIOC_RDMA_SetImageDisable(VIOC_RDMA *pRDMA )
 {
 	int i;
 
+	/*
 	pRDMA->uCTRL.bREG.IEN = 0;
 	pRDMA->uCTRL.bREG.UPD = 1;
+	*/
 	
+	BITCSET(pRDMA->uCTRL.nREG, 1<<28, 0<<28 );
+	BITCSET(pRDMA->uCTRL.nREG, 1<<16, 1<<16 );
+
 	/* RDMA Scale require to check STD_DEVEOF status bit, For synchronous updating with EOF Status  */
 	/* VIOC_RDMA_SetImageDisable(pRDMA); */ /* Channel turn off when scaler changed, so now blocking. */
 	
@@ -59,7 +80,9 @@ void VIOC_RDMA_SetImageDisable(VIOC_RDMA *pRDMA )
 	for ( i =0; i <0x20000; i++)
 	{
 		NOP;
-		if ( pRDMA->uSTATUS.bREG.STS_DEVEOF == 1)
+		//if ( pRDMA->uSTATUS.bREG.STS_DEVEOF == 1)
+
+		if( pRDMA->uSTATUS.nREG & Hw19 )
 		{
 			break;
 		}
@@ -69,58 +92,87 @@ void VIOC_RDMA_SetImageDisable(VIOC_RDMA *pRDMA )
 
 void VIOC_RDMA_SetImageFormat(VIOC_RDMA *pRDMA, unsigned int nFormat)
 {
-	pRDMA->uCTRL.bREG.FMT = nFormat;
+	//pRDMA->uCTRL.bREG.FMT = nFormat;
+	BITCSET(pRDMA->uCTRL.nREG, 0x0000001F, nFormat);
 }
 
 void VIOC_RDMA_SetImageAlphaEnable(VIOC_RDMA *pRDMA, unsigned int enable)
 {
-	pRDMA->uCTRL.bREG.AEN = enable;
+	//DMA->uCTRL.bREG.AEN = enable;
+	BITCSET(pRDMA->uCTRL.nREG, 1<<11, enable << 11);
 }
 
 void VIOC_RDMA_GetImageAlphaEnable(VIOC_RDMA *pRDMA, unsigned int *enable)
 {
-	*enable = pRDMA->uCTRL.bREG.AEN;
+	//*enable = pRDMA->uCTRL.bREG.AEN;
+	*enable = pRDMA->uCTRL.nREG & Hw11 ;
 }
 
 void VIOC_RDMA_SetImageAlphaSelect(VIOC_RDMA *pRDMA, unsigned int select)
 {
 	/* ALPHA0(0) or ALPHA1(1) select */
-	pRDMA->uCTRL.bREG.ASEL = select;
+	//pRDMA->uCTRL.bREG.ASEL = select;
+	BITCSET(pRDMA->uCTRL.nREG, 1<<24, select << 24);
 }
 
 void VIOC_RDMA_SetImageY2RMode(VIOC_RDMA *pRDMA, unsigned int y2r_mode)
 {
-	pRDMA->uCTRL.bREG.Y2RMD = y2r_mode;
+	//pRDMA->uCTRL.bREG.Y2RMD = y2r_mode;
+	BITCSET(pRDMA->uCTRL.nREG, 0x3<<9, y2r_mode << 9);
 }
 
 void VIOC_RDMA_SetImageY2REnable(VIOC_RDMA *pRDMA, unsigned int enable)
 {
-	pRDMA->uCTRL.bREG.Y2R = enable;
+	//pRDMA->uCTRL.bREG.Y2R = enable;
+	BITCSET(pRDMA->uCTRL.nREG, 1<<8, enable << 8);
+
 }
 
 void VIOC_RDMA_SetImageAlpha(VIOC_RDMA *pRDMA, unsigned int nAlpha0, unsigned int nAlpha1)
 {
-	pRDMA->uALPHA.bREG.ALPHA0 = nAlpha0;
-	pRDMA->uALPHA.bREG.ALPHA1 = nAlpha1;
+	//pRDMA->uALPHA.bREG.ALPHA0 = nAlpha0;
+	//pRDMA->uALPHA.bREG.ALPHA1 = nAlpha1;
+
+	BITCSET(pRDMA->uALPHA.nREG, 0x00FF00FF, ( nAlpha1 << 16 ) | nAlpha0 );
 }
 
 void VIOC_RDMA_GetImageAlpha(VIOC_RDMA *pRDMA, unsigned int *nAlpha0, unsigned int *nAlpha1)
 {
-	*nAlpha0 = pRDMA->uALPHA.bREG.ALPHA0;
-	*nAlpha1 = pRDMA->uALPHA.bREG.ALPHA1;
+	//*nAlpha0 = pRDMA->uALPHA.bREG.ALPHA0;
+	//*nAlpha1 = pRDMA->uALPHA.bREG.ALPHA1;
+
+	*nAlpha0 = pRDMA->uALPHA.nREG & 0x00FF0000;
+	*nAlpha1 = pRDMA->uALPHA.nREG & 0x000000FF;
 }
 
 void VIOC_RDMA_SetImageSize(VIOC_RDMA *pRDMA, unsigned int sw, unsigned int sh)
 {
-	pRDMA->uSIZE.bREG.WIDTH = sw;
-	pRDMA->uSIZE.bREG.HEIGHT = sh;
+	//pRDMA->uSIZE.bREG.WIDTH = sw;
+	//pRDMA->uSIZE.bREG.HEIGHT = sh;
+
+	BITCSET(pRDMA->uSIZE.nREG, 0xFFFFFFFF, (sh << 16) | (sw) );	
+}
+
+void VIOC_RDMA_GetImageSize(VIOC_RDMA *pRDMA, unsigned int *sw, unsigned int *sh)
+{
+	//pRDMA->uSIZE.bREG.WIDTH = sw;
+	//pRDMA->uSIZE.bREG.HEIGHT = sh;
+	*sw = pRDMA->uSIZE.nREG & 0xFF;
+	*sh = (pRDMA->uSIZE.nREG>>16) & 0xFF;
 }
 
 void VIOC_RDMA_SetImageBase(VIOC_RDMA *pRDMA, unsigned int nBase0, unsigned int nBase1, unsigned int nBase2)
 {
+	/*
 	pRDMA->nBASE0  = nBase0;
 	pRDMA->nBASE1  = nBase1;
 	pRDMA->nBASE2  = nBase2;
+	*/
+
+	BITCSET(pRDMA->nBASE0, 0xFFFFFFFF, nBase0);
+	BITCSET(pRDMA->nBASE1, 0xFFFFFFFF, nBase1);
+	BITCSET(pRDMA->nBASE2, 0xFFFFFFFF, nBase2);
+
 }
 
 /* In case of down scalling, If there are huge size distence between RDMA and Scaler. It makes under run situation in WMIX. So RDMA down size is needed.  */
@@ -132,12 +184,18 @@ void VIOC_RDMA_SetImageSizeDownForScaler(VIOC_RDMA *pRDMA, unsigned int sw, unsi
 	
 	offset0 = sw*bpp*ratio;
 	offset1 = sw*bpp*ratio;
-	
+
+	/*
 	pRDMA->uSIZE.bREG.WIDTH = sw;
 	pRDMA->uSIZE.bREG.HEIGHT = sh/ratio;
 
 	pRDMA->uOFFSET.bREG.OFFSET0 = offset0;
 	pRDMA->uOFFSET.bREG.OFFSET1 = offset1;
+	*/
+	
+	BITCSET(pRDMA->uSIZE.nREG, 0xFFFFFFFF, ( (sh/ratio) << 16) | (sw) );	
+	BITCSET(pRDMA->uOFFSET.nREG, 0xFFFFFFFF, (offset1 << 16) | offset0 );
+	
 }
 
 void VIOC_RDMA_SetImageSizeDownForUpScaler(VIOC_RDMA *pRDMA, unsigned int sw, unsigned int sh, unsigned int ratio)
@@ -148,12 +206,17 @@ void VIOC_RDMA_SetImageSizeDownForUpScaler(VIOC_RDMA *pRDMA, unsigned int sw, un
 	
 	offset0 = sw*bpp;
 	//offset1 = sw*bpp;
-	
+
+	/*
 	pRDMA->uSIZE.bREG.WIDTH = sw;
 	pRDMA->uSIZE.bREG.HEIGHT = sh/ratio;
 
 	pRDMA->uOFFSET.bREG.OFFSET0 = offset0;
 	pRDMA->uOFFSET.bREG.OFFSET1 = offset1;
+	*/
+	
+	BITCSET(pRDMA->uSIZE.nREG, 0xFFFFFFFF, ( (sh/ratio) << 16) | (sw) );	
+	BITCSET(pRDMA->uOFFSET.nREG, 0xFFFFFFFF, (offset1 << 16) | offset0 );
 }
 
 void VIOC_RDMA_SetImageOffset(VIOC_RDMA *pRDMA, unsigned int imgFmt, unsigned int imgWidth)
@@ -235,8 +298,11 @@ void VIOC_RDMA_SetImageOffset(VIOC_RDMA *pRDMA, unsigned int imgFmt, unsigned in
 			break;
 	}
 
-	pRDMA->uOFFSET.bREG.OFFSET0 = offset0;
-	pRDMA->uOFFSET.bREG.OFFSET1 = offset1;
+	//pRDMA->uOFFSET.bREG.OFFSET0 = offset0;
+	//pRDMA->uOFFSET.bREG.OFFSET1 = offset1;
+
+	BITCSET(pRDMA->uOFFSET.nREG, 0xFFFFFFFF, (offset1 << 16) | offset0 ) ;
+
 }
 
 void VIOC_RDMA_SetImageScale(VIOC_RDMA *pRDMA, unsigned int scaleX, unsigned int scaleY)
@@ -250,10 +316,13 @@ void VIOC_RDMA_SetImageScale(VIOC_RDMA *pRDMA, unsigned int scaleX, unsigned int
 	for ( i =0; i <0x20000; i++)
 	{
 		NOP;
-		if ( pRDMA->uSTATUS.bREG.STS_DEVEOF == 1)
+		//if ( pRDMA->uSTATUS.bREG.STS_DEVEOF == 1)
+		if(pRDMA->uSTATUS.nREG & Hw19)
 		{
-			pRDMA->uSCALE.bREG.XSCALE  = scaleX;
-			pRDMA->uSCALE.bREG.YSCALE  = scaleY;
+			//pRDMA->uSCALE.bREG.XSCALE  = scaleX;
+			//pRDMA->uSCALE.bREG.YSCALE  = scaleY;
+			BITCSET(pRDMA->uSCALE.nREG, 0x00070007, (scaleY << 16) | scaleX ); 
+			
 			break;
 		}
 	}
@@ -267,17 +336,20 @@ void VIOC_RDMA_SetTestConfig(VIOC_RDMA * pRDMA)
 
 void VIOC_RDMA_SetImageIntl(VIOC_RDMA * pRDMA, unsigned int intl_en)
 {
-	pRDMA->uCTRL.bREG.INTL = intl_en;
+	//pRDMA->uCTRL.bREG.INTL = intl_en;
+	BITCSET(pRDMA->uCTRL.nREG, 1<<31, intl_en << 31);
 }
 
 void VIOC_RDMA_SetY2RConvertEnable(VIOC_RDMA * pRDMA, unsigned int enable)
 {
-	pRDMA->uCTRL.bREG.Y2R = enable;
+	//pRDMA->uCTRL.bREG.Y2R = enable;
+	BITCSET(pRDMA->uCTRL.nREG, 1<<8, enable << 8);
 }
 
 void VIOC_RDMA_SetY2RConvertMode(VIOC_RDMA * pRDMA, unsigned int mode)
 {
-	pRDMA->uCTRL.bREG.Y2RMD = mode;
+	//pRDMA->uCTRL.bREG.Y2RMD = mode;
+	BITCSET(pRDMA->uCTRL.nREG, 0x3 << 9, mode << 9);
 }
 
 /* set 1 : IREQ Masked( interrupt disable), set 0 : IREQ UnMasked( interrput enable)  */
@@ -285,11 +357,13 @@ void VIOC_RDMA_SetIreqMask(VIOC_RDMA * pRDMA, unsigned int mask, unsigned int se
 {
 	if( set == 0 ) /* Interrupt Enable*/
 	{
-		pRDMA->uIRQMSK.nREG &= ~mask;
+		//pRDMA->uIRQMSK.nREG &= ~mask;
+		BITCSET(pRDMA->uIRQMSK.nREG, 0x0000001F, ~mask);
 	}
 	else/* Interrupt Diable*/
 	{
-		pRDMA->uIRQMSK.nREG |= mask;
+		//pRDMA->uIRQMSK.nREG |= mask;
+		BITCSET(pRDMA->uIRQMSK.nREG, 0x0000001F, mask);
 	}
 }
 

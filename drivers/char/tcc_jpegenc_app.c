@@ -210,8 +210,12 @@ unsigned int Make_Thumbnail_Enc_Info(unsigned int jpeg_BufferAddr, unsigned int 
 
 void JPEG_Exif_Header_Info_Init(void)
 {
+	#if (1)
+	unsigned int jpeg_heder_size = 0x30000;
+	#else
 	pmap_t pmap_jpeg_header;
 	pmap_get_info("jpeg_header", &pmap_jpeg_header);
+	#endif
 
 	gEncodeOption.IsManufacturer 	= TRUE;
 	gEncodeOption.IsCopyRight 		= TRUE;
@@ -221,7 +225,7 @@ void JPEG_Exif_Header_Info_Init(void)
 	gEncodeOption.IsThumbnail 	= FALSE;
 	gEncodeOption.ThumbnailInfo.thumbnail_width  = EXIF_THUMBNAIL_WIDTH;
 	gEncodeOption.ThumbnailInfo.thumbnail_height = EXIF_THUMBNAIL_HEIGHT;
-	gEncodeOption.ThumbnailInfo.pThumbnail_Buff = (void *)((uint32)gJPEGEnc_Buffer_Info.pBaseRawDataAddr + gJPEGEnc_Buffer_Info.pBaseRawDataSize - pmap_jpeg_header.size);
+	gEncodeOption.ThumbnailInfo.pThumbnail_Buff = (void *)((uint32)gJPEGEnc_Buffer_Info.pBaseRawDataAddr + gJPEGEnc_Buffer_Info.pBaseRawDataSize - jpeg_heder_size);
 }
 
 /****************************************************************************

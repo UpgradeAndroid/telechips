@@ -165,6 +165,6 @@ config LCD_CLAA102NA0DCW
 	depends on FB_TCC
 
 config LCD_ED090NA
-	bool "CPT 1024 * 600 LVDS support"
+	bool "CHIMEI INNOLUX 1280 * 800 LVDS support"
 	depends on FB_TCC
 endmenu

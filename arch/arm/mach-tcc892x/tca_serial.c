@@ -178,6 +178,7 @@ void tca_serial_portinit(int nFlag_fc, int nPort)
 void tca_serial_gpio_setting(int nFlag_fc, int nPort)
 {
 	volatile PUARTPORTCFG pPORT = (volatile PUARTPORTCFG)tcc_p2v(HwUART_PORTCFG_BASE);
+	volatile PGPIO pGPIO = (volatile PGPIO)tcc_p2v(HwGPIO_BASE);
 	unsigned int phy_port, hw_flow_ctrl;
 
 	if (nPort > 7)
@@ -189,17 +190,17 @@ void tca_serial_gpio_setting(int nFlag_fc, int nPort)
 		hw_flow_ctrl = 1;
 
 	switch(nPort){
-		case 0: phy_port = pPORT->PCFG.bREG.UART0; break;
-	//	case 1: phy_port = pPORT->PCFG.bREG.UART1; break;
-		case 2: phy_port = pPORT->PCFG.bREG.UART2; break;
-		case 3: phy_port = pPORT->PCFG.bREG.UART3; break;
-		case 4: phy_port = pPORT->PCFG.bREG.UART4; break;			
-		case 5: phy_port = pPORT->PCFG.bREG.UART5; break;
-		case 6: phy_port = pPORT->PCFG.bREG.UART6; break;
-		case 7: phy_port = pPORT->PCFG.bREG.UART7; break;			
+		case 0: phy_port = pPORT->PCFG0.bREG.UART0; break;
+		case 1: phy_port = (pPORT->PCFG0.nREG & 0xff00) >> 8; break;
+		case 2: phy_port = pPORT->PCFG0.bREG.UART2; break;
+		case 3: phy_port = pPORT->PCFG0.bREG.UART3; break;
+		case 4: phy_port = pPORT->PCFG1.bREG.UART4; break;			
+		case 5: phy_port = pPORT->PCFG1.bREG.UART5; break;
+		case 6: phy_port = pPORT->PCFG1.bREG.UART6; break;
+		case 7: phy_port = pPORT->PCFG1.bREG.UART7; break;			
 	}
 
-	
+
 	tcc_gpio_config(uart_port_map[phy_port][0], uart_port_map[phy_port][1]);	// TX
 	tcc_gpio_config(uart_port_map[phy_port][0]+1, uart_port_map[phy_port][1]);	 // RX
 	if(hw_flow_ctrl == 1){
@@ -213,15 +214,16 @@ void tca_serial_gpio_setting(int nFlag_fc, int nPort)
 		}
 	}
 
+
 }
 
 void tca_serial_intrinit(void)
 {
     volatile PPIC pPIC = (volatile PPIC)tcc_p2v(HwPIC_BASE);
 
-    pPIC->SEL.bREG.UART = 1;
-    pPIC->INTMSK.bREG.UART = 1;
-    pPIC->MODE.bREG.UART = 1; // Level trigger
+    pPIC->SEL1.bREG.UART = 1;
+    pPIC->INTMSK1.bREG.UART = 1;
+    pPIC->MODE1.bREG.UART = 1; // Level trigger
 }
 
 int tca_serial_clock_enable(struct tcc_uart_port *tcc_port, int id)
@@ -369,7 +371,7 @@ int tca_dma_setien(int m_DmaNumber, unsigned long* pVirtualDmaAddr)
 ******************************************************************************/
 int tca_dma_clren(int m_DmaNumber, unsigned long* pVirtualDmaAddr)
 {
-    volatile PGDMACTRL pDMA = (volatile PGDMACTRL)tcc_p2v(m_DmaNumber);
+    volatile PGDMACTRL pDMA = (volatile PGDMACTRL)pVirtualDmaAddr;
 
     switch(	m_DmaNumber ){
         case 0:
@@ -396,7 +398,7 @@ int tca_dma_clren(int m_DmaNumber, unsigned long* pVirtualDmaAddr)
 ******************************************************************************/
 int tca_dma_seten(int m_DmaNumber, unsigned long* pVirtualDmaAddr)
 {
-    volatile PGDMACTRL pDMA = (volatile PGDMACTRL)tcc_p2v(m_DmaNumber);
+    volatile PGDMACTRL pDMA = (volatile PGDMACTRL)pVirtualDmaAddr;
 
     switch(	m_DmaNumber ){
         case 0:

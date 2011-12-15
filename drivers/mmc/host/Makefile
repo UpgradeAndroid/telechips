@@ -61,3 +61,4 @@ ifeq ($(CONFIG_CB710_DEBUG),y)
 endif
 
 obj-$(CONFIG_MMC_TCC88XX_SDHC)	+= tcc_sdhc.o
+obj-$(CONFIG_MMC_TCC892X_SDHC)	+= tcc_sdhc.o

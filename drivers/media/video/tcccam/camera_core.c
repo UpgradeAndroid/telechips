@@ -313,7 +313,7 @@ int tcc_videobuf_s_fmt(struct v4l2_format *fmt)
 	unsigned int temp_sizeimage = 0;
 	temp_sizeimage = pix.sizeimage;
 	
-	out_width = pix.width	= fmt->fmt.pix.width;
+	out_width  = pix.width	= fmt->fmt.pix.width;
 	out_height = pix.height	= fmt->fmt.pix.height;	
 
 	return tccxxx_cif_set_resolution(fmt->fmt.pix.pixelformat, fmt->fmt.pix.width, fmt->fmt.pix.height);
@@ -379,9 +379,9 @@ int tcc_videobuf_reqbufs(struct v4l2_requestbuffers *req)
 	return tccxxx_cif_buffer_set(req);
 }
 
-int tcc_videobuf_set_preview_addr(struct v4l2_requestbuffers *req)
+int tcc_videobuf_set_camera_addr(struct v4l2_requestbuffers *req)
 {
-	tccxxx_set_preview_addr(req->count, req->reserved[0]);
+	tccxxx_set_camera_addr(req->count, req->reserved[0], req->reserved[1]);
 	return 0;
 }
 
@@ -391,8 +391,7 @@ int tcc_videobuf_querybuf(struct v4l2_buffer *buf)
 	struct tccxxx_cif_buffer *cif_buf = data->buf + buf->index;
 	int index = buf->index;	
 
-	if (index < 0 || index > data->cif_cfg.pp_num)  
-	{
+	if (index < 0 || index > data->cif_cfg.pp_num) {
 		printk(KERN_WARNING "querybuf error : index : %d / %d",index, data->cif_cfg.pp_num);
 		return -EINVAL;
 	}
@@ -427,26 +426,22 @@ int tcc_videobuf_qbuf(struct v4l2_buffer *buf)
 	struct TCCxxxCIF *data = (struct TCCxxxCIF *)(&hardware_data);
 	struct tccxxx_cif_buffer *cif_buf = data->buf + buf->index;
 
-	if (buf->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
+	if(buf->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
 		return -EAGAIN;
 
-	if (buf->index < 0 || buf->index >= data->cif_cfg.pp_num)
+	if((buf->index < 0) || (buf->index > data->cif_cfg.pp_num))
 		return -EAGAIN;
 
-	if (cif_buf->v4lbuf.flags & V4L2_BUF_FLAG_QUEUED) 
-	{	
-		return -EAGAIN;
-	}
+	if(cif_buf->v4lbuf.flags & V4L2_BUF_FLAG_QUEUED)
+		cif_buf->v4lbuf.flags |= ~V4L2_BUF_FLAG_QUEUED;
 
-	if (cif_buf->v4lbuf.flags & V4L2_BUF_FLAG_DONE) 
-	{		
-		return -EAGAIN;
-	}
-	
+	if(cif_buf->v4lbuf.flags & V4L2_BUF_FLAG_DONE)
+		cif_buf->v4lbuf.flags |= ~V4L2_BUF_FLAG_DONE;
+
 	cif_buf->v4lbuf.flags |= V4L2_BUF_FLAG_QUEUED;
 
-	list_add_tail(&cif_buf->buf_list, &data->list);	
-	
+	list_add_tail(&cif_buf->buf_list, &data->list);
+
 	return 0;			
 }
 
@@ -455,37 +450,24 @@ int tcc_videobuf_dqbuf(struct v4l2_buffer *buf, struct file *file )
 	struct TCCxxxCIF *data = (struct TCCxxxCIF *)(&hardware_data);
 	struct tccxxx_cif_buffer *cif_buf;
 
-	if(data->cif_cfg.esd_restart)
-	{
-		tccxxx_cif_cam_restart(&pix,xclk);
-	}
+	if(data->cif_cfg.esd_restart) tccxxx_cif_cam_restart(&pix,xclk);
 
-	if(list_empty(&data->done_list))
-	{
-		if(file->f_flags&O_NONBLOCK)
-		{
-			return -EAGAIN;
-		}
+	if(list_empty(&data->done_list)) {
+		if(file->f_flags&O_NONBLOCK) return -EAGAIN;
 			
 		data->wakeup_int = 0;
 		if(wait_event_interruptible_timeout(data->frame_wait, data->wakeup_int == 1, msecs_to_jiffies(500)) <= 0)
-		{
 			return -EFAULT;
-		}
 
 		/* Should probably recheck !list_empty() here */
-		if(list_empty(&data->done_list))
-		{
-			return -ENOMEM;
-		}
+		if(list_empty(&data->done_list)) return -ENOMEM;
 	}
-	
-	cif_buf = list_entry(data->done_list.next, struct tccxxx_cif_buffer, buf_list);		
+
+	cif_buf = list_entry(data->done_list.next, struct tccxxx_cif_buffer, buf_list);
 	list_del(data->done_list.next);
 
 	cif_buf->v4lbuf.flags &= ~V4L2_BUF_FLAG_DONE;
 	memcpy(buf, &(cif_buf->v4lbuf),sizeof(struct v4l2_buffer));
-	//dprintk("DQBUF index = %d \n", buf->index);
 	
 	return 0;
 }
@@ -556,22 +538,20 @@ int tcc_videobuf_streamoff(enum v4l2_buf_type *type )
 	struct tccxxx_cif_buffer *cif_buf;		
 
 	int ret_val;
-	
-	if (*type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
-		return -EAGAIN;
-	
-	ret_val = tccxxx_cif_stop_stream();
-	//tcc_reset_clock();
 
-	while(!list_empty(&data->done_list)) 
-	{
-		cif_buf = list_entry(data->done_list.next, struct tccxxx_cif_buffer, buf_list);		
+	if(*type != V4L2_BUF_TYPE_VIDEO_CAPTURE) return -EAGAIN;
+
+	ret_val = tccxxx_cif_stop_stream();
+
+	while(!list_empty(&data->done_list)) {
+		cif_buf = list_entry(data->done_list.next, struct tccxxx_cif_buffer, buf_list);
+
 		list_del(&cif_buf->buf_list);
-	
+
 		cif_buf->v4lbuf.flags &= ~V4L2_BUF_FLAG_DONE;
 		cif_buf->v4lbuf.flags |= V4L2_BUF_FLAG_QUEUED;
-		
-		list_add_tail(&cif_buf->buf_list, &data->list);	
+
+		list_add_tail(&cif_buf->buf_list, &data->list);
 	}
 	data->done_list.next = &data->done_list;
 
@@ -594,10 +574,10 @@ int tcc_videobuf_user_jpeg_capture(int * Jpeg_quality )
 	struct TCCxxxCIF *data = (struct TCCxxxCIF *) &hardware_data;	
 	struct tccxxx_cif_buffer *cif_buf;			
 	int ret_val;
-	
-	while(!list_empty(&data->done_list)) 
-	{
+
+	while(!list_empty(&data->done_list))  {
 		cif_buf = list_entry(data->done_list.next, struct tccxxx_cif_buffer, buf_list);		
+
 		list_del(&cif_buf->buf_list);
 	
 		cif_buf->v4lbuf.flags &= ~V4L2_BUF_FLAG_DONE;
@@ -605,6 +585,7 @@ int tcc_videobuf_user_jpeg_capture(int * Jpeg_quality )
 		
 		list_add_tail(&cif_buf->buf_list, &data->list);	
 	}
+
 	data->done_list.next = &data->done_list;
 	data->cif_cfg.now_frame_num = 0;
 	data->cif_cfg.retry_cnt 	= 0;
@@ -856,8 +837,8 @@ static long camera_core_do_ioctl(struct file *file, unsigned int cmd, void *arg)
 		case VIDIOC_USER_GET_ZOOM_SUPPORT:
 			return tcc_videobuf_get_zoom_support((int *)arg);
 
-		case VIDIOC_USER_SET_PREVIEW_ADDR:
-			return tcc_videobuf_set_preview_addr((struct v4l2_requestbuffers *)arg);
+		case VIDIOC_USER_SET_CAMERA_ADDR:
+			return tcc_videobuf_set_camera_addr((struct v4l2_requestbuffers *)arg);
 
 		default:
 		{

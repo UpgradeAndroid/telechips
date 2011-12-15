@@ -39,4 +39,27 @@
 *   4. JPEG Encoder (Base Addr = 0x00000000) // R/W
 *************************************************************************/
 
+
+
+/************************************************************************
+*   6. Video Bus Configuration (Base Addr = 0x75200000) // R/W
+*************************************************************************/
+typedef struct {
+    unsigned JENC       	:1;
+    unsigned 				:1;
+    unsigned VCOD       	:1;
+    unsigned VBUS       	:1;
+    unsigned                :28;
+} VIDEOBUSCFG_IDX_TYPE;
+
+typedef union {
+    unsigned long           nREG;
+    VIDEOBUSCFG_IDX_TYPE    bREG;
+} VIDEOBUSCFG_TYPE;
+
+typedef struct _VIDEOBUSCFG {
+    volatile VIDEOBUSCFG_TYPE     PWDN;           // 0x000  R/W  0x00000001   Video bus power down
+    volatile VIDEOBUSCFG_TYPE     SWRESET;        // 0x004  R/W  0x00000001   Video bus software reset
+} VIDEOBUSCFG, *PVIDEOBUSCFG;
+
 #endif /* _STRUCTURES_VIDEO_H_ */

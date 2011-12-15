@@ -18,6 +18,10 @@
 
 #define TCC_GRP_ALPHA_VALUE_SET_IOCTRL			0x40
 #define TCC_GRP_ALPHA_VALUE_SET_IOCTRL_KERNEL	0x140
+
+#define TCC_OVERLAY_IOCTRL                      0x80
+#define TCC_OVERLAY_IOCTRL_KERNEL               0x180
+
 #ifndef ADDRESS_ALIGNED
 #define ADDRESS_ALIGNED
 #define ALIGN_BIT (0x8-1)

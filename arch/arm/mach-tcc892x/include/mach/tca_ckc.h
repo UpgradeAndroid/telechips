@@ -25,10 +25,10 @@ extern int tca_ckc_setpll(unsigned int pll, unsigned int ch);
 extern unsigned int tca_ckc_getpll(unsigned int ch);
 extern unsigned int tca_ckc_getdividpll(unsigned int ch);
 
-extern int tca_ckc_setfbusctrl(unsigned int clkname, unsigned int isenable, unsigned int freq, unsigned int sor);
+extern unsigned int tca_ckc_setfbusctrl(unsigned int clkname, unsigned int isenable, unsigned int freq);
 extern unsigned int tca_ckc_getfbusctrl(unsigned int clkname);
 
-extern int tca_ckc_setperi(unsigned int periname,unsigned int isenable, unsigned int freq, unsigned int sor);
+extern unsigned int tca_ckc_setperi(unsigned int periname,unsigned int isenable, unsigned int freq);
 
 extern unsigned int tca_ckc_getperi(unsigned int periname);
 
@@ -60,6 +60,7 @@ extern int tca_ckc_sethsioswreset(unsigned int sel, unsigned int isreset);
 
 extern int tca_ckc_fclk_enable(unsigned int fclk, unsigned int enable);
 extern int tca_ckc_pclk_enable(unsigned int pclk, unsigned int enable);
+extern int tca_ckc_hdmipclk_enable(unsigned int pclk, unsigned int enable);
 
 #endif  /* __TCA_CKC_H__ */
 

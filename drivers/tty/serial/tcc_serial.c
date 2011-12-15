@@ -335,7 +335,7 @@ void tcc_serial_uart_putchar(struct uart_port *port, int ch)
 
 static void tcc_serial_uart_push_fifo(struct uart_port *port,int fifosize)
 {	
-	int i,len = 0;
+	int i;
 	struct circ_buf *xmit = &port->state->xmit;
 
 	while (!(rd_regl(port, OFFSET_LSR) & LSR_THRE))
@@ -700,7 +700,7 @@ static int tcc_serial_startup(struct uart_port *port)
     }
 #endif
 
-#if CONFIG_TCC_BT_DEV
+#if defined(CONFIG_TCC_BT_DEV)
     if(tcc_port->bt_suspend != 1){
         if(port->line == 0)
             tca_serial_portinit(UART_NOT_FLOW_CONTROL , port->line);
@@ -1154,7 +1154,7 @@ static int tcc_serial_resume(struct platform_device *dev)
     if(port) {
 		if (port->suspended) {
 
-#if CONFIG_TCC_BT_DEV
+#if defined(CONFIG_TCC_BT_DEV)
 	    if(tcc_port->bt_use == 1) 
 			tcc_port->bt_suspend = 1;
 #endif
@@ -1191,7 +1191,7 @@ static int tcc_serial_resume(struct platform_device *dev)
             }
 
 
-#if CONFIG_TCC_BT_DEV		
+#if defined(CONFIG_TCC_BT_DEV)
 	    if(tcc_port->bt_use == 1) 
 			tcc_port->bt_suspend = 0;
 #endif

@@ -467,7 +467,7 @@ typedef struct
 typedef union
 {
 	unsigned	long		nREG;
-	VIN_CTRL				bREG;
+	VIN_CTRL				bVIN_CTRL;
 }	VIN_CTRL_u;
 
 typedef struct
@@ -484,7 +484,7 @@ typedef struct
 typedef union
 {
 	unsigned	long		nREG;
-	VIN_MISC1				bREG;
+	VIN_MISC1				bVIN_MISC1;
 }	VIN_MISC1_u;
 
 typedef struct
@@ -527,7 +527,7 @@ typedef	struct
 typedef union
 {
 	unsigned	long			nREG;
-	VIN_SIZE				bREG;
+	VIN_SIZE				bVIN_SIZE;
 }	VIN_SIZE_u;
 
 typedef	struct
@@ -539,7 +539,7 @@ typedef	struct
 typedef union
 {
 	unsigned	long		nREG;
-	VIN_OFFS				bREG;
+	VIN_OFFS				bVIN_OFFS;
 }	VIN_OFFS_u;
 
 typedef	struct
@@ -562,7 +562,7 @@ typedef	struct
 typedef	union
 {
 	unsigned	long		nREG;
-	VIN_INT				bREG;
+	VIN_INT				bVIN_INT;
 }	VIN_INT_u;
 
 typedef	struct
@@ -751,7 +751,7 @@ typedef	struct _VIOC_RDMA
 	volatile VIOC_RDMA_IRQMSK_u	uIRQMSK;		// 0x2C  R/W  0x0000007F  RDMA interrupt mask Register
 	volatile unsigned  int			nSBASE0;		// 0x30  R/W  0x00000000  RDMA Sync base address
 	volatile unsigned  int			reserved1;		// 
-} VIOC_RDMA,*PVIOC_RDMA;
+} VIOC_RDMA, *PVIOC_RDMA;
 
 
 /************************************************************************
@@ -1000,7 +1000,7 @@ typedef	struct _VIOC_WDMA
 	volatile unsigned  int			uSBASE;				// 0x3C  R/W  0x00000000 WMA Synchronized Base Address Register
 	volatile VIOC_WDMA_STATUS_u	uIRQSTS;			// 0x40  R/W  0x00000000 WDMA Interrupt Status Register
 	volatile VIOC_WDMA_IRQMSK_u	uIRQMSK;			// 0x44  R/W  0x000001FF WDMA Interrupt Mask Register
-}VIOC_WDMA,*PVIOD_WDMA;
+}VIOC_WDMA, *PVIOC_WDMA;
 
 
 /************************************************************************
@@ -1080,6 +1080,17 @@ typedef	union
 	unsigned	long			nREG;
 	VIOC_SC_IRQMSK	bREG;
 } VIOC_SC_IRQMSK_u;
+
+#define VIOC_SC_INT_MASK_UPDDONE 		0x00000001UL /*Status of Register Updated*/
+#define VIOC_SC_INT_MASK_EOFRISE 		0x00000002UL /*Rising EOF Interrupt Masked*/
+#define VIOC_SC_INT_MASK_EOFFALL 		0x00000004UL /*Falling EOF Interrupt Masked*/
+#define VIOC_SC_INT_MASK_ERROR  		0x00000008UL /*Scaler Error Interrupt Masked*/
+#define VIOC_SC_INT_MASK_ALL 			0x0000000FUL /*ALL*/
+
+#define VIOC_SC_IREQ_UPDDONE_MASK 		0x00000001UL
+#define VIOC_SC_IREQ_EOFRISE_MASK 		0x00000002UL
+#define VIOC_SC_IREQ_EOFFALL_MASK  		0x00000004UL
+#define VIOC_SC_IREQ_ERROR_MASK  		0x00000008UL
 
 typedef	struct _VIOC_SC
 {
@@ -1578,7 +1589,7 @@ typedef	struct
 
 typedef union
 {
-	unsigned		uREG;
+	unsigned	long			nREG;
 	VIQE_FC_CTRL		bREG;
 }	VIQE_FC_CTRL_u;
 
@@ -1760,13 +1771,33 @@ typedef struct
 	unsigned int 		nD3D_CUR_BASE1;			// 0x1A4
 	unsigned	int		nD3D_CUR_WDMA;			// 0x1A8
 	unsigned	int		nD3D_CUR_RDMA;			// 0x1AC	
-	unsigned	int		undef2[56];				// 0x120 ~ 0x1FC
+	unsigned	int		undef2[20];				// 0x1B0 ~ 0x1FC
 }	VIQE_D3D_DMA;
 
 
 typedef	struct
 {
-	unsigned			undef_1[32];			//  0x280 ~ 0x2fc (deintl)    
+	volatile unsigned int 		nDI_CTRL;			//0x280 
+	volatile unsigned int 		nDI_ENGINE0;		//0x284 
+	volatile unsigned int 		nDI_ENGINE1;		//0x288 
+	volatile unsigned int 		nDI_ENGINE2;		//0x28C 
+	volatile unsigned int 		nDI_ENGINE3;		//0x290 
+	volatile unsigned int 		nDI_ENGINE4;		//0x294 
+	volatile unsigned int 		nPD_THRES0;			//0x298 
+	volatile unsigned int 		nPD_THRES1;			//0x29C 
+	volatile unsigned int 		nPD_JUDDER;			//0x2A0 
+	volatile unsigned int 		nPD_JUDDER_M;		//0x2A4 
+	volatile unsigned int 		nDI_MISCC;			//0x2A8 
+	volatile unsigned int 		nDI_STATUS;			//0x2AC 
+	volatile unsigned int 		nPD_STATUS;			//0x2B0 
+	volatile unsigned int 		nDI_REGION0;		//0x2B4 
+	volatile unsigned int 		nDI_REGION1;		//0x2B8 
+	volatile unsigned int 		nDI_INT;				//0x2BC 
+	volatile unsigned			undef_0[8];			//  0x2C0 ~ 0x2DC (deintl)    	
+	volatile unsigned int 		nPD_SAW;			//0x2E0 
+	volatile unsigned int 		nDI_CSIZE;			//0x2E4 
+	volatile unsigned int 		nDI_FMT;			//0x2E8 
+	volatile unsigned			undef_1[5];			//  0x2EC ~ 0x2FC (deintl)    
 	
 }	VIQE_DEINTL;
 
@@ -2273,7 +2304,7 @@ typedef struct
 typedef	union
 {
 	unsigned	long			nREG;
-	VIN_DEMUX_CTRL		bREG;
+	VIN_DEMUX_CTRL		bVIN_DEMUX_CTRL;
 }	VIN_DEMUX_CTRL_u;
 
 typedef	struct
@@ -2394,7 +2425,6 @@ typedef	struct	{
 	volatile VIOC_OUTCFG_CPUIF_u		uD0CPUIF;		//0x00
 	volatile VIOC_OUTCFG_CPUIF_u		uD1CPUIF;		//0x04
 	volatile VIOC_OUTCFG_CPUIF_u		uD2CPUIF;		//0x08
-	unsigned	int				RESERVED0;		//0x0C
 	volatile VIOC_OUTCFG_MISC_u		uMISCCFG;		//0x10
 }	VIOC_OUTCFG;
 
@@ -2635,8 +2665,8 @@ typedef	struct	_VIOC_IREQ_CONFIG
 	volatile VIOC_IREQ_IREQ_u		uRAWSTATUS;		// 0x00~0x04
 	volatile VIOC_IREQ_IREQ_u		uSYNCSTATUS;		// 0x08~0x0C
 	volatile VIOC_IREQ_IREQ_u		uIREQSELECT;			// 0x10~0x14	
-	volatile VIOC_IREQ_IREQ_u		nIRQMASKSET[2];		// 0x18~0x1C
-	volatile VIOC_IREQ_IREQ_u		nIRQMASKCLR[2];		// 0x20~0x24
+	volatile VIOC_IREQ_IREQ_u		nIRQMASKSET;		// 0x18~0x1C
+	volatile VIOC_IREQ_IREQ_u		nIRQMASKCLR;		// 0x20~0x24
 	volatile VIOC_IREQ_VECTORID_u	nVECTORID;			// 0x28
 	unsigned	int			reserved0[5];			// 11 ~ 15
 	volatile VIOC_CONFIG_ETC_u	uMISC;				// 0x40

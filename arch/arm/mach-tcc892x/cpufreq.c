@@ -56,25 +56,15 @@ struct tcc_voltage_table_t {
 	unsigned int voltage;
 };
 
-typedef enum {
-	TCC_CORE_A = 0,
-	TCC_CORE_B,
-	TCC_CORE_MAX
-} tcc_core_type;
-
 static struct tcc_voltage_table_t tcc_voltage_table[] = {
 	/*   cpu     ddi     mem     gpu      io    vbus    vcod     smu    hsio      vol */
-	{ 200000,  74000,  80000,  81000,  49000,  75000,  73000,  50000,  61000,  950000 },	// recommended freq.
-	{ 400000, 147000, 160000, 161000,  98000, 150000, 145000, 100000, 122000, 1000000 },	// recommended freq.
-	{ 500000, 184000, 200000, 201000, 123000, 188000, 181000, 125000, 152000, 1050000 },
-	{ 600000, 221000, 240000, 242000, 147000, 225000, 218000, 150000, 183000, 1100000 },	// recommended freq.
-	{ 700000, 257000, 280000, 282000, 172000, 263000, 254000, 175000, 213000, 1150000 },
-//	{ 800000, 294000, 320000, 322000, 196000, 300000, 290000, 200000, 243000, 1200000 },	// recommended freq.
-	{ 800000, 297000, 320000, 322000, 198000, 300000, 290000, 200000, 250000, 1200000 },	// for ddi/io/hiso bus
-	{ 900000, 330000, 360000, 362000, 220000, 337000, 326000, 225000, 273000, 1250000 },
-//	{ 999000, 367000, 400000, 402000, 245000, 375000, 362000, 250000, 304000, 1320000 },	// recommend frequency
-	{ 999000, 367000, 400000, 402000, 250000, 375000, 362000, 250000, 304000, 1320000 },	// for io bus
-	{1196000, 440000, 479000, 482000, 293000, 449000, 434000, 299000, 364000, 1450000 },	// recommended freq.
+#if defined(CONFIG_DRAM_DDR3)
+	{ 625000, 312000, 533000, 370000, 196000, 277000, 277000, 156000, 250000, 1200000 },	// recommended freq.
+	{ 837500, 396400, 600000, 470090, 249020, 351930, 351930, 249020, 250000, 1320000 },	// recommanded freq
+#else
+	{ 625000, 312000, 300000, 370000, 196000, 277000, 277000, 196000, 250000, 1200000 },	// recommended freq.
+	{ 837500, 396400, 400000, 470090, 249020, 351930, 351930, 249020, 250000, 1320000 },	// recommanded freq
+#endif
 };
 
 static struct tcc_freq_table_t tcc_freq_old_table = {
@@ -111,11 +101,9 @@ static struct clk *vbus_clk;
 static struct clk *hsio_clk;
 
 #ifdef CONFIG_REGULATOR
-static struct regulator *vdd_coreA;
-static struct regulator *vdd_coreB;
+static struct regulator *vdd_core;
 #endif
-static int curr_coreA_voltage = 0;
-static int curr_coreB_voltage = 0;
+static int curr_core_voltage = 0;
 
 extern int cpufreq_is_performace_governor(void);
 
@@ -290,89 +278,26 @@ static unsigned int tcc_cpufreq_get(unsigned int cpu)
 }
 
 #if defined(CONFIG_GPIO_CORE_VOLTAGE_CONTROL)
-static int tcc_cpufreq_set_voltage_by_gpio(tcc_core_type core, int uV)
+static int tcc_cpufreq_set_voltage_by_gpio(int uV)
 {
-	if (core == TCC_CORE_A) {
-		if (curr_coreA_voltage > uV)
-			udelay(1000);
-
-		if (machine_is_tcc8800()) { 
-			if (uV <= 1200000)
-				gpio_set_value(TCC_GPEXT2(10), 0);
-			else
-				gpio_set_value(TCC_GPEXT2(10), 1);
-		}
-		else if (machine_is_m801_88() || machine_is_m803()) {
-			#if 0
-			if (uV <= 1100000) {
-				gpio_set_value(TCC_GPF(0), 0);
-				gpio_set_value(TCC_GPF(1), 0);
-			}
-			else
-			#endif
-			if (uV <= 1200000) {
-				gpio_set_value(TCC_GPF(0), 0);
-				gpio_set_value(TCC_GPF(1), 1);
-			}
-			else {
-				gpio_set_value(TCC_GPF(0), 1);
-				gpio_set_value(TCC_GPF(1), 1);
-			}
-		}
-		else if (machine_is_tcc8800st()) {
-			if      (uV <= 1200000) {
-				gpio_set_value(TCC_GPE(21), 0);
-				gpio_set_value(TCC_GPE(22), 1);
-			}
-			else {
-				gpio_set_value(TCC_GPE(21), 1);
-				gpio_set_value(TCC_GPE(22), 1);
-			}
-		}
-
-		if (curr_coreA_voltage < uV)
-			udelay(1000);
-	}
-	else if (core == TCC_CORE_B) {
-		if (curr_coreB_voltage > uV)
-			udelay(1000);
-
-		if (machine_is_tcc8800()) { 
-			if (uV <= 1200000)
-				gpio_set_value(TCC_GPEXT2(11), 0);
-			else
-				gpio_set_value(TCC_GPEXT2(11), 1);
-		}
-		else if (machine_is_m801_88() || machine_is_m803()) {
-		}
-		else if (machine_is_tcc8800st()) {
-		}
-
-		if (curr_coreB_voltage < uV)
-			udelay(1000);
-	}
-
 	return 0;
 }
 #endif
 
-static int tcc_cpufreq_set_voltage(tcc_core_type core, int uV)
+static int tcc_cpufreq_set_voltage(int uV)
 {
 	int ret = 0;
 
 #if defined(CONFIG_REGULATOR)
-	if (vdd_coreA && (core == TCC_CORE_A))
-		ret = regulator_set_voltage(vdd_coreA, uV, tcc_voltage_table[NUM_VOLTAGES-1].voltage);
-	if (vdd_coreB && (core == TCC_CORE_B))
-		ret = regulator_set_voltage(vdd_coreB, uV, tcc_voltage_table[NUM_VOLTAGES-1].voltage);
+    if (vdd_core)
+    	ret = regulator_set_voltage(vdd_core, uV, tcc_voltage_table[NUM_VOLTAGES-1].voltage);
 #elif defined(CONFIG_GPIO_CORE_VOLTAGE_CONTROL)
-	ret = tcc_cpufreq_set_voltage_by_gpio(core, uV);
+	ret = tcc_cpufreq_set_voltage_by_gpio(uV);
 #endif
 	if (ret == 0) {
-		if (core == TCC_CORE_A)
-			curr_coreA_voltage = uV;
-		else if (core == TCC_CORE_B)
-			curr_coreB_voltage = uV;
+		if (curr_core_voltage < uV)
+			udelay(1000);
+		curr_core_voltage = uV;
 	}
 
 	return ret;
@@ -388,31 +313,22 @@ unsigned int tcc_get_maximum_io_clock(void)
 }
 EXPORT_SYMBOL(tcc_get_maximum_io_clock);
 
-static int tcc_cpufreq_get_voltage_table(tcc_core_type core, struct tcc_freq_table_t *clk_tbl)
+static int tcc_cpufreq_get_voltage_table(struct tcc_freq_table_t *clk_tbl)
 {
 	int i;
 
-	if (core == TCC_CORE_A) {
-		for (i=0 ; i<NUM_VOLTAGES ; i++) {
-			if (tcc_voltage_table[i].cpu_freq  >= clk_tbl->cpu_freq  &&
-				tcc_voltage_table[i].ddi_freq  >= clk_tbl->ddi_freq  &&
-				tcc_voltage_table[i].mem_freq  >= clk_tbl->mem_freq  &&
-				tcc_voltage_table[i].io_freq   >= clk_tbl->io_freq   &&
-				tcc_voltage_table[i].smu_freq  >= clk_tbl->smu_freq  &&
-				tcc_voltage_table[i].hsio_freq >= clk_tbl->hsio_freq)
-				break;
-		}
+	for (i=0 ; i<NUM_VOLTAGES ; i++) {
+		if (tcc_voltage_table[i].cpu_freq  >= clk_tbl->cpu_freq  &&
+			tcc_voltage_table[i].ddi_freq  >= clk_tbl->ddi_freq  &&
+			tcc_voltage_table[i].mem_freq  >= clk_tbl->mem_freq  &&
+			tcc_voltage_table[i].gpu_freq  >= clk_tbl->gpu_freq  &&
+			tcc_voltage_table[i].io_freq   >= clk_tbl->io_freq   &&
+			tcc_voltage_table[i].vbus_freq >= clk_tbl->vbus_freq &&
+			tcc_voltage_table[i].vcod_freq >= clk_tbl->vcod_freq &&
+			tcc_voltage_table[i].smu_freq  >= clk_tbl->smu_freq  &&
+			tcc_voltage_table[i].hsio_freq >= clk_tbl->hsio_freq)
+			break;
 	}
-	else if (core == TCC_CORE_B) {
-		for (i=0 ; i<NUM_VOLTAGES ; i++) {
-			if (tcc_voltage_table[i].gpu_freq  >= clk_tbl->gpu_freq  &&
-				tcc_voltage_table[i].vbus_freq >= clk_tbl->vbus_freq &&
-				tcc_voltage_table[i].vcod_freq >= clk_tbl->vcod_freq)
-				break;
-		}
-	}
-	else
-		i = NUM_VOLTAGES-1;
 
 	if (i >= NUM_VOLTAGES)
 		i = NUM_VOLTAGES-1;
@@ -422,11 +338,10 @@ static int tcc_cpufreq_get_voltage_table(tcc_core_type core, struct tcc_freq_tab
 
 static int tcc_cpufreq_set_clock_table(struct tcc_freq_table_t *curr_clk_tbl)
 {
-	int new_coreA_voltage, new_coreB_voltage;
+	int new_core_voltage;
 	int ret = 0;
 
-	new_coreA_voltage = tcc_cpufreq_get_voltage_table(TCC_CORE_A, curr_clk_tbl);
-	new_coreB_voltage = tcc_cpufreq_get_voltage_table(TCC_CORE_B, curr_clk_tbl);
+	new_core_voltage = tcc_cpufreq_get_voltage_table(curr_clk_tbl);
 
 #if defined(CONFIG_CPU_HIGHSPEED)
 #if (DEBUG_HIGHSPEED)
@@ -440,17 +355,10 @@ static int tcc_cpufreq_set_clock_table(struct tcc_freq_table_t *curr_clk_tbl)
 #endif
 
 //	printk("cpufreq: cpu:%u, ddi:%u, mem:%u, gpu:%u, io:%u, vbu:%u\n", curr_clk_tbl->cpu_freq, curr_clk_tbl->ddi_freq, curr_clk_tbl->mem_freq, curr_clk_tbl->gpu_freq, curr_clk_tbl->io_freq, curr_clk_tbl->vbus_freq);
-//	printk("         vco:%u, hsio:%u, coreA:%d, coreB:%d, tbl:%x\n", curr_clk_tbl->vcod_freq, curr_clk_tbl->hsio_freq, new_coreA_voltage, new_coreB_voltage, tcc_limitclocktbl_flag);
+//	printk("         vco:%u, hsio:%u, core:%d, tbl:%x\n", curr_clk_tbl->vcod_freq, curr_clk_tbl->hsio_freq, new_core_voltagetcc_limitclocktbl_flag);
 	
-	if (new_coreA_voltage > curr_coreA_voltage) {
-		ret = tcc_cpufreq_set_voltage(TCC_CORE_A, new_coreA_voltage);
-		if (ret != 0) {
-			pr_err("cpufreq: regulator_set_voltage failed\n");
-			return ret;;
-		}
-	}
-	if (new_coreB_voltage > curr_coreB_voltage) {
-		ret = tcc_cpufreq_set_voltage(TCC_CORE_B, new_coreB_voltage);
+	if (new_core_voltage > curr_core_voltage) {
+		ret = tcc_cpufreq_set_voltage(new_core_voltage);
 		if (ret != 0) {
 			pr_err("cpufreq: regulator_set_voltage failed\n");
 			return ret;;
@@ -471,11 +379,8 @@ static int tcc_cpufreq_set_clock_table(struct tcc_freq_table_t *curr_clk_tbl)
 
 	tcc_nand_unlock();
 
-	if (new_coreA_voltage < curr_coreA_voltage) {
-		ret = tcc_cpufreq_set_voltage(TCC_CORE_A, new_coreA_voltage);
-	}
-	if (new_coreB_voltage < curr_coreB_voltage) {
-		ret = tcc_cpufreq_set_voltage(TCC_CORE_B, new_coreB_voltage);
+	if (new_core_voltage < curr_core_voltage) {
+		ret = tcc_cpufreq_set_voltage(new_core_voltage);
 	}
 
 	memcpy(&tcc_freq_old_table, curr_clk_tbl, sizeof(struct tcc_freq_table_t));
@@ -767,12 +672,7 @@ static int tcc_cpufreq_resume(struct cpufreq_policy *policy)
 #endif
 
 #if !defined(CONFIG_REGULATOR)
-	ret = tcc_cpufreq_set_voltage(TCC_CORE_A, tcc_cpufreq_get_voltage_table(TCC_CORE_A, &freqs));
-	if (ret != 0) {
-		pr_err("cpufreq: regulator_set_voltage failed\n");
-		return -1;
-	}
-	ret = tcc_cpufreq_set_voltage(TCC_CORE_B, tcc_cpufreq_get_voltage_table(TCC_CORE_B, &freqs));
+	ret = tcc_cpufreq_set_voltage(tcc_cpufreq_get_voltage_table(&freqs));
 	if (ret != 0) {
 		pr_err("cpufreq: regulator_set_voltage failed\n");
 		return -1;
@@ -853,18 +753,11 @@ static int __init tcc_cpufreq_init(struct cpufreq_policy *policy)
 #endif
 
 #ifdef CONFIG_REGULATOR
-	if (vdd_coreA == NULL) {
-		vdd_coreA = regulator_get(NULL, "vdd_coreA");
-		if (IS_ERR(vdd_coreA)) {
-			pr_warning("cpufreq: failed to obtain vdd_coreA\n");
-			vdd_coreA = NULL;
-		}
-	}
-	if (vdd_coreB == NULL) {
-		vdd_coreB = regulator_get(NULL, "vdd_coreB");
-		if (IS_ERR(vdd_coreB)) {
-			pr_warning("cpufreq: failed to obtain vdd_coreB\n");
-			vdd_coreB = NULL;
+	if (vdd_core == NULL) {
+		vdd_core = regulator_get(NULL, "vdd_core");
+		if (IS_ERR(vdd_core)) {
+			pr_warning("cpufreq: failed to obtain vdd_core\n");
+			vdd_core = NULL;
 		}
 	}
 #endif
@@ -909,7 +802,7 @@ static void __exit tcc_cpufreq_exit(void)
 MODULE_AUTHOR("Telechips, Inc.");
 MODULE_DESCRIPTION("CPU frequency scaling driver for TCC92xx");
 
-#if defined(CONFIG_MACH_TCC8800ST) || defined(CONFIG_TCC_STB_MODE)
+#if defined(CONFIG_MACH_TCC8800ST) || defined(CONFIG_MACH_TCC8920ST) || defined(CONFIG_TCC_STB_MODE)
 device_initcall(tcc_cpufreq_register);
 #else
 late_initcall(tcc_cpufreq_register);

@@ -628,6 +628,8 @@ struct HDMIVideoParameter {
  */
 #define HDMI_IOC_GET_RI                     _IOR(HDMI_IOC_MAGIC,4,int)
 
+#define HDMI_IOC_GET_RI_REG                 _IOR(HDMI_IOC_MAGIC,100,int)
+
 /**
  * Device request code to get SHA1 result
  * which is the comparison between Rx and Tx. @n

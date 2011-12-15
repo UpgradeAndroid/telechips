@@ -140,6 +140,11 @@ extern int TCC_OUTPUT_EXCLUSIVE_UI_Process_Deinterlace(struct tcc_lcdc_image_upd
 #endif //CONFIG_TCC_EXCLUSIVE_UI_LAYER
 
 extern void TCC_OUTPUT_FB_Update_Disable(unsigned int disable);
+
+extern int TCC_OUTPUT_FB_MouseIconSelect(unsigned int type);
+extern int TCC_OUTPUT_FB_MouseShow(unsigned int enable, unsigned int type);
+extern int TCC_OUTPUT_FB_MouseMove(unsigned int width, unsigned int height, tcc_mouse *mouse, unsigned int type);
+
 #ifdef __cplusplus
  } 
 #endif

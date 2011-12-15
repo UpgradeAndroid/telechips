@@ -282,9 +282,12 @@ static struct usb_request *mtp_request_new(struct usb_ep *ep, int buffer_size)
 	struct usb_request *req = usb_ep_alloc_request(ep, GFP_KERNEL);
 	if (!req)
 		return NULL;
-
+#ifdef DMA_MODE
+	req->buf = dma_alloc_coherent(NULL, 4096, &req->dma, GFP_KERNEL|GFP_DMA); 
+#else
 	/* now allocate buffers for the requests */
 	req->buf = kmalloc(buffer_size, GFP_KERNEL);
+#endif
 	if (!req->buf) {
 		usb_ep_free_request(ep, req);
 		return NULL;
@@ -296,7 +299,11 @@ static struct usb_request *mtp_request_new(struct usb_ep *ep, int buffer_size)
 static void mtp_request_free(struct usb_request *req, struct usb_ep *ep)
 {
 	if (req) {
+#ifdef DMA_MODE
+		dma_free_coherent(NULL, 4096, req->buf, req->dma);
+#else		
 		kfree(req->buf);
+#endif
 		usb_ep_free_request(ep, req);
 	}
 }

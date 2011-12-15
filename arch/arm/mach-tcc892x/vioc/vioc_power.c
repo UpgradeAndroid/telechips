@@ -4,7 +4,7 @@
 
 void VIOC_OUTCFG_SetOutConfig (unsigned nType, unsigned nDisp)
 {
-	static VIOC_OUTCFG *gpOutConfig = (VIOC_OUTCFG *)HwVIOC_OUTCFG;
+	static VIOC_OUTCFG *gpOutConfig = (VIOC_OUTCFG *)tcc_p2v(HwVIOC_OUTCFG);
 
 	switch (nType)
 	{

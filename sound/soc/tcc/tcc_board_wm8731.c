@@ -59,7 +59,7 @@
 #define TCC_SPK_OFF   1
 
 #undef alsa_dbg
-#if 0
+#if 1
 #define alsa_dbg(fmt,arg...)    printk("== alsa-debug == "fmt,##arg)
 #else
 #define alsa_dbg(fmt,arg...)
@@ -329,7 +329,7 @@ static int tcc_wm8731_init(struct snd_soc_pcm_runtime *rtd)
 
     alsa_dbg("%s() \n", __func__);
 
-#if defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 	snd_soc_dapm_enable_pin(dapm, "MICIN");
 #else
 	snd_soc_dapm_disable_pin(dapm, "LLINEIN");
@@ -444,13 +444,18 @@ static int __init tcc_init_wm8731(void)
 
 	int ret;
 
+#if defined(CONFIG_ARCH_TCC88XX)
     if(!machine_is_tcc8800()) {
+#elif defined(CONFIG_ARCH_TCC892X)
+    if(!machine_is_tcc8920()) {
+#endif
         alsa_dbg("\n\n\n\n%s() do not execution....\n\n", __func__);
         return 0;
     }
 
     alsa_dbg("TCC Board probe [%s]\n", __FUNCTION__);
 
+#if defined(CONFIG_ARCH_TCC88XX)
     if(machine_is_tcc8800()) {
         gpio_request(TCC_GPEXT1(1), "CODEC_ON");
         gpio_request(TCC_GPEXT2(0), "UN_MUTE");
@@ -460,6 +465,17 @@ static int __init tcc_init_wm8731(void)
 
         tcc_soc_card.name = "TCC880x EVM";
     }
+#elif defined(CONFIG_ARCH_TCC892X)
+    if(machine_is_tcc8920()) {
+        gpio_request(TCC_GPEXT1(1), "CODEC_ON");
+        gpio_request(TCC_GPEXT2(0), "UN_MUTE");
+
+        gpio_direction_output(TCC_GPEXT1(1), 1);        // Codec power on
+        gpio_direction_output(TCC_GPEXT2(0), 1);        // Line ouput un-mute
+
+        tcc_soc_card.name = "TCC892x EVM";
+    }
+#endif
 
     tca_tcc_initport();
 

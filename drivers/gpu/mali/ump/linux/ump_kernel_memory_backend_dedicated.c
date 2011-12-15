@@ -207,7 +207,6 @@ static int block_allocator_allocate(void* ctx, ump_dd_mem * mem)
 					if(check == mem->nr_blocks)
 					{
 						 free_en=1;
-						DBG_MSG(2, ("free_en\n"));
 						break;
 					}		
 				}
@@ -227,7 +226,7 @@ static int block_allocator_allocate(void* ctx, ump_dd_mem * mem)
 		}
 	}	
 
-	while ((left > 0) && (allocator->first_free))
+	while ((left > 0) && (free_en))//(allocator->first_free))
 	{
 		block_info * block;
 
