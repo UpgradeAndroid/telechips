@@ -1644,7 +1644,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 					return -EFAULT;
 				}
 
-				printk("%s : TCC_LCDC_HDMI_DISPLAY\n", __func__);
+				dprintk("%s : TCC_LCDC_HDMI_DISPLAY\n", __func__);
 
 				if(Output_SelectMode == TCC_OUTPUT_HDMI)
 				{
