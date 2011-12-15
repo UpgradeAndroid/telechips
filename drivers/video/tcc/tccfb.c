@@ -3196,6 +3196,8 @@ static int __init tccfb_probe(struct platform_device *pdev)
 		fbinfo->var.xres		= screen_width;
 		fbinfo->var.xres_virtual	= fbinfo->var.xres;
 		fbinfo->var.yres		= screen_height;
+		fbinfo->var.width		= lcd_panel->width;
+		fbinfo->var.height		= lcd_panel->height;
 
 #ifdef TCC_FB_DOUBLE
 		fbinfo->var.yres_virtual	= fbinfo->var.yres * 2;
