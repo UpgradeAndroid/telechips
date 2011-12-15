@@ -288,7 +288,6 @@ static int tcc_spi_setup(struct spi_device *spi)
     if(tcc_spi_info.open == 0){
         if(tcc_spi_open(spi) != 0)
             return -EINVAL;
-
         tcc_spi_info.open = 1;
     }
 
@@ -314,8 +313,8 @@ static int tcc_spi_setup(struct spi_device *spi)
     tspi->set_bit_width(tspi, bits);
 
     if (spi->mode & ~MODEBITS) {
-        dev_dbg(&spi->dev, "setup: unsupported mode bits %x\n",
-                spi->mode & ~MODEBITS);
+        dev_dbg(&spi->dev, "[%s]setup: unsupported mode bits %x\n",
+                __func__, spi->mode & ~MODEBITS);
         return -EINVAL;
     }
 
@@ -497,6 +496,7 @@ static int __init tcc_spi_probe(struct platform_device *pdev)
 
     master->bus_num = pdev->id;
     master->num_chipselect = 1;
+    master->mode_bits = MODEBITS;
     master->setup = tcc_spi_setup;
     master->transfer = tcc_spi_transfer;
     master->cleanup = tcc_spi_cleanup;

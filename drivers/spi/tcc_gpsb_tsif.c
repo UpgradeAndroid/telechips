@@ -372,10 +372,10 @@ static unsigned int tcc_tsif_poll(struct file *filp, struct poll_table_struct *w
     return 0;
 }
 
-static int tcc_tsif_ioctl(struct inode *inode, struct file *filp, unsigned int cmd, unsigned long arg)
+static int tcc_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
     int ret = 0;
-	//printk("%s::%d::0x%X\n", __func__, __LINE__, cmd);	
+//	printk("%s::%d::0x%X\n", __func__, __LINE__, cmd);	
     switch (cmd) {
     case IOCTL_TSIF_DMA_START:
         {

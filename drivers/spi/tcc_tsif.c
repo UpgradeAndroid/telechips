@@ -148,7 +148,7 @@ static ssize_t tcc_tsif_module_write(struct file *filp, const char *buf, size_t 
     return 0;
 }
 
-static int tcc_tsif_module_ioctl(struct inode *inode, struct file *filp, unsigned int cmd, unsigned long arg)
+static int tcc_tsif_module_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	int ret = 0;
 

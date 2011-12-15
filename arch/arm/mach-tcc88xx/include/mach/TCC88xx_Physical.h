@@ -435,7 +435,7 @@
 #define	HwGPSB_STAT_WTH				Hw1											// Wrtie FIFO valid entry count is under threshold
 #define	HwGPSB_STAT_RTH				Hw0											// Read FIFO valid entry increased over threshold
 
-#define	HwGPSB_PIDT(X)				*(volatile unsigned long *)(0xF0535F00+(X)*4)	// R/W, PID Table Register
+#define	HwGPSB_PIDT(X)				(HwGPSB_PIDTABLE_BASE+(X)*4)	// R/W, PID Table Register
 #define	HwGPSB_PIDT_CH2				Hw31											// Channel 2 enable
 #define	HwGPSB_PIDT_CH1				Hw30											// Channel 1 enable
 #define	HwGPSB_PIDT_CH0				Hw29											// Channel 0 enable

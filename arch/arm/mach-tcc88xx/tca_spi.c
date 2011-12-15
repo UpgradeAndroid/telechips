@@ -375,7 +375,7 @@ int tca_spi_register_pids(tca_spi_handle_t *h, unsigned int *pids, unsigned int 
     gpsb_channel = h->gpsb_channel;
 
     //supporting pids is 32 
-    if (count <= 32 || gpsb_channel < 0) {
+    if (count <= 32) {
         volatile unsigned long* PIDT;
         int i = 0;
         for (i = 0; i < 32; i++) {
@@ -391,10 +391,11 @@ int tca_spi_register_pids(tca_spi_handle_t *h, unsigned int *pids, unsigned int 
 
             }
             h->set_mpegts_pidmode(h, 1);
-        } else {
+        } 
+    }
+    else {
             printk("tsif: PID TABLE is so big !!!\n");
             ret = -EINVAL;
-        }
     }
     return ret;
 }
