@@ -291,6 +291,7 @@ void VIOC_DISP_SetControlConfigure(VIOC_DISP *pDISP, stLCDCTR *pCtrlParam)
 								(pCtrlParam->evp << 31 ) |
 								(pCtrlParam->evs << 30 ) |
 								(pCtrlParam->r2ymd << 28 ) |
+								(pCtrlParam->advi << 26) |
 								(pCtrlParam->ccir656 << 24 ) |								
 								(pCtrlParam->ckg << 23 ) |
 								(1  << 22 /*Reset default*/ ) |							

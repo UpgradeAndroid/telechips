@@ -54,7 +54,7 @@ G2D_ZF_TYPE gZF = ZF_HOB_FILL;
 G2D_ASEL_TYPE gG2D_ASEL0 = ASEL_2;
 G2D_ASEL_TYPE gG2D_ASEL1 = ASEL_2;
 
-#if defined(CONFIG_ARCH_TCC892x)
+#if defined(CONFIG_ARCH_TCC892X)
 // alpha-value control 1,0
 G2D_OP_ACON gG2D_ACON1 = ACON_2;
 G2D_OP_ACON gG2D_ACON0 = ACON_2;
@@ -384,26 +384,26 @@ unsigned char gre2d_3ch_dma_main_func(G2D_FUNC_TYPE gre2d_value, G2D_EN grp_enal
 				gre2d_value.op_pat_1.op_pat_BV);
 
 
-	Gre2d_operator_ctrl(gG2D_ASEL1, 
-				gre2d_value.op_ctrl.csel1, 
-				gre2d_value.op_ctrl.op_mode1, 
-				gG2D_ASEL0, 
-				gre2d_value.op_ctrl.csel0, 
-				gre2d_value.op_ctrl.op_mode0);
-
+	
 
 	#if defined(CONFIG_ARCH_TCC892X)
 	Gre2d_operator_ctrl(OP_0, gG2D_ACON1,gG2D_ACON0,
 							gG2D_CCON1,gG2D_CCON0,gG2D_ATUNE, 
 							gre2d_value.op_ctrl.csel0, gre2d_value.op_ctrl.op_mode0);
 
-
-
 	Gre2d_operator_ctrl(OP_1, gG2D_ACON1,gG2D_ACON0,
 							gG2D_CCON1,gG2D_CCON0,gG2D_ATUNE, 
 							gre2d_value.op_ctrl.csel1, gre2d_value.op_ctrl.op_mode1);
-	#endif
-	
+
+	#else
+
+	Gre2d_operator_ctrl(gG2D_ASEL1, 
+				gre2d_value.op_ctrl.csel1, 
+				gre2d_value.op_ctrl.op_mode1, 
+				gG2D_ASEL0, 
+				gre2d_value.op_ctrl.csel0, 
+				gre2d_value.op_ctrl.op_mode0);
+	#endif	
 
 	//back end channel 
 	Gre2d_SetBCh_address(DEST_CH,  gre2d_value.dest.add0, gre2d_value.dest.add1, gre2d_value.dest.add2);
@@ -549,18 +549,20 @@ unsigned char gre2d_2ch_dma_main_func(G2d_2CH_FUNC gre2d_value)
     Gre2d_operator_set(OP_0, gre2d_value.op_pat_0.op_alpha, gre2d_value.op_pat_0.op_pat_RY, gre2d_value.op_pat_0.op_pat_GU, gre2d_value.op_pat_0.op_pat_BV);
 // operator 1 pattern setting
     Gre2d_operator_set(OP_1, 0, 0, 0, 0);
+	
 
-	Gre2d_operator_ctrl(gG2D_ASEL1, CHROMA_OP1_NOOP, GE_ROP_SRC_COPY, gG2D_ASEL0,  gre2d_value.csel0, gre2d_value.op_mode0);
-
-	#if defined(CONFNIG_ARCH_TCC892X)
+	#if defined(CONFIG_ARCH_TCC892X)
 	Gre2d_operator_ctrl(OP_0, gG2D_ACON1,gG2D_ACON0,
 							gG2D_CCON1,gG2D_CCON0,gG2D_ATUNE, 
-							gre2d_value.op_ctrl.csel0,gre2d_value.op_ctrl.op_mode1);
+							gre2d_value.csel0, gre2d_value.op_mode0);
 
 
 	Gre2d_operator_ctrl(OP_1, gG2D_ACON1,gG2D_ACON0,
 							gG2D_CCON1,gG2D_CCON0,gG2D_ATUNE, 
 							CHROMA_OP1_NOOP,GE_ROP_SRC_COPY);
+	#else
+	Gre2d_operator_ctrl(gG2D_ASEL1, CHROMA_OP1_NOOP, GE_ROP_SRC_COPY, gG2D_ASEL0,  gre2d_value.csel0, gre2d_value.op_mode0);
+		
 	#endif
 
 //back end channel 
@@ -673,18 +675,21 @@ unsigned char gre2d_1ch_dma_main_func(G2d_1CH_FUNC gre2d_value)
     Gre2d_operator_set(OP_0, 0, 0, 0, 0);
 // operator 1 pattern setting
     Gre2d_operator_set(OP_1, 0, 0, 0, 0);
-	Gre2d_operator_ctrl(gG2D_ASEL1, CHROMA_OP1_NOOP, GE_ROP_SRC_COPY, gG2D_ASEL0, CHROMA_OP0_NOOP, GE_ROP_SRC_COPY);
 
 
-	#if defined(CONFNIG_ARCH_TCC892X)
+	
+	
+	#if defined(CONFIG_ARCH_TCC892X)
 	Gre2d_operator_ctrl(OP_0, gG2D_ACON1,gG2D_ACON0,
 							gG2D_CCON1,gG2D_CCON0,gG2D_ATUNE, 
 							CHROMA_OP0_NOOP, GE_ROP_SRC_COPY);
 
-
 	Gre2d_operator_ctrl(OP_1, gG2D_ACON1,gG2D_ACON0,
 							gG2D_CCON1,gG2D_CCON0,gG2D_ATUNE, 
 							CHROMA_OP1_NOOP,GE_ROP_SRC_COPY);
+
+	#else 
+	Gre2d_operator_ctrl(gG2D_ASEL1, CHROMA_OP1_NOOP, GE_ROP_SRC_COPY, gG2D_ASEL0, CHROMA_OP0_NOOP, GE_ROP_SRC_COPY);	
 	#endif
 
 //back end channel 

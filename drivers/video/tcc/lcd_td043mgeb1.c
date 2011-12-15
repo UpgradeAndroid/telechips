@@ -207,7 +207,7 @@ static int td043mgeb1_set_power(struct lcd_panel *panel, int on)
 		if (!machine_is_m57te())
 			gpio_set_value(pdata->power_on, 0);
 
-		LCDC_IO_Disable(0, panel->bus_width);
+		LCDC_IO_Disable(1, panel->bus_width);
 	}
 	
 	panel->state = on;
@@ -285,7 +285,7 @@ static struct lcd_panel td043mgeb1_panel = {
 	.flc2		= 480,
 	.fswc2		= 34,
 	.fewc2		= 9,
-	.sync_invert	= IV_INVERT_EN | IH_INVERT_EN,
+	.sync_invert	= IV_INVERT | IH_INVERT,
 	.init		= td043mgeb1_panel_init,
 	.set_power	= td043mgeb1_set_power,
 	.set_backlight_level = td043mgeb1_set_backlight_level,

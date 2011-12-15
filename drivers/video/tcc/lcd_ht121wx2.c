@@ -20,6 +20,7 @@
 #include <linux/platform_device.h>
 #include <linux/gpio.h>
 #include <linux/clk.h>
+#include <linux/err.h>
 
 #include <mach/tcc_fb.h>
 #include <mach/gpio.h>
@@ -46,6 +47,7 @@ static int ht121wx2_panel_init(struct lcd_panel *panel)
 static int ht121wx2_set_power(struct lcd_panel *panel, int on)
 {
 	PDDICONFIG	pDDICfg;
+	unsigned int P, M, S, VSEL;
 	struct lcd_platform_data *pdata = panel->dev->platform_data;
 	printk("%s : %d %d  \n", __func__, on, lcd_bl_level);
 	mutex_lock(&panel_lock);
@@ -60,7 +62,32 @@ static int ht121wx2_set_power(struct lcd_panel *panel, int on)
 		clk_enable(lvds_clk);	
 		
 		lcdc_initialize(panel);
+
+#if defined(CONFIG_ARCH_TCC892X)
+			
+		// LVDS reset	
+		pDDICfg->LVDS_CTRL.bREG.RST =1;
+		pDDICfg->LVDS_CTRL.bREG.RST =0;		
+
+		BITCSET(pDDICfg->LVDS_TXO_SEL0.nREG, 0xFFFFFFFF, 0x15141312);
+		BITCSET(pDDICfg->LVDS_TXO_SEL1.nREG, 0xFFFFFFFF, 0x0B0A1716);
+		BITCSET(pDDICfg->LVDS_TXO_SEL2.nREG, 0xFFFFFFFF, 0x0F0E0D0C);
+		BITCSET(pDDICfg->LVDS_TXO_SEL3.nREG, 0xFFFFFFFF, 0x05040302);
+		BITCSET(pDDICfg->LVDS_TXO_SEL4.nREG, 0xFFFFFFFF, 0x1A190706);
+		BITCSET(pDDICfg->LVDS_TXO_SEL5.nREG, 0xFFFFFFFF, 0x1F1E1F18);
+		BITCSET(pDDICfg->LVDS_TXO_SEL6.nREG, 0xFFFFFFFF, 0x1F1E1F1E);
+		BITCSET(pDDICfg->LVDS_TXO_SEL7.nREG, 0xFFFFFFFF, 0x1F1E1F1E);
+		BITCSET(pDDICfg->LVDS_TXO_SEL8.nREG, 0xFFFFFFFF, 0x001E1F1E);
 	
+		M = 10; P = 10; S = 0; VSEL = 0;		
+		BITCSET(pDDICfg->LVDS_CTRL.nREG, 0x00FFFFF0, (VSEL<<4)|(S<<5)|(M<<8)|(P<<15)); //LCDC1
+
+		// LVDS Select LCDC 1
+		BITCSET(pDDICfg->LVDS_CTRL.nREG, 0x3 << 30 , 0x1 << 30);
+
+	    	pDDICfg->LVDS_CTRL.bREG.RST = 1;	//  reset
+	  	pDDICfg->LVDS_CTRL.bREG.EN = 1;   // enable
+#else
 		// LVDS reset
 		BITSET(pDDICfg->LVDS_CTRL, Hw1);	// reset
 		BITCLR(pDDICfg->LVDS_CTRL, Hw1);	// normal
@@ -82,7 +109,6 @@ static int ht121wx2_set_power(struct lcd_panel *panel, int on)
 	
 		#ifdef CONFIG_ARCH_TCC88XX
 		{
-			unsigned int P, M, S, VSEL;
 
 			M = 10; P = 10; S = 0; VSEL = 0;
 			BITCSET(pDDICfg->LVDS_CTRL, Hw21- Hw4, (VSEL<<4)|(S<<5)|(M<<8)|(P<<15)); //LCDC1
@@ -93,18 +119,22 @@ static int ht121wx2_set_power(struct lcd_panel *panel, int on)
 		
 		// LVDS enable
 		BITSET(pDDICfg->LVDS_CTRL, Hw2);	// enable
-		
+#endif		
 		msleep(16);
 		gpio_set_value(pdata->display_on, 1);
 
 	}
 	else 
 	{
-		#ifdef CONFIG_ARCH_TCC88XX	
-		BITCLR(pDDICfg->LVDS_CTRL, Hw1);	// reset
-		#endif//
-
-		BITCLR(pDDICfg->LVDS_CTRL, Hw2);	// disable
+		#if defined(CONFIG_ARCH_TCC892X)
+			pDDICfg->LVDS_CTRL.bREG.RST = 1;		// reset		
+			pDDICfg->LVDS_CTRL.bREG.EN = 0;		// reset		
+		#else	
+			#if defined(CONFIG_ARCH_TCC88XX)		
+				BITCLR(pDDICfg->LVDS_CTRL, Hw1);	// reset			
+			#endif
+			BITCLR(pDDICfg->LVDS_CTRL, Hw2);	// disable
+		#endif
 		
 		clk_disable(lvds_clk);	
 		gpio_set_value(pdata->display_on, 0);
@@ -155,7 +185,7 @@ struct lcd_panel ht121wx2_panel = {
 	.flc2		= 800,
 	.fswc2		= 0,
 	.fewc2		= 34,
-	.sync_invert	= IV_INVERT_EN | IH_INVERT_EN,
+	.sync_invert	= IV_INVERT | IH_INVERT,
 	.init		= ht121wx2_panel_init,
 	.set_power	= ht121wx2_set_power,
 	.set_backlight_level = ht121wx2_set_backlight_level,
@@ -178,8 +208,14 @@ static int ht121wx2_probe(struct platform_device *pdev)
 	gpio_direction_output(pdata->display_on, 1);
 	gpio_direction_output(pdata->reset, 1);
 	ht121wx2_panel.dev = &pdev->dev;
-	lvds_clk = clk_get(0, "lvds");
-	BUG_ON(lvds_clk == NULL);
+	#if defined(CONFIG_ARCH_TCC892X)
+		lvds_clk = clk_get(0, "lvds_phy"); //8920
+		if(IS_ERR(lvds_clk))
+		lvds_clk = NULL;
+	#else
+		lvds_clk = clk_get(0, "lvds");
+		BUG_ON(lvds_clk == NULL);
+	#endif
 	clk_enable(lvds_clk);	
 	tccfb_register_panel(&ht121wx2_panel);
 	return 0;

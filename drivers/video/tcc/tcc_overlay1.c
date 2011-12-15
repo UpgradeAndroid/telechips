@@ -45,6 +45,15 @@
 #include <mach/tcc_fb.h>
 #include <mach/tcc_overlay_ioctl.h>
 #include <mach/tccfb_ioctrl.h>
+#ifdef CONFIG_TCC_VIOC_CONTROLLER
+#include <mach/vioc_outcfg.h>
+#include <mach/vioc_rdma.h>
+#include <mach/vioc_wdma.h>
+#include <mach/vioc_wmix.h>
+#include <mach/vioc_disp.h>
+#include <mach/vioc_global.h>
+#endif//
+
 
 #if 0
 static int debug	   = 1;
@@ -71,6 +80,7 @@ static struct clk *overlay1_lcdc_clk;
 static overlay_config_t overlay1_cfg;
 static struct v4l2_format overlay1_fmt;
 
+#if defined(CONFIG_TCC_LCDC_CONTROLLER)
 /* LCD Overlay Setting*/
 #define IMG_INTL	       	0
 #define IMG_AEN           	0
@@ -98,6 +108,11 @@ static struct v4l2_format overlay1_fmt;
 #define IMG_AVAL1         		95
 static PLCDC		pLCDC1, pLCDC0;
 static volatile PLCDC_CHANNEL pLCDC1_CH1;
+#else
+static VIOC_WMIX *pWMIXBase1;
+static VIOC_RDMA *pRDMABase5;
+#endif//
+
 static unsigned char start_en = 0;
 static unsigned char wait_restart = 0;
 static unsigned char pos_reset = 0;
@@ -210,7 +225,7 @@ static int tccxxx_overlay1_get_screenInfo(overlay_config_t * arg )
 void tccxxx_overlay1_fmt_set(unsigned int fmt)
 {
 	dprintk(" Overlay -> S_FMT :: format = 0x%x(RGB565-0x%x, YUV420-0x%x, YUV420inter-0x%x) \n", fmt, V4L2_PIX_FMT_RGB565,V4L2_PIX_FMT_YVU420, V4L2_PIX_FMT_NV12);
-
+	#if  defined (CONFIG_TCC_LCDC_CONTROLLER)
 	if(fmt == V4L2_PIX_FMT_RGB565)
 	{
 		BITCSET (pLCDC1->LI1C, 0x1f<< 0,	(IMG_RGB565_FMT) <<  0); // format
@@ -235,6 +250,33 @@ void tccxxx_overlay1_fmt_set(unsigned int fmt)
 		BITCSET (pLCDC1->LI1O, 0xFFFFFFFF,	((overlay1_cfg.width/2)<<16) | (overlay1_cfg.width)); // format				
 		BITCSET (pLCDC1->LI1C, 0x1<<  8,	(IMG_Y2R)  <<  8); // y2r converter enable
 	}
+	#else
+
+	if(fmt == V4L2_PIX_FMT_RGB565)
+	{
+		VIOC_RDMA_SetImageFormat(pRDMABase5, VIOC_IMG_FMT_RGB565);
+		VIOC_RDMA_SetImageOffset(pRDMABase5, VIOC_IMG_FMT_RGB565, overlay1_cfg.width);
+		VIOC_RDMA_SetImageY2REnable(pRDMABase5, 0);
+	}
+	else if(fmt == V4L2_PIX_FMT_NV12)
+	{
+		VIOC_RDMA_SetImageFormat(pRDMABase5, VIOC_IMG_FMT_YUV420IL0);
+		VIOC_RDMA_SetImageOffset(pRDMABase5, VIOC_IMG_FMT_YUV420IL0, overlay1_cfg.width);
+		VIOC_RDMA_SetImageY2REnable(pRDMABase5, 1);
+	}
+	else if(fmt == V4L2_PIX_FMT_YUV422P)
+	{
+		VIOC_RDMA_SetImageFormat(pRDMABase5, VIOC_IMG_FMT_YUYV);
+		VIOC_RDMA_SetImageOffset(pRDMABase5, VIOC_IMG_FMT_YUYV, overlay1_cfg.width);
+		VIOC_RDMA_SetImageY2REnable(pRDMABase5, 1);
+	}
+	else
+	{
+		VIOC_RDMA_SetImageFormat(pRDMABase5, VIOC_IMG_FMT_YUV420SEP);
+		VIOC_RDMA_SetImageOffset(pRDMABase5, VIOC_IMG_FMT_YUV420SEP, overlay1_cfg.width);
+		VIOC_RDMA_SetImageY2REnable(pRDMABase5, 1);	
+	}	
+	#endif//
 }
 
 int tccxxx_overlay1_q_buffer(unsigned int* arg )
@@ -263,13 +305,18 @@ int tccxxx_overlay1_q_buffer(unsigned int* arg )
 	if(pos_reset)
 	{
 		pos_reset = 0;
-		// position
-		BITCSET (pLCDC1->LI1P, 0xffff<< 16, (overlay1_cfg.sy)  << 16); // position y
-		BITCSET (pLCDC1->LI1P, 0xffff<<  0, (overlay1_cfg.sx)  <<  0); // position x
-		
-		// size
-		BITCSET (pLCDC1->LI1S, 0xffff<< 16, (overlay1_cfg.height) << 16); // height
-		BITCSET (pLCDC1->LI1S, 0xffff<<  0, (overlay1_cfg.width) <<	0); // width
+		#if defined(CONFIG_TCC_LCDC_CONTROLLER)
+			// position
+			BITCSET (pLCDC1->LI1P, 0xffff<< 16, (overlay1_cfg.sy)  << 16); // position y
+			BITCSET (pLCDC1->LI1P, 0xffff<<  0, (overlay1_cfg.sx)  <<  0); // position x
+			
+			// size
+			BITCSET (pLCDC1->LI1S, 0xffff<< 16, (overlay1_cfg.height) << 16); // height
+			BITCSET (pLCDC1->LI1S, 0xffff<<  0, (overlay1_cfg.width) <<	0); // width
+		#else
+			VIOC_WMIX_SetPosition(pWMIXBase1, 2,  overlay1_cfg.sx, overlay1_cfg.sy);
+			VIOC_RDMA_SetImageSize(pRDMABase5, overlay1_cfg.width, overlay1_cfg.height);
+		#endif//
 		
 		tccxxx_overlay1_fmt_set(overlay1_fmt.fmt.pix.pixelformat);		
 	}
@@ -278,37 +325,58 @@ int tccxxx_overlay1_q_buffer(unsigned int* arg )
 	curU_phyAddr = GET_ADDR_YUV42X_spU(curY_phyAddr, overlay1_cfg.width, overlay1_cfg.height); 
 	curV_phyAddr = GET_ADDR_YUV420_spV(curU_phyAddr, overlay1_cfg.width, overlay1_cfg.height);
 	
-	BITCSET (pLCDC1->LI1BA0, 0xFFFFFFFF,  curY_phyAddr); // address0
-	BITCSET (pLCDC1->LI1BA1, 0xFFFFFFFF,  curU_phyAddr); // address1	
-	BITCSET (pLCDC1->LI1BA2, 0xFFFFFFFF,  curV_phyAddr); // address2
+	#if defined(CONFIG_TCC_LCDC_CONTROLLER)
+		BITCSET (pLCDC1->LI1BA0, 0xFFFFFFFF,  curY_phyAddr); // address0
+		BITCSET (pLCDC1->LI1BA1, 0xFFFFFFFF,  curU_phyAddr); // address1	
+		BITCSET (pLCDC1->LI1BA2, 0xFFFFFFFF,  curV_phyAddr); // address2
+	#else
+		VIOC_RDMA_SetImageBase(pRDMABase5, curY_phyAddr, curU_phyAddr,curV_phyAddr );
+	#endif//
 
 	if(!start_en)
 	{
 		tccxxx_overlay_common_enable();
 		tccxxx_overlay1_fmt_set(overlay1_fmt.fmt.pix.pixelformat);
+	#if defined(CONFIG_TCC_LCDC_CONTROLLER)
 		BITCLR (pLCDC1->LI1C, HwLIC_INTL);				 // not interlace format
 		BITSET(pLCDC1->LCTRL, Hw0);	
+	#else
+		VIOC_RDMA_SetImageIntl(pRDMABase5 , 0);
+		VIOC_RDMA_SetImageEnable(pRDMABase5);
+	#endif//
 		start_en = 1;
 	}
 	
-	if(!(pLCDC1->LI1C & Hw28))
-		BITCSET (pLCDC1->LI1C, 0x1<<28, 	(1)  << 28); // Enable Image
+	#if defined(CONFIG_TCC_LCDC_CONTROLLER)
+		if(!(pLCDC1->LI1C & Hw28))
+			BITCSET (pLCDC1->LI1C, 0x1<<28, 	(1)  << 28); // Enable Image
+	#else
+		VIOC_RDMA_SetImageEnable(pRDMABase5);
+	#endif//
 
 	tccxxx_overlay_check_priority();
-#if !defined(CONFIG_ARCH_TCC92XX)
-	BITCSET (pLCDC1->LI1C, HwLCT_RU, HwLCT_RU); //Image update
-#endif
+
+	#if defined(CONFIG_TCC_LCDC_CONTROLLER)
+		#if !defined(CONFIG_ARCH_TCC92XX)
+			BITCSET (pLCDC1->LI1C, HwLCT_RU, HwLCT_RU); //Image update
+		#endif
+	#endif
+
 	return 0;
 }
 
 
 static int tccxxx_overlay1_disable(void)
 {
-	BITSCLR (pLCDC1->LI1C, 0x1<<28, 	(1)  << 28); // Disable Image
+	#if defined(CONFIG_TCC_LCDC_CONTROLLER)
+		BITSCLR (pLCDC1->LI1C, 0x1<<28, 	(1)  << 28); // Disable Image
 
-#if !defined(CONFIG_ARCH_TCC92XX)
-	BITCSET (pLCDC1->LI1C, HwLCT_RU, HwLCT_RU); //Image update
-#endif
+		#if !defined(CONFIG_ARCH_TCC92XX)
+		BITCSET (pLCDC1->LI1C, HwLCT_RU, HwLCT_RU); //Image update
+		#endif
+	#else
+		VIOC_RDMA_SetImageDisable(pRDMABase5);
+	#endif//
 
 	wait_restart = 1;
 
@@ -329,7 +397,11 @@ static int tccxxx_overlay1_set_pos(overlay_config_t * arg )
 
 	if(!start_en)
 	{
+		#if defined(CONFIG_TCC_LCDC_CONTROLLER)
 		BITSCLR (pLCDC1->LI1C, 0x1<<28, 	(1)  << 28); // Disable Image
+		#else
+			VIOC_RDMA_SetImageDisable(pRDMABase5);
+		#endif//
 		wait_restart = 1;
 	}
 
@@ -394,6 +466,7 @@ static int tccxxx_overlay1_set_pos(overlay_config_t * arg )
 		return 0;
 	}
 
+	#if defined(CONFIG_TCC_LCDC_CONTROLLER)
 	// position
 	BITCSET (pLCDC1->LI1P, 0xffff<< 16, (overlay1_cfg.sy)  << 16); // position y
 	BITCSET (pLCDC1->LI1P, 0xffff<<  0, (overlay1_cfg.sx)  <<  0); // position x
@@ -401,12 +474,19 @@ static int tccxxx_overlay1_set_pos(overlay_config_t * arg )
 	// size
 	BITCSET (pLCDC1->LI1S, 0xffff<< 16, (overlay1_cfg.height) << 16); // height
 	BITCSET (pLCDC1->LI1S, 0xffff<<  0, (overlay1_cfg.width) <<  0); // width
+	#else
+		VIOC_WMIX_SetPosition(pWMIXBase1, 1,  overlay1_cfg.sx, overlay1_cfg.sy);
+		VIOC_RDMA_SetImageSize(pRDMABase5, overlay1_cfg.width, overlay1_cfg.height);
+	#endif//
 
 	tccxxx_overlay1_fmt_set(overlay1_fmt.fmt.pix.pixelformat);
 
-#if !defined(CONFIG_ARCH_TCC92XX)
-	BITCSET (pLCDC1->LI1C, HwLCT_RU, HwLCT_RU); //Image update
-#endif
+	#if defined(CONFIG_TCC_LCDC_CONTROLLER)
+		#if !defined(CONFIG_ARCH_TCC92XX)
+		BITCSET (pLCDC1->LI1C, HwLCT_RU, HwLCT_RU); //Image update
+		#endif
+	#endif//
+	
 	return 0;
 }
 
@@ -476,6 +556,7 @@ static int tccxxx_overlay1_set_configure(overlay_config_t* arg)
 
 	dprintk(" Overlay -> S_FMT :: Real => size(%d,%d ~ %d,%d) \n", overlay1_cfg.sx, overlay1_cfg.sy, overlay1_cfg.width, overlay1_cfg.height);
 
+	#if defined(CONFIG_TCC_LCDC_CONTROLLER)
 	// position
 	BITCSET (pLCDC1->LI1P, 0xffff<< 16, (overlay1_cfg.sy)  << 16); // position y
 	BITCSET (pLCDC1->LI1P, 0xffff<<  0, (overlay1_cfg.sx)  <<  0); // position x
@@ -483,44 +564,51 @@ static int tccxxx_overlay1_set_configure(overlay_config_t* arg)
 	// size
 	BITCSET (pLCDC1->LI1S, 0xffff<< 16, (overlay1_cfg.height) << 16); // height
 	BITCSET (pLCDC1->LI1S, 0xffff<<  0, (overlay1_cfg.width) <<  0); // width
-
-
+	#else
+		VIOC_WMIX_SetPosition(pWMIXBase1, 2,  overlay1_cfg.sx, overlay1_cfg.sy);
+		VIOC_RDMA_SetImageSize(pRDMABase5, overlay1_cfg.width, overlay1_cfg.height);
+	#endif//
 	tccxxx_overlay1_fmt_set(overlay1_fmt.fmt.pix.pixelformat);
 
-	BITCLR(pLCDC1->LI1C, HwLIC_SRC);
-
-#if !defined(CONFIG_ARCH_TCC92XX)
-	BITCSET (pLCDC1->LI1C, HwLCT_RU, HwLCT_RU); //Image update
-#endif
-
+	#if defined(CONFIG_TCC_LCDC_CONTROLLER)
+		BITCLR(pLCDC1->LI1C, HwLIC_SRC);
+		#if !defined(CONFIG_ARCH_TCC92XX)
+		BITCSET (pLCDC1->LI1C, HwLCT_RU, HwLCT_RU); //Image update
+		#endif
+	#endif//
 	return 0;
 }
 
 
 static int tccxxx_overlay1_set_chroma(overlay_chroma_t* arg)
 {
-	unsigned int screen_width, screen_height;
-
 	overlay_chroma_t *config;
 
 	config = (overlay_chroma_t*)arg;
 	if(copy_from_user(config, (unsigned int *)arg, sizeof(*config)))
 		return -EFAULT;
 	
+#if defined(CONFIG_TCC_LCDC_CONTROLLER)	
 	BITCSET (pLCDC1->LI1C, 0x1<< 29, (config->enable) << 29); // chroma-keying
 	
 	BITCSET (pLCDC1->LI1KR, 0x00FF00FF, config->chromaR); // key
 	BITCSET (pLCDC1->LI1KG, 0x00FF00FF, config->chromaG); // key
 	BITCSET (pLCDC1->LI1KB, 0x00FF00FF, config->chromaB); // key
-#ifdef CONFIG_ARCH_TCC93XX
-//	BITCSET (pLCDC1->LI1C, HwLIC_UPD, HwLIC_UPD); //Image update
+
+	#if !defined(CONFIG_ARCH_TCC92XX)
 	BITCSET (pLCDC1->LI1C, 	HwLCT_RU, 	HwLCT_RU); //Image update
-#endif//	CONFIG_ARCH_TCC93XX
+	#endif//	
+#else
+	VIOC_WMIX_SetChromaKey(pWMIXBase1, 2, config->enable, (config->chromaR & 0xFF), (config->chromaG & 0xFF), (config->chromaB & 0xFF), 
+									((config->chromaR >> 16) & 0xFF), ((config->chromaG >> 16) & 0xFF), ((config->chromaB >> 16) & 0xFF));
+#endif//
+
 	//printk("lcdc 1  0x%x 0x%x 0x%x 0x%x \n", pLCDC1->LI1C, pLCDC1->LI1KR, pLCDC1->LI1KG, pLCDC1->LI1KB);
 
-#if !defined(CONFIG_ARCH_TCC92XX)
+	#if !defined(CONFIG_ARCH_TCC92XX)
 	if(Output_SelectMode != OUTPUT_SELECT_NONE)
 	{
+		#if defined(CONFIG_TCC_LCDC_CONTROLLER)	
 		pLCDC0	= (volatile PLCDC)tcc_p2v(HwLCDC0_BASE);
 
 		BITCSET (pLCDC0->LI1C, 0x1<< 29, (config->enable) << 29); // chroma-keying
@@ -529,10 +617,17 @@ static int tccxxx_overlay1_set_chroma(overlay_chroma_t* arg)
 		BITCSET (pLCDC0->LI1KB, 0xFFFFFFFF, config->chromaB); // key
 
 		BITCSET (pLCDC0->LI1C, 	HwLCT_RU, 	HwLCT_RU); //Image update
+		#else
+		VIOC_WMIX *pWMIX;
+		pWMIX = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX0);
 
+		VIOC_WMIX_SetChromaKey(pWMIX, 2, config->enable, (config->chromaR & 0xFF), (config->chromaG & 0xFF), (config->chromaB & 0xFF), 
+										((config->chromaR >> 16) & 0xFF), ((config->chromaG >> 16) & 0xFF), ((config->chromaB >> 16) & 0xFF));
+		#endif//
+		
 		//printk("lcdc 0   0x%x 0x%x 0x%x 0x%x \n", pLCDC0->LI1C, pLCDC0->LI1KR, pLCDC0->LI1KG, pLCDC0->LI1KB);
 	}
-#endif//	CONFIG_ARCH_TCC93XX
+	#endif//	CONFIG_ARCH_TCC93XX
 
 	return 0;
 }
@@ -650,13 +745,25 @@ static int __init tcc_overlay1_probe(struct platform_device *pdev)
 {
 	overlay1_lcdc_clk = clk_get(0, "lcdc1");
 	BUG_ON(overlay1_lcdc_clk == NULL);
-	pLCDC1	= (volatile PLCDC)tcc_p2v(HwLCDC1_BASE);	
-#ifdef CONFIG_ARCH_TCC92XX
-	pLCDC1_CH1 = (volatile PLCDC_CHANNEL)tcc_p2v(pLCDC1->LI1C);
-#else
-	pLCDC1_CH1 = (volatile PLCDC_CHANNEL)tcc_p2v(HwLCDC1_CH_BASE(1));
-#endif//
+	#if defined(CONFIG_TCC_LCDC_CONTROLLER)
+		pLCDC1	= (volatile PLCDC)tcc_p2v(HwLCDC1_BASE);	
 
+		#ifdef CONFIG_ARCH_TCC92XX
+		pLCDC1_CH1 = (volatile PLCDC_CHANNEL)tcc_p2v(pLCDC1->LI1C);
+		#else
+		pLCDC1_CH1 = (volatile PLCDC_CHANNEL)tcc_p2v(HwLCDC1_CH_BASE(1));
+		#endif//
+
+	#else
+		#ifdef CONFIG_LCD_LCDC0_USE
+		pWMIXBase1 = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX0);
+		pRDMABase5 = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA01);
+		#else
+		pWMIXBase1 = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX1);
+		pRDMABase5 = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA05);
+		#endif//
+		
+	#endif//
     if (misc_register(&overlay1_misc_device))
     {
         dprintk(KERN_WARNING "OVERLAY: Couldn't register device %d.\n", DEV_MINOR);
@@ -674,16 +781,21 @@ static int tcc_overlay1_remove(struct platform_device *pdev)
 }
 
 #ifdef CONFIG_PM
+#if defined(CONFIG_TCC_LCDC_CONTROLLER)
 static volatile LCDC_CHANNEL LCDC1_CH1_BackUp;
-
+#else
+static VIOC_RDMA RDMA_BackUp;
+#endif//
 static int tcc_overlay1_suspend(struct platform_device *pdev, pm_message_t state)
 {
 	if(tcc_overlay1_use != 0)
 	{	
 		printk("tcc_overlay1_suspend %d opened\n", tcc_overlay1_use);
-
+		#if defined(CONFIG_TCC_LCDC_CONTROLLER)
 		LCDC1_CH1_BackUp = *pLCDC1_CH1;
-		
+		#else
+		RDMA_BackUp = *pRDMABase5;
+		#endif//
 		clk_disable(overlay1_lcdc_clk);
 	}
 	
@@ -698,7 +810,11 @@ static int tcc_overlay1_resume(struct platform_device *pdev)
 		
 		clk_enable(overlay1_lcdc_clk);
 
+		#if defined(CONFIG_TCC_LCDC_CONTROLLER)
 		*pLCDC1_CH1 = LCDC1_CH1_BackUp;
+		#else
+		 *pRDMABase5 = RDMA_BackUp;
+		#endif//		
 	}
 	
 	return 0;

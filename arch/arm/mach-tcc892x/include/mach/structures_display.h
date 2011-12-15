@@ -377,6 +377,7 @@ typedef struct LCDCDEFAULT
 	unsigned   evp;    // External VSYNC Polarity,		   [0:Direct Input 1:Inverted Input]
 	unsigned   evs;    // External VSYNC Enable,		   [0:Disabled	   1:Enabled]
 	unsigned   r2ymd;  // RGB to YCbCr Conversion Option,  [0: 1: 2: 3:]
+	unsigned   advi;   // Advanced Interlaced Mode
 	unsigned   dtype;  // LCD DMA Type					   [0: AHB DDIC on, 1:AXI DDIC Off]
 	unsigned   gen;    // Gamma Correction Enable Bit,	   [0:Disabled 1:Enabled]
 	unsigned   ccir656;// CCIR 656 Mode,				   [0:Disable	1:Enable]

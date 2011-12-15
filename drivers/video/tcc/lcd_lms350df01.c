@@ -175,7 +175,7 @@ static int lms350df01_set_power(struct lcd_panel *panel, int on)
 		gpio_set_value(pdata->reset, 0);
 		gpio_set_value(pdata->power_on, 0);
 
-		LCDC_IO_Disable(0, panel->bus_width);
+		LCDC_IO_Disable(1, panel->bus_width);
 	}
 	panel->state = on;
 	mutex_unlock(&panel_lock);
@@ -230,7 +230,7 @@ static struct lcd_panel lms350df01_panel = {
 	.flc2		= 480,
 	.fswc2		= 4,
 	.fewc2		= 102,
-	.sync_invert	= IV_INVERT_EN | IH_INVERT_EN,
+	.sync_invert	= IV_INVERT | IH_INVERT,
 	.init		= lms350df01_panel_init,
 	.set_power	= lms350df01_set_power,
 	.set_backlight_level = lms350df01_set_backlight_level,

@@ -261,7 +261,7 @@ static int dx08d11vm0aaa_set_power(struct lcd_panel *panel, int on)
 		gpio_set_value(pdata->display_on, 0);
 		udelay(10);
 
-		LCDC_IO_Disable(0, panel->bus_width);
+		LCDC_IO_Disable(1, panel->bus_width);
 		DX08D11VM0AAA_Module_Off();
 
 //		gpio_set_value(pdata->reset, 0);
@@ -351,7 +351,7 @@ static struct lcd_panel dx08d11vm0aaa_panel = {
 	.flc2		= 800,
 	.fswc2		= 2,
 	.fewc2		= 11,
-	.sync_invert	= ID_INVERT_EN | IV_INVERT_EN | IH_INVERT_EN | IP_INVERT_EN,
+	.sync_invert	= ID_INVERT | IV_INVERT | IH_INVERT | IP_INVERT,
 	.init		= dx08d11vm0aaa_panel_init,
 	.set_power	= dx08d11vm0aaa_set_power,
 	.set_backlight_level = dx08d11vm0aaa_set_backlight_level,

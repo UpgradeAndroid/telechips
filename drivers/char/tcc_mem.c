@@ -62,6 +62,13 @@
 #define DXB_BASE2       0x00000000
 // adjust DTS ECID check
 #define AV_BASE         0xB010A000
+#elif defined(CONFIG_ARCH_TCC892X)
+#define VPU_BASE		0x75000000
+#define JPEG_BASE		0x75300000
+#define CLK_BASE        0x74000000
+#define DXB_BASE1       0x30000000 // have to modify
+#define DXB_BASE2       0xF08C0000 // have to modify
+#define AV_BASE         0x76067000
 #else
 #define VPU_BASE		0xF0700000
 #define CLK_BASE        0xF0400000
@@ -79,13 +86,16 @@ struct allow_region {
 
 struct allow_region AllowRegion[] = {
 	{ VPU_BASE, 0x21000}, 	//VPU Register..	
-	{ CLK_BASE, 4096}, 		//to check vpu-running.
-	{ DXB_BASE1,4096}, 		//for broadcasting.
-	{ DXB_BASE2,4096}, 		//for broadcasting.
+	{ CLK_BASE, 0x1000}, 	//to check vpu-running.
+	{ DXB_BASE1,0x1000}, 	//for broadcasting.
+	{ DXB_BASE2,0x1000}, 	//for broadcasting.
+#ifdef CONFIG_ARCH_TCC892X
+	{ JPEG_BASE,0x1000}, 	//JPEG(in VPU) Register..	
+#endif
 #ifndef	CONFIG_ARCH_TCC93XX
-	{ AV_BASE,  4096}  		//for AV_algorithm.
+	{ AV_BASE,  0x1000}  	//for AV_algorithm.
 #else
-	{ AV_BASE,  12288}  		//for AV_algorithm.
+	{ AV_BASE,  0x3000}  	//for AV_algorithm.
 #endif
 
 };

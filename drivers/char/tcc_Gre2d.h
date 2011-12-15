@@ -108,7 +108,17 @@ extern void Gre2d_operator_set(G2D_OP_TYPE op_set, unsigned short alpha , unsign
 Gre2d_operator_ctrl
  graphic engine operator control register setting
 -------------------------------------------------------------------*/
+
+
+
+#if defined (CONFIG_ARCH_TCC892X)
+extern void Gre2d_operator_ctrl(G2D_OP_TYPE op_set, G2D_OP_ACON ACON1, G2D_OP_ACON ACON0, G2D_OP_CCON CCON1, G2D_OP_CCON CCON0, G2D_OP_ATUNE ATUNE, G2D_OP1_CHROMA CSEL,GE_ROP_TYPE op );
+
+#else
 extern void Gre2d_operator_ctrl(G2D_ASEL_TYPE ASEL1, G2D_OP1_CHROMA CSEL1, GE_ROP_TYPE op1, G2D_ASEL_TYPE ASEL0, G2D_OP0_CHROMA CSEL0, GE_ROP_TYPE op0);
+
+#endif
+
 
 
 /*-------- BACK END CHANNEL DESTINATION SETTIG. -------*/

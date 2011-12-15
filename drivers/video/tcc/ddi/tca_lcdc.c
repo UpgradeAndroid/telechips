@@ -216,7 +216,6 @@ EXPORT_SYMBOL(tcc_onthefly_init);
 
 void tca_lcdc_interrupt_onoff(char onoff, char lcdc)
 {
-
 	unsigned int LCDC_INTbit;
 	PPIC pHwPIC_reg = (volatile PPIC)tcc_p2v(HwPIC_BASE);
 	PLCDC pLCDC_reg;
@@ -273,7 +272,6 @@ void tca_lcdc_interrupt_onoff(char onoff, char lcdc)
 			BITCLR(pHwPIC_reg->INTMSK0, LCDC_INTbit);	
 		}
 	#endif//CONFIG_USE_EXT_INTERRUPT
-
 }
 EXPORT_SYMBOL(tca_lcdc_interrupt_onoff);
 
@@ -303,16 +301,16 @@ void lcdc_initialize(struct lcd_panel *lcd_spec)
 	else
 		lcd_reg |= (0x3<<16);
 
-	if(lcd_spec->sync_invert & ID_INVERT_EN)
+	if(lcd_spec->sync_invert & ID_INVERT)
 		lcd_reg |= Hw15;
 
-	if(lcd_spec->sync_invert & IV_INVERT_EN)
+	if(lcd_spec->sync_invert & IV_INVERT)
 		lcd_reg |= Hw14;
 
-	if(lcd_spec->sync_invert & IH_INVERT_EN)
+	if(lcd_spec->sync_invert & IH_INVERT)
 		lcd_reg |= Hw13;
 
-	if(lcd_spec->sync_invert & IP_INVERT_EN)
+	if(lcd_spec->sync_invert & IP_INVERT)
 		lcd_reg |= Hw12;
 
 #ifdef CONFIG_LCD_CPU_INTERFACE
@@ -484,31 +482,6 @@ unsigned char tcc_LCDC_Wait_signal_disable(char lcdc)
 	return TRUE;
 }
 
-unsigned int tcc_LCDC_enable(unsigned lcdc, unsigned onoff)
-{
-	volatile PLCDC pstLCDC;
-
-	if(lcdc == 0)	{
-		pstLCDC = (volatile PLCDC)tcc_p2v(HwLCDC0_BASE);
-	}
-	else	{
-		pstLCDC = (volatile PLCDC)tcc_p2v(HwLCDC1_BASE);
-	}
-
-	if(onoff)
-	{
-		BITSET(pstLCDC->LCTRL, HwLCTRL_LEN);
-		BITSET(pstLCDC->LSTATUS, HwLSTATUS_RU);
-	}
-	else
-	{
-		BITCLR(pstLCDC->LCTRL, HwLCTRL_LEN);
-		BITCLR(pstLCDC->LSTATUS, HwLSTATUS_RU);
-	}
-
-	return 1;
-}
-EXPORT_SYMBOL(tcc_LCDC_enable);
 
 
 unsigned int tcc_LCDC_ctrl_layer(unsigned lcdc, unsigned layer, unsigned onoff)

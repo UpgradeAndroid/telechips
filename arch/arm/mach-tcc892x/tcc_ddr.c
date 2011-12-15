@@ -856,7 +856,6 @@ static void copy_change_clock(void)
 	volatile PTIMER	pTIMER	= (volatile PTIMER)tcc_p2v(HwTMR_BASE);
 #endif
 
-#if 0	// temparary comment by B090183
 //--------------------------------------------------------------
 // disable LCD
 #if defined(CONFIG_LCD_LCDC0_USE)
@@ -868,7 +867,6 @@ static void copy_change_clock(void)
 	if(RDMA_sts)
 		tcc_LCDC_onoff_ctrl(1,0);
 #endif
-#endif
 
 //--------------------------------------------------------------
 // copy clock change function to sram
@@ -877,10 +875,8 @@ static void copy_change_clock(void)
 //--------------------------------------------------------------
 // disable LCD
 #if defined(CONFIG_DRAM_DDR2)
-#if 0	// temparary comment by B090183
-//	DEV_LCDC_Wait_signal(0);
-//	DEV_LCDC_Wait_signal(1);
-#endif
+	DEV_LCDC_Wait_signal(0);
+	DEV_LCDC_Wait_signal(1);
 #endif
 
 //--------------------------------------------------------------
@@ -944,7 +940,6 @@ static void copy_change_clock(void)
 	*(volatile unsigned int *)(L2CACHE_BASE+L2X0_CTRL) = 1; //cache on
 #endif
 	
-#if 0	// temparary comment by B090183
 //--------------------------------------------------------------
 // enable LCD
 #if defined(CONFIG_LCD_LCDC0_USE)
@@ -953,7 +948,6 @@ static void copy_change_clock(void)
 #else
 	if(RDMA_sts)
 		tcc_LCDC_onoff_ctrl(1,1);
-#endif
 #endif
 
 //--------------------------------------------------------------

@@ -139,15 +139,15 @@ void tca92xxfb_clock_init(void)
 	lcd_si = clk_get(0, "lcdsi");
 	#endif//
 
-	BUG_ON(lcdc0_clk == NULL);
-	BUG_ON(lcdc1_clk == NULL);
-	BUG_ON(ddi_cache == NULL);
+	BUG_ON(IS_ERR(lcdc0_clk));
+	BUG_ON(IS_ERR(lcdc1_clk));
+	BUG_ON(IS_ERR(ddi_cache));
 	#ifdef CONFIG_LCD_CPU_INTERFACE
-	BUG_ON(lcd_si == NULL);
+	BUG_ON(IS_ERR(lcd_si));
 	#endif//
 	#ifdef CONFIG_FB_M2M_COPY
 	scaler0_clk = clk_get(0, "m2m0");
-	BUG_ON(scaler0_clk == NULL);
+	BUG_ON(IS_ERR(scaler0_clk));
 	#endif//
 }
 
@@ -888,7 +888,7 @@ int tca_fb_init(void)
 	struct lcd_panel *lcd_info;
 	pmap_t pmap_fb_video;
 
-	printk(KERN_INFO " TCC %s (built %s %s)\n", __func__, __DATE__, __TIME__);
+	printk(KERN_INFO " tcc92xx %s (built %s %s)\n", __func__, __DATE__, __TIME__);
 
 	pmap_get_info("fb_video", &pmap_fb_video);
 

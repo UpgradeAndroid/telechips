@@ -1609,6 +1609,9 @@ static long tcc_component_ioctl(struct file *file, unsigned int cmd, void *arg)
 #if defined(TCC_VIDEO_DISPLAY_DEINTERLACE_MODE)
 			tcc_vsync_viqe_deinitialize();
 #endif /* TCC_VIDEO_DISPLAY_DEINTERLACE_MODE */
+#if defined(CONFIG_ARCH_TCC88XX)
+			TCC_OUTPUT_FB_MouseIconSelect(0);
+#endif
 			break;
 
 		case TCC_COMPONENT_IOCTL_PROCESS:

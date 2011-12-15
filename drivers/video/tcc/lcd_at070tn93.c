@@ -32,13 +32,14 @@
 #include <mach/TCC_LCD_Interface.h>
 
 #if defined(CONFIG_ARCH_TCC892X)
-#include <mach/structures_smu_pmu.h>
+#include <mach/reg_physical.h>
 #endif
 
 
 static struct mutex panel_lock;
 static char lcd_pwr_state;
 static unsigned int lcd_bl_level;
+char lcdc_number;
 extern void lcdc_initialize(struct lcd_panel *lcd_spec);
 
 
@@ -49,17 +50,16 @@ static int at070tn93_panel_init(struct lcd_panel *panel)
 	return 0;
 }
 
-static int at070tn93_set_power(struct lcd_panel *panel, int on)
+static int at070tn93_set_power(struct lcd_panel *panel, int on, unsigned int lcd_num)
 {
 	struct lcd_platform_data *pdata = panel->dev->platform_data;
-
-	printk("%s : %d %d  \n", __func__, on, lcd_bl_level);
 
 	mutex_lock(&panel_lock);
 	lcd_pwr_state = on;
 
-	if (on) {
+	printk("%s : %d %d  lcd number = (%d) \n", __func__, on, lcd_bl_level, lcd_num);
 
+	if (on) {
 		
 		gpio_set_value(pdata->power_on, 1);
 		udelay(100);
@@ -68,25 +68,27 @@ static int at070tn93_set_power(struct lcd_panel *panel, int on)
 		msleep(20);
 
 		lcdc_initialize(panel);
-		LCDC_IO_Set(1, panel->bus_width);
+		LCDC_IO_Set(lcd_num, panel->bus_width);
 
 		if(lcd_bl_level)		{
 			msleep(80); 	
+		#if defined(CONFIG_ARCH_TCC892X)
+			tcc_gpio_config(pdata->bl_on, GPIO_FN(9));
+		#else
 			tcc_gpio_config(pdata->bl_on, GPIO_FN(2));
-		}
-		else		{
+		#endif
+		}else{
 			msleep(80);
 		}
-		
 	}
 	else 
 	{
 		msleep(10);
 		gpio_set_value(pdata->reset, 0);
-
 		gpio_set_value(pdata->power_on, 0);
 
-		LCDC_IO_Disable(0, panel->bus_width);
+		LCDC_IO_Disable(lcd_num, panel->bus_width);
+
 	}
 	mutex_unlock(&panel_lock);
 
@@ -112,16 +114,21 @@ static int at070tn93_set_backlight_level(struct lcd_panel *panel, int level)
 		gpio_set_value(pdata->bl_on, 0);
 	} else {
 
+#if defined(CONFIG_ARCH_TCC892X)
+
+		if(lcd_pwr_state)
+			tcc_gpio_config(pdata->bl_on, GPIO_FN(9));
+
+		pTIMER	= (volatile PTIMER)tcc_p2v(HwTMR_BASE);
+		pTIMER->TREF1.nREG = MAX_BL_LEVEL;
+		pTIMER->TCFG1.nREG	= 0x105;	
+		pTIMER->TMREF1.nREG = (level | 0x07);
+		pTIMER->TCFG1.nREG	= 0x105;
+#else
+	
 		if(lcd_pwr_state)
 			tcc_gpio_config(pdata->bl_on, GPIO_FN(2));
 
-#if defined(CONFIG_ARCH_TCC892X)
-		pTIMER	= (volatile PTIMER)tcc_p2v(HwTMR_BASE);
-		pTIMER->TREF0.nREG = MAX_BL_LEVEL;
-		pTIMER->TCFG0.nREG	= 0x105;	
-		pTIMER->TMREF0.nREG = (level | 0x07);
-		pTIMER->TCFG0.nREG	= 0x105;
-#else
 		pTIMER	= (volatile PTIMER)tcc_p2v(HwTMR_BASE);
 		pTIMER->TREF0 = MAX_BL_LEVEL;
 		pTIMER->TCFG0	= 0x105;	
@@ -162,7 +169,7 @@ static struct lcd_panel at070tn93_panel = {
 	.flc2		= 480,
 	.fswc2		= 20,
 	.fewc2		= 21,
-	.sync_invert	= IV_INVERT_EN | IH_INVERT_EN,
+	.sync_invert	= IV_INVERT | IH_INVERT,
 	.init		= at070tn93_panel_init,
 	.set_power	= at070tn93_set_power,
 	.set_backlight_level = at070tn93_set_backlight_level,

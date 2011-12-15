@@ -24,7 +24,7 @@ obj-$(CONFIG_TCC_ECID_SUPPORT)  += tcc_ecid.o
 
 # Specific board support
 obj-$(CONFIG_MACH_TCC8920)      += board-tcc8920.o board-tcc8920-gpio.o board-tcc8920-keypad.o board-tcc8920-power.o
-#obj-$(CONFIG_MACH_TCC8920)      += board-tcc8920-panel.o
+obj-$(CONFIG_MACH_TCC8920)      += board-tcc8920-panel.o
 obj-$(CONFIG_MACH_TCC8920)      += board-tcc8920-mmc.o
 #obj-$(CONFIG_MACH_TCC8920)      += board-tcc8920-dxb.o
 #obj-$(CONFIG_MACH_TCC8920)      += board-tcc8920-hdmi.o

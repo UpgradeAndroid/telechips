@@ -55,8 +55,7 @@ static int lms480kf01_set_power(struct lcd_panel *panel, int on)
 	{
 		gpio_set_value(pdata->display_on, 0);
 		gpio_set_value(pdata->reset, 0);
-
-		LCDC_IO_Disable(0, panel->bus_width);
+		LCDC_IO_Disable(1, panel->bus_width);
 		gpio_set_value(pdata->power_on, 0);
 	}
 	panel->state = on;
@@ -116,7 +115,7 @@ static struct lcd_panel lms480kf01_panel = {
 	.fswc2		= 6,
 	.fewc2		= 36,	
 
-	.sync_invert	= IV_INVERT_EN | IH_INVERT_EN,
+	.sync_invert	= IV_INVERT | IH_INVERT,
 	.init		= lms480kf01_panel_init,
 	.set_power	= lms480kf01_set_power,
 	.set_backlight_level = lms480kf01_set_backlight_level,

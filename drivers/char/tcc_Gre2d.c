@@ -19,9 +19,15 @@
 #include <mach/bsp.h>
 
 #include "tcc_Gre2d.h"
+
 #if defined(CONFIG_ARCH_TCC892X)
+
+#include <linux/interrupt.h>
+#include <linux/irq.h>
 #include <mach/reg_physical.h>
+#include <mach/structures_smu_pmu.h>
 #endif
+
 void Gre2d_DELAY(unsigned int	delay)
 {
 	unsigned int loop;
@@ -48,6 +54,25 @@ void Gre2d_Set_interrupt(char onoff)
 	else
 	{
 		BITCLR(pHwPIC->IEN0,  HwINT0_G2D); 
+	}
+
+#elif defined(CONFIG_ARCH_TCC892X)
+	if(onoff)
+	{
+		/*
+		BITSET(pHwPIC->CLR0.nREG,  Hw27); 	//overlay mixer
+		BITCLR(pHwPIC->POL0.nREG,  Hw27); 
+		BITSET(pHwPIC->SEL0.nREG,  Hw27); 
+		BITSET(pHwPIC->IEN0.nREG,  Hw27); 
+		BITSET(pHwPIC->MODE0.nREG,  Hw27); 
+		*/
+		enable_irq(INT_G2D);
+		
+	}
+	else
+	{
+		//BITCLR(pHwPIC->IEN0.nREG,  Hw27); 
+		disable_irq(INT_G2D);
 	}
 #else
 	if(onoff)
@@ -115,22 +140,41 @@ void Gre2d_SetFCh_address(G2D_CHANNEL ch, unsigned int add0, unsigned int add1, 
 	switch(ch)
     {
         case FCH0_CH:
+	#if defined(CONFIG_ARCH_TCC892X)
+			BITCSET(pHwOVERLAYMIXER->FCH0_SADDR0.nREG, 0xFFFFFFFF, add0);
+			BITCSET(pHwOVERLAYMIXER->FCH0_SADDR1.nREG, 0xFFFFFFFF, add1);
+			BITCSET(pHwOVERLAYMIXER->FCH0_SADDR2.nREG, 0xFFFFFFFF, add2);
+	#else
 			pHwOVERLAYMIXER->FCH0_SADDR0 = (unsigned int)add0; // pHwOVERLAYMIXER->FCH0_SADDR0
 			pHwOVERLAYMIXER->FCH0_SADDR1 = (unsigned int)add1;
 			pHwOVERLAYMIXER->FCH0_SADDR2 = (unsigned int)add2;
+	#endif
+
 			break;
          
         case FCH1_CH:
+	#if defined(CONFIG_ARCH_TCC892X)
+			BITCSET(pHwOVERLAYMIXER->FCH1_SADDR0.nREG, 0xFFFFFFFF, add0);
+			BITCSET(pHwOVERLAYMIXER->FCH1_SADDR1.nREG, 0xFFFFFFFF, add1);
+			BITCSET(pHwOVERLAYMIXER->FCH1_SADDR2.nREG, 0xFFFFFFFF, add2);
+	#else
 			pHwOVERLAYMIXER->FCH1_SADDR0 = (unsigned int)add0;
 			pHwOVERLAYMIXER->FCH1_SADDR1 = (unsigned int)add1;
 			pHwOVERLAYMIXER->FCH1_SADDR2 = (unsigned int)add2;
+	#endif
             break;
 
 
         case FCH2_CH:
+	#if defined(CONFIG_ARCH_TCC892X)
+			BITCSET(pHwOVERLAYMIXER->FCH2_SADDR0.nREG, 0xFFFFFFFF, add0);
+			BITCSET(pHwOVERLAYMIXER->FCH2_SADDR1.nREG, 0xFFFFFFFF, add1);
+			BITCSET(pHwOVERLAYMIXER->FCH2_SADDR2.nREG, 0xFFFFFFFF, add2);
+	#else
             pHwOVERLAYMIXER->FCH2_SADDR0 = (unsigned int)add0;
            	pHwOVERLAYMIXER->FCH2_SADDR1 = (unsigned int)add1;
             pHwOVERLAYMIXER->FCH2_SADDR2 = (unsigned int)add2;
+	#endif
             break;
 
         default:
@@ -156,25 +200,46 @@ void Gre2d_SetFCh_position(G2D_CHANNEL ch, unsigned int  frameps_x, unsigned int
 	switch(ch)
     {
         case FCH0_CH:
+	#if defined(CONFIG_ARCH_TCC892X)
+            BITCSET(pHwOVERLAYMIXER->FCH0_SFSIZE.nREG,0x0FFF0FFF,((frameps_y<<16) | frameps_x)); // pHwOVERLAYMIXER->FCH0_SFSIZE
+            BITCSET(pHwOVERLAYMIXER->FCH0_SOFF.nREG,0x0FFF0FFF,((poffset_y<<16) | poffset_x));
+            BITCSET(pHwOVERLAYMIXER->FCH0_SISIZE.nREG,0x0FFF0FFF,((imageps_y<<16) | imageps_x));
+            BITCSET(pHwOVERLAYMIXER->FCH0_WOFF.nREG,0x0FFF0FFF,((winps_y<<16) | winps_x));
+	#else
             BITCSET(pHwOVERLAYMIXER->FCH0_SFSIZE,0x0FFF0FFF,((frameps_y<<16) | frameps_x)); // pHwOVERLAYMIXER->FCH0_SFSIZE
             BITCSET(pHwOVERLAYMIXER->FCH0_SOFF,0x0FFF0FFF,((poffset_y<<16) | poffset_x));
             BITCSET(pHwOVERLAYMIXER->FCH0_SISIZE,0x0FFF0FFF,((imageps_y<<16) | imageps_x));
             BITCSET(pHwOVERLAYMIXER->FCH0_WOFF,0x0FFF0FFF,((winps_y<<16) | winps_x));
+	#endif
             break;
          
         case FCH1_CH:
+	#if defined(CONFIG_ARCH_TCC892X)
+            BITCSET(pHwOVERLAYMIXER->FCH1_SFSIZE.nREG,0x0FFF0FFF,((frameps_y<<16) | frameps_x)); // pHwOVERLAYMIXER->FCH0_SFSIZE
+            BITCSET(pHwOVERLAYMIXER->FCH1_SOFF.nREG,0x0FFF0FFF,((poffset_y<<16) | poffset_x));
+            BITCSET(pHwOVERLAYMIXER->FCH1_SISIZE.nREG,0x0FFF0FFF,((imageps_y<<16) | imageps_x));
+            BITCSET(pHwOVERLAYMIXER->FCH1_WOFF.nREG,0x0FFF0FFF,((winps_y<<16) | winps_x));
+	#else
             BITCSET(pHwOVERLAYMIXER->FCH1_SFSIZE,0x0FFF0FFF,((frameps_y<<16) | frameps_x));
             BITCSET(pHwOVERLAYMIXER->FCH1_SOFF,0x0FFF0FFF,((poffset_y<<16) | poffset_x));
             BITCSET(pHwOVERLAYMIXER->FCH1_SISIZE,0x0FFF0FFF,((imageps_y<<16) | imageps_x));
             BITCSET(pHwOVERLAYMIXER->FCH1_WOFF,0x0FFF0FFF,((winps_y<<16) | winps_x));
+	#endif
             break;
 
 
         case FCH2_CH:
+	#if defined(CONFIG_ARCH_TCC892X)
+            BITCSET(pHwOVERLAYMIXER->FCH2_SFSIZE.nREG,0x0FFF0FFF,((frameps_y<<16) | frameps_x)); // pHwOVERLAYMIXER->FCH0_SFSIZE
+            BITCSET(pHwOVERLAYMIXER->FCH2_SOFF.nREG,0x0FFF0FFF,((poffset_y<<16) | poffset_x));
+            BITCSET(pHwOVERLAYMIXER->FCH2_SISIZE.nREG,0x0FFF0FFF,((imageps_y<<16) | imageps_x));
+            BITCSET(pHwOVERLAYMIXER->FCH2_WOFF.nREG,0x0FFF0FFF,((winps_y<<16) | winps_x));
+	#else
             BITCSET(pHwOVERLAYMIXER->FCH2_SFSIZE,0x0FFF0FFF,((frameps_y<<16) | frameps_x));
             BITCSET(pHwOVERLAYMIXER->FCH2_SOFF,0x0FFF0FFF,((poffset_y<<16) | poffset_x));
             BITCSET(pHwOVERLAYMIXER->FCH2_SISIZE,0x0FFF0FFF,((imageps_y<<16) | imageps_x));
             BITCSET(pHwOVERLAYMIXER->FCH2_WOFF,0x0FFF0FFF,((winps_y<<16) | winps_x));
+	#endif
             break;
 
 
@@ -198,15 +263,28 @@ void Gre2d_SetFCh_control(G2D_CHANNEL ch, G2D_MABC_TYPE MABC, unsigned char LUTE
 	switch(ch)
 	{
 			case FCH0_CH:
+			#if defined(CONFIG_ARCH_TCC892X)
+				BITCSET(pHwOVERLAYMIXER->FCH0_SCTRL.nREG, 0x0F00FFFF, (LUTE<<12)|(SSUV<<11)|((mode<<8)&HwGE_FCHO_OPMODE)
+										    |(ZF<<5)| (data_form.format& HwGE_FCHO_SDFRM)
+											|((data_form.data_swap<<24) & HwGE_FCH_SSB) 
+						);
+			#else
 				BITCSET(pHwOVERLAYMIXER->FCH0_SCTRL, 0x0F00FFFF, (LUTE<<12)|((mode<<8)&HwGE_FCHO_OPMODE)
 										    |(ZF<<5)| (data_form.format& HwGE_FCHO_SDFRM)
 												#ifndef CONFIG_ARCH_TCC92XX
 											|((data_form.data_swap<<24) & HwGE_FCH_SSB)
 											#endif//
 						); 
+			#endif
 					break;
 			 
 			case FCH1_CH:
+			#if defined(CONFIG_ARCH_TCC892X)
+				BITCSET(pHwOVERLAYMIXER->FCH1_SCTRL.nREG, 0x0F00FFFF,  (LUTE<<12)|(SSUV<<11)|((mode<<8)&HwGE_FCHO_OPMODE)
+										    |(ZF<<5)| (data_form.format& HwGE_FCHO_SDFRM)
+											|((data_form.data_swap<<24) & HwGE_FCH_SSB)
+						);
+			#else
 				BITCSET(pHwOVERLAYMIXER->FCH1_SCTRL,0x0F000FFF,(LUTE<<12)|((mode<<8)&HwGE_FCH1_OPMODE)
 												|(ZF<<5)| (data_form.format & HwGE_FCH1_SDFRM)
 												#ifndef CONFIG_ARCH_TCC92XX
@@ -214,16 +292,24 @@ void Gre2d_SetFCh_control(G2D_CHANNEL ch, G2D_MABC_TYPE MABC, unsigned char LUTE
 												#endif//
 
 						);
+			#endif
 				break;
 	
 	
 			case FCH2_CH:
+			#if defined(CONFIG_ARCH_TCC892X)
+				BITCSET(pHwOVERLAYMIXER->FCH2_SCTRL.nREG, 0x0F00FFFF,  (LUTE<<12)|(SSUV<<11)|((mode<<8)&HwGE_FCHO_OPMODE)
+										    |(ZF<<5)| (data_form.format& HwGE_FCHO_SDFRM)
+											|((data_form.data_swap<<24) & HwGE_FCH_SSB)
+						);
+			#else
 				BITCSET(pHwOVERLAYMIXER->FCH2_SCTRL,0x0F000FFF,(LUTE<<12)|((mode<<8)&HwGE_FCH2_OPMODE)
 												|(ZF<<5)| (data_form.format & HwGE_FCH2_SDFRM)
 												#ifndef CONFIG_ARCH_TCC92XX
 												|((data_form.data_swap<<24) & HwGE_FCH_SSB)
 												#endif//
 						);
+			#endif
 				break;
 	
 			default:
@@ -245,15 +331,27 @@ void Gre2d_SetFCh_Chroma_key(G2D_CHANNEL ch, unsigned char RY, unsigned char GU,
 	switch(ch)
     {
         case FCH0_CH:
+	#if defined(CONFIG_ARCH_TCC892X)
+            BITCSET(pHwOVERLAYMIXER->S0_CHROMA.nREG,0x00FFFFFF, (((RY<<16)&0xFF0000) | ((GU<<8)&0xFF00)| (BV&0xFF))); // pHwOVERLAYMIXER->S0_CHROMA
+	#else
             BITCSET(pHwOVERLAYMIXER->S0_CHROMA,0x00FFFFFF, (((RY<<16)&0xFF0000) | ((GU<<8)&0xFF00)| (BV&0xFF))); // pHwOVERLAYMIXER->S0_CHROMA
+	#endif
             break;
              
         case FCH1_CH:
+	#if defined(CONFIG_ARCH_TCC892X)
+            BITCSET(pHwOVERLAYMIXER->S1_CHROMA.nREG,0x00FFFFFF, (((RY<<16)&0xFF0000) | ((GU<<8)&0xFF00)| (BV&0xFF))); // pHwOVERLAYMIXER->S0_CHROMA
+	#else
             BITCSET(pHwOVERLAYMIXER->S1_CHROMA,0x00FFFFFF, (((RY<<16)&0xFF0000) | ((GU<<8)&0xFF00)| (BV&0xFF)));
+	#endif
             break;
 
         case FCH2_CH:
+	#if defined(CONFIG_ARCH_TCC892X)
+            BITCSET(pHwOVERLAYMIXER->S2_CHROMA.nREG,0x00FFFFFF, (((RY<<16)&0xFF0000) | ((GU<<8)&0xFF00)| (BV&0xFF))); // pHwOVERLAYMIXER->S0_CHROMA
+	#else
             BITCSET(pHwOVERLAYMIXER->S2_CHROMA,0x00FFFFFF, (((RY<<16)&0xFF0000) | ((GU<<8)&0xFF00)| (BV&0xFF)));
+	#endif
             break;
 
         default:
@@ -274,16 +372,28 @@ void Gre2d_SetFCh_Arithmetic_par(G2D_CHANNEL ch, unsigned char RY, unsigned char
 	switch(ch)
 	{
 	    case FCH0_CH:
+		#if defined(CONFIG_ARCH_TCC892X)
+	            BITCSET(pHwOVERLAYMIXER->S0_PAR.nREG,0x00FFFFFF, (((RY<<16)&0xFF0000) | ((GU<<8)&0xFF00)| (BV&0xFF))); // pHwOVERLAYMIXER->S0_PAR
+		#else
 	            BITCSET(pHwOVERLAYMIXER->S0_PAR,0x00FFFFFF, (((RY<<16)&0xFF0000) | ((GU<<8)&0xFF00)| (BV&0xFF))); // pHwOVERLAYMIXER->S0_PAR
+		#endif
 	            break;
 		     
 		    case FCH1_CH:
+		#if defined(CONFIG_ARCH_TCC892X)
+	            BITCSET(pHwOVERLAYMIXER->S1_PAR.nREG,0x00FFFFFF, (((RY<<16)&0xFF0000) | ((GU<<8)&0xFF00)| (BV&0xFF))); // pHwOVERLAYMIXER->S0_PAR
+		#else
 	            BITCSET(pHwOVERLAYMIXER->S1_PAR,0x00FFFFFF, (((RY<<16)&0xFF0000) | ((GU<<8)&0xFF00)| (BV&0xFF)));
+		#endif
 	            break;
 
 
 	    case FCH2_CH:
+		#if defined(CONFIG_ARCH_TCC892X)
+	            BITCSET(pHwOVERLAYMIXER->S2_PAR.nREG,0x00FFFFFF, (((RY<<16)&0xFF0000) | ((GU<<8)&0xFF00)| (BV&0xFF))); // pHwOVERLAYMIXER->S0_PAR
+		#else
             BITCSET(pHwOVERLAYMIXER->S2_PAR,0x00FFFFFF, (((RY<<16)&0xFF0000) | ((GU<<8)&0xFF00)| (BV&0xFF)));
+		#endif
             break;
 
 	    default:
@@ -324,8 +434,8 @@ void Gre2d_src_ctrl(G2D_SRC_CTRL reg)
     sf_ctrl_reg |= (((reg.src_sel_0) & Hw2D_SFCTRL_S0_SEL) | 
                     ((reg.src_sel_1<<2) & Hw2D_SFCTRL_S1_SEL) | ((reg.src_sel_2<<4) & Hw2D_SFCTRL_S2_SEL));
 
-	BITCSET(pHwOVERLAYMIXER->SF_CTRL, 0x0FFFFFFF, sf_ctrl_reg); 
-	BITCSET(pHwOVERLAYMIXER->SA_CTRL, 0x0FFFFFFF, sa_ctrl_reg); 
+	BITCSET(pHwOVERLAYMIXER->SF_CTRL.nREG, 0x0FFFFFFF, sf_ctrl_reg); 
+	BITCSET(pHwOVERLAYMIXER->SA_CTRL.nREG, 0x0FFFFFFF, sa_ctrl_reg); 
 #else
 
 // source arithmetic mode 
@@ -371,9 +481,8 @@ void Gre2d_operator_set(G2D_OP_TYPE op_set, unsigned short alpha , unsigned char
 		case OP_0:
 
 #if defined(CONFIG_ARCH_TCC892X)
-		BITCSET(pHwOVERLAYMIXER->OP0_PAT, 0x00FFFFFF, 
-                                                    ((RY<<16)&HwGE_PAT_RY) | ((GU<<8)&HwGE_PAT_GU)| (BV&HwGE_PAT_BV)));   // pHwOVERLAYMIXER->OP0_PAT                                                                 
-		BITCSET(pHwOVERLAYMIXER->OP0_ALPHA,0x0000FFFF, ( (alpha)& HwGE_ALPHA) );
+		BITCSET(pHwOVERLAYMIXER->OP0_PAT.nREG, 0x00FFFFFF,((RY<<16)&HwGE_PAT_RY) | ((GU<<8)&HwGE_PAT_GU)| (BV&HwGE_PAT_BV));   // pHwOVERLAYMIXER->OP0_PAT
+      		BITCSET(pHwOVERLAYMIXER->OP0_ALPHA.nREG,0x0000FFFF, ( (alpha)& HwGE_ALPHA) );
 #else
     		BITCSET(pHwOVERLAYMIXER->OP0_PAT, HwGE_OP_ALL, (((alpha<<24)&HwGE_ALPHA) | 
                                                     ((RY<<16)&HwGE_PAT_RY) | ((GU<<8)&HwGE_PAT_GU)| (BV&HwGE_PAT_BV)));   // pHwOVERLAYMIXER->OP0_PAT             		
@@ -383,9 +492,9 @@ void Gre2d_operator_set(G2D_OP_TYPE op_set, unsigned short alpha , unsigned char
         case OP_1:
 
 #if defined(CONFIG_ARCH_TCC892X)
-            BITCSET(pHwOVERLAYMIXER->OP1_PAT, 0x00FFFFFF, 
-                                                    ((RY<<16)&HwGE_PAT_RY) | ((GU<<8)&HwGE_PAT_GU)| (BV&HwGE_PAT_BV))); // pHwOVERLAYMIXER->OP1_PAT
-		BITCSET(pHwOVERLAYMIXER->OP0_ALPHA,0x0000FFFF, ( (alpha)& HwGE_ALPHA) );
+            BITCSET(pHwOVERLAYMIXER->OP1_PAT.nREG, 0x00FFFFFF, 
+                                                    ((RY<<16)&HwGE_PAT_RY) | ((GU<<8)&HwGE_PAT_GU)| (BV&HwGE_PAT_BV)); // pHwOVERLAYMIXER->OP1_PAT
+		BITCSET(pHwOVERLAYMIXER->OP0_ALPHA.nREG,0x0000FFFF, ( (alpha)& HwGE_ALPHA) );
 #else
             BITCSET(pHwOVERLAYMIXER->OP1_PAT, HwGE_OP_ALL, (((alpha<<24)&HwGE_ALPHA) |
                                                     ((RY<<16)&HwGE_PAT_RY) | ((GU<<8)&HwGE_PAT_GU)| (BV&HwGE_PAT_BV))); // pHwOVERLAYMIXER->OP1_PAT
@@ -395,9 +504,9 @@ void Gre2d_operator_set(G2D_OP_TYPE op_set, unsigned short alpha , unsigned char
  #if defined(CONFIG_ARCH_TCC892X)
 	  case OP_2:
 
-            BITCSET(pHwOVERLAYMIXER->OP2_PAT, 0x00FFFFFF, 
-                                                    ((RY<<16)&HwGE_PAT_RY) | ((GU<<8)&HwGE_PAT_GU)| (BV&HwGE_PAT_BV))); // pHwOVERLAYMIXER->OP1_PAT                                                    
-            	BITCSET(pHwOVERLAYMIXER->OP2_ALPHA,0x0000FFFF, ( (alpha)& HwGE_ALPHA) );
+            BITCSET(pHwOVERLAYMIXER->OP2_PAT.nREG, 0x00FFFFFF, 
+                                                    ((RY<<16)&HwGE_PAT_RY) | ((GU<<8)&HwGE_PAT_GU)| (BV&HwGE_PAT_BV)); // pHwOVERLAYMIXER->OP1_PAT                                                    
+            	BITCSET(pHwOVERLAYMIXER->OP2_ALPHA.nREG,0x0000FFFF, ( (alpha)& HwGE_ALPHA) );
             break;       
 #endif
 
@@ -415,6 +524,44 @@ Gre2d_operator_ctrl
  graphic engine operator control register setting
 -------------------------------------------------------------------*/
 
+
+#if defined(CONFIG_ARCH_TCC892X)
+void Gre2d_operator_ctrl(G2D_OP_TYPE op_set, G2D_OP_ACON ACON1, G2D_OP_ACON ACON0, G2D_OP_CCON CCON1, G2D_OP_CCON CCON0, G2D_OP_ATUNE ATUNE, G2D_OP1_CHROMA CSEL,GE_ROP_TYPE op )
+{
+	POVERLAYMIXER pHwOVERLAYMIXER;
+	pHwOVERLAYMIXER  = (volatile POVERLAYMIXER)tcc_p2v(HwOVERLAYMIXER_BASE);
+
+		
+	switch(op_set){
+
+		case OP_0:
+	BITCSET(pHwOVERLAYMIXER->OP0_CTRL.nREG, 0xFFFFFFFF, (   ( (ACON1<<28)&HwGE_OP_CTRL_ACON1)| ((ACON0<<24)&HwGE_OP_CTRL_ACON0) 
+  													     | ( (CCON1<<21)&HwGE_OP_CTRL_CCON1)| ((CCON0<<16)&HwGE_OP_CTRL_CCON0)
+  													     | ( (ATUNE<<12)&HwGE_OP_CTRL_ATUNE)| ((CSEL<<8)&HwGE_OP_CTRL_CSEL)	
+  													     | (op & HwGE_OP_CTRL_OPMODE)));
+			break;
+
+		case OP_1:
+	BITCSET(pHwOVERLAYMIXER->OP1_CTRL.nREG, 0xFFFFFFFF, (   ( (ACON1<<28)&HwGE_OP_CTRL_ACON1)| ((ACON0<<24)&HwGE_OP_CTRL_ACON0) 
+  													     | ( (CCON1<<21)&HwGE_OP_CTRL_CCON1)| ((CCON0<<16)&HwGE_OP_CTRL_CCON0)
+  													     | ( (ATUNE<<12)&HwGE_OP_CTRL_ATUNE)| ((CSEL<<8)&HwGE_OP_CTRL_CSEL)					
+													     | (op & HwGE_OP_CTRL_OPMODE)));			break;
+
+		case OP_2:
+
+			break;
+	BITCSET(pHwOVERLAYMIXER->OP2_CTRL.nREG, 0xFFFFFFFF, (   ( (ACON1<<28)&HwGE_OP_CTRL_ACON1)| ((ACON0<<24)&HwGE_OP_CTRL_ACON0) 
+  													     | ( (CCON1<<21)&HwGE_OP_CTRL_CCON1)| ((CCON0<<16)&HwGE_OP_CTRL_CCON0)
+  													     | ( (ATUNE<<12)&HwGE_OP_CTRL_ATUNE)| ((CSEL<<8)&HwGE_OP_CTRL_CSEL)					
+													     | (op & HwGE_OP_CTRL_OPMODE)));
+		default:
+			break;
+
+	}
+}
+
+
+#else
 void Gre2d_operator_ctrl(G2D_ASEL_TYPE ASEL1, G2D_OP1_CHROMA CSEL1, GE_ROP_TYPE op1, G2D_ASEL_TYPE ASEL0, G2D_OP0_CHROMA CSEL0, GE_ROP_TYPE op0)
 {
 	POVERLAYMIXER pHwOVERLAYMIXER;
@@ -424,40 +571,6 @@ void Gre2d_operator_ctrl(G2D_ASEL_TYPE ASEL1, G2D_OP1_CHROMA CSEL1, GE_ROP_TYPE 
 				|((ASEL0<<7)&HwGE_OP_CTRL_ASEL0)| ((CSEL0<<5)&HwGE_OP_CTRL_CSEL0) | (op0 & HwGE_OP_CTRL_OP0_MODE)));
 }
 
-#if defined(CONFIG_ARCH_TCC892X)
-void Gre2d_operator_ctrl(G2D_OP_TYPE op_set, G2D_OP_ACON ACON1, G2D_OP_ACON ACON1, G2D_OP_CCON CCON1, G2D_OP_CCON CCON0, G2D_OP_ATUNE ATUNE, G2D_OP1_CHROMA CSEL,GE_ROP_TYPE op )
-{
-	POVERLAYMIXER pHwOVERLAYMIXER;
-	pHwOVERLAYMIXER  = (volatile POVERLAYMIXER)tcc_p2v(HwOVERLAYMIXER_BASE);
-
-		
-	switch(op_set){
-
-		case OP_0:
-	BITCSET(pHwOVERLAYMIXER->OP0_CTRL, 0xFFFFFFFF, (   ( (ACON1<<28)&HwGE_OP_CTRL_ACON1)| ((ACON<<24)&HwGE_OP_CTRL_ACON0) 
-  													     | ( (CCON1<<21)&HwGE_OP_CTRL_CCON1)| ((ACON<<16)&HwGE_OP_CTRL_CCON0)
-  													     | ( (ATUNE1<<12)&HwGE_OP_CTRL_ATUNE)| ((CSEL<<8)&HwGE_OP_CTRL_CSEL)	
-  													     | (op & HwGE_OP_CTRL_OPMODE)));
-			break;
-
-		case OP_1:
-	BITCSET(pHwOVERLAYMIXER->OP1_CTRL, 0xFFFFFFFF, (   ( (ACON1<<28)&HwGE_OP_CTRL_ACON1)| ((ACON<<24)&HwGE_OP_CTRL_ACON0) 
-  													     | ( (CCON1<<21)&HwGE_OP_CTRL_CCON1)| ((ACON<<16)&HwGE_OP_CTRL_CCON0)
-  													     | ( (ATUNE1<<12)&HwGE_OP_CTRL_ATUNE)| ((CSEL<<8)&HwGE_OP_CTRL_CSEL)					
-													     | (op & HwGE_OP_CTRL_OPMODE)));			break;
-
-		case OP_2:
-
-			break;
-	BITCSET(pHwOVERLAYMIXER->OP2_CTRL, 0xFFFFFFFF, (   ( (ACON1<<28)&HwGE_OP_CTRL_ACON1)| ((ACON<<24)&HwGE_OP_CTRL_ACON0) 
-  													     | ( (CCON1<<21)&HwGE_OP_CTRL_CCON1)| ((ACON<<16)&HwGE_OP_CTRL_CCON0)
-  													     | ( (ATUNE1<<12)&HwGE_OP_CTRL_ATUNE)| ((CSEL<<8)&HwGE_OP_CTRL_CSEL)					
-													     | (op & HwGE_OP_CTRL_OPMODE)));
-		default:
-			break;
-
-	}
-}
 #endif
 
 
@@ -474,9 +587,15 @@ void Gre2d_SetBCh_address(G2D_CHANNEL ch, unsigned int add0, unsigned int add1, 
 	
     if(ch == DEST_CH)
     {
+	#if defined(CONFIG_ARCH_TCC892X)
+		BITCSET(pHwOVERLAYMIXER->BCH_DADDR0.nREG, 0xFFFFFFFF, add0); // pHwOVERLAYMIXER->BCH_DADDR0
+		BITCSET(pHwOVERLAYMIXER->BCH_DADDR1.nREG, 0xFFFFFFFF, add1); // pHwOVERLAYMIXER->BCH_DADDR0
+		BITCSET(pHwOVERLAYMIXER->BCH_DADDR2.nREG, 0xFFFFFFFF, add2); // pHwOVERLAYMIXER->BCH_DADDR0
+	#else
 		pHwOVERLAYMIXER->BCH_DADDR0 = (unsigned int)add0; // pHwOVERLAYMIXER->BCH_DADDR0
 		pHwOVERLAYMIXER->BCH_DADDR1 = (unsigned int)add1;
 		pHwOVERLAYMIXER->BCH_DADDR2 = (unsigned int)add2;
+	#endif
     }
 }
 
@@ -496,8 +615,13 @@ void Gre2d_SetBCh_position(G2D_CHANNEL ch, unsigned int  frameps_x, unsigned int
 	
     if(ch == DEST_CH)
     {
+	#if defined(CONFIG_ARCH_TCC892X)
+		BITCSET(pHwOVERLAYMIXER->BCH_DFSIZE.nREG, 0x0FFF0FFF, ((frameps_y<<16) | frameps_x)); // pHwOVERLAYMIXER->BCH_DFSIZE
+		BITCSET(pHwOVERLAYMIXER->BCH_DOFF.nREG, 0x0FFF0FFF, ((poffset_y<<16) | poffset_x)); // pHwOVERLAYMIXER->BCH_DOFF
+	#else
 		BITCSET(pHwOVERLAYMIXER->BCH_DFSIZE, 0x0FFF0FFF, ((frameps_y<<16) | frameps_x)); // pHwOVERLAYMIXER->BCH_DFSIZE
 		BITCSET(pHwOVERLAYMIXER->BCH_DOFF, 0x0FFF0FFF, ((poffset_y<<16) | poffset_x)); // pHwOVERLAYMIXER->BCH_DOFF
+	#endif
     }   
 }
 
@@ -533,18 +657,30 @@ void Gre2d_SetBCh_control(G2D_BCH_CTRL_TYPE *reg)
 	#if !defined(CONFIG_ARCH_TCC92XX)
 	BCH_ctrl_reg |= ((reg->data_form.data_swap<<24) & HwGE_DCH_SSB);
 	#endif//
+
+	#if defined(CONFIG_ARCH_TCC892X)
+	BITCSET(pHwOVERLAYMIXER->BCH_DCTRL.nREG, 0xFFFFFFFFF, BCH_ctrl_reg); // pHwOVERLAYMIXER->BCH_DCTRL
+	#else
 	BITCSET(pHwOVERLAYMIXER->BCH_DCTRL, 0xFFFFFFFFF, BCH_ctrl_reg); // pHwOVERLAYMIXER->BCH_DCTRL
+	#endif
 }
 
 void Gre2d_SetDitheringMatrix(unsigned short *Matrix)
 {
 	POVERLAYMIXER pHwOVERLAYMIXER;
 	pHwOVERLAYMIXER  = (volatile POVERLAYMIXER)tcc_p2v(HwOVERLAYMIXER_BASE);
-	
+
+#if defined(CONFIG_ARCH_TCC892X)
+	BITCSET(pHwOVERLAYMIXER->BCH_DDMAT0.nREG, 0x1F1F1F1F, Matrix[0] | (Matrix[1]<<8) | (Matrix[2]<<16) | (Matrix[3]<<24)); // pHwOVERLAYMIXER->BCH_DDMAT0
+	BITCSET(pHwOVERLAYMIXER->BCH_DDMAT1.nREG, 0x1F1F1F1F, Matrix[4] | (Matrix[5]<<8) | (Matrix[6]<<16) | (Matrix[7]<<24));	
+	BITCSET(pHwOVERLAYMIXER->BCH_DDMAT2.nREG, 0x1F1F1F1F, Matrix[8] | (Matrix[9]<<8) | (Matrix[10]<<16) | (Matrix[11]<<24));
+	BITCSET(pHwOVERLAYMIXER->BCH_DDMAT3.nREG, 0x1F1F1F1F, Matrix[12] | (Matrix[13]<<8) | (Matrix[14]<<16) | (Matrix[15]<<24));
+#else	
 	BITCSET(pHwOVERLAYMIXER->BCH_DDMAT0, 0x1F1F1F1F, Matrix[0] | (Matrix[1]<<8) | (Matrix[2]<<16) | (Matrix[3]<<24)); // pHwOVERLAYMIXER->BCH_DDMAT0
 	BITCSET(pHwOVERLAYMIXER->BCH_DDMAT1, 0x1F1F1F1F, Matrix[4] | (Matrix[5]<<8) | (Matrix[6]<<16) | (Matrix[7]<<24));	
 	BITCSET(pHwOVERLAYMIXER->BCH_DDMAT2, 0x1F1F1F1F, Matrix[8] | (Matrix[9]<<8) | (Matrix[10]<<16) | (Matrix[11]<<24));
 	BITCSET(pHwOVERLAYMIXER->BCH_DDMAT3, 0x1F1F1F1F, Matrix[12] | (Matrix[13]<<8) | (Matrix[14]<<16) | (Matrix[15]<<24));
+#endif
 }
 
 
@@ -557,7 +693,11 @@ void Gre2d_Grp_enable(G2D_EN grp_enalbe, unsigned char int_en)
 	POVERLAYMIXER pHwOVERLAYMIXER;
 	pHwOVERLAYMIXER  = (volatile POVERLAYMIXER)tcc_p2v(HwOVERLAYMIXER_BASE);
 	
+	#if defined(CONFIG_ARCH_TCC892X)	
+	BITCSET( pHwOVERLAYMIXER->OM_CTRL.nREG, (HwGE_GE_CTRL_EN|HwGE_GE_INT_EN), ((int_en<<16)|grp_enalbe));
+	#else
 	BITCSET( pHwOVERLAYMIXER->OM_CTRL, (HwGE_GE_CTRL_EN|HwGE_GE_INT_EN), ((int_en<<16)|grp_enalbe));
+	#endif
 }
 
 
@@ -571,7 +711,11 @@ unsigned int Gre2d_Grp_check(void)
 	POVERLAYMIXER pHwOVERLAYMIXER;
 	pHwOVERLAYMIXER  = (volatile POVERLAYMIXER)tcc_p2v(HwOVERLAYMIXER_BASE);
 		
+#if defined(CONFIG_ARCH_TCC892X)	
+	contrReg = pHwOVERLAYMIXER->OM_CTRL.nREG; //pHwOVERLAYMIXER->OM_CTRL
+#else
 	contrReg = pHwOVERLAYMIXER->OM_CTRL; //pHwOVERLAYMIXER->OM_CTRL
+#endif
 	return contrReg;
 }
 
@@ -583,8 +727,13 @@ void Gre2d_Grp_int_en(unsigned int int_en)
 {
 	POVERLAYMIXER pHwOVERLAYMIXER;
 	pHwOVERLAYMIXER  = (volatile POVERLAYMIXER)tcc_p2v(HwOVERLAYMIXER_BASE);
-	
+
+#if defined(CONFIG_ARCH_TCC892X)	
+	BITCSET( pHwOVERLAYMIXER->OM_IREQ.nREG, 0xFFFFFFFF, int_en);
+#else 
 	BITCSET( pHwOVERLAYMIXER->OM_IREQ, 0xFFFFFFFF, int_en);
+#endif
+
 }
 
 
@@ -605,17 +754,37 @@ G2D_INT_TYPE Gre2d_Grp_int_ctrl(unsigned char wr, G2D_INT_TYPE flag, unsigned ch
 	
 	if(wr) {
 	            if(flag & G2D_INT_R_IRQ)
+			#if defined(CONFIG_ARCH_TCC892X)
+	                    BITCSET( pHwOVERLAYMIXER->OM_IREQ.nREG, HwGE_GE_IREQ_IRQ, (int_irq ? HwGE_GE_IREQ_IRQ : 0));
+			#else
 	                    BITCSET( pHwOVERLAYMIXER->OM_IREQ, HwGE_GE_IREQ_IRQ, (int_irq ? HwGE_GE_IREQ_IRQ : 0));
+			#endif
 	                    
 	            if(flag & G2D_INT_R_FLG)
+			#if defined(CONFIG_ARCH_TCC892X)
+	                    BITCSET( pHwOVERLAYMIXER->OM_IREQ.nREG, HwGE_GE_IREQ_FLG, (int_flg ? HwGE_GE_IREQ_FLG : 0));
+			#else
 	                    BITCSET( pHwOVERLAYMIXER->OM_IREQ, HwGE_GE_IREQ_FLG, (int_flg ? HwGE_GE_IREQ_FLG : 0));
+			#endif
 	    }
 	    else {
-			if(ISSET(pHwOVERLAYMIXER->OM_IREQ, HwGE_GE_IREQ_IRQ))
+			#if defined(CONFIG_ARCH_TCC892X)
+			if(ISSET(pHwOVERLAYMIXER->OM_IREQ.nREG, HwGE_GE_IREQ_IRQ))
 				ret_v |= G2D_INT_R_IRQ;
 
+			#else
+			if(ISSET(pHwOVERLAYMIXER->OM_IREQ, HwGE_GE_IREQ_IRQ))
+				ret_v |= G2D_INT_R_IRQ;
+			#endif
+
+			#if defined(CONFIG_ARCH_TCC892X)
+			if(ISSET(pHwOVERLAYMIXER->OM_IREQ.nREG, HwGE_GE_IREQ_FLG)) // pHwOVERLAYMIXER->OM_IREQ
+				ret_v |= G2D_INT_R_FLG;
+
+			#else
 			if(ISSET(pHwOVERLAYMIXER->OM_IREQ, HwGE_GE_IREQ_FLG)) // pHwOVERLAYMIXER->OM_IREQ
 				ret_v |= G2D_INT_R_FLG;
+			#endif
 		}
     return ret_v;
 }

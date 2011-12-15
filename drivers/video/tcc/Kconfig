@@ -1,6 +1,6 @@
 config FB_TCC
 	bool "Telechips TCC Frame buffer support"
-	depends on FB && (ARCH_TCC92XX || ARCH_TCC88XX || ARCH_TCC93XX)
+	depends on FB && (ARCH_TCC92XX || ARCH_TCC88XX || ARCH_TCC93XX || ARCH_TCC892X)
 	default y
 	select FB_CFB_FILLRECT
 	select FB_CFB_COPYAREA
@@ -10,6 +10,27 @@ config FB_TCC
 	  Framebuffer driver for Telechips TCC series.
 
 	  If unsure, say N.
+
+config TCC_LCDC_CONTROLLER
+	bool "Telechips TCC support LCDC controller"
+	depends on FB && (ARCH_TCC92XX || ARCH_TCC88XX || ARCH_TCC93XX)
+	default y
+
+	help
+	  TCC LCD controller 
+	
+	  If unsure, say N.
+
+config TCC_VIOC_CONTROLLER
+	bool "Telechips TCC support VIOC controller"
+	depends on FB && (ARCH_TCC892X)
+	default y
+
+	help
+	  TCC VIOC controller 
+
+	  If unsure, say N.
+
 
 config FB_TCC_USE_VSYNC_INTERRUPT
 	bool "Use VSYNC interrupt"
@@ -76,7 +97,7 @@ config TCC_OUTPUT_AUTO_DETECTION
 
 config TCC_VIDEO_DISPLAY_BY_VSYNC_INT
     bool "Displaying video frame by hw vsync interrupt"
-	depends on FB && (ARCH_TCC93XX || ARCH_TCC88XX)
+	depends on FB && (ARCH_TCC93XX || ARCH_TCC88XX || (ARCH_TCC892X && MACH_TCC8920ST))
 	default y
 	help
 	  Video frame is displayed by hw vsync interrupt.
@@ -167,4 +188,9 @@ config LCD_CLAA102NA0DCW
 config LCD_ED090NA
 	bool "CHIMEI INNOLUX 1280 * 800 LVDS support"
 	depends on FB_TCC
+
+config LCD_LCDC0_USE
+	bool "platform LCDC is use LCD control 0"
+	depends on FB_TCC
+
 endmenu

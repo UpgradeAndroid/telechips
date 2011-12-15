@@ -405,7 +405,13 @@ static void tcc_check_interlace_output(int output_mode)
 #else
 #define EX_OUT_LCDC		0
 #endif//
-#define LCD_OUT_LCDC 	1
+
+#if defined(CONFIG_LCD_LCDC0_USE)
+#define LCD_OUT_LCDC		0
+#else
+#define LCD_OUT_LCDC		1
+#endif
+
 static struct lcd_panel *lcd_panel;
 
 PLCDC		Fb_pLCDC;
@@ -442,6 +448,7 @@ void tcc92xxfb_hdmi_starter(char hdmi_lcdc_num, struct lcdc_timimg_parms_t *lcdc
 		pLCD_LCDC = (volatile PLCDC)tcc_p2v(HwLCDC0_BASE);
 
 		lcdc_clk = clk_get(0, "lcdc1");
+		BUG_ON(IS_ERR(lcdc_clk));
 		clk_enable(lcdc_clk);
 	}
 	else
@@ -450,6 +457,7 @@ void tcc92xxfb_hdmi_starter(char hdmi_lcdc_num, struct lcdc_timimg_parms_t *lcdc
 		pLCD_LCDC = (volatile PLCDC)tcc_p2v(HwLCDC1_BASE);
 
 		lcdc_clk = clk_get(0, "lcdc0");
+		BUG_ON(IS_ERR(lcdc_clk));
 		clk_enable(lcdc_clk);
 	}
 
@@ -477,6 +485,17 @@ void tcc92xxfb_hdmi_starter(char hdmi_lcdc_num, struct lcdc_timimg_parms_t *lcdc
 		pHDMI_LCDC->LI2C |= HwLCT_RU;
 	#endif//
 	Output_SelectMode = TCC_OUTPUT_HDMI;
+
+#if defined(TCC_VIDEO_DISPLAY_BY_VSYNC_INT)
+	//reset vsync variables
+	memset( &tccvid_vsync, 0, sizeof( tccvid_vsync ) ) ; 
+	tccvid_vsync.overlayUsedFlag = -1;
+	tccvid_vsync.outputMode = -1;
+	tccvid_vsync.firstFrameFlag = 1;
+	tccvid_vsync.deinterlace_mode= -1;
+	tccvid_vsync.m2m_mode = -1;
+	tccvid_vsync.output_toMemory = -1;
+#endif /* TCC_VIDEO_DISPLAY_BY_VSYNC_INT */
 }
 
 
@@ -617,6 +636,7 @@ static int tccfb_set_par(struct fb_info *info)
    	if(fb_power_state && Output_SelectMode!=TCC_OUTPUT_COMPONENT  ) //&& Output_SelectMode!=TCC_OUTPUT_COMPOSITE
 		tccfb_activate_var(fbi, var);
 	#endif
+
 	return 0;
 }
 
@@ -1611,6 +1631,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 				#endif
 #endif /*CONFIG_TCC_HDMI_UI_DISPLAY_OFF*/
 #if defined(CONFIG_ARCH_TCC88XX)
+				TCC_OUTPUT_FB_MouseIconSelect(TCC_OUTPUT_HDMI);
 				TCC_OUTPUT_FB_MouseShow(1, TCC_OUTPUT_HDMI);
 #endif
 			}
@@ -1650,7 +1671,6 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 					TCC_OUTPUT_FB_BackupVideoImg(Output_SelectMode);
 				#endif
 
-				Output_SelectMode = TCC_OUTPUT_NONE;
 				TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_HDMI, EX_OUT_LCDC, 0);
 
 				#if defined(CONFIG_ARCH_TCC92XX)
@@ -1668,6 +1688,12 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 				#if defined(TCC_VIDEO_DISPLAY_DEINTERLACE_MODE)
 				tcc_vsync_viqe_deinitialize();
 				#endif /* TCC_VIDEO_DISPLAY_DEINTERLACE_MODE */
+				#if defined(CONFIG_ARCH_TCC88XX)
+				TCC_OUTPUT_FB_MouseIconSelect(0);
+				#endif
+
+				Output_SelectMode = TCC_OUTPUT_NONE;
+				
 			}
 			break;
 
@@ -1777,6 +1803,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 #endif /*CONFIG_TCC_HDMI_UI_DISPLAY_OFF*/
 
 #if defined(CONFIG_ARCH_TCC88XX)
+ 					TCC_OUTPUT_FB_MouseIconSelect(TCC_OUTPUT_COMPOSITE);
 					TCC_OUTPUT_FB_MouseShow(1, TCC_OUTPUT_COMPOSITE);
 #endif
 				}
@@ -1823,6 +1850,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 					TCC_OUTPUT_FB_UpdateSync(Output_SelectMode);
 #endif /*CONFIG_TCC_HDMI_UI_DISPLAY_OFF*/
 #if defined(CONFIG_ARCH_TCC88XX)
+					TCC_OUTPUT_FB_MouseIconSelect(TCC_OUTPUT_COMPONENT);
 					TCC_OUTPUT_FB_MouseShow(1, TCC_OUTPUT_COMPONENT);
 #endif
 				}
@@ -2263,7 +2291,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 
 					if( (tccvid_vsync.deinterlace_mode == 1) && 
 						(tccvid_vsync.interlace_output == 1) && 
-						(input_image.Image_width == lcd_width) && (input_image.Image_height == lcd_height) )
+						(input_image.Frame_width == lcd_width) && (input_image.Frame_height == lcd_height) )
 					{
 						tccvid_vsync.interlace_bypass_lcdc = 1;
 					}
@@ -2844,15 +2872,6 @@ TCC_VSYNC_PUSH_ERROR:
 				TCC_OUTPUT_FB_MouseMove(fb_info->fb->var.xres, fb_info->fb->var.yres, &mouse, Output_SelectMode);
 			}
 			break;
-		case TCC_LCDC_MOUSE_ICON:
-			{
-				tcc_mouse_icon mouse_icon;
-				if (copy_from_user((void *)&mouse_icon, (const void *)arg, sizeof(tcc_mouse_icon)))
-					return -EFAULT;
-
-				TCC_OUTPUT_FB_MouseSetIcon(&mouse_icon);
-			}
-			break;
 #endif
 
 		default:
@@ -2975,7 +2994,7 @@ static void tcc_fb_early_suspend(struct early_suspend *h)
 	tca_fb_early_suspend(h);
 
 	if (lcd_panel->set_power)
-		lcd_panel->set_power(lcd_panel, 0);
+		lcd_panel->set_power(lcd_panel, 0, LCD_OUT_LCDC);
 
 	console_unlock();
 	printk("%s: finish \n", __FUNCTION__);
@@ -2991,7 +3010,7 @@ static void tcc_fb_late_resume(struct early_suspend *h)
 	tca_fb_late_resume(h);
 
 	if (lcd_panel->set_power)
-		lcd_panel->set_power(lcd_panel, 1);
+		lcd_panel->set_power(lcd_panel, 1, LCD_OUT_LCDC);
 	
 	fb_power_state = 1;
 	console_unlock();
@@ -3165,9 +3184,6 @@ static int __init tccfb_probe(struct platform_device *pdev)
 	pmap_get_info("exclusive_viqe", &pmap_eui_viqe);
 #endif
 
-    // change this... B090183_kernel_3_0
-	tcc_lcd_interrupt_reg(TRUE);
-
 	for (plane = 0; plane < CONFIG_FB_TCC_DEVS; plane++)
 	{
 		fbinfo = framebuffer_alloc(sizeof(struct tccfb_info), &pdev->dev);
@@ -3243,8 +3259,7 @@ static int __init tccfb_probe(struct platform_device *pdev)
 	}
 
 
-// change this... B090183_kernel_3_0
-//	tcc_lcd_interrupt_reg(TRUE);
+	tcc_lcd_interrupt_reg(TRUE);
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	info->early_suspend.suspend = tcc_fb_early_suspend;
@@ -3258,7 +3273,6 @@ static int __init tccfb_probe(struct platform_device *pdev)
 	register_early_suspend(&info->earlier_suspend);
 #endif
 
-	printk("%s() done...\n", __func__);
 	return 0;
 
 free_video_memory:

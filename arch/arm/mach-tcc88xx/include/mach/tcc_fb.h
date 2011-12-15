@@ -76,7 +76,7 @@ struct lcd_panel {
 	int sync_invert;
 
 	int (*init)(struct lcd_panel *panel);
-	int (*set_power)(struct lcd_panel *panel, int on);
+	int (*set_power)(struct lcd_panel *panel, int on ,unsigned int lcd_num);
 	int (*set_backlight_level)(struct lcd_panel *panel, int level);
 
 	int state; //current state 0 off , 0: on

@@ -407,7 +407,7 @@ int tca_spi_register_pids(tca_spi_handle_t *h, unsigned int *pids, unsigned int 
     gpsb_channel = h->gpsb_channel;
 
     //supporting pids is 32 
-    if (count <= 32 || gpsb_channel < 0) {
+    if (count <= 32) {
         volatile unsigned long* PIDT;
         int i = 0;
         for (i = 0; i < 32; i++) {

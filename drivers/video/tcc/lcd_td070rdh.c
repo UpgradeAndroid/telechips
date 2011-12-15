@@ -82,7 +82,7 @@ static int tm070rdh11_set_power(struct lcd_panel *panel, int on)
 
 		gpio_set_value(pdata->power_on, 0);
 
-		LCDC_IO_Disable(0, panel->bus_width);
+		LCDC_IO_Disable(1, panel->bus_width);
 	}
 	mutex_unlock(&panel_lock);
 
@@ -149,7 +149,7 @@ static struct lcd_panel tm070rdh11_panel = {
 	.flc2		= 480,
 	.fswc2		= 28,
 	.fewc2		= 12,
-	.sync_invert	= IV_INVERT_EN | IH_INVERT_EN,
+	.sync_invert	= IV_INVERT | IH_INVERT,
 	.init		= tm070rdh11_panel_init,
 	.set_power	= tm070rdh11_set_power,
 	.set_backlight_level = tm070rdh11_set_backlight_level,

@@ -87,6 +87,7 @@ DEFINITION OF STATIC VARIABLES
 ****************************************************************************/
 static ccfb_dev_config_t	g_dev_cfg;
 static DEFINE_MUTEX(g_ccfb_mutex);
+static ccfb_config_t g_ccfg_cfg;
 
 /****************************************************************************
 DEFINITION OF EXTERNAL FUNCTIONS
@@ -235,6 +236,8 @@ static int tccxxx_ccfb_set_config(ccfb_dev_config_t *dev, ccfb_config_t *arg)
 	ret = tccxxx_ccfb_act_clock(dev, cfg.curLcdc);
 	if(ret == 0)
 	{
+		memcpy(&g_ccfg_cfg, &cfg, sizeof(ccfb_config_t));
+		
 		// position (full screen update)
 		BITCSET (dev->pCurLcdc->LIP, 0xffff<< 16, (cfg.res.disp_y)  << 16);
 		BITCSET (dev->pCurLcdc->LIP, 0xffff<<  0, (cfg.res.disp_x)  <<  0);
@@ -251,7 +254,7 @@ static int tccxxx_ccfb_set_config(ccfb_dev_config_t *dev, ccfb_config_t *arg)
 		  * 0:no scale, 1:/2, 2:/3, 3:/4, 4-6:rsvd, 7:/8
 		  * 8:rsvd, 9:x2, 10:x3, 11:x4, 12-14:rsvd, 15:x8
 		  */
-		BITCSET (dev->pCurLcdc->LISR, 0xff, (((cfg.res.disp_m)<<4)|cfg.res.disp_m));
+		BITCSET (dev->pCurLcdc->LISR, 0xff, cfg.res.disp_m);
 	
 		// ARGB 32bit format
 		BITCSET (dev->pCurLcdc->LIC, 0x1f<< 0, (0xc) <<  0);
@@ -297,6 +300,37 @@ static int tccxxx_ccfb_disp_update(ccfb_dev_config_t *dev, unsigned int* arg)
 		BITCSET (dev->pUiLcdc->LIC, HwLCT_RU, HwLCT_RU);
 	#endif
 	}
+
+	// position (full screen update)
+	BITCSET (dev->pCurLcdc->LIP, 0xffff<< 16, (g_ccfg_cfg.res.disp_y)  << 16);
+	BITCSET (dev->pCurLcdc->LIP, 0xffff<<  0, (g_ccfg_cfg.res.disp_x)  <<  0);
+
+	// size
+	BITCSET (dev->pCurLcdc->LIS, 0xffff<< 16, (g_ccfg_cfg.res.disp_h) << 16);
+	BITCSET (dev->pCurLcdc->LIS, 0xffff<<  0, (g_ccfg_cfg.res.disp_w) <<  0);
+
+	/*
+	  * TCC92xx 
+	  * 0:no scale, 1:x2, 2:x3, 3:x4, 4:x8 - Only Upscale supported 
+	  *
+	  * TCC93/88xx
+	  * 0:no scale, 1:/2, 2:/3, 3:/4, 4-6:rsvd, 7:/8
+	  * 8:rsvd, 9:x2, 10:x3, 11:x4, 12-14:rsvd, 15:x8
+	  */
+	BITCSET (dev->pCurLcdc->LISR, 0xff, g_ccfg_cfg.res.disp_m);
+
+	// ARGB 32bit format
+	BITCSET (dev->pCurLcdc->LIC, 0x1f<< 0, (0xc) <<  0);
+	BITCSET (dev->pCurLcdc->LIO, 0x0000FFFF, (g_ccfg_cfg.res.mem_w * 4));
+	
+	BITCSET (dev->pCurLcdc->LIC, 0x1<<  8, (0)  <<  8);
+
+	// Chroma-keying disable
+	BITCSET (dev->pCurLcdc->LIC, 0x1<< 29, 0 << 29);
+
+	// Alpha enable
+	BITCSET (dev->pCurLcdc->LIC, 0x1<<24, (1)  << 24); 	// ASEL set
+	BITCSET (dev->pCurLcdc->LIC, 0x1<<30, (1)  << 30); 	// AEN set
 
 	BITCSET (dev->pCurLcdc->LIC, 0x1<<28, (1) << 28);	// IEN set
 	BITCSET (dev->pCurLcdc->LIBA0, 0xFFFFFFFF,  cur_addr);
@@ -393,6 +427,8 @@ static int tccxxx_ccfb_release(struct inode *inode, struct file *file)
 		}
 	}
 
+	memset(&g_ccfg_cfg, 0x0, sizeof(ccfb_config_t));
+
 	dev->cur_state = CCFB_STATE_CLOSED;
 	dev->act_lcdc_idx = -1;
 	dev->pCurLcdc = NULL;
@@ -414,6 +450,8 @@ static int tccxxx_ccfb_open(struct inode *inode, struct file *file)
 		printk("WARNING : ccfb already opened.\n");
 		return 0;
 	}
+
+	memset(&g_ccfg_cfg, 0x0, sizeof(ccfb_config_t));
 
 	dev->cur_state = CCFB_STATE_OPENED;
 	dev->act_lcdc_idx = -1;

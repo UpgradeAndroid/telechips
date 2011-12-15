@@ -43,7 +43,13 @@
 
 #include <linux/slab.h>
 
-#if defined(CONFIG_ARCH_TCC92XX) || defined(CONFIG_ARCH_TCC93XX)
+#if defined(CONFIG_ARCH_TCC892X)
+#include <mach/vioc_disp.h>
+#include <mach/vioc_outcfg.h>
+#include <mach/vioc_wmix.h>
+#include <mach/vioc_rdma.h>
+#include <mach/vioc_scaler.h>
+#elif defined(CONFIG_ARCH_TCC92XX) || defined(CONFIG_ARCH_TCC93XX)
 #include <mach/bsp.h>
 #elif defined(CONFIG_ARCH_TCC79X)
 #include <mach/tcc79x.h>
@@ -80,9 +86,13 @@ static int debug = 0;
 #define GPIO_OUTPUT_COMPONENT_DETECT	NULL
 #endif
 
+#if defined(CONFIG_ARCH_TCC892X)
+static void tccfb_hdmi_starter(char hdmi_lcdc_num, struct lcdc_timimg_parms_t *lcdc_timing);
+#else
+extern void tcc92xxfb_hdmi_starter(char hdmi_lcdc_num, struct lcdc_timimg_parms_t *lcdc_timing);
+#endif
 extern void tcc_hdmi_power_on(void);
 extern void hdmi_phy_reset(void);
-extern void tcc92xxfb_hdmi_starter(char hdmi_lcdc_num, struct lcdc_timimg_parms_t *lcdc_timing);
 extern int hdmi_set_color_space(enum ColorSpace);
 extern int hdmi_set_color_depth(enum ColorDepth);
 extern void hdmi_set_video_mode(struct device_video_params mode);
@@ -310,7 +320,7 @@ static const unsigned char phy_config[][3][40] = {
 		{ 0x85, 0x88, 0x00, 0x10, 0x00, 0x06, 0x00, 0x00, 0xD8, 0xC2, 0xA4, 0x16, 0xD8, 0x5B, 0xF2, 0x83, 0x03, 0x82, 0x55/*0x04*/, 0xE0, 0x00, 0x10, 0x02, 0xA3, 0x43, 0x38, 0x40, 0x88, 0x7C, 0x09, 0x13, 0x06, 0x00, 0x54, 0x54, 0xD4, 0x5A, 0x02, 0x00, 0x80 },
 	}
 };
-#elif defined(CONFIG_MACH_TCC9300) || defined(CONFIG_MACH_TCC9300CM) || defined(CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST) || (defined(CONFIG_MACH_TCC8800) && defined(CONFIG_TCC_STB_MODE))
+#elif defined(CONFIG_MACH_TCC9300) || defined(CONFIG_MACH_TCC9300CM) || defined(CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST) || (defined(CONFIG_MACH_TCC8800) && defined(CONFIG_TCC_STB_MODE)) || defined(CONFIG_MACH_TCC8920ST)
 static const unsigned char phy_config[][3][31] = {// TCC9300 HDMI PHY Setting
         //25.200
     {
@@ -532,7 +542,7 @@ static struct i2c_client_address_data addr_data = {
 	.ignore = dummy,
 };
 
-#if defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 static const struct i2c_device_id tcc_hdmi_phy_i2c_id[] = {
 	{ "tcc-hdmi-phy", 0, },
 	{ }
@@ -564,7 +574,7 @@ struct i2c_client *tcc_hdmi_phy_i2c_client = NULL;
 struct i2c_client *tcc_hdmi_edid_i2c_client = NULL;
 struct i2c_client *tcc_hdmi_edid_seg_i2c_client = NULL;
 
-#if defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 static int tcc_hdmi_phy_i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 	struct tcc_hdmi_phy_i2c_platform_data 	*pdata;
@@ -1051,10 +1061,14 @@ int tcc_hdmi_set_lcdc_config(enum VideoFormat hdmi_video_format)
 
     memcpy((void*)&device,(const void*)&(LCDCTimimgParams[hdmi_video_format]),sizeof(device));
 
-	if(pDDICfg->HDMI_CTRL & HwDDIC_HDMI_CTRL_SEL_LCDC1)
-		tcc92xxfb_hdmi_starter(1, &device);
-	else
-		tcc92xxfb_hdmi_starter(0, &device);
+	#if defined(CONFIG_ARCH_TCC892X) && defined(CONFIG_MACH_TCC8920ST)
+		tccfb_hdmi_starter(0, &device);
+	#else
+		if(pDDICfg->HDMI_CTRL & HwDDIC_HDMI_CTRL_SEL_LCDC1)
+			tcc92xxfb_hdmi_starter(1, &device);
+		else
+			tcc92xxfb_hdmi_starter(0, &device);
+	#endif
 
     return 1;
 }
@@ -1133,20 +1147,96 @@ static int tcc_hdmi_detect_cable(void)
 
 	DPRINTF("%s\n", __func__);
 
-	BITCLR(pGPIO->GPAEN, Hw14);
-	BITCLR(pGPIO->GPAFN1, Hw28-Hw24);
-	{volatile int ttt;for(ttt=0;ttt<500;ttt++);}
-
-	if(ISSET(pGPIO->GPADAT, Hw14))
-	{
-		DPRINTF("HDMI cable is detected!!\n");
+	#if defined(CONFIG_ARCH_TCC892X) && defined(CONFIG_MACH_TCC8920ST)
 		return true;
-	}
-	else
+	#else
+		BITCLR(pGPIO->GPAEN, Hw14);
+		BITCLR(pGPIO->GPAFN1, Hw28-Hw24);
+		{volatile int ttt;for(ttt=0;ttt<500;ttt++);}
+
+		if(ISSET(pGPIO->GPADAT, Hw14))
+		{
+			DPRINTF("HDMI cable is detected!!\n");
+			return true;
+		}
+		else
+		{
+			DPRINTF("HDMI cable is not detected!!\n");
+			return false;
+		}
+	#endif
+}
+
+static void tcc_hdmi_ddi_config_init (void)
+{
+	unsigned char reg;
+	unsigned int regl;
+	unsigned char phy_status;
+	unsigned int phy_chk_cnt = 0;
+	
+	#if defined(CONFIG_ARCH_TCC892X)
+	regl = readl(DDICFG_HDMICTRL);
+	writel(regl | HDMICTRL_HDMI_ENABLE, DDICFG_HDMICTRL);
+	
+	regl = readl(DDICFG_HDMICTRL);
+	writel(regl & ~HDMICTRL_RESET_TMDS, DDICFG_HDMICTRL);
+
+	regl = readl(DDICFG_HDMICTRL);
+	writel(regl & ~HDMICTRL_RESET_SPDIF, DDICFG_HDMICTRL);
+
+	regl = readl(DDICFG_HDMICTRL);
+	writel(regl & ~HDMICTRL_RESET_HDMI, DDICFG_HDMICTRL);
+	#endif
+				
+	// HDMI PHY Reset
+	hdmi_phy_reset();
+
+	// HDMI SPDIF Reset
+	regl = readl(DDICFG_HDMICTRL);
+	writel(regl | HDMICTRL_RESET_SPDIF, DDICFG_HDMICTRL);	
+	msleep(1);
+	writel(regl & ~HDMICTRL_RESET_SPDIF, DDICFG_HDMICTRL);
+
+	// HDMI TMDS Reset
+	regl = readl(DDICFG_HDMICTRL);
+	writel(regl | HDMICTRL_RESET_TMDS, DDICFG_HDMICTRL);
+	msleep(1);
+	writel(regl & ~HDMICTRL_RESET_TMDS, DDICFG_HDMICTRL);
+
+	// enable DDI_BUS HDMI CLK
+	regl = readl(DDICFG_HDMICTRL);
+	writel(regl | HDMICTRL_HDMI_ENABLE, DDICFG_HDMICTRL);
+	msleep(1);
+	
+	// disable HDCP INT
+	regl = readb(HDMI_SS_INTC_CON);
+	writeb(regl & ~(1<<HDMI_IRQ_HDCP), HDMI_SS_INTC_CON);
+
+	// disable SPDIF INT
+	regl = readb(HDMI_SS_INTC_CON);
+	writeb(regl & ~(1<<HDMI_IRQ_SPDIF), HDMI_SS_INTC_CON);
+}
+
+static int tcc_hdmi_set_hdmi_mode(int mode)
+{
+	int ret = 1;
+
+	switch(mode)
 	{
-		DPRINTF("HDMI cable is not detected!!\n");
-		return false;
+		case HDMI:
+	        writeb(HDMI_MODE_SEL_HDMI,HDMI_MODE_SEL);
+	        writeb(HDMICON2_HDMI,HDMI_CON_2);
+			break;
+		case DVI:
+	        writeb(HDMI_MODE_SEL_DVI,HDMI_MODE_SEL);
+	        writeb(HDMICON2_DVI,HDMI_CON_2);
+			break;
+		default:
+			ret = 0;
+			break;
 	}
+
+	return ret;
 }
 
 static int tcc_composite_detect_cable(void)
@@ -1183,6 +1273,69 @@ static int tcc_component_detect_cable(void)
 
 void tcc_output_starter_setport(char lcdctrl_num, unsigned bit_per_pixel)
 {
+#if defined(CONFIG_ARCH_TCC892X) && defined(CONFIG_MACH_TCC8920ST)
+	int i;
+
+	if(lcdctrl_num)	{
+		tcc_gpio_config(TCC_GPE(0), GPIO_FN1|GPIO_OUTPUT|GPIO_LOW);		//LHSYNC
+		tcc_gpio_config(TCC_GPE(1), GPIO_FN1|GPIO_OUTPUT|GPIO_LOW);		//LVSYNC
+		tcc_gpio_config(TCC_GPE(26), GPIO_FN1|GPIO_OUTPUT|GPIO_LOW);	// LPXCLK
+		tcc_gpio_config(TCC_GPE(27), GPIO_FN1|GPIO_OUTPUT|GPIO_LOW);	//LACBIAS
+	}
+	else {
+		tcc_gpio_config(TCC_GPB(0), GPIO_FN1|GPIO_OUTPUT|GPIO_LOW);		// LPXCLK
+		tcc_gpio_config(TCC_GPB(1), GPIO_FN1|GPIO_OUTPUT|GPIO_LOW);		//LHSYNC
+		tcc_gpio_config(TCC_GPB(2), GPIO_FN1|GPIO_OUTPUT|GPIO_LOW);		//LVSYNC
+		tcc_gpio_config(TCC_GPB(19), GPIO_FN1|GPIO_OUTPUT|GPIO_LOW);	//LACBIAS
+	}
+
+	switch (bit_per_pixel) {
+		case 24:
+			for(i = 18 ; i < 24; i++)	{
+				if(lcdctrl_num)	{
+					tcc_gpio_config(TCC_GPE(2 + i), GPIO_FN1|GPIO_OUTPUT|GPIO_LOW);
+				}
+				else {
+					tcc_gpio_config(TCC_GPB(3 + i), GPIO_FN1|GPIO_OUTPUT|GPIO_LOW);
+				}
+			}
+
+		case 18:
+			for(i = 16 ; i < 18; i++)	{
+				if(lcdctrl_num)	{
+					tcc_gpio_config(TCC_GPE(2 + i), GPIO_FN1|GPIO_OUTPUT|GPIO_LOW);
+				}
+				else {
+					tcc_gpio_config(TCC_GPB(3 + i), GPIO_FN1|GPIO_OUTPUT|GPIO_LOW);
+				}
+			}
+			
+		case 16:
+			for(i = 8 ; i < 16; i++)	{
+				if(lcdctrl_num)	{
+					tcc_gpio_config(TCC_GPE(2 + i), GPIO_FN1|GPIO_OUTPUT|GPIO_LOW);
+				}
+				else {
+					tcc_gpio_config(TCC_GPB(3 + i), GPIO_FN1|GPIO_OUTPUT|GPIO_LOW);
+				}
+			}
+			
+		case 8:
+			for(i = 0 ; i < 8; i++)	{
+				if(lcdctrl_num)	{
+					tcc_gpio_config(TCC_GPE(2 + i), GPIO_FN1|GPIO_OUTPUT|GPIO_LOW);
+				}
+				else {
+					tcc_gpio_config(TCC_GPB(3 + i), GPIO_FN1|GPIO_OUTPUT|GPIO_LOW);
+				}
+			}
+			break;
+			
+		default:
+			// do nothing
+			break;
+	}
+#else
 	char LCD_PORT_ENABLE;
 	PGPION	pGPIO_C = (volatile PGPION)tcc_p2v(HwGPIOC_BASE);
 	
@@ -1223,9 +1376,139 @@ void tcc_output_starter_setport(char lcdctrl_num, unsigned bit_per_pixel)
 			// do nothing
 			break;
 	}
-
+#endif
 }
 
+#if defined(CONFIG_ARCH_TCC892X)
+void tcc_output_starter_hdmi(unsigned char lcdc_num, unsigned char hdmi_resolution)
+{
+	unsigned int output_width, output_height;
+	unsigned int image_width, image_height, image_fmt;
+	VIOC_DISP *pDISP;
+	VIOC_WMIX *pWIMX;
+	VIOC_RDMA *pRDMA;
+	VIOC_SC *pSC;
+	PCLK_XXX_TYPE *pLCDC_CKC;
+	PCKC pCKC = (PCKC)tcc_p2v(HwCKC_BASE);
+	PDDICONFIG pDDI_Config = (PDDICONFIG)tcc_p2v(HwDDI_CONFIG_BASE);
+	
+	struct clk *clock;
+	struct HDMIVideoParameter audio;
+	struct HDMIVideoParameter video;
+
+	printk("%s LCDC NUM:%d \n", __func__, lcdc_num);
+		
+	if(hdmi_resolution > SUPPORT_HDMI_MODE_NUM)
+		hdmi_resolution = STARTER_HDMI_1920x1080P;
+
+	video.resolution = TccSupportHdmiMode[hdmi_resolution];
+	video.colorSpace = HDMI_CS_RGB;
+	video.colorDepth = HDMI_CD_24;
+	video.colorimetry = HDMI_COLORIMETRY_NO_DATA;
+	video.pixelAspectRatio = HDMI_PIXEL_RATIO_16_9;
+	
+	//gpio_set_value(TCC_GPB(25), 1);
+	//udelay(100);
+	
+	if(lcdc_num)	
+	{
+		pDISP = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP1);
+		pWIMX =(VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX1); 
+		pRDMA = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA04);
+		pLCDC_CKC = (PCLK_XXX_TYPE *)((&pCKC->PCLKCTRL00)+PERI_LCD1);
+	}
+	else
+	{
+		pDISP = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP0);
+		pWIMX =(VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX0); 
+		pRDMA = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA00);
+		pLCDC_CKC = (PCLK_XXX_TYPE *)((&pCKC->PCLKCTRL00)+PERI_LCD0);
+	}
+
+	#if defined(CONFIG_LCD_LCDC0_USE)
+		pSC = (VIOC_SC *)tcc_p2v(HwVIOC_SC1);
+	#else
+		pSC = (VIOC_SC *)tcc_p2v(HwVIOC_SC0);
+	#endif
+	
+	if(lcdc_num)	
+	{
+		tca_ckc_setperi(PERI_LCD1, ENABLE, 1000000);
+		VIOC_OUTCFG_SetOutConfig(VIOC_OUTCFG_HDMI, VIOC_OUTCFG_DISP1);
+	}
+	else
+	{
+		tca_ckc_setperi(PERI_LCD0, ENABLE, 1000000);
+		VIOC_OUTCFG_SetOutConfig(VIOC_OUTCFG_HDMI, VIOC_OUTCFG_DISP0);
+	}
+	
+ 	pLCDC_CKC->bREG.DIV = 0;
+	pLCDC_CKC->bREG.SEL = PCDIVIDXTIN_HDMIPCLK;
+	pLCDC_CKC->bREG.EN = 1;
+ 
+	// hdmi power wake up
+	tca_ckc_setippwdn(PMU_ISOL_HDMI, 0);
+ 	tca_ckc_setperi(PERI_HDMI, ENABLE, 10000);
+ 	
+	clock = clk_get(0, "hdmi");
+	clk_enable(clock);
+
+	clock = clk_get(0, "hdmi_lcdc");
+	clk_enable(clock);
+	
+	image_width = 1280;
+	image_height = 720;
+	image_fmt = TCC_LCDC_IMG_FMT_RGB565;
+	
+	output_width = LCDCTimimgParams[video.resolution].lpc + 1;
+	output_height = LCDCTimimgParams[video.resolution].flc + 1;
+
+	VIOC_DISP_TurnOff(pDISP);
+	VIOC_RDMA_SetImageDisable(pRDMA);
+
+	tcc_hdmi_ddi_config_init();
+	tcc_hdmi_set_hdmi_mode(video.mode);
+	tcc_hdmi_set_video_mode(&video);
+	
+	VIOC_SC_SetBypass(pSC, OFF);
+	VIOC_SC_SetSrcSize(pSC, image_width, image_height);			// set source size in scaler
+	VIOC_SC_SetDstSize(pSC, output_width, output_height);		// set destination size in scaler
+	VIOC_SC_SetOutSize(pSC, output_width, output_height);		// set output size in scaer
+	VIOC_SC_SetUpdate(pSC);										// update scaler
+
+	VIOC_RDMA_SetImageSize(pRDMA, image_width, image_height);	// set image size
+	VIOC_RDMA_SetImageFormat(pRDMA, image_fmt);					// set image format
+	VIOC_RDMA_SetImageIntl(pRDMA, FALSE);						// set image interlace mode
+	VIOC_RDMA_SetImageOffset(pRDMA, image_fmt, image_width);	// set image offset
+
+	VIOC_RDMA_SetImageAlphaSelect(pRDMA, 1);					// set alpha setting
+	VIOC_RDMA_SetImageAlphaEnable(pRDMA, 1);					// set chroma key color setting
+
+	//VIOC_RDMA_SetImageEnable(pRDMA);
+	BITCSET(pRDMA->uCTRL.nREG, HwDMA_IEN, HwDMA_IEN);
+	
+	VIOC_WMIX_SetPosition(pWIMX, 0, 0, 0);
+	VIOC_WMIX_SetChromaKey(pWIMX, 0, 0, 0, 0, 0, 0xF8, 0xFC, 0xF8);
+	VIOC_WMIX_SetUpdate(pWIMX);
+
+	//VIOC_RDMA_SetImageBase(pRDMA, pBaseAddr, 0, 0);
+	
+	VIOC_DISP_TurnOn(pDISP);
+
+	//if (video.mode == HDMI)
+	//	hdmi_set_audio_mode(&audio);
+
+	hdmi_start();
+}
+
+void tcc_output_starter_composite(unsigned char lcdc_num, unsigned char type)
+{
+}
+
+void tcc_output_starter_component(unsigned char lcdc_num, unsigned char type)
+{
+}
+#else //CONFIG_ARCH_TCC892X
 void tcc_output_starter_hdmi(unsigned char lcdc_num, unsigned char hdmi_resolution)
 {
 	PDDICONFIG pDDICfg = (PDDICONFIG)tcc_p2v(HwDDI_CONFIG_BASE);
@@ -1249,7 +1532,7 @@ void tcc_output_starter_hdmi(unsigned char lcdc_num, unsigned char hdmi_resoluti
 	img_height 	= (pLCDC_IMG_CH->LIS & 0x1FFF0000)>>16;
 	img_offset	= pLCDC_IMG_CH->LIO;
 
-	DPRINTF("%s\n", __func__);
+	DPRINTF("%s, hdmi_mode=%d\n", __func__, tcc_display_data.hdmi_mode);
 
 	BITSET(pDDICfg->SWRESET, Hw8);	// HDMI
 	BITCLR(pDDICfg->SWRESET, Hw8);	// HDMI	
@@ -1276,7 +1559,10 @@ void tcc_output_starter_hdmi(unsigned char lcdc_num, unsigned char hdmi_resoluti
 	if(hdmi_resolution > SUPPORT_HDMI_MODE_NUM)
 		hdmi_resolution = STARTER_HDMI_1920x1080P;		
 
-	gHdmiVideoParms.mode = HDMI;
+	if(tcc_display_data.hdmi_mode == 0)
+		gHdmiVideoParms.mode = HDMI;
+	else
+		gHdmiVideoParms.mode = DVI;
 	gHdmiVideoParms.resolution = TccSupportHdmiMode[hdmi_resolution];
 	gHdmiVideoParms.colorSpace = HDMI_CS_RGB;
 	gHdmiVideoParms.colorDepth = HDMI_CD_24;
@@ -1777,7 +2063,7 @@ void tcc_output_starter_component(unsigned char lcdc_num, unsigned char type)
 	BITSET(pLCDC->LCTRL, Hw0);
 #endif
 }
-
+#endif //CONFIG_ARCH_TCC892X
 
 static int tcc_output_starter_ioctl(struct inode *inode, struct file *file, unsigned int cmd, void *arg)
 {
@@ -1846,7 +2132,7 @@ int __init tcc_output_starter_init(void)
 	tcc_output_starter_class = class_create(THIS_MODULE, DEVICE_NAME);
 	device_create(tcc_output_starter_class, NULL, MKDEV(MAJOR_ID, MINOR_ID), NULL, DEVICE_NAME);
 
-	#if defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC88XX)
+	#if defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 		lcdc_1st = STARTER_LCDC_0; /* LCDC0: HDMI or Component */
 		lcdc_2nd = STARTER_LCDC_1; /* LCDC1: Composite */
 	#else
