@@ -190,6 +190,11 @@ EXPORT_SYMBOL(bt_used);
 static struct clk *ddi_clk;
 static struct clk *mali_clk;
 
+#if defined(CONFIG_ARCH_TCC892X)
+static unsigned long uartPortCFG0, uartPortCFG1;
+#else
+static unsigned long uartPortCFG;
+#endif
 void kerneltimer_registertimer(struct timer_list* ptimer, unsigned long timeover,struct uart_port *port )
 {
      init_timer( ptimer );
@@ -1111,6 +1116,12 @@ static int tcc_serial_suspend(struct platform_device *dev, pm_message_t state)
 	struct uart_port *port = tcc_dev_to_port(&dev->dev);
 	struct tcc_uart_port *tcc_port = (struct tcc_uart_port *)port;
 
+#if defined(CONFIG_ARCH_TCC892X)
+    uartPortCFG0 = *(volatile unsigned long *)tcc_p2v(HwUART_PORTCFG_BASE);
+    uartPortCFG1 = *(volatile unsigned long *)tcc_p2v(HwUART_PORTCFG_BASE + 0x4);
+#else
+    uartPortCFG = *(volatile unsigned long *)tcc_p2v(HwUART_CHSEL);
+#endif
     dbg("%s in...\n", __func__);
 
         if (port) {
@@ -1134,6 +1145,11 @@ static int tcc_serial_suspend(struct platform_device *dev, pm_message_t state)
                 {
                     gpio_set_value(TCC_GPD(25), 0);
                 }
+#elif defined(CONFIG_MACH_M805_892X)
+                if(machine_is_m805_892x())
+                {
+                    gpio_set_value(TCC_GPC(6), 0);
+                }
 #endif
             }
 #endif
@@ -1150,6 +1166,12 @@ static int tcc_serial_resume(struct platform_device *dev)
 {
 	struct uart_port *port = tcc_dev_to_port(&dev->dev);
 	struct tcc_uart_port *tcc_port = (struct tcc_uart_port *)port;
+#if defined(CONFIG_ARCH_TCC892X)
+    *(volatile unsigned long *)tcc_p2v(HwUART_PORTCFG_BASE) = uartPortCFG0;
+    *(volatile unsigned long *)tcc_p2v(HwUART_PORTCFG_BASE + 0x4) = 	uartPortCFG1;
+#else
+    *(volatile unsigned long *)tcc_p2v(HwUART_CHSEL) = uartPortCFG ;
+#endif
 
     if(port) {
 		if (port->suspended) {
@@ -1185,6 +1207,11 @@ static int tcc_serial_resume(struct platform_device *dev)
                 {
                     gpio_set_value(TCC_GPD(25), 1);
                 }
+#elif defined(CONFIG_MACH_M805_892X)
+                    if(machine_is_m805_892x())
+                    {
+                        gpio_set_value(TCC_GPC(6), 1);
+                    }
 #endif      
             }
 #endif
