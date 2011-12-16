@@ -29,9 +29,7 @@ extern void USBPHY_PWR_Control(int port_index, int on);
 #endif
 
 extern void TCC_DVBUS_Control(dwc_otg_core_if_t *_core_if, int on);
-#if defined(CONFIG_MACH_M801_88) || defined(CONFIG_MACH_M803)
 extern void TCC_OTG_PWR_M801(int on);
-#endif
 extern void OTGCORE_Init(dwc_otg_core_if_t *_core_if);
 extern void USBPHY_IDCFG(unsigned int idcfg, unsigned int port_index, unsigned int host);
 extern void w_idcfg_disable(struct work_struct *work);

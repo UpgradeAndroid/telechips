@@ -1269,7 +1269,7 @@ static int dwc_otg_driver_probe(struct platform_device *_dev)
 #endif
 	{
 #if defined(CONFIG_ARCH_TCC88XX)
-		if (machine_is_tcc8800() || machine_is_tcc8900st())
+		if (machine_is_tcc8800() || machine_is_tcc8800st())
 			tcc_ohci_clock_control(-1, 1);
 		if (machine_is_m801_88() || machine_is_m803())
 			TCC_OTG_PWR_M801(1);
