@@ -90,7 +90,7 @@ struct allow_region AllowRegion[] = {
 	{ DXB_BASE1,0x1000}, 	//for broadcasting.
 	{ DXB_BASE2,0x1000}, 	//for broadcasting.
 #ifdef CONFIG_ARCH_TCC892X
-	{ JPEG_BASE,0x1000}, 	//JPEG(in VPU) Register..	
+	{ JPEG_BASE,0x2000}, 	//JPEG(in VPU) Register..	
 #endif
 #ifndef	CONFIG_ARCH_TCC93XX
 	{ AV_BASE,  0x1000}  	//for AV_algorithm.
@@ -102,9 +102,50 @@ struct allow_region AllowRegion[] = {
 
 #define SIZE_TABLE_MAX (sizeof(AllowRegion)/sizeof(struct allow_region))
 
+//extern  void drop_pagecache(void);
+extern char tcc_hdmi_open_num;
+int tccxxx_sync_player(int sync)
+{
+	if(sync)
+	{
+		sys_sync();
+//		drop_pagecache();
+	}
+#if defined(CONFIG_DRAM_DDR3) && defined(CONFIG_ARCH_TCC88XX)
+	else
+	{
+		if(machine_is_tcc8800() || machine_is_m801_88() || machine_is_m803())
+		{
+			if(tcc_hdmi_open_num > 0)
+				return 1;
+		}
+	}
+#endif
+
+	return 0;
+}
+EXPORT_SYMBOL(tccxxx_sync_player);
+
+int tccxxx_get_pmap(const char *name, pmap_t *mem)
+{
+	if(name == NULL)
+		return -1;
+	
+	pmap_get_info(name, mem);
+
+	return 0;
+}
+EXPORT_SYMBOL(tccxxx_get_pmap);
+
+static int sync_once = 1;
 static int tmem_open(struct inode *inode, struct file *filp)
 {
 	dprintk("tmem_open \n");
+	if(sync_once){
+		tccxxx_sync_player(0);
+		tccxxx_get_pmap(NULL, NULL);
+		sync_once = 0;
+	}
 
 	return 0;
 }

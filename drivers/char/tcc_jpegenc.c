@@ -109,41 +109,6 @@ int tccxxx_isalive_camera(void)
 EXPORT_SYMBOL(tccxxx_isalive_camera);
 #endif
 
-//extern  void drop_pagecache(void);
-extern char tcc_hdmi_open_num;
-int tccxxx_sync_player(int sync)
-{
-	if(sync)
-	{
-		sys_sync();
-//		drop_pagecache();
-	}
-#if defined(CONFIG_DRAM_DDR3) && defined(CONFIG_ARCH_TCC88XX)
-	else
-	{
-		if(machine_is_tcc8800() || machine_is_m801_88() || machine_is_m803())
-		{
-			if(tcc_hdmi_open_num > 0)
-				return 1;
-		}
-	}
-#endif
-
-	return 0;
-}
-EXPORT_SYMBOL(tccxxx_sync_player);
-
-int tccxxx_get_pmap(const char *name, pmap_t *mem)
-{
-	if(name == NULL)
-		return -1;
-	
-	pmap_get_info(name, mem);
-
-	return 0;
-}
-EXPORT_SYMBOL(tccxxx_get_pmap);
-
 static void tccxx_jpgenc_set_clock(unsigned char init)
 {
 	if(init)
@@ -664,8 +629,6 @@ static int tcc_jpegenc_open(struct inode *inode, struct file *filp)
 	int ret = 0;
 
 	dprintk("tcc_jpegenc_open!!\n");
-	tccxxx_sync_player(0);
-	tccxxx_get_pmap(NULL, NULL);
 	
 	if(!jpgenc_data.irq_reged)
 	{			
