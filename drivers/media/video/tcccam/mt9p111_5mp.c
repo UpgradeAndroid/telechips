@@ -3834,16 +3834,16 @@ void sensor_init_fnc(SENSOR_FUNC_TYPE *sensor_func)
 
 	sensor_func->Set_Preview 			= sensor_preview_mt9p111;
 	sensor_func->Set_Capture 			= sensor_capture_mt9p111;
-	sensor_func->Set_CaptureCfg 			= sensor_capturecfg_mt9p111;
+	sensor_func->Set_CaptureCfg 		= sensor_capturecfg_mt9p111;
 
 	sensor_func->Set_Zoom 				= sensor_zoom_mt9p111;
 	sensor_func->Set_AF 				= sensor_autofocus_mt9p111;
-	sensor_func->Set_Effect 				= sensor_effect_mt9p111;
+	sensor_func->Set_Effect 			= sensor_effect_mt9p111;
 	sensor_func->Set_Flip 				= sensor_flip_mt9p111;
 	sensor_func->Set_ISO 				= sensor_iso_mt9p111;
 	sensor_func->Set_ME 				= sensor_me_mt9p111;
 	sensor_func->Set_WB 				= sensor_wb_mt9p111;
-	sensor_func->Set_Bright 				= sensor_bright_mt9p111;
+	sensor_func->Set_Bright 			= sensor_bright_mt9p111;
 	sensor_func->Set_Scene 				= sensor_scene_mt9p111;
 	sensor_func->Set_Exposure			= sensor_exposure_mt9p111;
 

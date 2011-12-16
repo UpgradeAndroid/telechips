@@ -342,15 +342,12 @@ int sensor_if_query_control(struct v4l2_queryctrl *qc)
 	int i;
 
 	i = find_vctrl (qc->id);
-	if (i == -EINVAL) 
-	{
+	if(i == -EINVAL) {
 		qc->flags = V4L2_CTRL_FLAG_DISABLED;
 		return 0;
 	}
 	
-	if (i < 0)
-		return -EINVAL;
-
+	if(i < 0) 		return -EINVAL;
 	*qc = control[i].qc;
 	
 	return 0;
@@ -376,16 +373,10 @@ int sensor_if_set_control(struct v4l2_control *vc, unsigned char init)
 	int val = vc->value;
 	int i;
 	
-	if((i = find_vctrl(vc->id)) < 0)
-		return -EINVAL;
-
+	if((i = find_vctrl(vc->id)) < 0) 	return -EINVAL;
 	lvc = &control[i];
-
-	if(lvc->qc.maximum < val)
-		return val;
-
-	if(lvc->current_value != val || init)
-	{
+	if(lvc->qc.maximum < val) 			return val;
+	if(lvc->current_value != val || init) {
 		lvc->current_value = val;
 		lvc->need_set = 1;
 		need_new_set = 1;
@@ -400,10 +391,8 @@ int sensor_if_check_control(void)
 	struct vcontrol *lvc;
 	int ctrl_cnt = ARRAY_SIZE(control);
 
-	if(!need_new_set)
-		return 0;
-	
-	for (i = ctrl_cnt - 1; i >= 0; i--)
+	if(!need_new_set) 	return 0;
+	for(i=(ctrl_cnt - 1); i >= 0; i--)
 	{
 		lvc = &control[i];
 		if(lvc->need_set)
@@ -412,68 +401,65 @@ int sensor_if_check_control(void)
 			{
 				case V4L2_CID_BRIGHTNESS:
 					err = sensor_func.Set_Bright(lvc->current_value);
-				break;
-			
+					break;
+
 				case V4L2_CID_AUTO_WHITE_BALANCE:
 					err = sensor_func.Set_WB(lvc->current_value);
-				break;
-			
+					break;
+
 				case V4L2_CID_ISO:
 					err = sensor_func.Set_ISO(lvc->current_value);
-				break;
-			
-				case V4L2_CID_EFFECT:
-		#ifdef USE_SENSOR_EFFECT_IF
-					err = sensor_func.Set_Effect(lvc->current_value);
-		#else
-					err = tccxxx_cif_set_effect(lvc->current_value);
-		#endif			
-				break;
-					
-				case V4L2_CID_ZOOM:
-		#ifdef USE_SENSOR_ZOOM_IF
-					err = sensor_func.Set_Zoom(lvc->current_value);
-		#else
-					err = tccxxx_cif_set_zoom(lvc->current_value);
-		#endif
 					break;
-					
+
+				case V4L2_CID_EFFECT:
+					#ifdef USE_SENSOR_EFFECT_IF
+					err = sensor_func.Set_Effect(lvc->current_value);
+					#else
+					err = tccxxx_cif_set_effect(lvc->current_value);
+					#endif			
+					break;
+
+				case V4L2_CID_ZOOM:
+					#ifdef USE_SENSOR_ZOOM_IF
+					err = sensor_func.Set_Zoom(lvc->current_value);
+					#else
+					err = tccxxx_cif_set_zoom(lvc->current_value);
+					#endif
+					break;
+
 				case V4L2_CID_FLIP:
 					err = sensor_func.Set_Flip(lvc->current_value);
-				break;
-			
+					break;
+
 				case V4L2_CID_SCENE:
 					err = sensor_func.Set_Scene(lvc->current_value);
-				break;
-					
+					break;
+
 				case V4L2_CID_METERING_EXPOSURE:
 					err = sensor_func.Set_ME(lvc->current_value);
 					break;
-					
+
 				case V4L2_CID_FLASH:
-					//err = ;
-					break;	
+					// todo: 
+					break;
 
 				case V4L2_CID_EXPOSURE:
 					err = sensor_func.Set_Exposure(lvc->current_value);
-					break;	
+					break;
 
 				case V4L2_CID_FOCUS_MODE:
 					err = sensor_func.Set_FocusMode(lvc->current_value);
-					break;	
-					
-				default:
-					break;	
-				
-			}
+					break;
 
+				default:
+					break;
+			}
 			lvc->need_set = 0;
 		}
 	}
 
 	return 0;
 }
-
 
 /* In case of ESD-detection, to set current value in sensor after module was resetted. */
 int sensor_if_set_current_control(void)
