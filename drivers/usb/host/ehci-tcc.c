@@ -27,6 +27,10 @@ extern int tcc_ehci_vbus_Init(void);
 extern int tcc_ehci_vbus_ctrl(int on);
 extern void tcc_ehci_clkset(int on);
 
+#if defined(CONFIG_ARCH_TCC88XX)
+#define USE_EHCI_TCC_SETUP
+#endif
+
 /* interface and function clocks */
 static int clocked;
 
@@ -37,6 +41,14 @@ static void tcc_USB20HPHY_cfg(void)
 	PHSIOBUSCFG pEHCIPHYCFG;
 	
 	pEHCIPHYCFG = (PHSIOBUSCFG)tcc_p2v(HwHSIOBUSCFG_BASE);
+	
+	#if defined(CONFIG_ARCH_TCC892X)
+	/* A2X_USB20H: not use prefetch buffer all R/W
+	 *             set A2X_USB20H in the bootloader
+	 */
+	//pEHCIPHYCFG->HSIO_CFG.nREG = 0xF000CFCF;
+	pEHCIPHYCFG->HSIO_CFG.bREG.A2X_USB20H = 0x3;
+	#endif
 	
 	temp = 0x00000000;
 	temp = temp | Hw29 | Hw28;		// [31:28] UTM_TXFSLSTUNE[3:0]
@@ -54,7 +66,11 @@ static void tcc_USB20HPHY_cfg(void)
 	temp = temp | Hw4;				// [4]
 	temp = temp | Hw3;				// [3]
 	temp = temp | Hw2;				// [2]
+#if defined(CONFIG_ARCH_TCC88XX)
 	pEHCIPHYCFG->USB20H_CFG0 = temp;
+#elif defined(CONFIG_ARCH_TCC892X)
+	pEHCIPHYCFG->USB20H_PCFG0.nREG = temp;
+#endif
 
 	temp = 0x00000000;
 	temp = temp | Hw29;
@@ -65,30 +81,57 @@ static void tcc_USB20HPHY_cfg(void)
 	temp = temp | Hw16;
 	temp = temp | Hw6 | Hw5;
 	temp = temp | Hw0;				// [0] TP HS transmitter Pre-Emphasis Enable
+#if defined(CONFIG_ARCH_TCC88XX)
 	pEHCIPHYCFG->USB20H_CFG1 = temp;
+#elif defined(CONFIG_ARCH_TCC892X)
+	pEHCIPHYCFG->USB20H_PCFG1.nREG = temp;
+#endif
 
 	temp = 0x00000000;
 	//temp = temp | Hw9;
 	//temp = temp | Hw6;
+#if defined(CONFIG_ARCH_TCC892X)
+	temp = temp | Hw15 | Hw5;
+#else
 	temp = temp | Hw5;
+#endif
+#if defined(CONFIG_ARCH_TCC88XX)
 	pEHCIPHYCFG->USB20H_CFG2 = temp;
+#elif defined(CONFIG_ARCH_TCC892X)
+	pEHCIPHYCFG->USB20H_PCFG2.nREG = temp;
+#endif
 
-	pEHCIPHYCFG->USB20H_CFG0 = pEHCIPHYCFG->USB20H_CFG0 | Hw8;
+#if defined(CONFIG_ARCH_TCC88XX)
+	pEHCIPHYCFG->USB20H_CFG0 = pEHCIPHYCFG->USB20H_CFG0 | Hw8;	/* analog power-down: 0 */
+#elif defined(CONFIG_ARCH_TCC892X)
+	//pEHCIPHYCFG->USB20H_PCFG0.nREG |= Hw8;					/* analog power-down: 1 */
+#endif
 	msleep(10);
+#if defined(CONFIG_ARCH_TCC88XX)
 	pEHCIPHYCFG->USB20H_CFG1 = pEHCIPHYCFG->USB20H_CFG1 | Hw31; // cfgUSB_SRSTn
+#elif defined(CONFIG_ARCH_TCC892X)
+	pEHCIPHYCFG->USB20H_PCFG1.nREG |= Hw31;
+#endif
 	msleep(20);
 }
 
 static void tcc_ehci_phy_off(void)
 {
-	unsigned int temp;
 	PHSIOBUSCFG pEHCIPHYCFG = (PHSIOBUSCFG)tcc_p2v(HwHSIOBUSCFG_BASE);
+#if defined(CONFIG_ARCH_TCC88XX)
 	pEHCIPHYCFG->USB20H_CFG0 &= ~Hw8;	//SIDDQ
+#elif defined(CONFIG_ARCH_TCC892X)
+	pEHCIPHYCFG->USB20H_PCFG0.nREG |= Hw8;
+#endif
 }
 
 static void tcc_ehci_phy_ctrl(int on)
 {
+#if defined(CONFIG_ARCH_TCC88XX)
 	tca_ckc_setpmupwroff(PMU_USB1NANOPHY, on);
+#elif defined(CONFIG_ARCH_TCC892X)
+	tca_ckc_setippwdn(PMU_ISOL_USBHP, !on);
+#endif
 }
 
 //static void tcc_ehci_hsiobus_reset(void)
@@ -114,7 +157,7 @@ static void tcc_stop_ehci(struct platform_device *pdev)
 }
 
 /*-------------------------------------------------------------------------*/
-
+#ifdef USE_EHCI_TCC_SETUP
 static int ehci_tcc_setup(struct usb_hcd *hcd)
 {
 	struct ehci_hcd *ehci = hcd_to_ehci(hcd);
@@ -146,6 +189,7 @@ static int ehci_tcc_setup(struct usb_hcd *hcd)
 
 	return retval;
 }
+#endif	/* #ifdef USE_EHCI_TCC_SETUP */
 
 static const struct hc_driver ehci_tcc_hc_driver = {
 	.description		= hcd_name,
@@ -157,7 +201,12 @@ static const struct hc_driver ehci_tcc_hc_driver = {
 	.flags			= HCD_MEMORY | HCD_USB2,
 
 	/* basic lifecycle operations */
+
+#ifdef USE_EHCI_TCC_SETUP
 	.reset			= ehci_tcc_setup,
+#else
+	.reset			= ehci_init,
+#endif
 	.start			= ehci_run,
 	.stop			= ehci_stop,
 	.shutdown		= ehci_shutdown,
@@ -217,6 +266,7 @@ static int ehci_hcd_tcc_drv_resume(struct platform_device *pdev)
 static int __init ehci_tcc_drv_probe(struct platform_device *pdev)
 {
 	struct usb_hcd *hcd;
+	struct ehci_hcd *ehci = NULL;
 	const struct hc_driver *driver = &ehci_tcc_hc_driver;
 	struct resource *res;
 	int irq;
@@ -268,6 +318,16 @@ static int __init ehci_tcc_drv_probe(struct platform_device *pdev)
 
 	tcc_start_ehci(pdev);
 	tcc_USB20HPHY_cfg();
+
+#ifndef USE_EHCI_TCC_SETUP
+	/* ehci setup */
+	ehci = hcd_to_ehci(hcd);
+	ehci->caps = hcd->regs;		/* registers start at offset 0x0 */
+	ehci->regs = hcd->regs + HC_LENGTH(ehci, ehci_readl(ehci, &ehci->caps->hc_capbase));
+	dbg_hcs_params(ehci, "reset");
+	dbg_hcc_params(ehci, "reset");
+	ehci->hcs_params = ehci_readl(ehci, &ehci->caps->hcs_params);	/* cache this readonly data; minimize chip reads */
+#endif
 
 	retval = usb_add_hcd(hcd, irq, IRQF_SHARED);
 	if (retval)

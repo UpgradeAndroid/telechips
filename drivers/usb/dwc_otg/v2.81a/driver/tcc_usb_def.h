@@ -35,16 +35,18 @@
 #define SIGN_CHIPSET			'T','C','C','8','3','X','X','_'
 #elif defined(TCC87XX)
 #define SIGN_CHIPSET			'T','C','C','8','7','X','X','_'
-#elif defined(CONFIG_MACH_TCC8900)
+#elif defined(TCC8900)
 #define SIGN_CHIPSET			'T','C','C','8','9','X','X','_'
 #elif defined(TCC91XX)
 #define SIGN_CHIPSET			'T','C','C','9','1','X','X','_'
 #elif defined(TCC92XX)
 #define SIGN_CHIPSET			'T','C','C','9','2','X','X','_'
-#elif defined(CONFIG_MACH_TCC9300) || defined(CONFIG_MACH_TCC9300CM) || defined(CONFIG_MACH_TCC9300ST)
+#elif defined(CONFIG_ARCH_TCC93XX)
 #define SIGN_CHIPSET			'T','C','C','9','3','X','X','_'
-#elif defined(CONFIG_MACH_TCC8800) || defined(CONFIG_MACH_TCC8800ST)
+#elif defined(CONFIG_ARCH_TCC88XX)
 #define SIGN_CHIPSET			'T','C','C','8','8','X','X','_'
+#elif defined(CONFIG_ARCH_TCC892X)
+#define SIGN_CHIPSET			'T','C','C','8','9','2','X','_'
 #else
 #error
 #endif

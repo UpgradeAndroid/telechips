@@ -166,13 +166,13 @@ extern int dwc_otg_driver_force_init(void);
 int USBPHY_Power(dwc_otg_core_if_t *_core_if, int power)
 {
 	if (power)
-#if defined(CONFIG_MACH_TCC8800) || defined(CONFIG_MACH_TCC8800ST) || defined(CONFIG_MACH_TCC9300) || defined(CONFIG_MACH_TCC9300CM) || defined(CONFIG_MACH_TCC9300ST)
+#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC892X)
 		return dwc_otg_driver_force_init();
 #else
 		return USBPHY_SetMode(_core_if, USBPHY_MODE_ON);
 #endif
 	else
-#if defined(CONFIG_MACH_TCC8800) || defined(CONFIG_MACH_TCC8800ST) || defined(CONFIG_MACH_TCC9300) || defined(CONFIG_MACH_TCC9300CM) || defined(CONFIG_MACH_TCC9300ST)
+#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC892X)
 		return 0;
 #else
 		return USBPHY_SetMode(_core_if, USBPHY_MODE_OFF);
@@ -277,7 +277,7 @@ void USBPHY_PWR_Control(int port_index, int on)
  */
 void TCC_DVBUS_Control(dwc_otg_core_if_t *_core_if, int on)
 {
-#if defined(CONFIG_MACH_TCC8800)
+#if defined(CONFIG_ARCH_TCC88XX)
 	if (machine_is_m801_88() || machine_is_m803()) 
 	{
 		GPIO *pGPIO = (volatile PGPIO)tcc_p2v(HwGPIO_BASE);		
@@ -294,15 +294,16 @@ void TCC_DVBUS_Control(dwc_otg_core_if_t *_core_if, int on)
 		gpio_request(gpio_otg0_vbus_en, "otg0_vbus_en");
 		gpio_direction_output(gpio_otg0_vbus_en, (on)?1:0);
 	}
-#elif defined(CONFIG_MACH_TCC8800ST)
-	int gpio_otg0_en;
+	if (machine_is_tcc8800st()) {
+		int gpio_otg0_en;
 
-	tcc_gpio_config(TCC_GPB(14), GPIO_FN(0));
+		tcc_gpio_config(TCC_GPB(14), GPIO_FN(0));
 	
-	gpio_otg0_en = TCC_GPB(14);
-	gpio_request(gpio_otg0_en, "OTG0_VBUS_EN");
-	gpio_direction_output(gpio_otg0_en, (on)?1:0);
-#elif defined(CONFIG_MACH_TCC8900)
+		gpio_otg0_en = TCC_GPB(14);
+		gpio_request(gpio_otg0_en, "OTG0_VBUS_EN");
+		gpio_direction_output(gpio_otg0_en, (on)?1:0);
+	}
+#elif defined(CONFIG_ARCH_TCC92XX)
 	if (machine_is_tcc8900()) {
 		int gpio_pwr_gp1 = TCC_GPEXT3(7);
 		int gpio_dvbus = TCC_GPEXT3(0);	
@@ -324,62 +325,87 @@ void TCC_DVBUS_Control(dwc_otg_core_if_t *_core_if, int on)
 		}
 	}
 #elif defined(CONFIG_MACH_TCC9300)
-	int gpio_otg0_en, gpio_otg1_en;
+	if (machine_is_tcc9300()) {
+		int gpio_otg0_en, gpio_otg1_en;
 
-	if(_core_if->port_index != 0) {
-		gpio_otg1_en = TCC_GPEXT2(14);
-		gpio_request(gpio_otg1_en, "OTG1_VBUS_EN");
-		gpio_direction_output(gpio_otg1_en, (on)?1:0);
-		} else {
-		gpio_otg0_en = TCC_GPEXT2(13);
-		gpio_request(gpio_otg0_en, "OTG0_VBUS_EN");
-		gpio_direction_output(gpio_otg0_en, (on)?1:0);
-	}
-#elif defined(CONFIG_MACH_TCC9300CM)
-	GPIO *pGPIO = (volatile PGPIO)tcc_p2v(HwGPIO_BASE);
+		if(_core_if->port_index != 0) {
+			gpio_otg1_en = TCC_GPEXT2(14);
+			gpio_request(gpio_otg1_en, "OTG1_VBUS_EN");
+			gpio_direction_output(gpio_otg1_en, (on)?1:0);
+			} else {
+			gpio_otg0_en = TCC_GPEXT2(13);
+			gpio_request(gpio_otg0_en, "OTG0_VBUS_EN");
+			gpio_direction_output(gpio_otg0_en, (on)?1:0);
+		}
+	} else if (machine_is_tcc9300cm()) {
+		GPIO *pGPIO = (volatile PGPIO)tcc_p2v(HwGPIO_BASE);
 	
 #define DVBUS_ON	0
 #define PWR_GP1		7
 
-	if(_core_if->port_index != 0) {
-		BITSET(pGPIO->GPEEN, Hw29);
-		if (on) {
-			BITSET(pGPIO->GPEDAT, Hw29);	//OTG1_VBUS_EN
-		    	gpio_set_value(TCC_GPEXT3(DVBUS_ON), 1);
-			gpio_set_value(TCC_GPEXT3(PWR_GP1), 1);			
-		} 
-		else {
+		if(_core_if->port_index != 0) {
+			BITSET(pGPIO->GPEEN, Hw29);
+			if (on) {
+				BITSET(pGPIO->GPEDAT, Hw29);	//OTG1_VBUS_EN
+				gpio_set_value(TCC_GPEXT3(DVBUS_ON), 1);
+				gpio_set_value(TCC_GPEXT3(PWR_GP1), 1);
+		} else {
 			BITCLR(pGPIO->GPEDAT, Hw29);
 			gpio_set_value(TCC_GPEXT3(DVBUS_ON), 0);	
 			gpio_set_value(TCC_GPEXT3(PWR_GP1), 0);	
 		}
-	} else {
-		BITSET(pGPIO->GPEEN, Hw28);
-		if (on) {
-			BITSET(pGPIO->GPEDAT, Hw28);	//OTG0_VBUS_EN
-		    	gpio_set_value(TCC_GPEXT3(DVBUS_ON), 1);
-			gpio_set_value(TCC_GPEXT3(PWR_GP1), 1);
-		} 
-		else {
-			BITCLR(pGPIO->GPEDAT, Hw28);
-		    	gpio_set_value(TCC_GPEXT3(DVBUS_ON), 0); 
-			gpio_set_value(TCC_GPEXT3(PWR_GP1), 0);	
+		} else {
+			BITSET(pGPIO->GPEEN, Hw28);
+			if (on) {
+				BITSET(pGPIO->GPEDAT, Hw28);	//OTG0_VBUS_EN
+				gpio_set_value(TCC_GPEXT3(DVBUS_ON), 1);
+				gpio_set_value(TCC_GPEXT3(PWR_GP1), 1);
+			} else {
+				BITCLR(pGPIO->GPEDAT, Hw28);
+				gpio_set_value(TCC_GPEXT3(DVBUS_ON), 0);
+				gpio_set_value(TCC_GPEXT3(PWR_GP1), 0);
+			}
+		}
+	} else if (machine_is_tcc9300st()) {
+		int gpio_otg0_en, gpio_otg1_en;
+
+		if(_core_if->port_index != 0)
+		{
+			gpio_otg1_en = TCC_GPE(19);
+			gpio_request(gpio_otg1_en, "OTG1_VBUS_EN");
+			gpio_direction_output(gpio_otg1_en, (on)?1:0);
+		}
+		else
+		{
+			gpio_otg0_en = TCC_GPB(14);
+			gpio_request(gpio_otg0_en, "OTG0_VBUS_EN");
+			gpio_direction_output(gpio_otg0_en, (on)?1:0);
 		}
 	}
-#elif defined(CONFIG_MACH_TCC9300ST)
-	int gpio_otg0_en, gpio_otg1_en;
+#elif defined(CONFIG_ARCH_TCC892X)
+	if (machine_is_tcc8920()) {
+		int gpio_otg0_vbus_en;
 
-	if(_core_if->port_index != 0) 
-	{
-		gpio_otg1_en = TCC_GPE(19);
-		gpio_request(gpio_otg1_en, "OTG1_VBUS_EN");
-		gpio_direction_output(gpio_otg1_en, (on)?1:0);		
-	}
-	else
-	{
-		gpio_otg0_en = TCC_GPB(14);
-		gpio_request(gpio_otg0_en, "OTG0_VBUS_EN");
-		gpio_direction_output(gpio_otg0_en, (on)?1:0);
+		tcc_power_control(TCC_V5P_POWER, (on)?TCC_POWER_ON:TCC_POWER_OFF);
+
+		gpio_otg0_vbus_en = TCC_GPEXT2(13);
+		gpio_request(gpio_otg0_vbus_en, "otg0_vbus_en");
+		gpio_direction_output(gpio_otg0_vbus_en, (on)?1:0);
+	} else if (machine_is_tcc8920st()) {
+		int gpio_otg0_vbus_en;
+
+		gpio_otg0_vbus_en = TCC_GPD(11);
+
+		tcc_gpio_config(gpio_otg0_vbus_en, GPIO_FN(0));
+
+		gpio_request(gpio_otg0_vbus_en, "otg0_vbus_en");
+		gpio_direction_output(gpio_otg0_vbus_en, (on)?1:0);
+	} else if (machine_is_m805_892x()) {
+		int gpio_otg0_vbus_en;
+
+		gpio_otg0_vbus_en = TCC_GPF(12);
+		gpio_request(gpio_otg0_vbus_en, "otg0_vbus_en");
+		gpio_direction_output(gpio_otg0_vbus_en, (on)?1:0);
 	}
 #endif
 }
@@ -404,7 +430,7 @@ void OTGCORE_Init(dwc_otg_core_if_t *_core_if)
 {
 	PUSB20OTG pUSB20OTG;
 
-#if defined(CONFIG_MACH_TCC9300) || defined(CONFIG_MACH_TCC9300CM) || defined(CONFIG_MACH_TCC9300ST)
+#if defined(CONFIG_ARCH_TCC93XX)
 	if(_core_if->port_index!=0)
 	{
 		pUSB20OTG = (PUSB20OTG)tcc_p2v(HwUSB20OTG1_BASE);
@@ -412,7 +438,11 @@ void OTGCORE_Init(dwc_otg_core_if_t *_core_if)
 	else
 #endif
 	{
+	#if defined(CONFIG_ARCH_TCC892X)
+		pUSB20OTG = (PUSB20OTG)tcc_p2v(HwUSBOTG_BASE);
+	#else
 		pUSB20OTG = (PUSB20OTG)tcc_p2v(HwUSB20OTG_BASE);
+	#endif
 	}
 	while ( !(pUSB20OTG->GRSTCTL & GRSTCTL_AHBIdle) );
 

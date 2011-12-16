@@ -127,9 +127,9 @@ config XPS_USB_HCD_XILINX
 		devices only.
 config USB_EHCI_TCC
 	bool "Support for Telechips on-chip EHCI USB controller"
-	depends on USB_EHCI_HCD && ARCH_TCC88XX
+	depends on USB_EHCI_HCD && ARCH_TCC
 	---help---
-	  Enables support for the USB controller on the Telechips TCC880x chip.
+	  Enables support for the USB controller on the Telechips SoC.
 
 config USB_FSL_MPH_DR_OF
 	tristate

@@ -186,14 +186,14 @@ EXPORT_SYMBOL(tcc_ohci_vbus_Init);
 /*************************************************************************************/
 int tcc_ehci_vbus_Init(void)
 {
-	if (machine_is_tcc8800()){
+	if (machine_is_tcc8800() || machine_is_tcc8920()){
 		tcc_power_control(TCC_V5P_POWER, TCC_POWER_INIT);
 	}
-	else if(machine_is_tcc8800st())
+	else if(machine_is_tcc8800st() || machine_is_tcc8920st())
 	{
 		;
 	}
-	else if(machine_is_m801_88() || machine_is_m803())
+	else if(machine_is_m801_88() || machine_is_m803() || machine_is_m805_892x())
 	{
 		;
 	}
@@ -204,7 +204,7 @@ EXPORT_SYMBOL(tcc_ehci_vbus_Init);
 
 int tcc_ehci_vbus_ctrl(int on)
 {
-	if (machine_is_tcc8800())
+	if (machine_is_tcc8800() || machine_is_tcc8920())
 	{
 		int gpio_otg1_vbus_en, gpio_hs_host_en;
 
@@ -231,7 +231,18 @@ int tcc_ehci_vbus_ctrl(int on)
 
 		return 0;
 	}
-	else if(machine_is_m801_88() || machine_is_m803())
+	else if(machine_is_tcc8920st())
+	{
+		int gpio_host1_vbus_en;
+		 	
+		gpio_host1_vbus_en = TCC_GPC(25);
+
+		tcc_gpio_config(gpio_host1_vbus_en, GPIO_FN(0));
+		gpio_request(gpio_host1_vbus_en, "host1_vbus_en");
+		gpio_direction_output(gpio_host1_vbus_en, (on)?1:0);
+		return 0;
+	}
+	else if(machine_is_m801_88() || machine_is_m803() || machine_is_m805_892x())
 	{
 		return 0;
 	}
@@ -245,7 +256,8 @@ static struct clk *g_pEHCIClk;
 
 void tcc_ehci_clkset(int on)
 {
-	if (machine_is_tcc8800st() || machine_is_tcc8800() || machine_is_m801_88() || machine_is_m803()) 
+	if (machine_is_tcc8800st() || machine_is_tcc8800() || machine_is_m801_88() || machine_is_m803() || 
+		machine_is_tcc8920()  || machine_is_tcc8920st() || machine_is_m805_892x()) 
 	{
 		if(on)
 		{

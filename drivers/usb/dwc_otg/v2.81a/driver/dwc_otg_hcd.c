@@ -558,7 +558,7 @@ int dwc_otg_hcd_endpoint_disable(dwc_otg_hcd_t * hcd, void *ep_handle,
 	return retval;
 }
 
-#if defined(CONFIG_MACH_TCC8900) || defined(CONFIG_MACH_TCC8800) || defined(CONFIG_MACH_TCC8800ST)
+#if defined(CONFIG_ARCH_TCC92XX) || defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 /**
  * HCD Callback structure for handling mode switching.
  */

@@ -401,7 +401,7 @@ static DRIVER_ATTR(debuglevel, S_IRUGO | S_IWUSR, dbg_level_show,
 
 static void tcc_usb_link_reset(dwc_otg_core_if_t *_core_if)
 {
-#if defined(CONFIG_MACH_TCC9300) || defined(CONFIG_MACH_TCC9300CM) || defined(CONFIG_MACH_TCC9300ST)
+#if defined(CONFIG_ARCH_TCC93XX)
 	if(_core_if->port_index!=0)
 	{
 		tca_ckc_sethsiobusswreset(HSIO_USBOTG, ON);
@@ -409,7 +409,7 @@ static void tcc_usb_link_reset(dwc_otg_core_if_t *_core_if)
 	else
 #endif
 	{
-#if defined(CONFIG_MACH_TCC8800) || defined(CONFIG_MACH_TCC8800ST)
+#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 		tca_ckc_setioswreset(RB_USB20OTG, ON);
 #else
 		tca_ckc_set_iobus_swreset(RB_USB20OTG, OFF);
@@ -421,7 +421,7 @@ static void tcc_usb_link_reset(dwc_otg_core_if_t *_core_if)
 		while (t-->0);
 	}
 
-#if defined(CONFIG_MACH_TCC9300) || defined(CONFIG_MACH_TCC9300CM) || defined(CONFIG_MACH_TCC9300ST)
+#if defined(CONFIG_ARCH_TCC93XX)
 	if(_core_if->port_index!=0)
 	{
 		tca_ckc_sethsiobusswreset(HSIO_USBOTG, OFF);
@@ -429,7 +429,7 @@ static void tcc_usb_link_reset(dwc_otg_core_if_t *_core_if)
 	else
 #endif
 	{
-#if defined(CONFIG_MACH_TCC8800) || defined(CONFIG_MACH_TCC8800ST)
+#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 		tca_ckc_setioswreset(RB_USB20OTG, OFF);
 #else
 		tca_ckc_set_iobus_swreset(RB_USB20OTG, ON);
@@ -608,6 +608,7 @@ static int otg_pwr_ctl(void *h_private, int cmd, void *p_out)
 
 static void InitID(void)
 {
+#if defined(CONFIG_ARCH_TCC92XX)
 	if(machine_is_tcc8900() || machine_is_m57te() )
 	{
 		//*********************************
@@ -620,6 +621,7 @@ static void InitID(void)
 		// Pull UP/DOWN : pull-up only
 		BITCSET(HwGPIO->GPAPD0, 0x3/*mask*/<<26, 0x1/*pull-up only*/<<26);
 	}
+#endif
 }
 
 static int IsID(dwc_otg_device_t *dwc_otg_device)
@@ -648,49 +650,69 @@ static int IsID(dwc_otg_device_t *dwc_otg_device)
 static inline unsigned int GetConnIdStatus(dwc_otg_core_if_t *_core_if)
 {
 	volatile unsigned int status = 0;
-	
+
+#if defined(CONFIG_ARCH_TCC92XX)
 	if(machine_is_tcc8900() || machine_is_m57te())
 	{
 		status = (( HwGPIO->GPADAT & Hw13 )>>13);	/* 0:host, 1:device */
 	}
-	else if(machine_is_tcc8800() || machine_is_tcc8800st() || 
-			machine_is_tcc9300() || machine_is_tcc9300cm() || machine_is_tcc9300st() ||
-			machine_is_m801_88() || machine_is_m803())
+	else
+#endif
+#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 	{
 		gintsts_data_t gintsts;
 		gintsts.d32 = dwc_read_reg32(&_core_if->core_global_regs->gintsts);
 		status = (gintsts.b.curmode==1)?0:1;		/* 0:host, 1:device */
 	}
-
+#endif
 	return status;
 }
 
 static void InitUSBDET(dwc_otg_core_if_t *_core_if)
 {
+#if !defined(CONFIG_ARCH_TCC892X)
 	PGPIO pGPIO = (PGPIO)tcc_p2v(HwGPIO_BASE);
-	
-#if defined(CONFIG_MACH_TCC8800) || defined(CONFIG_MACH_TCC8800ST)
-	BITCSET(pGPIO->EINTSEL0, 0x7F, EXT_INTR_SRC_USB0_VBON);
-#elif defined(CONFIG_MACH_TCC9300) || defined(CONFIG_MACH_TCC9300CM) || defined(CONFIG_MACH_TCC9300ST)
-	if(_core_if->port_index == 0){
+#endif
+
+#if defined(CONFIG_ARCH_TCC88XX)
+	if (machine_is_tcc8800() || machine_is_tcc8800st()) {
 		BITCSET(pGPIO->EINTSEL0, 0x7F, EXT_INTR_SRC_USB0_VBON);
 	}
-	else{
-		BITCSET(pGPIO->EINTSEL0, 0x7F<<8, EXT_INTR_SRC_USB1_VBON<<8);
+#endif
+#if defined(CONFIG_ARCH_TCC93XX)
+	if (machine_is_tcc9300() || machine_is_tcc9300cm() || machine_is_tcc9300st())
+		if(_core_if->port_index == 0){
+			BITCSET(pGPIO->EINTSEL0, 0x7F, EXT_INTR_SRC_USB0_VBON);
+		}
+		else{
+			BITCSET(pGPIO->EINTSEL0, 0x7F<<8, EXT_INTR_SRC_USB1_VBON<<8);
+		}
 	}
-#elif defined(CONFIG_MACH_TCC8900)
-	BITCSET(pGPIO->EINTSEL0, (Hw6-Hw0), EXT_INTR_SRC_USB_VBON);
+#endif
+#if defined(CONFIG_ARCH_TCC92XX)
+	if (machine_is_tcc8900()) {
+		BITCSET(pGPIO->EINTSEL0, (Hw6-Hw0), EXT_INTR_SRC_USB_VBON);
+	}
 #endif
 }
 
 static int IsUSBDET(dwc_otg_core_if_t *_core_if)
 {
 	PPIC pPIC = (PPIC)tcc_p2v(HwPIC_BASE);
-#if defined(CONFIG_MACH_TCC8800) || defined(CONFIG_MACH_TCC8800ST)
-	return (pPIC->STS0 & (1<<INT_EI0));
-#elif defined(CONFIG_MACH_TCC9300) || defined(CONFIG_MACH_TCC9300CM) || defined(CONFIG_MACH_TCC9300ST)
-	return (pPIC->STS0 & (1<<((_core_if->port_index == 0)?INT_EI0:INT_EI1)));
-#else
+
+#if defined(CONIG_ARCH_TCC88XX)
+	if (machine_is_tcc8800() || machine_is_tcc8800st())
+		return (pPIC->STS0 & (1<<INT_EI0));
+#endif
+#if defined(CONFIG_ARCH_TCC93XX)
+	if (machine_is_tcc9300() || machine_is_tcc9300cm() || machine_is_tcc9300st())
+		return (pPIC->STS0 & (1<<((_core_if->port_index == 0)?INT_EI0:INT_EI1)));
+#endif
+#if defined(CONFIG_ARCH_TCC892X)
+	if (machine_is_tcc8920() || machine_is_tcc8920st() || machine_is_m805_892x())
+		return (pPIC->STS1.bREG.USBVBON);
+#endif
+#if defined(CONFIG_ARCH_TCC92XX)
 	return (pPIC->STS0 & (1<<INT_EI0));
 #endif
 }
@@ -1246,16 +1268,20 @@ static int dwc_otg_driver_probe(struct platform_device *_dev)
 	else
 #endif
 	{
-#if defined(CONFIG_MACH_TCC8800) || defined(CONFIG_MACH_TCC8800ST)
-		tcc_ohci_clock_control(-1, 1);
-#endif	
-#if defined(CONFIG_MACH_M801_88) || defined(CONFIG_MACH_M803)
-		TCC_OTG_PWR_M801(1);
-#endif	
+#if defined(CONFIG_ARCH_TCC88XX)
+		if (machine_is_tcc8800() || machine_is_tcc8900st())
+			tcc_ohci_clock_control(-1, 1);
+		if (machine_is_m801_88() || machine_is_m803())
+			TCC_OTG_PWR_M801(1);
+#endif
+#if defined(CONFIG_ARCH_TCC892X)
+		tca_ckc_setiopwdn(RB_USB20OTG, 0);	// Turn on the USB clcok from IO BUS for TCC892X
+#else
 		tca_ckc_setiobus(RB_USB20OTG, ENABLE);	// Turn on the USB clock from IO BUS
+#endif
 	}
 
-#if defined(CONFIG_MACH_TCC9300) || defined(CONFIG_MACH_TCC9300CM) || defined(CONFIG_MACH_TCC9300ST)
+#if defined(CONFIG_ARCH_TCC93XX)
 	/* Reduce leakage current */
 	#if defined(CONFIG_TCC_DWC_OTG0) && !defined(CONFIG_TCC_DWC_OTG1)
 		dwc_otg_disable_unused_port(1);
@@ -1367,10 +1393,12 @@ static int dwc_otg_driver_probe(struct platform_device *_dev)
 		dwc_otg_device->common_irq_installed = 1;
 	}
 
-	if(machine_is_tcc8800())
+#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
+	if(machine_is_tcc8800() || machine_is_tcc8920())
 	{
 		tcc_power_control(TCC_V5P_POWER, TCC_POWER_INIT);
 	}
+#endif
 
 	/*
 	 * Initialize the DWC_otg core.
@@ -1378,7 +1406,7 @@ static int dwc_otg_driver_probe(struct platform_device *_dev)
 	TCC_DVBUS_Control(dwc_otg_device->core_if, 0);
 	USBPHY_SetMode(dwc_otg_device->core_if, USBPHY_MODE_RESET);
 
-#if defined(CONFIG_MACH_TCC8900) || defined(CONFIG_MACH_TCC9200S) || defined(CONFIG_MACH_TCC9201)
+#if defined(CONFIG_ARCH_TCC92XX)
 	USBPHY_SetID(1);	// device
 #endif
 	USBPHY_SetMode(dwc_otg_device->core_if, USBPHY_MODE_OTG);

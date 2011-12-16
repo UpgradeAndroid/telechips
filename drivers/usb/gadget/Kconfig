@@ -597,7 +597,7 @@ config USB_CI13XXX_MSM
 
 config USB_GADGET_OTG_TCC
 	boolean "Telechips USB OTG Device Controller"
-	depends on ARCH_TCC92XX || ARCH_TCC93XX || ARCH_TCC88XX
+	depends on ARCH_TCC
 	select USB_GADGET_SELECTED
 	select USB_GADGET_DUALSPEED
 #select USB_OTG_UTILS
