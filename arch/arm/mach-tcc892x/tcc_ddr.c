@@ -441,6 +441,17 @@ static void change_clock(void)
 	//Memory BUS Configuration : MBUSCFG
 	//*(volatile unsigned long *)addr_mem(0x810010) &= ~Hw15; //dclkr=0 : this is used for DDR3 only. //Bruce_temp_8920 ??
 
+#if (1)
+	*(volatile unsigned long *)addr_clk(0x000004) = 0x00200014;  // mem bus
+	*(volatile unsigned long *)addr_clk(0x000040) = CKC_CHANGE_ARG(PLL_VALUE) | 0x00100000; //pll4 for mem , lock_en
+	*(volatile unsigned long *)addr_clk(0x000040) |= 0x80000000;
+	i=20; while(i--) while((*(volatile unsigned long *)addr_clk(0x000040) & 0x00200000) == 0);
+	i=100; while(i--);
+	*(volatile unsigned long *)addr_clk(0x000004) = ((*(volatile unsigned long *)addr_clk(0x000004))&0xFFFFFFF0) | (CKC_CHANGE_ARG(CKC_CTRL_VALUE)&0x0000000F);
+	while((*(volatile unsigned long *)addr_clk(0x000004))&0x80000000);	// CHGREQ
+	*(volatile unsigned long *)addr_clk(0x000004) = ((*(volatile unsigned long *)addr_clk(0x000004))&0xFFFFFF0F) | (CKC_CHANGE_ARG(CKC_CTRL_VALUE)&0x000000F0);
+	while((*(volatile unsigned long *)addr_clk(0x000004))&0x20000000);	// CFGREQ
+#else
 	*(volatile unsigned long *)addr_clk(0x000004) = 0x00200014;  // mem bus
 	*(volatile unsigned long *)addr_clk(0x000040) = CKC_CHANGE_ARG(PLL_VALUE) | 0x00100000; //pll4 for mem , lock_en
 	*(volatile unsigned long *)addr_clk(0x000040) |= 0x80000000;
@@ -448,6 +459,7 @@ static void change_clock(void)
 	i=100; while(i--);
 	*(volatile unsigned long *)addr_clk(0x000004) = CKC_CHANGE_ARG(CKC_CTRL_VALUE);  // mem bus
 	i=50; while(i--);
+#endif
 
 //--------------------------------------------------------------------------
 // Controller setting
@@ -657,6 +669,17 @@ static void change_clock(void)
 	#endif
 	i=50; while(i--);
 
+#if (1)
+	*(volatile unsigned long *)addr_clk(0x000004) = 0x00200014;  // mem bus
+	*(volatile unsigned long *)addr_clk(0x000040) = CKC_CHANGE_ARG(PLL_VALUE) | 0x00100000; //pll4 for mem , lock_en
+	*(volatile unsigned long *)addr_clk(0x000040) |= 0x80000000;
+	i=20; while(i--) while((*(volatile unsigned long *)addr_clk(0x000040) & 0x00200000) == 0);
+	i=100; while(i--);
+	*(volatile unsigned long *)addr_clk(0x000004) = ((*(volatile unsigned long *)addr_clk(0x000004))&0xFFFFFFF0) | (CKC_CHANGE_ARG(CKC_CTRL_VALUE)&0x0000000F);
+	while((*(volatile unsigned long *)addr_clk(0x000004))&0x80000000);	// CHGREQ
+	*(volatile unsigned long *)addr_clk(0x000004) = ((*(volatile unsigned long *)addr_clk(0x000004))&0xFFFFFF0F) | (CKC_CHANGE_ARG(CKC_CTRL_VALUE)&0x000000F0);
+	while((*(volatile unsigned long *)addr_clk(0x000004))&0x20000000);	// CFGREQ
+#else
 	*(volatile unsigned long *)addr_clk(0x000004) = 0x00200014;  // mem bus
 	*(volatile unsigned long *)addr_clk(0x000040) = CKC_CHANGE_ARG(PLL_VALUE) | 0x00100000; //pll4 for mem , lock_en
 	*(volatile unsigned long *)addr_clk(0x000040) |= 0x80000000;
@@ -664,6 +687,7 @@ static void change_clock(void)
 	i=100; while(i--);
 	*(volatile unsigned long *)addr_clk(0x000004) = CKC_CHANGE_ARG(CKC_CTRL_VALUE);  // mem bus
 	i=50; while(i--);
+#endif
 
 //--------------------------------------------------------------------------
 // Timing Parameter

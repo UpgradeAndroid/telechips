@@ -19,7 +19,7 @@ static struct tcc_freq_table_t gtClockLimitTable[] = {
 	/*  CPU /   DDI /   MEM /   GPU /    IO /  VBUS /  VCOD /   SMU /  HSIO */
 #if defined(CONFIG_MACH_TCC8920ST)
 //	{ 625000,      0, 533000,      0, 196000,      0,      0, 100000,      0 },	// Core 1.20V
-	{ 625000, 396400, 533000, 470090, 196000, 351930, 351930, 100000,      0 },	// Core 1.32V
+	{ 837500, 396400, 533000, 470090, 240000, 351930, 351930, 100000,      0 },	// Core 1.32V
 #else
 #if (1)
 	#if defined(CONFIG_MACH_M805_892X) //bscho-temp

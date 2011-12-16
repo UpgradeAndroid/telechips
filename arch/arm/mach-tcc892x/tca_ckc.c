@@ -552,20 +552,23 @@ unsigned int tca_ckc_setfbusctrl(unsigned int clkname, unsigned int isenable, un
     if(clkdiv == CLKDIV0)
         clkdiv = 1;
 
-#if 1
+#if (0)
     pCLKCTRL->nREG = (pCLKCTRL->nREG & (1<<21)) | ((clkdiv&0xF) << 4) | (clksrc&0xF);
     if(isenable == ENABLE)
         pCLKCTRL->nREG |= 1<<21;
     else if (isenable == DISABLE)
         pCLKCTRL->nREG &= ~(1<<21);
 #else
-    pCLKCTRL->bREG.SEL = DIRECTXIN;
-    pCLKCTRL->bREG.CONFIG = clkdiv;
+    pCLKCTRL->nREG = (pCLKCTRL->nREG & 0xFFF0000F) | 0xF0;
     pCLKCTRL->bREG.SEL = clksrc;
+    while(pCLKCTRL->bREG.CHGREQ);
+    pCLKCTRL->bREG.CONFIG = clkdiv;
+    while(pCLKCTRL->bREG.CFGREQ);
     if(isenable == ENABLE)
         pCLKCTRL->bREG.EN = 1;
     else if (isenable == DISABLE)
         pCLKCTRL->bREG.EN = 0;
+    while(pCLKCTRL->bREG.CFGREQ);
 #endif
     tca_wait();
     return clkrate;
@@ -1532,6 +1535,7 @@ int tca_ckc_fclk_enable(unsigned int fclk, unsigned int enable)
         pCLKCTRL->bREG.EN = 1;
     else
         pCLKCTRL->bREG.EN = 0;
+    while(pCLKCTRL->bREG.CFGREQ);
 
     return 0;
 }

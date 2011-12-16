@@ -38,5 +38,18 @@ __cpu_early_init:
 	//MOV r0, #0x40000000
 	//VMSR FPEXC, r0
 
+#if defined(CONFIG_DRAM_DDR3)
+	//Bruce, to prevent LCD Flickering
+	ldr r0, =0xF4800400
+#if defined(CONFIG_MACH_TCC8920ST)
+	ldr r1, =0x00000007
+#else
+	ldr r1, =0x00000008
+#endif
+	str r1, [r0, #0x60]
+	ldr r1, =0x00000045 //IO[0], DDI Primary[2], DDI Secondary[6]
+	str r1, [r0, #0x64]
+#endif
+
 	bx	lr
 
