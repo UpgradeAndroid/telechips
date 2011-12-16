@@ -236,6 +236,11 @@ static void shutdown(void)
 	((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_D09 = 1; //power key - Active Low
 	//set wake-up source
 	((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D09 = 1; //power key
+#elif defined(CONFIG_MACH_TCC8920ST)
+	//set wake-up polarity
+	((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_D14 = 1; //power key - Active Low
+	//set wake-up source
+	((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D14 = 1; //power key
 #else
 	//set wake-up polarity
 	((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_G16 = 1; //power key - Active Low

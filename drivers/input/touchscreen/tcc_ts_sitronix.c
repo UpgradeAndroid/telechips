@@ -44,7 +44,7 @@
 #include <linux/gpio.h>
 #include <asm/unistd.h>
 #include <asm/uaccess.h>
-
+#include <linux/earlysuspend.h>
 
 #include <asm/mach-types.h>
 #include <mach/bsp.h>
@@ -62,6 +62,8 @@ struct sitronix_ts_priv {
 	struct input_dev *input;
 	struct work_struct work;
 	struct mutex mutex;
+      struct early_suspend early_suspend;
+      struct early_suspend earlier_suspend;	
 #ifdef TS_TIMER_SUPPORT	
 	struct timer_list ts_timer;	
  	int running;	
@@ -288,10 +290,12 @@ static int sitronix_ts_enter_powerdown(struct i2c_client *client)
 
 static int sitronix_ts_exit_powerdown(struct i2c_client *client)
 {
-	HwGPIOB->GPDAT &= ~Hw18;
-	msleep(30);
-	HwGPIOB->GPDAT |= Hw18;
-	msleep(30);
+	char buf[4];
+	
+	buf[0] = 0x02;
+	buf[1] = 0x01;
+	if(i2c_master_send(client, buf, 2) != 2)
+		return -EIO;
 	return 0;
 }
 
@@ -333,6 +337,7 @@ static void sitronix_ts_work(struct work_struct *work)
 	//printk("%s\n", __func__);
 	mutex_lock(&priv->mutex);
 
+	
 #if 1
 	if ((err = sitronix_ts_get_fingers(priv->client, &fingers))) {
 		printk("Unable to get fingers!\n");
@@ -622,6 +627,30 @@ static void sitronix_ts_destroy_sysfs_entry(struct i2c_client *client)
 	return;
 }
 
+void sitronix_ts_early_suspend(struct early_suspend *h)
+{
+	struct sitronix_ts_priv *priv = container_of(h, struct sitronix_ts_priv, early_suspend);
+	printk("%s in\n", __func__);
+	//when enter suspend, disable irq
+	disable_irq_nosync(priv->irq);
+	//cancel_work_sync(&priv->work);
+#ifdef TS_TIMER_SUPPORT	
+	del_timer_sync(&priv->ts_timer);
+#endif
+	sitronix_ts_enter_powerdown(priv->client);
+	printk("%s out\n", __func__);
+}
+
+void sitronix_ts_late_resume(struct early_suspend *h)
+{
+	struct sitronix_ts_priv *priv = container_of(h, struct sitronix_ts_priv, early_suspend);
+	printk("%s in\n", __func__);
+	//when enter suspend, disable irq
+	enable_irq(priv->irq);
+	sitronix_ts_exit_powerdown(priv->client);
+	printk("%s out\n", __func__);	
+}
+
 static int __devinit sitronix_ts_probe(struct i2c_client *client, const struct i2c_device_id *idp)
 {
 	struct sitronix_ts_priv *priv;
@@ -780,6 +809,12 @@ static int __devinit sitronix_ts_probe(struct i2c_client *client, const struct i
 	// Check Version
 	// Check Power 
 	//sitronix_ts_internal_update(client);
+#if 1
+	priv->early_suspend.suspend = sitronix_ts_early_suspend;
+	priv->early_suspend.resume = sitronix_ts_late_resume;
+	priv->early_suspend.level = EARLY_SUSPEND_LEVEL_DISABLE_FB - 3;
+	register_early_suspend(&priv->early_suspend);	
+#endif
 
 	err = input_register_device(input);
 	if (err)
@@ -833,24 +868,19 @@ static int __devexit sitronix_ts_remove(struct i2c_client *client)
 static int sitronix_ts_suspend(struct i2c_client *client, pm_message_t mesg)
 {
 	struct sitronix_ts_priv *priv = i2c_get_clientdata(client);
-
+	
 	printk("%s in\n", __func__);
-	//when enter suspend, disable irq
-	disable_irq_nosync(priv->irq);
-#ifdef TS_TIMER_SUPPORT	
-	del_timer_sync(&priv->ts_timer);
-#endif
-	//sitronix_ts_enter_powerdown(client);
-		printk("%s out\n", __func__);
+
+	printk("%s out\n", __func__);
 	return 0;
 }
 
 static int sitronix_ts_resume(struct i2c_client *client)
 {
 	struct sitronix_ts_priv *priv = i2c_get_clientdata(client);
+		
 	printk("%s in\n", __func__);
-	//sitronix_ts_exit_powerdown(client);
-	enable_irq(priv->irq);
+
 	printk("%s out\n", __func__);
 	return 0;
 }

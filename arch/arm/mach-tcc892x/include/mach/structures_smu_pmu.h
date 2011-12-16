@@ -57,7 +57,10 @@ typedef struct {
     unsigned CONFIG         :4;
     unsigned                :13;
     unsigned EN             :1;
-    unsigned                :10;
+    unsigned                :7;
+    unsigned CFGREQ         :1;
+    unsigned SYNCREQ        :1;
+    unsigned CHGREQ         :1;
 } CLKCTRL_IDX_TYPE;
 
 typedef union {
