@@ -17,6 +17,10 @@
 
 #define TELECHIPS
 
+#ifndef IRQ_HDMI
+#define IRQ_HDMI	INT_HDMI
+#endif//
+
 static inline int machine_is_hdmidp(void)
 {
 	return 1;
@@ -67,7 +71,7 @@ static inline int machine_is_hdmidp(void)
 #elif defined(CONFIG_ARCH_TCC892X )
 #define DDICFG_HDMICTRL				DDICFG_REG(0x10)
 #define HDMICTRL_RESET_HDMI			(1<<0)
-#define HDMICTRL_RESET_SPDIF			1<<1)
+#define HDMICTRL_RESET_SPDIF			(1<<1)
 #define HDMICTRL_RESET_TMDS			(1<<2)
 #define HDMICTRL_HDMI_ENABLE			(1<<15)		//!! CLK EN ??
 #endif//
@@ -99,18 +103,26 @@ static inline int machine_is_hdmidp(void)
 
 
 
+//@{
+/**
+ * @name DDI_BUS HDMI_AES register
+ */
+#define DDICFG_HDMI_AES				DDICFG_REG(0x44)
 
+//@{
+/**
+ * @name DDI_BUS HDMI_AES_DATA register
+ */
+#define DDICFG_HDMI_AES_DATA0		DDICFG_REG(0x48)
+#define DDICFG_HDMI_AES_DATA1		DDICFG_REG(0x4C)
 
-
-
-
-
-
-
-
-
-
-
+//@{
+/**
+ * @name DDI_BUS HDMI_AES_HW_x register
+ */
+#define DDICFG_HDMI_AES_HW0			DDICFG_REG(0x50)
+#define DDICFG_HDMI_AES_HW1			DDICFG_REG(0x54)
+#define DDICFG_HDMI_AES_HW2			DDICFG_REG(0x58)
 
 //@{
 /**
@@ -130,7 +142,7 @@ static inline int machine_is_hdmidp(void)
 #elif defined (CONFIG_ARCH_TCC93XX)
 #define HDMIDP_HDMI_SSREG(x)        (0xF0A54000 + (x))
 #elif defined(CONFIG_ARCH_TCC892X)
-#define HDMIDP_HDMI_SSREG(x)        (tcc_p2v(0x72380000) + (x))
+#define HDMIDP_HDMI_SSREG(x)        (tcc_p2v(0x72300000) + (x))
 #endif
 
 //@{

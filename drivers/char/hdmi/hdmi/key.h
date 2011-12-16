@@ -28,6 +28,12 @@
  * @brief   AES-encrypted HDCP device private keys\n
  * User should set their own AES-encrypted HDCP device private keys.
  */
+ // AES key
+unsigned char AES_key[16]=
+{
+	0x02,0x0a,0x26,0xe4,0x08,0x01,0x21,0x12,0x08,0x04,
+	0xc0,0x89,0xff,0xff,0xff,0xff
+};
 static const unsigned char HDCP_Test_key[HDCP_KEY_SIZE] =
 {
     // Encrypted Transmitter A1 key

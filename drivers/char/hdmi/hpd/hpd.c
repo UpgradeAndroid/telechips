@@ -26,6 +26,8 @@
 #include <asm/mach-types.h>
 #include <asm/uaccess.h>
 
+#include <mach/gpio.h>
+
 #include "../hdmi/regs-hdmi.h"
 
 #define HPD_DEBUG 		1
@@ -46,6 +48,18 @@ void tcc_hpd_initialize(void);
 
 #define HPD_LO          0
 #define HPD_HI          1
+
+#if defined(CONFIG_ARCH_TCC92XX)
+#define HPD_GPIO_COMMON		TCC_GPA(14)
+#elif defined(CONFIG_ARCH_TCC93XX)
+#define HPD_GPIO_COMMON		TCC_GPA(14)
+#elif defined(CONFIG_ARCH_TCC88XX)
+#define HPD_GPIO_COMMON		TCC_GPD(25)
+#elif defined(CONFIG_ARCH_TCC892X)
+#define HPD_GPIO_COMMON		TCC_GPHDMI(1)
+#else
+#error : not define HDMI HPD GPIO
+#endif /* CONFIG_ARCH_TCC88XX */
 
 
 struct hpd_struct {
@@ -166,7 +180,7 @@ static irqreturn_t hpd_irq_handler(int irq, void *dev_id)
     /* read flag register */
     flag = readb(HDMI_SS_INTC_FLAG);
 
-    DPRINTK(KERN_INFO "%s  flag reg: 0x%02x  \n", __FUNCTION__, (int) flag);
+    //DPRINTK(KERN_INFO "%s  flag reg: 0x%02x  \n", __FUNCTION__, (int) flag);
 
     /* is this our interrupt? */
     if (!(flag & (1<<HDMI_IRQ_HPD_PLUG | 1<<HDMI_IRQ_HPD_UNPLUG))) {
@@ -234,32 +248,20 @@ void tcc_hpd_initialize(void)
 	unsigned int regl;
     DPRINTK(KERN_INFO "! %s  !\n", __FUNCTION__);
 
-
-	regl = readl(GPIOA(GP_DAT));
-	writel((regl & (~(1<<14))), GPIOA(GP_DAT)); 	//GPIO_A14 -> HPD intpur mode
-	
-	regl = readl(GPIOA(GP_EN));
-	writel((regl & (~(1<<14))), GPIOA(GP_EN));		//GPIO_A14 -> HPD intpur mode
-	
-	regl = readl(GPIOA(GP_FN1));
-	writel((regl & ~(0xF<<24)) | 1<<24, GPIOA(GP_FN1)); 	//GPIO_A14 -> HPD
+#if defined(CONFIG_ARCH_TCC92XX)
+	tcc_gpio_config(HPD_GPIO_COMMON, GPIO_FN(1));
+#elif defined(CONFIG_ARCH_TCC93XX)
+	tcc_gpio_config(HPD_GPIO_COMMON, GPIO_FN(1));
+#elif defined(CONFIG_ARCH_TCC88XX)
+	gpio_direction_input(HPD_GPIO_COMMON);
+	tcc_gpio_config(HPD_GPIO_COMMON, GPIO_FN(5));
+#elif defined(CONFIG_ARCH_TCC892X)
+	gpio_direction_input(HPD_GPIO_COMMON);
+	tcc_gpio_config(HPD_GPIO_COMMON, GPIO_FN(1));
+#endif
 
 	// HW HPD On
 	writeb(HPD_SW_DISABLE|HPD_ON,HDMI_HPD);
-	
-	// setting PIC HDMI interrupt
-	regl = readl(PIC_POL1);
-	writel(regl & ~(1<<2), PIC_POL1);	// active-high
-
-#if (1)
-	regl = readl(PIC_MODE1);
-	writel(regl | (1<<2), PIC_MODE1);	// level-triggered
-#else
-	regl = readl(PIC_MODE1);
-	writel(regl & ~(1<<2), PIC_MODE1);	// edge-triggered
-#endif
-	regl = readl(PIC_MODEA1);
-	writel(regl & ~(1<<2), PIC_MODEA1); // single-edge
 	
     /* adjust the duration of HPD detection */
 	writeb(0xFF, HDMI_HPD_GEN);
@@ -287,6 +289,7 @@ static int hpd_probe(struct platform_device *pdev)
 	
 	clk_enable(hdmi_hpd_clk);
 
+	gpio_request(HPD_GPIO_COMMON, "HPD");
 
     if (misc_register(&hpd_misc_device))
     {
@@ -320,6 +323,8 @@ static int hpd_probe(struct platform_device *pdev)
 static int hpd_remove(struct platform_device *pdev)
 {
     DPRINTK(KERN_INFO "%s\n", __FUNCTION__);
+
+	tcc_gpio_config(HPD_GPIO_COMMON, GPIO_FN(0));
 
     free_irq(IRQ_HDMI, hpd_irq_handler);
     misc_deregister(&hpd_misc_device);

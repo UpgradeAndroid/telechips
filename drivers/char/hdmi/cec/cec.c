@@ -62,6 +62,7 @@
 #define CEC_GPIO_IN				TCC_GPA(7)
 #define CEC_GPIO_OUT			TCC_GPA(6)
 #elif defined(CONFIG_ARCH_TCC892X)
+#define CEC_GPIO_COMMON		TCC_GPHDMI(0)
 #else
 #error : not define HDMI CEC GPIO
 #endif /* CONFIG_ARCH_TCC88XX */
@@ -101,7 +102,7 @@ struct cec_tx_struct {
     atomic_t state;
 };
 
-
+static struct clk *ddi_clk;
 static struct clk *hdmi_cec_clk;
 
 static struct cec_rx_struct cec_rx_struct;
@@ -148,14 +149,6 @@ static struct miscdevice cec_misc_device =
 
 int cec_open(struct inode *inode, struct file *file)
 {
-#if 0
-#if defined(CONFIG_ARCH_TCC88XX)
-	volatile PGPION pGPIOD = (volatile PGPION)tcc_p2v(HwGPIOD_BASE);
-#else
-	volatile PGPION pGPIOA = (volatile PGPION)tcc_p2v(HwGPIOA_BASE);
-#endif
-#endif//
-
 	DPRINTK(KERN_INFO "%s\n", __FUNCTION__);
 
 	clk_enable(hdmi_cec_clk);
@@ -164,29 +157,18 @@ int cec_open(struct inode *inode, struct file *file)
 #if defined(CONFIG_ARCH_TCC88XX)
 	tcc_gpio_config(TCC_GPD(24), GPIO_FN(5));
 	gpio_direction_output(CEC_GPIO_COMMON, 0);
-
-//	BITCSET(pGPIOD->GPFN3, HwPORTCFG_GPFN0_MASK , HwPORTCFG_GPFN0(5));	//GPIOD[24] - HDMI_CEC
-//	BITCSET(pGPIOD->GPEN, Hw24, 0);
 #elif defined(CONFIG_ARCH_TCC93XX)
 	tcc_gpio_config(TCC_GPA(6), GPIO_FN(1));
 	gpio_direction_output(CEC_GPIO_COMMON, 0);
-
-//	BITCSET(pGPIOA->GPFN0, HwPORTCFG_GPFN6_MASK, HwPORTCFG_GPFN6(1));	//GPIOA[6] - HDMI_CEC
-//	BITCSET(pGPIOA->GPEN, Hw6, 0);
 #elif defined(CONFIG_ARCH_TCC92XX)
 	tcc_gpio_config(TCC_GPA(6), GPIO_FN(1));
 	tcc_gpio_config(TCC_GPA(7), GPIO_FN(1));
 
 	gpio_direction_output(CEC_GPIO_IN, 0);
 	gpio_direction_output(CEC_GPIO_OUT, 1);	
-
-//	BITCSET(pGPIOA->GPFN0, HwPORTCFG_GPFN6_MASK, HwPORTCFG_GPFN6(1));	//GPIOA[6] - HDMI_CECO
-//	BITCSET(pGPIOA->GPFN0, HwPORTCFG_GPFN7_MASK, HwPORTCFG_GPFN7(1));	//GPIOA[7] - HDMI_CECI
-//	BITSET(pGPIOA->GPDAT, Hw6);
-//	BITSET(pGPIOA->GPDAT, Hw7);
-//	BITSET(pGPIOA->GPEN, Hw6);
-//	BITCLR(pGPIOA->GPEN, Hw7);
 #elif defined(CONFIG_ARCH_TCC892X)
+	tcc_gpio_config(CEC_GPIO_COMMON, GPIO_FN(1));
+	gpio_direction_output(CEC_GPIO_COMMON, 0);
 #else
 #error : not define HDMI CEC GPIO
 #endif /* CONFIG_ARCH_TCC88XX */
@@ -213,14 +195,6 @@ int cec_open(struct inode *inode, struct file *file)
 
 int cec_release(struct inode *inode, struct file *file)
 {
-#if 0
-#if defined(CONFIG_ARCH_TCC88XX)
-	volatile PGPION pGPIOD = (volatile PGPION)tcc_p2v(HwGPIOD_BASE);
-#else
-	volatile PGPION pGPIOA = (volatile PGPION)tcc_p2v(HwGPIOA_BASE);
-#endif
-#endif//
-
     DPRINTK(KERN_INFO "%s\n", __FUNCTION__);
 
     cec_mask_tx_interrupts();
@@ -507,40 +481,41 @@ static int cec_probe(struct platform_device *pdev)
         return -ENODEV;
 
 	hdmi_cec_clk = clk_get(0, "hdmi");
-
+	ddi_clk = clk_get(0, "ddi");
+	
 	clk_enable(hdmi_cec_clk);
 
-    printk(KERN_INFO "CEC Driver ver. %s (built %s %s)\n", VERSION, __DATE__, __TIME__);
+	printk(KERN_INFO "CEC Driver ver. %s (built %s %s)\n", VERSION, __DATE__, __TIME__);
 
-    if (misc_register(&cec_misc_device))
-    {
-        printk(KERN_WARNING "CEC: Couldn't register device 10, %d.\n", CEC_MINOR);
-        return -EBUSY;
-    }
+	if (misc_register(&cec_misc_device))
+	{
+	    printk(KERN_WARNING "CEC: Couldn't register device 10, %d.\n", CEC_MINOR);
+	    return -EBUSY;
+	}
 
     cec_disable_interrupts();
 
-    if (request_irq(IRQ_HDMI, cec_irq_handler, IRQF_SHARED, "cec", cec_irq_handler))
-    {
-        printk(KERN_WARNING "CEC: IRQ %d is not free.\n", IRQ_HDMI);
-        misc_deregister(&cec_misc_device);
-        return -EIO;
-    }
+	if (request_irq(IRQ_HDMI, cec_irq_handler, IRQF_SHARED, "cec", cec_irq_handler))
+	{
+	    printk(KERN_WARNING "CEC: IRQ %d is not free.\n", IRQ_HDMI);
+	    misc_deregister(&cec_misc_device);
+	    return -EIO;
+	}
 
-    init_waitqueue_head(&cec_rx_struct.waitq);
-    spin_lock_init(&cec_rx_struct.lock);
-    init_waitqueue_head(&cec_tx_struct.waitq);
+	init_waitqueue_head(&cec_rx_struct.waitq);
+	spin_lock_init(&cec_rx_struct.lock);
+	init_waitqueue_head(&cec_tx_struct.waitq);
 
-    buffer = kmalloc(CEC_TX_BUFF_SIZE, GFP_KERNEL);
-    if (!buffer)
-    {
-        printk(KERN_ERR "CEC: kmalloc() failed!\n");
-        misc_deregister(&cec_misc_device);
-        return -EIO;
-    }
+	buffer = kmalloc(CEC_TX_BUFF_SIZE, GFP_KERNEL);
+	if (!buffer)
+	{
+	    printk(KERN_ERR "CEC: kmalloc() failed!\n");
+	    misc_deregister(&cec_misc_device);
+	    return -EIO;
+	}
 
-    cec_rx_struct.buffer = buffer;
-    cec_rx_struct.size   = 0;
+	cec_rx_struct.buffer = buffer;
+	cec_rx_struct.size   = 0;
 
 	TccCECInterface_Init();
 
@@ -572,10 +547,12 @@ void cec_set_divider(void)
     writeb(0x05, CEC_DIVISOR_1);
     writeb(0x45, CEC_DIVISOR_0);
 	#else
-    unsigned int ddibus_clk;
-    unsigned int div = 0;
+	
+	unsigned int ddibus_clk;
+	unsigned int div = 0;
+	ddibus_clk = clk_get_rate(ddi_clk) / 100;
+	//    ddibus_clk = tca_ckc_getfbusctrl(CLKCTRL1);
 
-    ddibus_clk = tca_ckc_getfbusctrl(CLKCTRL1);
     ddibus_clk = ddibus_clk/10000;
     div = ddibus_clk * 50 - 1;
 

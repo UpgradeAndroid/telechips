@@ -41,10 +41,10 @@
 #endif
 
 static struct clk *hdmi_clk;
-#if !defined(CONFIG_ARCH_TCC93XX) && !defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC92XX)
 static struct clk *hdmi_spdif_clk;
 #endif//
-#if defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 static struct clk *hdmi_audio_clk;
 #endif /* CONFIG_ARCH_TCC88XX */
 
@@ -107,10 +107,12 @@ static int audio_open(struct inode *inode, struct file *file)
 {
 #if (1) && defined(TELECHIPS)
 	clk_enable(hdmi_clk);
-	#if !defined(CONFIG_ARCH_TCC93XX) && !defined(CONFIG_ARCH_TCC88XX)
+
+	#if defined(CONFIG_ARCH_TCC92XX)
 	clk_enable(hdmi_spdif_clk);
 	#endif//
-	#if defined(CONFIG_ARCH_TCC88XX)
+	
+	#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 	clk_enable(hdmi_audio_clk);
 	#endif /* CONFIG_ARCH_TCC88XX */
 #endif
@@ -130,10 +132,12 @@ static int audio_release(struct inode *inode, struct file *file)
     writeb(reg,HDMI_SS_INTC_CON);
 #endif//
 	clk_disable(hdmi_clk);
-#if !defined(CONFIG_ARCH_TCC93XX) && !defined(CONFIG_ARCH_TCC88XX)
+
+#if defined(CONFIG_ARCH_TCC92XX)
 	clk_disable(hdmi_spdif_clk);
 #endif//
-#if defined(CONFIG_ARCH_TCC88XX)
+
+#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 	clk_disable(hdmi_audio_clk);
 #endif /* CONFIG_ARCH_TCC88XX */
 
@@ -602,20 +606,24 @@ static int audio_probe(struct platform_device *pdev)
     DPRINTK(KERN_INFO "%s\n", __FUNCTION__);
 
 	hdmi_clk = clk_get(0, "hdmi");
-#if !defined(CONFIG_ARCH_TCC93XX) && !defined(CONFIG_ARCH_TCC88XX)
+
+#if defined(CONFIG_ARCH_TCC92XX)
 	hdmi_spdif_clk = clk_get(0, "spdif_clk");
 #endif//
-#if defined(CONFIG_ARCH_TCC88XX)
+
+#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 	hdmi_audio_clk = clk_get(0, "hdmi_audio");	
 #endif /* CONFIG_ARCH_TCC88XX */
 //	hdmi_i2s_clk = clk_get(0, "dai");
 
 		
 	clk_enable(hdmi_clk);
-#if !defined(CONFIG_ARCH_TCC93XX) && !defined(CONFIG_ARCH_TCC88XX)
+
+#if defined(CONFIG_ARCH_TCC92XX)
 	clk_enable(hdmi_spdif_clk);
 #endif//
-#if defined(CONFIG_ARCH_TCC88XX)
+
+#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 	clk_enable(hdmi_audio_clk);
 #endif /* CONFIG_ARCH_TCC88XX */
 
@@ -641,10 +649,11 @@ static int audio_probe(struct platform_device *pdev)
     }
 	
 	clk_disable(hdmi_clk);
-#if !defined(CONFIG_ARCH_TCC93XX) && !defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC92XX)
 	clk_disable(hdmi_spdif_clk);
 #endif//
-#if defined(CONFIG_ARCH_TCC88XX)
+
+#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 	clk_disable(hdmi_audio_clk);
 #endif /* CONFIG_ARCH_TCC88XX */
 
@@ -676,7 +685,6 @@ static int audio_remove(struct platform_device *pdev)
 
 int setAudioInputPort(enum HDMIAudioPort port)
 {
-	PCKC pCKC = (volatile PCKC)tcc_p2v(HwCLK_BASE);
 
     switch (port)
     {
@@ -818,7 +826,7 @@ static unsigned int io_ckc_get_dai_clock(unsigned int freq)
 }
 
 
-#if defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 void tcc_hdmi_audio_set_clock(unsigned int clock_rate)
 {
     unsigned int clk_rate;
@@ -840,7 +848,7 @@ void setHDMIAudioClock(unsigned int freq)
 	{
 		
 	}
-	#elif defined(CONFIG_ARCH_TCC88XX)
+	#elif defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 	{
 		tcc_hdmi_audio_set_clock(freq);
 	}

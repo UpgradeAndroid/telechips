@@ -27,6 +27,12 @@
     #define HDMIDP_CECREG(x)    (0xF0259000 + x)
 #elif defined(CONFIG_ARCH_TCC93XX)
 	#define HDMIDP_CECREG(x)    (0xF0a59000 + x)
+#elif defined(CONFIG_ARCH_TCC892X)
+#include <mach/bsp.h>
+#include <mach/hardware.h>
+#define HDMIDP_CECREG(x)                                (tcc_p2v(0x72350000) + (x))
+#else
+#error code CEC: not define chip set
 #endif
 
 //@{

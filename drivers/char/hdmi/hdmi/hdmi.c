@@ -41,6 +41,7 @@
 #include <mach/tca_fb_output.h>
 
 #if defined(CONFIG_ARCH_TCC892X)
+#include <mach/tca_ckc.h>
 #include <mach/vioc_outcfg.h>
 #endif//
 
@@ -152,7 +153,6 @@ void hdcp_check_result(unsigned char enable);
 int hdcp_read_ri(void);
 void hdmi_phy_reset(void);
 
-extern void TCC_OUTPUT_LCDC_OnOff(char output_type, char output_lcdc_num, char onoff);
 
 #if defined(TELECHIPS)
 // not use
@@ -192,6 +192,82 @@ static unsigned int result127 = 0;
  */
 static unsigned int thirdAuth = 0;
 
+/*
+i_aeskey_hw   [94:0]	- AES KEY data [127:33]
+i_aeskey_data [32:0]	- AES KEY data [32:0]
+
+HDMI_AES_DATA0 [31:0]	- AESKEY DATA [31:0]
+HDMI_AES_DATA1 [32]	- AESKEY DATA [32]
+
+HDMI_AES_HW_0	[32:0]	- AESKEY DATA [64:33]
+HDMI_AES_HW_1	[32:0]	- AESKEY DATA [96:65]
+HDMI_AES_HW_2	[30:0]	- AESKEY DATA [127:97]
+*/
+enum {AESKEY_DATA0, AESKEY_DATA1, AESKEY_HW_0, AESKEY_HW_1, AESKEY_HW_2};
+
+void set_aeskey_to_reg(unsigned char *pkey)
+{
+	unsigned char data[16];
+	unsigned int  *plkey;
+	unsigned int  regl[5] = {0,};
+	int ii;
+
+	memcpy(data, pkey, 16);
+
+	printk("set aeskey..\n");
+#if (HDMI_DEBUG)
+	printk("KEY :: ");
+	for (ii=0; ii<16; ii++)
+		printk("0x%02X ", data[ii]);
+#endif
+
+	#if 1 // !!
+	{
+		unsigned char tmpch;
+		
+		for (ii=0; ii<(16/2); ii++)
+		{
+			tmpch = data[ii];
+			data[ii] = data[16-ii-1];
+			data[16-ii-1] = tmpch;
+		}
+#if (HDMI_DEBUG)
+		printk("\n--> :: ");
+		for (ii=0; ii<16; ii++)
+			printk("0x%02X ", data[ii]);
+		printk("\n");
+#endif
+	}
+	#endif
+	
+	plkey = (unsigned int *)data;
+	
+	regl[AESKEY_DATA0] = plkey[0];
+	regl[AESKEY_DATA1] = plkey[1] & 0x01;
+	regl[AESKEY_HW_0]  = plkey[1]>>1  | (plkey[2]<<31 & 0x80000000) ;
+	regl[AESKEY_HW_1]  = plkey[2]>>1  | (plkey[3]<<31 & 0x80000000) ;
+	regl[AESKEY_HW_2]  = plkey[3]>>1  & 0x7FFFFFFF ;
+
+	writel(regl[AESKEY_DATA0], DDICFG_HDMI_AES_DATA0);	// E4260A02
+	writel(regl[AESKEY_DATA1], DDICFG_HDMI_AES_DATA1);	// 00000000
+	writel(regl[AESKEY_HW_0],  DDICFG_HDMI_AES_HW0);	// 09108084
+	writel(regl[AESKEY_HW_1],  DDICFG_HDMI_AES_HW1);	// C4E00204
+	writel(regl[AESKEY_HW_2],  DDICFG_HDMI_AES_HW2);	// 7FFFFFFF
+
+	// HDMI AES KEY valid
+	writeb(0x1,  DDICFG_HDMI_AES);
+
+#if (HDMI_DEBUG)
+	printk("AES_DATA0 :: 0x%08X\n", readl(DDICFG_HDMI_AES_DATA0));
+	printk("AES_DATA1 :: 0x%08X\n", readl(DDICFG_HDMI_AES_DATA1));
+	printk("AES_HW_0  :: 0x%08X\n", readl(DDICFG_HDMI_AES_HW0));
+	printk("AES_HW_1  :: 0x%08X\n", readl(DDICFG_HDMI_AES_HW1));
+	printk("AES_HW_2  :: 0x%08X\n", readl(DDICFG_HDMI_AES_HW2));
+	printk("\n");
+#endif
+
+}
+
 /**
  * Process 3rd authentication. @n
  * Read Ri' from Rx. then, compare it with Ri and set comparision result. @n
@@ -222,7 +298,7 @@ static void hdcp_work(void *arg)
 
         offset = readb(HDCP_FRAME_COUNT);
 
-        printk("frame count = %d\n", offset);
+        dprintk("frame count = %d\n", offset);
 
 #if HDMI_DEBUG_TIME
         jend = jiffies;
@@ -237,9 +313,9 @@ static void hdcp_work(void *arg)
             }
             else
             {
-                dprintk("Rj = 0x%04x\n",result);
-                dprintk("Ri not Matched!!!!\n");
-                dprintk("Ri = 0x%02x%02x\n",ri0,ri1);
+                printk("Rj = 0x%04x\n",result);
+                printk("Ri not Matched!!!!\n");
+                printk("Ri = 0x%02x%02x\n",ri0,ri1);
                 matched = 0;
             }
         }
@@ -251,11 +327,11 @@ static void hdcp_work(void *arg)
             }
             else
             {
-                dprintk("Rj = 0x%04x\n",result);
-                dprintk("Ri not Matched!!!!\n");
-                dprintk("Ri = 0x%02x%02x\n",ri0,ri1);
+                printk("Rj = 0x%04x\n",result);
+                printk("Ri not Matched!!!!\n");
+                printk("Ri = 0x%02x%02x\n",ri0,ri1);
 #ifdef SIMPLAYHD
-                dprintk("127th = 0x%04x\n",result127);
+                printk("127th = 0x%04x\n",result127);
 #endif
                 matched = 0;
             }
@@ -774,6 +850,9 @@ int hdmi_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
             // add event HDCP_EVENT_START
             spin_lock_irq(&hdcp_struct.lock);
+#if (1)
+			hdcp_struct.event &= ~(1<<HDCP_EVENT_STOP);
+#endif
             hdcp_struct.event |= (1<<HDCP_EVENT_START);
             spin_unlock_irq(&hdcp_struct.lock);
             // wake up
@@ -908,8 +987,9 @@ int hdmi_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
             }
             else
             {
-                dprintk("Ri not Matched!!!\n");
-                dprintk("Ri = 0x%02x%02x\n",ri0,ri1);
+		printk("Rj = 0x%04x\n", result);
+                printk("Ri = 0x%02x%02x\n",ri0,ri1);
+                printk("Ri not Matched!!!\n");
                 ret = 0;
             }
             // put to user
@@ -918,6 +998,26 @@ int hdmi_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
             break;
         }
+		case HDMI_IOC_GET_RI_REG:
+		{
+			int ret;
+			unsigned int result;
+			unsigned char ri0,ri1;
+	
+			// get ri from TX
+			ri0 = readb(HDCP_RI_0);
+			ri1 = readb(HDCP_RI_1);
+	
+			ret = 0;
+			ret = ri0;
+			ret = ((ret<<8) | ri1) & 0xFFFF;
+	
+			// put to user
+			if (put_user(ret, (int __user *) arg))
+				return -EFAULT;
+	
+			break;
+		}
         case HDMI_IOC_GET_AUTH_STATE:
         {
             int result = 1;
@@ -1149,19 +1249,28 @@ int hdmi_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
  */
 static irqreturn_t hdmi_handler(int irq, void *dev_id)
 {
-    unsigned char flag;
+    unsigned char flag, status;
     unsigned int event = 0;
+	unsigned int tmp_event = 0;
 
     // check HDCP INT
     flag = readb(HDMI_SS_INTC_FLAG);
 
-    if ( !(flag & (1<<HDMI_IRQ_HDCP)))
-        return IRQ_NONE;
 
+	dprintk(KERN_INFO "%s : flag = %d\n", __func__, flag);
+//    if ( !(flag & (1<<HDMI_IRQ_HDCP)))
+//        return IRQ_NONE;
+	if (flag & (1<<HDMI_IRQ_HDCP))
+	{
+
+#if (0)
     dprintk(KERN_INFO "%s\n", __FUNCTION__);
+#endif
 
     // check HDCP Status
     flag = readb(HDMI_STATUS);
+
+		dprintk(KERN_INFO "%s (HDMI_IRQ_HDCP::STATUS[0x%02X])\n", __FUNCTION__, flag);
 
     // processing interrupt
     // I2C INT
@@ -1210,10 +1319,39 @@ static irqreturn_t hdmi_handler(int irq, void *dev_id)
     // set event
     spin_lock_irq(&hdcp_struct.lock);
     hdcp_struct.event |= event;
+		tmp_event = hdcp_struct.event;
     spin_unlock_irq(&hdcp_struct.lock);
 
-    // wake up
-    wake_up_interruptible(&hdcp_struct.waitq);
+		dprintk("-->wake_up event: %08X, [hdcp_struct.event: %08X]\n", event, tmp_event);
+
+	#if (HDMI_DEBUG) // debug
+		/** Stop HDCP  */
+		if(event & (1<<HDCP_EVENT_STOP))
+			printk("  >(HDCP_EVENT_STOP)\n");
+		/** Start HDCP */
+		if(event & (1<<HDCP_EVENT_START))
+			printk("  >(HDCP_EVENT_START)\n");
+		/** Start to read Bksv,Bcaps */
+		if(event & (1<<HDCP_EVENT_READ_BKSV_START))
+			printk("  >(HDCP_EVENT_READ_BKSV_START)\n");
+		/** Start to write Aksv,An */
+		if(event & (1<<HDCP_EVENT_WRITE_AKSV_START))
+			printk("  >(HDCP_EVENT_WRITE_AKSV_START)\n");
+		/** Start to check if Ri is equal to Rj */
+		if(event & (1<<HDCP_EVENT_CHECK_RI_START))
+			printk("  >(HDCP_EVENT_CHECK_RI_START)\n");
+		/** Start 2nd authentication process */
+		if(event & (1<<HDCP_EVENT_SECOND_AUTH_START))
+			printk("  >(HDCP_EVENT_SECOND_AUTH_START)\n");
+	#endif
+
+		// wake up
+		wake_up_interruptible(&hdcp_struct.waitq);
+	}
+	else
+	{
+	        return IRQ_NONE;
+	}
 
     return IRQ_HANDLED;
 }
@@ -1232,9 +1370,11 @@ int hdmi_get_setting_flag(unsigned int *hdmi_setting)
 	return 1;
 }
 
-#if defined(TELECHIPS)
+#if defined(CONFIG_LCD_LCDC0_USE) //M805_8923
+#define TCC_HDMI_LCDC1_USE
+#endif
 
-//#define TCC_HDMI_LCDC1_USE
+#if defined(TELECHIPS)
 
 #ifdef TCC_HDMI_LCDC1_USE
 	#define LCDC_BIT 	HwINT0_LCD1
@@ -1253,6 +1393,121 @@ void tcc_usleep(unsigned int delay)
 		msleep(delay/1000);
 }
 
+// onoff : 1 - power down
+void tcc_ddi_pwdn_hdmi(char onoff)
+{
+	unsigned int  regl;
+
+	// HDMI Power-on
+	regl = readl(DDICFG_PWDN);
+    	#if defined (CONFIG_ARCH_TCC92XX) ||defined (CONFIG_ARCH_TCC93XX) || defined (CONFIG_ARCH_TCC88XX)	
+		if(onoff)
+			writel(regl | PWDN_HDMI, DDICFG_PWDN);	
+		else
+			writel(regl & ~PWDN_HDMI, DDICFG_PWDN);	
+	#else
+		if(onoff)
+			writel(regl & ~PWDN_HDMI, DDICFG_PWDN);	
+		else
+			writel(regl | PWDN_HDMI, DDICFG_PWDN);	
+	#endif//
+}
+
+// onoff : 1 -reset
+void tcc_ddi_swreset_hdmi(char onoff)
+{
+	unsigned int  regl;
+
+	regl = readl(DDICFG_SWRESET);
+
+    	#if defined (CONFIG_ARCH_TCC92XX) ||defined (CONFIG_ARCH_TCC93XX) || defined (CONFIG_ARCH_TCC88XX)	
+	if(onoff)
+		writel(regl | SWRESET_HDMI, DDICFG_SWRESET);
+	else
+		writel(regl & ~SWRESET_HDMI, DDICFG_SWRESET);
+	#else
+	if(onoff)
+		writel(regl & ~SWRESET_HDMI, DDICFG_SWRESET);
+	else
+		writel(regl | SWRESET_HDMI, DDICFG_SWRESET);	
+	#endif//
+}
+
+// onoff : 1 -power on
+void tcc_ddi_hdmi_ctrl(unsigned int index, char onoff)
+{
+	unsigned int regl;
+
+	regl = readl(DDICFG_HDMICTRL);
+	
+	switch(index)
+	{
+		case HDMICTRL_RESET_HDMI:
+		{
+		    	#if 1//defined (CONFIG_ARCH_TCC92XX) ||defined (CONFIG_ARCH_TCC93XX) || defined (CONFIG_ARCH_TCC88XX)			
+				if(onoff)
+					writel(regl & ~HDMICTRL_RESET_HDMI, DDICFG_HDMICTRL);
+				else
+					writel(regl | HDMICTRL_RESET_HDMI, DDICFG_HDMICTRL);
+			#else
+				if(onoff)
+					writel(regl | HDMICTRL_RESET_HDMI, DDICFG_HDMICTRL);
+				else
+					writel(regl & ~HDMICTRL_RESET_HDMI, DDICFG_HDMICTRL);
+			#endif//			
+
+		}
+		break;
+
+		case HDMICTRL_RESET_SPDIF:
+		{
+		    	#if 1//defined (CONFIG_ARCH_TCC92XX) ||defined (CONFIG_ARCH_TCC93XX) || defined (CONFIG_ARCH_TCC88XX)			
+				if(onoff)
+					writel(regl & ~HDMICTRL_RESET_SPDIF, DDICFG_HDMICTRL);
+				else
+					writel(regl | HDMICTRL_RESET_SPDIF, DDICFG_HDMICTRL);
+			#else
+				if(onoff)
+					writel(regl | HDMICTRL_RESET_SPDIF, DDICFG_HDMICTRL);
+				else
+					writel(regl & ~HDMICTRL_RESET_SPDIF, DDICFG_HDMICTRL);
+			#endif//		
+		}
+		break;
+		
+		case HDMICTRL_RESET_TMDS:
+		{
+		    	#if 1//defined (CONFIG_ARCH_TCC92XX) ||defined (CONFIG_ARCH_TCC93XX) || defined (CONFIG_ARCH_TCC88XX)			
+				if(onoff)
+					writel(regl & ~HDMICTRL_RESET_TMDS, DDICFG_HDMICTRL);
+				else
+					writel(regl | HDMICTRL_RESET_TMDS, DDICFG_HDMICTRL);
+			#else
+				if(onoff)
+					writel(regl | HDMICTRL_RESET_TMDS, DDICFG_HDMICTRL);
+				else
+					writel(regl & ~HDMICTRL_RESET_TMDS, DDICFG_HDMICTRL);
+			#endif//		
+		}
+		break;
+		
+		case HDMICTRL_HDMI_ENABLE:
+		{
+			if(onoff)
+			{
+				writel(regl | HDMICTRL_HDMI_ENABLE, DDICFG_HDMICTRL);
+				
+			}		
+			else
+			{
+				writel(regl & ~HDMICTRL_HDMI_ENABLE, DDICFG_HDMICTRL);
+			}
+
+
+		}
+		break;
+	}
+}
 void tcc_hdmi_power_on(void)
 {
 	unsigned int  regl;
@@ -1270,63 +1525,79 @@ void tcc_hdmi_power_on(void)
 		clk_enable(hdmi_clk);
 
 	tcc_usleep(100);
-	
-	//tca_ckc_setperi(PERI_HDMI,ENABLE, 10000,PCDIRECTXIN);
-	if (hdmi_clk)
-		clk_set_rate(hdmi_clk, 1*1000*1000);
+	#if defined(CONFIG_ARCH_TCC892X) //юс╫ц
+	{
+		PCKC				pCKC ;
+		pCKC = (CKC *)tcc_p2v(HwCKC_BASE);
+
+		pCKC->PCLKCTRL17.nREG = 0x2D000000;
+		pCKC->PCLKCTRL18.nREG = 0x2D000000;
+		#ifdef TCC_HDMI_LCDC1_USE // pjj
+		pCKC->PCLKCTRL05.nREG = 0x2C000000;
+		#else
+		pCKC->PCLKCTRL03.nREG = 0x2C000000;
+		#endif//
+	}
+	#else
+		if (hdmi_clk)
+			clk_set_rate(hdmi_clk, 1*1000*1000);
+	#endif//
 	
 	// disable HDMI PHY Power-off
-	regl = readl(PMU_PWROFF);
+	
     #if defined (CONFIG_ARCH_TCC92XX)
+	regl = readl(PMU_PWROFF);
 	writel(regl & ~PWROFF_HDMIPHY, PMU_PWROFF);
-#elif defined (CONFIG_ARCH_TCC93XX) || defined (CONFIG_ARCH_TCC88XX)|| defined (CONFIG_ARCH_TCC892X)
+    #elif defined (CONFIG_ARCH_TCC93XX) || defined (CONFIG_ARCH_TCC88XX)
+	regl = readl(PMU_PWROFF);
 	writel(regl | PWROFF_HDMIPHY, PMU_PWROFF);
 	tcc_usleep(100);
 	writel(regl & ~PWROFF_HDMIPHY, PMU_PWROFF);
 	tcc_usleep(100);
 	writel(regl | PWROFF_HDMIPHY, PMU_PWROFF);
+    #elif defined(CONFIG_ARCH_TCC892X)
+	tca_ckc_setippwdn(PMU_ISOL_HDMI, 1); // power down
+	tcc_usleep(100);
+	tca_ckc_setippwdn(PMU_ISOL_HDMI, 0); // power up
     #endif
 
-	// disable HDMI Power-down
-	regl = readl(DDICFG_PWDN);
-	writel(regl & ~PWDN_HDMI, DDICFG_PWDN);
+	// HDMI Power-on
+	tcc_ddi_pwdn_hdmi(0);
 	
 	// swreset DDI_BUS HDMI
-	regl = readl(DDICFG_SWRESET);
-	writel(regl | SWRESET_HDMI, DDICFG_SWRESET);
+	tcc_ddi_swreset_hdmi(1);
 	{volatile int ttt;for(ttt=0;ttt<0x100;ttt++);}
-	writel(regl & ~SWRESET_HDMI, DDICFG_SWRESET);
-	
+	tcc_ddi_swreset_hdmi(0);
+
+
 	// enable DDI_BUS HDMI CLK
-	regl = readl(DDICFG_HDMICTRL);
-	writel(regl | HDMICTRL_HDMI_ENABLE, DDICFG_HDMICTRL);
-	
+	tcc_ddi_hdmi_ctrl(HDMICTRL_HDMI_ENABLE, 1);
+
+
 	// HDMI PHY Reset
 	hdmi_phy_reset();
 
 	// HDMI SPDIF Reset
-	regl = readl(DDICFG_HDMICTRL);
-	writel(regl | HDMICTRL_RESET_SPDIF, DDICFG_HDMICTRL);
+	tcc_ddi_hdmi_ctrl(HDMICTRL_RESET_SPDIF, 0);
 	tcc_usleep(1);
-	writel(regl & ~HDMICTRL_RESET_SPDIF, DDICFG_HDMICTRL);
+	tcc_ddi_hdmi_ctrl(HDMICTRL_RESET_SPDIF, 1);
 
 	// HDMI TMDS Reset
-	regl = readl(DDICFG_HDMICTRL);
-	writel(regl | HDMICTRL_RESET_TMDS, DDICFG_HDMICTRL);
+	tcc_ddi_hdmi_ctrl(HDMICTRL_RESET_TMDS, 0);
 	tcc_usleep(1);
-	writel(regl & ~HDMICTRL_RESET_TMDS, DDICFG_HDMICTRL);
+	tcc_ddi_hdmi_ctrl(HDMICTRL_RESET_TMDS, 1);
+
 
 	// swreset DDI_BUS HDMI
-	regl = readl(DDICFG_SWRESET);
-	writel(regl | SWRESET_HDMI, DDICFG_SWRESET);
+	tcc_ddi_swreset_hdmi(1);
 	tcc_usleep(1);
-	writel(regl & ~SWRESET_HDMI, DDICFG_SWRESET);
+	tcc_ddi_swreset_hdmi(0);
 
 
 	#if  defined (CONFIG_ARCH_TCC88XX )  || defined( CONFIG_ARCH_TCC92XX) || defined (CONFIG_ARCH_TCC93XX)
 	// enable DDI_BUS HDMI CLK
 	regl = readl(DDICFG_HDMICTRL);
-	writel((regl&0xFFFF7FFF) | HDMICTRL_HDMI_ENABLE 
+	writel((regl&0xFFFF7FFF)  
 					#ifdef TCC_HDMI_LCDC1_USE // pjj
 							|HDMICTRL_PATH_LCDC1
 					#else
@@ -1342,9 +1613,11 @@ void tcc_hdmi_power_on(void)
 		#endif//
 	#endif//
 
+	tcc_ddi_hdmi_ctrl(HDMICTRL_HDMI_ENABLE, 1);
+
 	memset(&gHdmiVideoParms, 0, sizeof(struct HDMIVideoParameter));
 
-#if 0 //sys3
+
 	// default video mode setting.
 	memset(&gHdmiVideoParms, 0, sizeof(struct HDMIVideoParameter));
 
@@ -1359,10 +1632,6 @@ void tcc_hdmi_power_on(void)
 	hdmi_set_color_space(gHdmiVideoParms.colorSpace);
 	hdmi_set_color_depth(gHdmiVideoParms.colorDepth);
 	hdmi_set_pixel_aspect_ratio(gHdmiVideoParms.pixelAspectRatio);
-
-	gHdmiStartFlag = 0;
-
-#endif//
 
 	gHdmiPwrInfo.status = PWR_STATUS_ON;
 
@@ -1387,49 +1656,42 @@ void tcc_hdmi_power_off(void)
 
 	writeb(0x7F,HDCP_RI_COMPARE_1);
 
-	// HDMI POWER OFF
- 	// reset for hdmi controller 
-	writel(0x0000000f ,DDICFG_HDMICTRL);
-	tcc_usleep(1);
-	writel(0x0000C000 ,DDICFG_HDMICTRL);
 
 	// HDMI PHY Reset
-	regl = readl(DDICFG_HDMICTRL);
-	writel(regl | HDMICTRL_RESET_HDMI, DDICFG_HDMICTRL);
+	tcc_ddi_hdmi_ctrl(HDMICTRL_RESET_HDMI, 0);
 	tcc_usleep(1);
-	writel(regl & ~HDMICTRL_RESET_HDMI, DDICFG_HDMICTRL);
+	tcc_ddi_hdmi_ctrl(HDMICTRL_RESET_HDMI, 1);
 
 	// HDMI SPDIF Reset
-	regl = readl(DDICFG_HDMICTRL);
-	writel(regl | HDMICTRL_RESET_SPDIF, DDICFG_HDMICTRL);
+	tcc_ddi_hdmi_ctrl(HDMICTRL_RESET_SPDIF, 0);
 	tcc_usleep(1);
-	writel(regl & ~HDMICTRL_RESET_SPDIF, DDICFG_HDMICTRL);
+	tcc_ddi_hdmi_ctrl(HDMICTRL_RESET_SPDIF, 1);
 
 	// HDMI TMDS Reset
-	regl = readl(DDICFG_HDMICTRL);
-	writel(regl | HDMICTRL_RESET_TMDS, DDICFG_HDMICTRL);
+	tcc_ddi_hdmi_ctrl(HDMICTRL_RESET_TMDS, 0);
 	tcc_usleep(1);
-	writel(regl & ~HDMICTRL_RESET_TMDS, DDICFG_HDMICTRL);
+	tcc_ddi_hdmi_ctrl(HDMICTRL_RESET_TMDS, 1);
 
 	// swreset DDI_BUS HDMI
-	regl = readl(DDICFG_SWRESET);
-	writel(regl | SWRESET_HDMI, DDICFG_SWRESET);
+	tcc_ddi_swreset_hdmi(1);
 	tcc_usleep(1);
-	writel(regl & ~SWRESET_HDMI, DDICFG_SWRESET);
+	tcc_ddi_swreset_hdmi(0);
 
 	// disable DDI_BUS HDMI CLK
-	regl = readl(DDICFG_HDMICTRL);
-	writel(regl & (~HDMICTRL_HDMI_ENABLE), DDICFG_HDMICTRL);
+	tcc_ddi_hdmi_ctrl(HDMICTRL_HDMI_ENABLE, 0);
 
-	regl = readl(DDICFG_PWDN);
-	writel(regl | PWDN_HDMI, DDICFG_PWDN);
+	// ddi hdmi power down
+	tcc_ddi_pwdn_hdmi(1);
 
 	// enable HDMI PHY Power-off
-	regl = readl(PMU_PWROFF);
 	#if defined (CONFIG_ARCH_TCC92X)
+	regl = readl(PMU_PWROFF);
 	writel(regl | PWROFF_HDMIPHY, PMU_PWROFF);
-    #elif defined (CONFIG_ARCH_TCC93XX) || defined (CONFIG_ARCH_TCC88XX) || defined (CONFIG_ARCH_TCC892X)
+      #elif defined (CONFIG_ARCH_TCC93XX) || defined (CONFIG_ARCH_TCC88XX)
+	regl = readl(PMU_PWROFF);
 	writel(regl & ~PWROFF_HDMIPHY, PMU_PWROFF);
+	#elif defined(CONFIG_ARCH_TCC892X)
+	tca_ckc_setippwdn(PMU_ISOL_HDMI, 1); // power up
 	#endif
 	
 	// gpio power on
@@ -1571,6 +1833,7 @@ static void hdcp_reset(void)
     // set blue screen
     reg = readb(HDMI_CON_0);
     writeb(reg|HDMI_BLUE_SCR_ENABLE,HDMI_CON_0);
+	dprintk(KERN_INFO "@@hdmidrv::HDMI_BLUE_SCR_ENABLE-enable! \n");
 
     // enable HDCP
     writeb(HDCP_ENABLE,HDCP_CTRL1);
@@ -1689,11 +1952,24 @@ void hdcp_set_ksv_list(struct hdcp_ksv_list list)
 void load_hdcp_key(void)
 {
     int index;
+	unsigned char reg;
+
+	set_aeskey_to_reg(AES_key);
+	mdelay(10);
+
     for (index=0; index < HDCP_KEY_SIZE; index++)
     {
         writeb(HDCP_Test_key[index], AES_DATA);
     }
     writeb(0x01,AES_START);
+	do {
+		reg = readb(AES_START);
+		if ((reg & 0x01) == 0)
+			break;
+		printk("wait for AES decryption complet..\n");
+	//	udelay(1000*1);
+	}while(1);
+	printk("AES decryption completed!\n");
 }
 
 /**
@@ -1718,9 +1994,6 @@ void hdmi_aui_update_checksum(void)
         checksum += readb(HDMI_AUI_BYTE1 + 4*index);
 #endif
     }
-//[Khcho - 20111111 :  ]
-	checksum++;
-//[Khcho - 20111111]
 	
     writeb(~checksum+1,HDMI_AUI_CHECK_SUM);
 }
@@ -2256,10 +2529,9 @@ void hdmi_phy_reset(void)
 	unsigned int phy_chk_cnt = 0;
 
 	// HDMI PHY Reset
-	regl = readl(DDICFG_HDMICTRL);
-	writel(regl | HDMICTRL_RESET_HDMI, DDICFG_HDMICTRL);
+	tcc_ddi_hdmi_ctrl(HDMICTRL_RESET_HDMI, 0);
 	tcc_usleep(100); // TCC93xx 25us, tcc8900 5us
-	writel(regl & ~HDMICTRL_RESET_HDMI, DDICFG_HDMICTRL);
+	tcc_ddi_hdmi_ctrl(HDMICTRL_RESET_HDMI, 1);
 
 	do
 	{
@@ -2274,13 +2546,12 @@ void hdmi_phy_reset(void)
 		printk(KERN_INFO "%s phy is ready : 10us * %d\n", __FUNCTION__, phy_chk_cnt);
 	else
 	{
-		printk(KERN_INFO "%s phy is not ready\n", __FUNCTION__);
-		printk(KERN_INFO "%s try phy reset again\n", __FUNCTION__);
+		printk(KERN_INFO "%s try phy reset again \n", __FUNCTION__);
+
 		// HDMI PHY Reset
-		regl = readl(DDICFG_HDMICTRL);
-		writel(regl | HDMICTRL_RESET_HDMI, DDICFG_HDMICTRL);
+		tcc_ddi_hdmi_ctrl(HDMICTRL_RESET_HDMI, 0);
 		tcc_usleep(100); // TCC93xx 25us, tcc8900 5us
-		writel(regl & ~HDMICTRL_RESET_HDMI, DDICFG_HDMICTRL);
+		tcc_ddi_hdmi_ctrl(HDMICTRL_RESET_HDMI, 1);
 
 		phy_chk_cnt = 0;
 
@@ -2385,7 +2656,7 @@ int hdcp_read_ri(void)
     unsigned char buffer[2];
     unsigned char offset = HDCP_RI_OFFSET;
 
-    adap = i2c_get_adapter(0);
+    adap = i2c_get_adapter(3);
     if (!adap)
         return 0;
 
