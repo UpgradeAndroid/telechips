@@ -303,7 +303,7 @@
 #if defined(CONFIG_TCC_DWC_HS_ELECT_TST)
 #undef DMA_MODE
 #else
-#define DMA_MODE
+#undef DMA_MODE
 #endif
 #endif
 
