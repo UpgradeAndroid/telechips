@@ -561,7 +561,7 @@ if TCC_SENSOR_DRV
 
 choice
     prompt "TCC Sensor Driver"
-    default SENSOR_BMA220 
+    default SENSOR_BMA150 
 
 #config SENSOR_CMA3000  # TBD
 #    bool "CMA3000"
