@@ -453,7 +453,7 @@ int tcc_videobuf_dqbuf(struct v4l2_buffer *buf, struct file *file )
 	if(data->cif_cfg.esd_restart) tccxxx_cif_cam_restart(&pix,xclk);
 
 	if(list_empty(&data->done_list)) {
-		if(file->f_flags&O_NONBLOCK) return -EAGAIN;
+		if(file->f_flags & O_NONBLOCK) return -EAGAIN;
 			
 		data->wakeup_int = 0;
 		if(wait_event_interruptible_timeout(data->frame_wait, data->wakeup_int == 1, msecs_to_jiffies(500)) <= 0)
