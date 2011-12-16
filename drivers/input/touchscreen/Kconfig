@@ -736,7 +736,24 @@ config TOUCHSCREEN_TPS6507X
 config TCC_TCH_CORE
     tristate "Telechips touchscreen core"
         default y
-        depends on TOUCHSCREEN_TCC_AK4183 || TOUCHSCREEN_TCC_TSC2003
+        depends on TOUCHSCREEN_TCC_AK4183 || TOUCHSCREEN_TCC_TSC2003 || TOUCHSCREEN_TCC_GOODIX_CAP || TOUCHSCREEN_TCC_SITRONIX
+config TOUCHSCREEN_TCC_GOODIX_CAP
+	tristate "Multi Touch Controller Goodix-TS for EMDOOR MID"
+	select TCC_TCH_CORE
+	depends on I2C
+	default n
+	help
+	  say Y here if you have a touchscreen interface using the
+	  i2c device.
+
+config TOUCHSCREEN_TCC_SITRONIX
+	tristate "Multi Touch Controller SITRONIX for COBY MID"
+	select TCC_TCH_CORE
+	depends on I2C
+	default n
+	help
+	  say Y here if you have a touchscreen interface using the
+	  i2c device.
 
 config TOUCHSCREEN_TCC_AK4183
         tristate "Telechips AK4183 touchscreen driver"

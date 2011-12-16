@@ -336,6 +336,14 @@ static struct i2c_board_info __initdata i2c_devices2[] = {
 };	
 #endif
 
+#if defined(CONFIG_TOUCHSCREEN_TCC_SITRONIX)
+static struct i2c_board_info __initdata i2c_devices2[] = {
+	{
+		I2C_BOARD_INFO("tcc-ts-sitronix", 0x55),
+		.platform_data = NULL,
+	},
+};	
+#endif
 static struct tcc_i2c_platform_data tcc8800_core0_platform_data = {
     .core_clk_rate      = 4*1000*1000,    /* core clock rate: 4MHz */
     .core_clk_name      = "i2c0",
@@ -725,7 +733,7 @@ static void __init tcc8800_init_machine(void)
 #endif
 
 	i2c_register_board_info(0, i2c_devices1, ARRAY_SIZE(i2c_devices1));
-#if defined(CONFIG_TOUCHSCREEN_TCC_AK4183)
+#if defined(CONFIG_TOUCHSCREEN_TCC_AK4183) || defined(CONFIG_TOUCHSCREEN_TCC_SITRONIX)
 	i2c_register_board_info(1, i2c_devices2, ARRAY_SIZE(i2c_devices2));
 #endif
 

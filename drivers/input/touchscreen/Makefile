@@ -70,4 +70,6 @@ obj-$(CONFIG_TOUCHSCREEN_TCC_SYNAPTICS) += tcc_ts_synaptics.o
 obj-$(CONFIG_TOUCHSCREEN_TCC_CYPRESS)   += tcc_ts_cypress.o
 obj-$(CONFIG_TOUCHSCREEN_TCC_GOODIX)    += tcc_ts_goodix.o
 obj-$(CONFIG_TOUCHSCREEN_TCC_UOR6153)   += tcc_ts_uor6153.o
+obj-$(CONFIG_TOUCHSCREEN_TCC_GOODIX_CAP)   += goodix_touch_2chips.o
+obj-$(CONFIG_TOUCHSCREEN_TCC_SITRONIX)   += tcc_ts_sitronix.o
 
