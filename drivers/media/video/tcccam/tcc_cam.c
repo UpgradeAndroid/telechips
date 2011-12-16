@@ -61,7 +61,7 @@
 #include "tccisp/isp_interface.h"
 #endif
 
-#if 1
+#if 0
 static int debug	   = 1;
 #else
 static int debug	   = 0;

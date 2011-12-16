@@ -62,7 +62,7 @@
 extern unsigned long volatile __jiffy_data jiffies;
 extern int tcc_is_camera_enable;
 
-#if 1
+#if 0
 static int debug	   = 1;
 #else
 static int debug	   = 0;
