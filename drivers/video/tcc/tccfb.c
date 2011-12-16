@@ -575,7 +575,11 @@ static int tccfb_pan_display(struct fb_var_screeninfo *var, struct fb_info *info
 	tca_fb_pan_display(var, info);
 
 #if !defined(CONFIG_TCC_HDMI_UI_DISPLAY_OFF)
-	if(Output_SelectMode)
+	if(Output_SelectMode
+		#ifdef CONFIG_TCC_HDMI_VIDEO_UI_DISABLE
+		&& !HDMI_video_mode
+		#endif//
+	)
 	{
 		tcc_output_ret = TCC_OUTPUT_FB_Update(fbi->fb->var.xres, fbi->fb->var.yres, fbi->fb->var.bits_per_pixel, base_addr, Output_SelectMode);
 	}
@@ -1630,6 +1634,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 					TCC_OUTPUT_FB_RestoreVideoImg(Output_SelectMode);
 				#endif
 #endif /*CONFIG_TCC_HDMI_UI_DISPLAY_OFF*/
+
 #if defined(CONFIG_ARCH_TCC88XX)
 				TCC_OUTPUT_FB_MouseIconSelect(TCC_OUTPUT_HDMI);
 				TCC_OUTPUT_FB_MouseShow(1, TCC_OUTPUT_HDMI);
@@ -1657,7 +1662,29 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 					       spin_unlock_irq(&vsync_lock);
 					}
  #endif
+
+					#ifdef CONFIG_TCC_HDMI_VIDEO_UI_DISABLE
+					if(ImageInfo.Lcdc_layer == 0) // video channel
+					{
+						if(ImageInfo.enable == 0)	{
+							TCC_OUTPUT_FB_Update(fb_info->fb->var.xres, fb_info->fb->var.yres, fb_info->fb->var.bits_per_pixel, Output_BaseAddr, Output_SelectMode);
+							TCC_OUTPUT_FB_UpdateSync(Output_SelectMode);
+						}
+					}
+					#endif//
+					
   					TCC_HDMI_DISPLAY_UPDATE(EX_OUT_LCDC, (struct tcc_lcdc_image_update *)&ImageInfo);
+
+					#ifdef CONFIG_TCC_HDMI_VIDEO_UI_DISABLE
+ 					if(ImageInfo.Lcdc_layer == 0) // video channel
+					{
+						if(ImageInfo.enable == 1)	{
+							ImageInfo.Lcdc_layer  = 2;
+							ImageInfo.enable = 0;
+							TCC_HDMI_DISPLAY_UPDATE(EX_OUT_LCDC, (struct tcc_lcdc_image_update *)&ImageInfo);
+						}
+					}
+					#endif//
 				}
 			}
 			break;

@@ -51,6 +51,11 @@ config TCC_HDMI_DRIVER
 	bool "Use TCC HDMI function"
 	default y
 
+config TCC_HDMI_VIDEO_UI_DISABLE
+	bool "HDMI UI disable during video play"
+	depends on (ARCH_TCC88XX && !MACH_TCC8800ST)
+	default y
+
 config FB_TCC93XX
     bool "TCC93xx Frame buffer support"
 	depends on FB && ARCH_TCC93XX
