@@ -998,7 +998,7 @@ MODULE_LICENSE ("GPL");
 #define PCI_DRIVER		ohci_pci_driver
 #endif
 
-#if defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC)
 #include "ohci-tcc.c"
 #define PLATFORM_DRIVER     ohci_hcd_tcc_driver
 #endif

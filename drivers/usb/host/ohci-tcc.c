@@ -44,6 +44,7 @@ extern void tcc_ohci_clock_control(int id, int on);
 
 static int tcc_ohci_select_pmm(unsigned long reg_base, int mode, int num_port, int *port_mode)
 {
+#if !defined(CONFIG_ARCH_TCC892X)
 	volatile struct _USBHOST11 *ohci_reg;
 	ohci_reg = (volatile struct _USBHOST11 *)reg_base;
 
@@ -110,6 +111,75 @@ static int tcc_ohci_select_pmm(unsigned long reg_base, int mode, int num_port, i
 	}
 
 	return 0;
+
+#else
+	volatile struct _USB_OHCI *ohci_reg;
+	ohci_reg = (volatile struct _USB_OHCI *)reg_base;
+
+	switch (mode)
+	{
+	case USBOHCI_PPM_NPS:
+		/* set NO Power Switching mode */
+		ohci_reg->HcRhDescriptorA.nREG |= USBOHCI_UHCRHDA_NPS;
+		break;
+	case USBOHCI_PPM_GLOBAL:
+		/* make sure the NO Power Switching mode bit is OFF so Power Switching can occur
+		 * make sure the PSM bit is CLEAR, which allows all ports to be controlled with
+		 * the GLOBAL set and clear power commands
+		 */
+		ohci_reg->HcRhDescriptorA.nREG &= ~(USBOHCI_UHCRHDA_NPS | USBOHCI_UHCRHDA_PSM_PERPORT);
+		break;
+	case USBOHCI_PPM_PERPORT:
+		/* make sure the NO Power Switching mode bit is OFF so Power Switching can occur
+		 * make sure the PSM bit is SET, which allows all ports to be controlled with
+		 * the PER PORT set and clear power commands
+		 */
+		ohci_reg->HcRhDescriptorA.nREG &= ~USBOHCI_UHCRHDA_NPS;
+		ohci_reg->HcRhDescriptorA.nREG |=  USBOHCI_UHCRHDA_PSM_PERPORT;
+
+		/* set the power management mode for each individual port to Per Port. */
+		{
+			int p;
+			for (p = 0; p < num_port; p++)
+			{
+				ohci_reg->HcRhDescriptorB.nREG |= (unsigned int)(1u << (p + 17));   // port 1 begins at bit 17
+			}
+		}
+		break;
+	case USBOHCI_PPM_MIXED:
+		/* make sure the NO Power Switching mode bit is OFF so Power Switching can occur
+		 * make sure the PSM bit is SET, which allows all ports to be controlled with
+		 * the PER PORT set and clear power commands
+		 */
+		ohci_reg->HcRhDescriptorA.nREG &= ~USBOHCI_UHCRHDA_NPS;
+		ohci_reg->HcRhDescriptorA.nREG |=  USBOHCI_UHCRHDA_PSM_PERPORT;
+
+		/* set the power management mode for each individual port to Per Port.
+		 * if the value in the PortMode array is non-zero, set Per Port mode for the port.
+		 * if the value in the PortMode array is zero, set Global mode for the port
+		 */
+		{
+			int p;
+			for (p = 0; p < num_port; p++)
+			{
+				if (port_mode[p])
+				{
+					ohci_reg->HcRhDescriptorB.nREG |= (unsigned int)(1u << (p + 17));   // port 1 begins at bit 17
+				}
+				else
+				{
+					ohci_reg->HcRhDescriptorB.nREG &= ~(unsigned int)(1u << (p + 17));  // port 1 begins at bit 17
+				}
+			}
+		}
+		break;
+	default:
+		printk(KERN_ERR "Invalid mode %d, set to non-power switch mode.\n", mode);
+		ohci_reg->HcRhDescriptorA.nREG |= USBOHCI_UHCRHDA_NPS;
+	}
+
+	return 0;
+#endif
 }
 
 extern int usb_disabled(void);
@@ -128,6 +198,7 @@ void ohci_port_power_control(int id)
 	{
 		;
 	}
+	#if !defined(CONFIG_ARCH_TCC892X)
 	else
 	{
 		PUSBHOST11 ohci = (PUSBHOST11)tcc_p2v(HwUSBHOST_BASE);
@@ -145,6 +216,7 @@ void ohci_port_power_control(int id)
 		 */
 		ohci->HcRhPortStatus2 = Hw9;	// port2 LSDA 1
 	}
+	#endif
 }
 
 static int tcc_start_hc(int id, struct device *dev)
@@ -158,14 +230,17 @@ static int tcc_start_hc(int id, struct device *dev)
 	{
 		;
 	}
+	#if !defined(CONFIG_ARCH_TCC892X)
 	else
 	{
 		/* USB 1.1 Host Configuration Register
 		 * DP, DN pull-down enable
 		 */
+		PIOBUSCFG pIOBUSCfg;
 		pIOBUSCfg = (PIOBUSCFG)tcc_p2v(HwIOBUSCFG_BASE);
 		BITSET(pIOBUSCfg->USB11H, Hw4 | Hw3);
 	}
+	#endif
 
 	/* remake clk control funtion instead of tcc_set_cken - rudals */
 	//tcc_ohci_clkset(id, 1);
