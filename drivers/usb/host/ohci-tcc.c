@@ -303,7 +303,8 @@ static int usb_hcd_tcc_probe(const struct hc_driver *driver, struct platform_dev
 	hcd = usb_create_hcd(driver, &pdev->dev, "tcc");
 	if (!hcd)
 		return -ENOMEM;
-	hcd->rsrc_start = io_p2v(pdev->resource[0].start);
+
+	hcd->rsrc_start = pdev->resource[0].start;
 	hcd->rsrc_len   = pdev->resource[0].end - pdev->resource[0].start + 1;
 
 	if (!request_mem_region(hcd->rsrc_start, hcd->rsrc_len, hcd_name))
