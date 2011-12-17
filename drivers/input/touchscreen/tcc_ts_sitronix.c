@@ -507,24 +507,40 @@ static void sitronix_ts_close(struct input_dev *dev)
 static void sitronix_ts_port_init(void)
 {
 	volatile PGPIO pGPIO = (volatile PGPIO)tcc_p2v(HwGPIO_BASE);
-	
-	if(machine_is_tcc8800()){
-	      gpio_request(TCC_GPA(6), "tsc_int");
-		tcc_gpio_config(TCC_GPA(6), GPIO_FN(0));
-		gpio_direction_input(TCC_GPA(6));
+	int gp_penirq;
 
+#if defined(CONFIG_ARCH_TCC88XX)
+	if (machine_is_tcc8800()) {
+		gp_penirq = TCC_GPA(6);
+	}
+#elif defined(CONFIG_ARCH_TCC892X)
+	if (machine_is_tcc8920()) {
+		gp_penirq = TCC_GPG(18);
+	}
+#endif
+
+      gpio_request(gp_penirq, "tsc_int");
+      tcc_gpio_config(gp_penirq, GPIO_FN(0));
+      gpio_direction_input(gp_penirq);
+
+#if defined(CONFIG_ARCH_TCC88XX)
+      if (machine_is_tcc8800()) {
 		BITCSET(pGPIO->EINTSEL0 , HwEINTSEL0_EINT2_MASK, HwEINTSEL0_EINT2(SEL_GPIOA6));
 
-		HwPIC->INTMSK0 |= Hw5;	   
-		HwPIC->IEN0		&= ~Hw5;						/* disable Isr */
-		HwPIC->MODEA0	&= ~Hw5; 						/* single edge */
-		HwPIC->MODE0	&= ~Hw5;						/* set edge trigger mode */
-		HwPIC->POL0		|= Hw5;							/* active-low */
-		HwPIC->CLR0		|= Hw5;							/* clear pending status */
-		HwPIC->SEL0		|= Hw5;							/* IRQ Select */
-		HwPIC->IEN0		|= Hw5;			
+		HwPIC->INTMSK0	|= Hw5;
+		HwPIC->IEN0	&= ~Hw5;	/* disable Isr */
+		HwPIC->MODEA0	&= ~Hw5; 	/* single edge */
+		HwPIC->MODE0	&= ~Hw5;	/* set edge trigger mode */
+		HwPIC->POL0	|= Hw5;		/* active-low */
+		HwPIC->CLR0	|= Hw5;		/* clear pending status */
+		HwPIC->SEL0	|= Hw5;		/* IRQ Select */
+		HwPIC->IEN0	|= Hw5;
 	}
-
+#elif defined(CONFIG_ARCH_TCC892X)
+	if (machine_is_tcc8920()) {
+		tcc_gpio_config_ext_intr(INT_EI2, EXTINT_GPIOG_18);
+	}
+#endif
 }
 
 
@@ -820,7 +836,7 @@ static int __devinit sitronix_ts_probe(struct i2c_client *client, const struct i
 	if (err)
 		goto err1;
 
-	err = request_irq(INT_EI2, sitronix_ts_isr, IRQF_DISABLED,
+	err = request_irq(INT_EI2, sitronix_ts_isr, IRQF_TRIGGER_FALLING | IRQF_DISABLED,
 			  DEVICE_NAME, priv);
 	if (err) {
 		printk("Unable to request touchscreen IRQ.\n");
