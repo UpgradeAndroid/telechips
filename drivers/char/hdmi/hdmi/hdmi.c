@@ -1531,7 +1531,7 @@ void tcc_hdmi_power_on(void)
 		pCKC = (CKC *)tcc_p2v(HwCKC_BASE);
 
 		pCKC->PCLKCTRL17.nREG = 0x2D000000;
-		pCKC->PCLKCTRL18.nREG = 0x2D000000;
+//		pCKC->PCLKCTRL18.nREG = 0xBD000001;
 		#ifdef TCC_HDMI_LCDC1_USE // pjj
 		pCKC->PCLKCTRL05.nREG = 0x2C000000;
 		#else
@@ -1542,8 +1542,6 @@ void tcc_hdmi_power_on(void)
 		if (hdmi_clk)
 			clk_set_rate(hdmi_clk, 1*1000*1000);
 	#endif//
-	
-	// disable HDMI PHY Power-off
 	
     #if defined (CONFIG_ARCH_TCC92XX)
 	regl = readl(PMU_PWROFF);
