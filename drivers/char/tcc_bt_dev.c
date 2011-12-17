@@ -174,7 +174,7 @@ int tcc_bt_power_control(int on_off)
 
 			msleep(300);
 		}
-		else if (machine_is_tcc9300() || machine_is_tcc8800()) {      // #elif defined (CONFIG_MACH_TCC9300)
+		else if (machine_is_tcc9300() || machine_is_tcc8800() || machine_is_tcc8920()) {      // #elif defined (CONFIG_MACH_TCC9300)
 			#if defined (CONFIG_TCC_CSR_BC0406_MODULE_SUPPORT)|| defined(CONFIG_TCC_ATHEROS_AR3002_MODULE_SUPPORT)
 			//gpio_set_value(TCC_GPEXT1(7), 1);   /* BT-ON Enable */
 			gpio_set_value(TCC_GPEXT3(2), 1);   /* BT_WAKE Enable , pwr_ctrl*/
@@ -204,11 +204,13 @@ int tcc_bt_power_control(int on_off)
 			gpio_set_value(TCC_GPD(12), 1);
 		}
 		else if (0/*machine_is_tcc9300ST()*/) {//#elif defined (CONFIG_MACH_TCC9300ST)
+#if 0
 			pGPIO->GPFEN	|= Hw1|Hw0;		   
 			pGPIO->GPFDAT	|= Hw0;			/* BT-On Enbale */
 			pGPIO->GPFDAT	&= ~Hw1;		/* BT_HWAKE Enable, reset */
 			msleep(500);
 			pGPIO->GPFDAT	|= Hw1;			/* BT_HWAKE Enable, reset */	
+#endif
 		}
 
 	}
@@ -222,7 +224,7 @@ int tcc_bt_power_control(int on_off)
 
             // reset
 			//gpio_direction_output(TCC_GPEXT2(9), 0);
-		}else if (machine_is_tcc9300() || machine_is_tcc8800()) {      // #elif defined (CONFIG_MACH_TCC9300)
+		}else if (machine_is_tcc9300() || machine_is_tcc8800() || machine_is_tcc8920()) {      // #elif defined (CONFIG_MACH_TCC9300)
 			#if defined (CONFIG_TCC_CSR_BC0406_MODULE_SUPPORT)|| defined(CONFIG_TCC_ATHEROS_AR3002_MODULE_SUPPORT)
 			//gpio_set_value(TCC_GPEXT1(7), 0);   /* BT-ON Disable */
 			gpio_set_value(TCC_GPEXT3(2), 0);   /* BT_WAKE Disable */
@@ -246,9 +248,11 @@ int tcc_bt_power_control(int on_off)
 			gpio_set_value(TCC_GPD(12), 0);			// BT rst 0
 		}
 		else if (0/*machine_is_tcc9300ST()*/) {      // #elif defined (CONFIG_MACH_TCC9300ST)
+#if 0
 			pGPIO->GPFEN    |= Hw1|Hw0;
 			pGPIO->GPFDAT   &= ~Hw0;                /* BT-On Enbale */
 			pGPIO->GPFDAT   &= ~Hw1;                /* BT_HWAKE Enable, reset */
+#endif
 		}
 
 	}
@@ -271,7 +275,7 @@ static int tcc_bt_get_info(tcc_bt_info_t* arg)
 
 	module_t = 0;
 
-  	if (machine_is_tcc8900() || machine_is_tcc9201() || machine_is_tcc9300()|| machine_is_tcc8800()|| machine_is_m801_88()|| machine_is_m803())   {
+  	if (machine_is_tcc8900() || machine_is_tcc9201() || machine_is_tcc9300()|| machine_is_tcc8800()|| machine_is_m801_88()|| machine_is_m803()|| machine_is_tcc8920())   {
 		// CSR Only
 		#if defined (CONFIG_TCC_CSR_BC0406_MODULE_SUPPORT)		
         	module_t = 0x12;
@@ -350,7 +354,7 @@ int init_module(void)
 	    gpio_request(TCC_GPEXT2(9), "bt_reset");
 		gpio_direction_output(TCC_GPB(25), 0); // output
 		gpio_direction_output(TCC_GPEXT2(9), 0);
-	}else if(machine_is_tcc9300() || machine_is_tcc8800()) {      // #elif defined (CONFIG_MACH_TCC9300)
+	}else if(machine_is_tcc9300() || machine_is_tcc8800()|| machine_is_tcc8920()) {      // #elif defined (CONFIG_MACH_TCC9300)
 			//gpio_set_value(TCC_GPEXT1(7), 0);   /* BT-ON Disable */
 		gpio_request(TCC_GPEXT3(2), "bt_wake");
 	    gpio_request(TCC_GPEXT2(4), "bt_reset");
