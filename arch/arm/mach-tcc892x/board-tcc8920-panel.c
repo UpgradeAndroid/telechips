@@ -159,6 +159,14 @@ static struct platform_device ed090na_lcd= {
 };
 #endif//
 
+#ifdef CONFIG_LCD_KR080PA2S
+static struct platform_device kr080pa2s_lcd = {
+	.name	= "kr080pa2s_lcd",
+	.dev	= {
+		.platform_data	= &lcd_pdata,
+	},
+};
+#endif
 
 static void tcc8920_brightness_set(struct led_classdev *led_cdev, enum led_brightness value)
 {
@@ -293,6 +301,12 @@ int __init tcc8920_init_panel(void)
 #ifdef CONFIG_LCD_ED090NA
 	case PANEL_ID_ED090NA:
 		platform_device_register(&ed090na_lcd);
+		break;
+#endif//
+
+#ifdef CONFIG_LCD_KR080PA2S
+	case PANEL_ID_KR080PA2S:
+		platform_device_register(&kr080pa2s_lcd);
 		break;
 #endif//
 

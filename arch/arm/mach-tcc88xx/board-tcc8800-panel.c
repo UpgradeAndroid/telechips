@@ -150,6 +150,15 @@ static struct platform_device claa102na0dcw_lcd= {
 	},
 };
 #endif
+
+#ifdef CONFIG_LCD_KR080PA2S
+static struct platform_device kr080pa2s_lcd = {
+	.name	= "kr080pa2s_lcd",
+	.dev	= {
+		.platform_data	= &lcd_pdata,
+	},
+};
+#endif
 #ifdef CONFIG_LCD_ED090NA
 static struct platform_device ed090na_lcd= {
 	.name	= "ed090na_lcd",
@@ -285,6 +294,11 @@ int __init tcc8800_init_panel(void)
 		break;
 #endif//
 
+#ifdef CONFIG_LCD_KR080PA2S
+	case PANEL_ID_KR080PA2S:
+		platform_device_register(&kr080pa2s_lcd);
+		break;
+#endif//
 #ifdef CONFIG_LCD_CLAA102NA0DCW
 	case PANEL_ID_CLAA102NA0DCW:
 		platform_device_register(&claa102na0dcw_lcd);

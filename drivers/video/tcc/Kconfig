@@ -194,6 +194,10 @@ config LCD_ED090NA
 	bool "CHIMEI INNOLUX 1280 * 800 LVDS support"
 	depends on FB_TCC
 
+config LCD_KR080PA2S
+	bool "EMDOOR 1024 * 768 LVDS support"
+        depends on FB_TCC
+
 config LCD_LCDC0_USE
 	bool "platform LCDC is use LCD control 0"
 	depends on FB_TCC

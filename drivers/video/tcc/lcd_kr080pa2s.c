@@ -1,0 +1,205 @@
+/*
+ * ek08009_lcd.c -- support for LG PHILIPS LB080WV6 LCD
+ *
+ * Copyright (C) 2009, 2010 Telechips, Inc.
+ *
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ */
+
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/delay.h>
+#include <linux/platform_device.h>
+#include <linux/gpio.h>
+#include <linux/mutex.h>
+#include <mach/hardware.h>
+#include <mach/bsp.h>
+#include <asm/io.h>
+#include <asm/mach-types.h>
+
+#include <mach/tcc_fb.h>
+#include <mach/gpio.h>
+#include <mach/tca_lcdc.h>
+#include <mach/TCC_LCD_DriverCtrl.h>
+#include <mach/TCC_LCD_Interface.h>
+//#include <linux/51boardpcb.h>
+#if 1
+#define dprintk(msg...)	printk(msg)
+#else
+#define dprintk(msg...)	do{}while(0)
+#endif
+/*The following Function from tcc_backlight.c file */
+
+
+static struct mutex panel_lock;
+static char lcd_pwr_state;
+static unsigned int lcd_bl_level;
+extern void lcdc_initialize(struct lcd_panel *lcd_spec);
+static int kr080pa2s_panel_init(struct lcd_panel *panel)
+{
+
+	dprintk("%s : \n", __func__ );
+	return 0;
+}
+
+static int kr080pa2s_set_power(struct lcd_panel *panel, int on, unsigned int lcd_num)
+{
+	struct lcd_platform_data *pdata = panel->dev->platform_data;
+	dprintk("%s : %d %d  \n", __func__, on, lcd_bl_level);
+	mutex_lock(&panel_lock);
+	lcd_pwr_state = on;
+	if (on) {
+		gpio_set_value(pdata->power_on, 1);
+		udelay(100);
+
+		gpio_set_value(pdata->reset, 1);
+		msleep(20);
+
+		lcdc_initialize(panel);
+		LCDC_IO_Set(1, panel->bus_width);	
+		/*Delay Open The Backlight when Come back from suspend or resume By JimKuang*/
+		if(lcd_bl_level)		
+			{
+			msleep(80); 	
+//			tcc_gpio_config(pdata->bl_on, GPIO_FN(2));	
+        	       tcc_gpio_config(pdata->bl_on, GPIO_FN(2));
+		}
+		else{
+			msleep(10);
+		}
+		
+	}
+	else 
+	{
+		msleep(10);
+		gpio_set_value(pdata->reset, 0);
+		gpio_set_value(pdata->power_on, 0);
+
+		LCDC_IO_Disable(lcd_num, panel->bus_width);
+	}
+	mutex_unlock(&panel_lock);
+	return 0;
+}
+
+static int kr080pa2s_set_backlight_level(struct lcd_panel *panel, int level)
+{
+	#define MAX_BL_LEVEL	255	
+	volatile PTIMER pTIMER;
+
+	struct lcd_platform_data *pdata = panel->dev->platform_data;	
+	mutex_lock(&panel_lock);
+	
+#if 1
+	if (level == 0) {
+		tcc_gpio_config(pdata->bl_on, GPIO_FN(0));
+		gpio_set_value(pdata->bl_on, 0);
+	} else {
+		if(lcd_pwr_state)
+			tcc_gpio_config(pdata->bl_on, GPIO_FN(2));
+		pTIMER	= (volatile PTIMER)tcc_p2v(HwTMR_BASE);
+		pTIMER->TREF0 = MAX_BL_LEVEL;
+		pTIMER->TCFG0	= 0x105;	
+		pTIMER->TMREF0 = (level | 0x07);
+		pTIMER->TCFG0	= 0x105;
+	}
+#else
+		lcd_bl_level = level;
+//    	if(lcd_pwr_state)
+//	{	
+		dprintk("### %s  level=%d       lcd_pwr_state =%d ###\r\n",__func__,level,lcd_pwr_state);		
+		if (level <= 7) {
+			/*Set BackLight Off*/	
+			backlight_pwmenable(0);
+		} else {
+			backlight_setpwm(level);
+		/*Set BackLight On*/	
+			if (lcd_pwr_state){
+				backlight_pwmenable(1);
+			}
+
+		}	
+//	}
+#endif
+	mutex_unlock(&panel_lock);
+	return 0;
+}
+
+static struct lcd_panel kr080pa2s_panel = {
+	.name		= "kr080pa2s",
+	.manufacturer	= "xingyuan",
+	.id			= PANEL_ID_KR080PA2S,
+	.xres		= 1024,
+	.yres		= 768,
+	.width		= 103,
+	.height		= 62,
+	.bpp		= 24,
+	.clk_freq	= 520000,
+	.clk_div	= 1,
+	.bus_width	= 24,
+	.lpw		= 8,
+	.lpc		= 1024,
+	.lswc		= 150,
+	.lewc		= 170,
+	.vdb		= 50,
+	.vdf		= 20,
+	.fpw1		= 5,
+	.flc1		= 768,
+	.fswc1		= 16,
+	.fewc1		= 22,
+	.fpw2		= 5,
+	.flc2		= 768,
+	.fswc2		= 16,
+	.fewc2		= 22,
+	//.sync_invert	= IV_INVERT_EN | IH_INVERT_EN,
+	.init		= kr080pa2s_panel_init,
+	.set_power	= kr080pa2s_set_power,
+	.set_backlight_level = kr080pa2s_set_backlight_level,
+};
+
+static int kr080pa2s_probe(struct platform_device *pdev)
+{
+	dprintk("###%s###\r\n",__func__);
+	mutex_init(&panel_lock);
+	lcd_pwr_state=1;
+	kr080pa2s_panel.dev = &pdev->dev;
+	tccfb_register_panel(&kr080pa2s_panel);
+	return 0;
+}
+
+static int kr080pa2s_remove(struct platform_device *pdev)
+{
+	return 0;
+}
+
+static struct platform_driver kr080pa2s_lcd = {
+	.probe	= kr080pa2s_probe,
+	.remove	= kr080pa2s_remove,
+	.driver	= {
+		.name	= "kr080pa2s_lcd",
+		.owner	= THIS_MODULE,
+	},
+};
+
+static __init int kr080pa2s_init(void)
+{
+	return platform_driver_register(&kr080pa2s_lcd);
+}
+
+static __exit void kr080pa2s_exit(void)
+{
+	return platform_driver_unregister(&kr080pa2s_lcd);
+}
+
+subsys_initcall(kr080pa2s_init);
+module_exit(kr080pa2s_exit);
+
+MODULE_DESCRIPTION("kr080pa2s LCD driver");
+MODULE_LICENSE("GPL");
