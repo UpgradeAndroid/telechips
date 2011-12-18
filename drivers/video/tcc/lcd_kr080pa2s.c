@@ -30,6 +30,9 @@
 #include <mach/tca_lcdc.h>
 #include <mach/TCC_LCD_DriverCtrl.h>
 #include <mach/TCC_LCD_Interface.h>
+#if defined(CONFIG_ARCH_TCC892X)
+#include <mach/reg_physical.h>
+#endif
 //#include <linux/51boardpcb.h>
 #if 1
 #define dprintk(msg...)	printk(msg)
@@ -42,6 +45,7 @@
 static struct mutex panel_lock;
 static char lcd_pwr_state;
 static unsigned int lcd_bl_level;
+static char lcdc_number;
 extern void lcdc_initialize(struct lcd_panel *lcd_spec);
 static int kr080pa2s_panel_init(struct lcd_panel *panel)
 {
@@ -64,16 +68,18 @@ static int kr080pa2s_set_power(struct lcd_panel *panel, int on, unsigned int lcd
 		msleep(20);
 
 		lcdc_initialize(panel);
-		LCDC_IO_Set(1, panel->bus_width);	
+		LCDC_IO_Set(lcd_num, panel->bus_width);
 		/*Delay Open The Backlight when Come back from suspend or resume By JimKuang*/
 		if(lcd_bl_level)		
 			{
 			msleep(80); 	
-//			tcc_gpio_config(pdata->bl_on, GPIO_FN(2));	
-        	       tcc_gpio_config(pdata->bl_on, GPIO_FN(2));
-		}
-		else{
-			msleep(10);
+		#if defined(CONFIG_ARCH_TCC892X)
+			tcc_gpio_config(pdata->bl_on, GPIO_FN(9));
+		#else
+			tcc_gpio_config(pdata->bl_on, GPIO_FN(2));
+		#endif
+		}else{
+			msleep(80);
 		}
 		
 	}
@@ -96,12 +102,25 @@ static int kr080pa2s_set_backlight_level(struct lcd_panel *panel, int level)
 
 	struct lcd_platform_data *pdata = panel->dev->platform_data;	
 	mutex_lock(&panel_lock);
+	lcd_bl_level = level;
 	
 #if 1
 	if (level == 0) {
 		tcc_gpio_config(pdata->bl_on, GPIO_FN(0));
 		gpio_set_value(pdata->bl_on, 0);
 	} else {
+#if defined(CONFIG_ARCH_TCC892X)
+
+		if(lcd_pwr_state)
+			tcc_gpio_config(pdata->bl_on, GPIO_FN(9));
+
+		pTIMER	= (volatile PTIMER)tcc_p2v(HwTMR_BASE);
+		pTIMER->TREF1.nREG = MAX_BL_LEVEL;
+		pTIMER->TCFG1.nREG	= 0x105;	
+		pTIMER->TMREF1.nREG = (level | 0x07);
+		pTIMER->TCFG1.nREG	= 0x105;
+#else
+	
 		if(lcd_pwr_state)
 			tcc_gpio_config(pdata->bl_on, GPIO_FN(2));
 		pTIMER	= (volatile PTIMER)tcc_p2v(HwTMR_BASE);
@@ -109,25 +128,9 @@ static int kr080pa2s_set_backlight_level(struct lcd_panel *panel, int level)
 		pTIMER->TCFG0	= 0x105;	
 		pTIMER->TMREF0 = (level | 0x07);
 		pTIMER->TCFG0	= 0x105;
-	}
-#else
-		lcd_bl_level = level;
-//    	if(lcd_pwr_state)
-//	{	
-		dprintk("### %s  level=%d       lcd_pwr_state =%d ###\r\n",__func__,level,lcd_pwr_state);		
-		if (level <= 7) {
-			/*Set BackLight Off*/	
-			backlight_pwmenable(0);
-		} else {
-			backlight_setpwm(level);
-		/*Set BackLight On*/	
-			if (lcd_pwr_state){
-				backlight_pwmenable(1);
-			}
-
-		}	
-//	}
 #endif
+	}
+#endif//
 	mutex_unlock(&panel_lock);
 	return 0;
 }
@@ -190,6 +193,7 @@ static struct platform_driver kr080pa2s_lcd = {
 
 static __init int kr080pa2s_init(void)
 {
+	printk("~ %s ~ \n", __func__);
 	return platform_driver_register(&kr080pa2s_lcd);
 }
 

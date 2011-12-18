@@ -70,7 +70,8 @@
 #include <linux/syscalls.h>
 #include <linux/linkage.h>
 #include <asm/uaccess.h>
-
+#include <asm/mach-types.h>
+#include <mach/io.h>
 
 #include "goodix_touch_2chips.h"
 #if defined(CONFIG_ARCH_TCC88XX)
@@ -650,6 +651,7 @@ COORDINATE_POLL:
 
 			if((input_x > ts->abs_x_max)||(input_y > ts->abs_y_max))continue;
 			//printk("input_x = %d,input_y = %d, input_w = %d,ts->abs_x_max=%d,ts->abs_y_max=%d\n", input_x, input_y, input_w,ts->abs_x_max,ts->abs_y_max);
+			input_report_key(ts->input_dev, BTN_TOUCH, 1);
 			input_report_abs(ts->input_dev, ABS_MT_POSITION_X, input_x);
 			input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, input_y);			
 			input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, input_w);
@@ -661,6 +663,7 @@ COORDINATE_POLL:
 	}
 	else
 	{
+		input_report_key(ts->input_dev, BTN_TOUCH, 0);
 		input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0);
 		input_report_abs(ts->input_dev, ABS_MT_WIDTH_MAJOR, 0);
 		input_mt_sync(ts->input_dev);
@@ -967,12 +970,14 @@ static ssize_t goodix_debug_diffdata_show(struct device *dev,
 
 	//while(gpio_get_value(INT_PORT));
 
+#if 0
 	volatile PGPIO pGPIO = (volatile PGPIO)tcc_p2v(HwGPIO_BASE);
 	while(1)
 	{
-		if(pGPIO->GPBDAT & Hw31 == 0)
+		if(!gpio_get_value(pen_irq))
 			break;
 	}
+#endif
 	
 	ret = i2c_read_bytes(ts->client, diff_data, sizeof(diff_data));
 	//if(ret != 2)
@@ -1157,17 +1162,15 @@ static void initial_irq(void)
     
 #endif//TCC88xx
 #else
+#ifdef CONFIG_MACH_TCC8800
+
 		volatile PGPIO pGPIO = (volatile PGPIO)tcc_p2v(HwGPIO_BASE);
 	
 	      gpio_request(TCC_GPA(6), "tsc_int");
 		tcc_gpio_config(TCC_GPA(6), GPIO_FN(0)|GPIO_PULLUP);
 		gpio_direction_input(TCC_GPA(6));
 
-#if 1
-//		BITCSET(pGPIO->EINTSEL0 , HwEINTSEL0_EINT2_MASK, HwEINTSEL0_EINT2(SEL_GPIOB31));
 		BITCSET(pGPIO->EINTSEL0 , HwEINTSEL0_EINT2_MASK, HwEINTSEL0_EINT2(SEL_GPIOA6));
-//		BITCSET(pGPIO->GPBPD1, Hw31|Hw30, Hw31|Hw30);
-
 
 		HwPIC->INTMSK0 |= Hw5;	   
 	
@@ -1178,7 +1181,20 @@ static void initial_irq(void)
 		HwPIC->CLR0		|= Hw5;							/* clear pending status */
 		HwPIC->SEL0		|= Hw5;							/* IRQ Select */
 		HwPIC->IEN0		|= Hw5;			
+
 #endif
+
+#ifdef CONFIG_MACH_TCC8920
+
+
+	      gpio_request(TCC_GPG(18), "tsc_int");
+		tcc_gpio_config(TCC_GPG(18), GPIO_FN(0));
+		gpio_direction_input(TCC_GPG(18));
+
+		tcc_gpio_config_ext_intr(INT_EI2, EXTINT_GPIOG_18);
+
+ #endif
+
 #endif
 }
 #endif
@@ -1314,7 +1330,7 @@ err_gpio_request:
 #ifdef TP_GOODIX_USE_IRQ
 	initial_irq();
 	client->irq = TS_INT;
-	ret  = request_irq(TS_INT, goodix_ts_irq_handler , IRQF_DISABLED,
+	ret  = request_irq(TS_INT, goodix_ts_irq_handler , IRQF_TRIGGER_FALLING | IRQF_DISABLED,
 		client->name, ts);
 	if (ret != 0) {
 		//dev_err(&client->dev,"Can't allocate touchscreen's interrupt!ERRNO:%d\n", ret);
