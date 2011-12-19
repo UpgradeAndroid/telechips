@@ -444,11 +444,7 @@ static int __init tcc_init_wm8731(void)
 
 	int ret;
 
-#if defined(CONFIG_ARCH_TCC88XX)
-    if(!machine_is_tcc8800()) {
-#elif defined(CONFIG_ARCH_TCC892X)
-    if(!machine_is_tcc8920()) {
-#endif
+    if( !(machine_is_tcc8800() || machine_is_tcc8920()) ) {
         alsa_dbg("\n\n\n\n%s() do not execution....\n\n", __func__);
         return 0;
     }
