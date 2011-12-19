@@ -5,7 +5,7 @@
  *
 ****************************************************************************/
 
-#if defined(CONFIG_ARCH_TCC92XX) || defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC92XX) || defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 #include <mach/bsp.h>
 #elif defined(CONFIG_ARCH_TCC79X)
 #include <mach/tcc79x.h>
@@ -55,7 +55,7 @@ static struct i2c_client_address_data addr_data = {
 };
 #endif
 
-#if defined(CONFIG_ARCH_TCC92XX) || defined(CONFIG_ARCH_TCC93XX)  || defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC92XX) || defined(CONFIG_ARCH_TCC93XX)  || defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 #if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
 extern int CameraID;
 static const struct i2c_device_id cam_i2c_id0[] = {
@@ -90,7 +90,7 @@ static struct i2c_client *cam_i2c_client[] = { NULL, NULL };
 static struct i2c_client *cam_i2c_client = NULL;
 #endif
 
-#if defined(CONFIG_ARCH_TCC92XX) || defined(CONFIG_ARCH_TCC93XX)  || defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC92XX) || defined(CONFIG_ARCH_TCC93XX)  || defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 #if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
 static int cam_i2c_probe0(struct i2c_client *client, const struct i2c_device_id *id)
 {
@@ -301,7 +301,7 @@ static int cam_i2c_attach(struct i2c_adapter *adap)
 }
 #endif // defined(CONFIG_ARCH_TCC93XX)
 
-#if defined(CONFIG_ARCH_TCC92XX) || defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC92XX) || defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 #if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
 static struct i2c_driver cam_i2c_driver0 = {	// I2C driver for Back Camera
 	.driver = {

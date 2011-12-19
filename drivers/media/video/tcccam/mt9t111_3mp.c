@@ -23,7 +23,7 @@ when        who       what, where, why
 #include "cam_reg.h"
 #include "tcc_cam_i2c.h"
 
-#if defined(CONFIG_ARCH_TCC92XX) || defined(CONFIG_ARCH_TCC93XX)  || defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC92XX) || defined(CONFIG_ARCH_TCC93XX)  || defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 #include <mach/bsp.h>
 #elif defined(CONFIG_ARCH_TCC79X)
 #include <mach/tcc79x.h>
@@ -2843,7 +2843,7 @@ void sensor_info_init_mt9t111(TCC_SENSOR_INFO_TYPE *sensor_info)
 	sensor_info->s_clock 					= 1680000;
 	sensor_info->s_clock_source 			= PCDIRECTPLL1;
 	#endif// CONFIG_USE_ISP
-	#elif defined(CONFIG_ARCH_TCC88XX)
+	#elif defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 	#if defined(CONFIG_USE_ISP)
 	sensor_info->m_clock 				= 240000;
 	sensor_info->m_clock_source 			= PCDIRECTPLL2;
@@ -2867,7 +2867,7 @@ void sensor_info_init_mt9t111(TCC_SENSOR_INFO_TYPE *sensor_info)
 	sensor_info->max_zoom_step 			= 15;
 	sensor_info->cam_capchg_width 		= 640;
 	sensor_info->framerate				= 15;
-	sensor_info->p_clock_pol 				= NEGATIVE_EDGE;//POSITIVE_EDGE;//
+	sensor_info->p_clock_pol 				= POSITIVE_EDGE;//NEGATIVE_EDGE;//
 	sensor_info->v_sync_pol 				= ACT_HIGH;
 	sensor_info->h_sync_pol                 = ACT_HIGH;
 	sensor_info->format 					= M420_ZERO;

@@ -493,7 +493,7 @@ static struct clk clk_out1 = {
 };
 
 static struct clk clk_jpeg = {
-    .name           = "jpege",
+    .name           = "jpeg",
     .flags          = CLK_AUTO_OFF,
     .enable         = pclk_enable,
     .disable        = pclk_disable,

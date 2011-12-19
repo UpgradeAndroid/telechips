@@ -49,7 +49,7 @@ extern void sensor_init_fnc_mv9317(SENSOR_FUNC_TYPE *sensor_func);
 #define CKC_CAMERA_SCLK				720000
 #define CKC_CAMERA_SCLK_SRC			PCDIRECTPLL2
 #endif
-#elif defined(CONFIG_ARCH_TCC88XX)
+#elif defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 #if defined(CONFIG_USE_ISP)
 #define CAM_POLARITY_VSYNC 	 1   // 1: low active,	0: high active	
 #define CAM_POLARITY_HSYNC	0   // 1: low active,	0: high active	
