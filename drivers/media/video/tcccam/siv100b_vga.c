@@ -751,7 +751,7 @@ void sensor_info_init_siv100b(TCC_SENSOR_INFO_TYPE *sensor_info)
 	sensor_info->s_clock 					= 800000;
 	sensor_info->s_clock_source 			= PCDIRECTPLL2;
 	#endif // CONFIG_USE_ISP
-	#elif defined(CONFIG_ARCH_TCC88XX)
+	#elif defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 	#if defined(CONFIG_USE_ISP)
 	sensor_info->m_clock 				= 240000;
 	sensor_info->m_clock_source 			= PCDIRECTPLL2;
