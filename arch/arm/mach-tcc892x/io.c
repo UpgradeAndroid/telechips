@@ -147,7 +147,7 @@ void __init tcc_map_common_io(void)
 	IO_UTIL_ReadECID();
 #endif
 
-	tcc_reserve_sdram();
+	//tcc_reserve_sdram();
 
 	// XXX
 	tca_ckc_init();
