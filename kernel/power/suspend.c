@@ -346,7 +346,7 @@ int tcc_umh_ehci_module(int flag)
 	int retval = 0;
 
 /* Only considered for TCC88xx */
-#if defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 	struct subprocess_info *sub_info_hs, *sub_info_fs;
 	static char *envp[] = {NULL};
 	char *argv_hs[] = {
