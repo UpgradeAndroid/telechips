@@ -168,6 +168,8 @@ static DDICONFIG*		pDDIConfig;
 static VIQE*			pVIQEBase;
 static VIOC_IREQ_CONFIG* 		pVIOCConfig;
 static unsigned int old_zoom_step;
+struct tccxxx_cif_buffer *prev_buf;
+static unsigned int		prev_num;
 #ifdef	CONFIG_VIDEO_ATV_SENSOR_TVP5150
 static uint				bfield;
 static uint				frm_cnt;
@@ -832,42 +834,40 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 			sensor_if_check_control();
 	
 			if(skip_frm == 0 && !frame_lock)
-			{				
+			{
+				if(prev_buf != NULL){
+					list_move_tail(&prev_buf->buf_list, &data->done_list);
+				}
+				
 				//printk("[Camera Preview] Interrupt Rising Up!!\n");
-				curr_buf = data->buf + data->cif_cfg.now_frame_num;
-				curr_num = data->cif_cfg.now_frame_num;
+				prev_buf = data->buf + data->cif_cfg.now_frame_num;
+				prev_num = data->cif_cfg.now_frame_num;
 	
 				next_buf = list_entry(data->list.next->next, struct tccxxx_cif_buffer, buf_list);	
-				next_num = next_buf->v4lbuf.index;			
+				next_num = next_buf->v4lbuf.index;
 
-				if(next_buf != &data->list && curr_buf != next_buf)
+				if(next_buf != &data->list && prev_buf != next_buf)
 				{
 					
 					//exception process!!
-					if(curr_num != curr_buf->v4lbuf.index)
+					if(prev_num != prev_buf->v4lbuf.index)
 					{
 						printk("Frame num mismatch :: true num  :: %d \n", curr_num);
 						printk("Frame num mismatch :: false num :: %d \n", curr_buf->v4lbuf.index);
-						curr_buf->v4lbuf.index = curr_num ;
+						prev_buf->v4lbuf.index = prev_num ;
 					}
 
 						
 					cif_dma_hw_reg(next_num);					
 				
-					//spin_unlock_irqrestore(&data->dev_lock, flags);
 					if(data->cif_cfg.fmt == M420_ZERO)
-						curr_buf->v4lbuf.bytesused = data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y*2;
+						prev_buf->v4lbuf.bytesused = data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y*2;
 					else
-						curr_buf->v4lbuf.bytesused = (data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y*3)/2;
+						prev_buf->v4lbuf.bytesused = (data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y*3)/2;
 
-					//cif_buf->v4lbuf.sequence = cam->buf_seq[bufno];
-					curr_buf->v4lbuf.flags &= ~V4L2_BUF_FLAG_QUEUED;
-					curr_buf->v4lbuf.flags |= V4L2_BUF_FLAG_DONE;
-					//spin_lock_irqsave(&data->dev_lock, flags);
-					//cif_buf->v4lbuf.timestamp = gettimeofday(.., ..);
-
-					list_move_tail(&curr_buf->buf_list, &data->done_list);		
-
+					prev_buf->v4lbuf.flags &= ~V4L2_BUF_FLAG_QUEUED;
+					prev_buf->v4lbuf.flags |= V4L2_BUF_FLAG_DONE;
+			
 					#ifdef	CONFIG_VIDEO_ATV_SENSOR_TVP5150
 						if((frm_cnt == 1) && (bfield == 0)){
 							dprintk("Deintl Initialization\n");
@@ -920,7 +920,7 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 						//VIOC_WMIX_SetUpdate(pWMIXBase);
 
 						// Enable WDMA							
-						//VIOC_WDMA_SetImageEnable(pWDMABase, ON);					
+						VIOC_WDMA_SetImageEnable(pWDMABase, ON);					
 
 					}
 					old_zoom_step = data->cif_cfg.zoom_step;							
@@ -947,7 +947,7 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 
 			
 			BITCSET(pWDMABase->uCTRL.nREG, 1<<16, (1<<16));	
-			VIOC_WDMA_SetImageEnable(pWDMABase, OFF);
+			//VIOC_WDMA_SetImageEnable(pWDMABase, OFF);
 			BITCSET(pWDMABase->uIRQSTS.nREG, VIOC_WDMA_IREQ_ALL_MASK, VIOC_WDMA_IREQ_ALL_MASK);	
 			VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_EOFR_MASK, 0x0);
 					
@@ -1261,9 +1261,10 @@ void cif_dma_hw_reg(unsigned char frame_num)
 									(unsigned int)data->cif_cfg.preview_buf[frame_num].p_Cb,
 									(unsigned int)data->cif_cfg.preview_buf[frame_num].p_Cr);
 #elif	defined(CONFIG_ARCH_TCC892X)
+	// For Making the format android(ICS) wants, we had to change between Cb and Cr.
 	VIOC_WDMA_SetImageBase(pWDMABase, (unsigned int)data->cif_cfg.preview_buf[frame_num].p_Y, 
-									(unsigned int)data->cif_cfg.preview_buf[frame_num].p_Cb,
-									(unsigned int)data->cif_cfg.preview_buf[frame_num].p_Cr);	
+									(unsigned int)data->cif_cfg.preview_buf[frame_num].p_Cr,
+									(unsigned int)data->cif_cfg.preview_buf[frame_num].p_Cb);	
 #else
 	TDD_CIF_SetBaseAddr(INPUT_IMG, (unsigned int)data->cif_cfg.preview_buf[frame_num].p_Y,
 									(unsigned int)data->cif_cfg.preview_buf[frame_num].p_Cb,
@@ -1684,7 +1685,10 @@ int tccxxx_vioc_vin_wdma_set(VIOC_WDMA *pDMA_CH)
 	VIOC_WDMA_SetImageOffset(pDMA_CH, fmt, dw);
 						
 	VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_EOFR_MASK, 0x0);
-	VIOC_WDMA_SetImageEnable(pDMA_CH, OFF);	// operating start in 1 frame
+	if(data->cif_cfg.oper_mode == OPER_CAPTURE)
+		VIOC_WDMA_SetImageEnable(pDMA_CH, OFF);	// operating start in 1 frame
+	else
+		VIOC_WDMA_SetImageEnable(pDMA_CH, ON);	// operating start in 1 frame
 
 	return 0;
 }
@@ -2389,7 +2393,9 @@ int tccxxx_cif_start_stream(void)
 
 			old_zoom_step = 0;
 
-			cif_set_port(4);		
+			cif_set_port(4);
+
+			prev_buf = NULL;
 
 		#ifdef	CONFIG_VIDEO_ATV_SENSOR_TVP5150
 			frm_cnt = 0;

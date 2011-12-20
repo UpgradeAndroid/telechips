@@ -119,7 +119,7 @@ static long tcc_clockctrl_ioctl(struct file *filp, unsigned int cmd, unsigned lo
 			clk_enable(vcore_clk);
 			clk_enable(vcache_clk);
 			clk_enable(vcodec_clk);
-			clk_set_rate(jpu_clk, 20*1000*1000);
+			clk_set_rate(jpu_clk, 200*1000*1000);
 			clk_enable(jpu_clk);			
 			tcc_cpufreq_set_limit_table(&gtJpegMaxClockLimitTable, TCC_FREQ_LIMIT_JPEG, 1);
 			break;
