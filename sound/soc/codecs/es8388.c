@@ -151,7 +151,7 @@ static void adc_start_event(struct snd_soc_dapm_widget *w,
 static const char *es8388_dac_mono[] = {"Stereo", "Mono"};
 
 static const struct snd_kcontrol_new es8388_snd_controls[] = {
-    //SOC_DOUBLE_R("Capture Volume", ES8388_LINVOL, ES8388_RINVOL, 0, 63, 0),
+    SOC_DOUBLE_R("Capture Volume", ES8388_LADC_VOL, ES8388_RADC_VOL, 0, 63, 0),
     //SOC_DOUBLE_R("Capture ZC Switch", ES8388_LINVOL, ES8388_RINVOL, 6, 1, 0),
 
     //SOC_DOUBLE_R("Capture Switch", ES8388_LINVOL, ES8388_RINVOL, 7, 1, 1),
@@ -868,7 +868,7 @@ static int es8388_probe(struct snd_soc_codec *codec)
 
     alsa_dbg("%s() \n", __func__);
 
-	ret = snd_soc_codec_set_cache_io(codec, 7, 9, es8388->control_type);
+	ret = snd_soc_codec_set_cache_io(codec, 8, 8, es8388->control_type);
 	if (ret < 0) {
 		dev_err(codec->dev, "Failed to set cache I/O: %d\n", ret);
 		return ret;

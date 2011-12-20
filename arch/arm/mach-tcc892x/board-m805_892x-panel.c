@@ -152,6 +152,14 @@ static struct platform_device claa102na0dcw_lcd= {
 	},
 };
 #endif
+#ifdef CONFIG_LCD_ED090NA
+static struct platform_device ed090na_lcd= {
+	.name	= "ed090na_lcd",
+	.dev	= {
+		.platform_data	= &lcd_pdata,
+	},
+};
+#endif//
 
 
 static void m805_892x_brightness_set(struct led_classdev *led_cdev, enum led_brightness value)
@@ -284,7 +292,11 @@ int __init m805_892x_init_panel(void)
 		platform_device_register(&claa102na0dcw_lcd);
 		break;
 #endif//
-
+#ifdef CONFIG_LCD_ED090NA
+	case PANEL_ID_ED090NA:
+		platform_device_register(&ed090na_lcd);
+		break;
+#endif//
 
 	default:
 		pr_err("Not supported LCD panel type %d\n", tcc_panel_id);

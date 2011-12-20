@@ -59,8 +59,8 @@ struct tcc_voltage_table_t {
 static struct tcc_voltage_table_t tcc_voltage_table[] = {
 	/*   cpu     ddi     mem     gpu      io    vbus    vcod     smu    hsio      vol */
 #if defined(CONFIG_DRAM_DDR3)
-	{ 625000, 312000, 533000, 370000, 196000, 277000, 277000, 156000, 250000, 1200000 },	// recommended freq.
-	{ 837500, 396400, 600000, 470090, 249020, 351930, 351930, 249020, 250000, 1320000 },	// recommanded freq
+	{ 625000, 312000, 533000, 370000, 196000, 277000, 277000, 156000, 250000, 1225000 },	// recommended freq.
+	{ 837500, 396400, 600000, 470090, 249020, 351930, 351930, 249020, 250000, 1350000 },	// recommanded freq
 #else
 	{ 625000, 312000, 300000, 370000, 196000, 277000, 277000, 196000, 250000, 1200000 },	// recommended freq.
 	{ 837500, 396400, 400000, 470090, 249020, 351930, 351930, 249020, 250000, 1320000 },	// recommanded freq
