@@ -120,9 +120,7 @@ static int tcc_remocon_set_clock_table(int enable)
 {
 	if(clock_set_enable != enable)
 	{
-#if defined(CONFIG_CPU_FREQ)
 		tcc_cpufreq_set_limit_table(&gtRemoconClockLimitTable, TCC_FREQ_LIMIT_REMOCON, enable);
-#endif
 	}
 
 	clock_set_enable = enable;
