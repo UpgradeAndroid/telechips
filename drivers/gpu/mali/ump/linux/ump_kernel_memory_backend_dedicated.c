@@ -284,6 +284,9 @@ static void block_allocator_release(void * ctx, ump_dd_mem * handle)
 {
 	block_allocator * allocator;
 	block_info * block, * next;
+	unsigned int temp1, temp2, temp3;
+	unsigned int *temp4;
+	int i;
 
 	BUG_ON(!ctx);
 	BUG_ON(!handle);
@@ -300,8 +303,6 @@ static void block_allocator_release(void * ctx, ump_dd_mem * handle)
 
 	while (block)
 	{
-		unsigned int temp1, temp2;
-		unsigned int *temp3, *temp4;
 		next = block->next;
 
 		BUG_ON( (block < allocator->all_blocks) || (block > (allocator->all_blocks + allocator->num_blocks)));
@@ -325,6 +326,19 @@ static void block_allocator_release(void * ctx, ump_dd_mem * handle)
 		block = next;
 
 	}
+
+	for(i=0; i< allocator->num_blocks -1; i++)
+	{
+		temp3 = &allocator->all_blocks[i];
+		temp4 = allocator->all_blocks[i].next;
+		if(temp3 + 4 == temp4)
+		{
+			allocator->first_free = &allocator->all_blocks[i];
+			DBG_MSG(2, ("test %d temp3:0x%08x, temp4:0x%08x\n",i, temp3, temp4));
+			break;
+		}
+	}
+	
 	DBG_MSG(3, ("ID:%d, %d blocks free after release call, block:0x%08x\n", handle->secure_id, allocator->num_free, allocator->first_free));
 	up(&allocator->mutex);
 
