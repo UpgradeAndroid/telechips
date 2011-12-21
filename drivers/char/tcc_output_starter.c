@@ -1062,7 +1062,11 @@ int tcc_hdmi_set_lcdc_config(enum VideoFormat hdmi_video_format)
     memcpy((void*)&device,(const void*)&(LCDCTimimgParams[hdmi_video_format]),sizeof(device));
 
 	#if defined(CONFIG_ARCH_TCC892X) && defined(CONFIG_MACH_TCC8920ST)
+		#if defined(CONFIG_LCD_LCDC0_USE)
+		tccfb_hdmi_starter(1, &device);
+		#else
 		tccfb_hdmi_starter(0, &device);
+		#endif /* CONFIG_LCD_LCDC0_USE */
 	#else
 		if(pDDICfg->HDMI_CTRL & HwDDIC_HDMI_CTRL_SEL_LCDC1)
 			tcc92xxfb_hdmi_starter(1, &device);
@@ -1425,11 +1429,12 @@ void tcc_output_starter_hdmi(unsigned char lcdc_num, unsigned char hdmi_resoluti
 		pLCDC_CKC = (PCLK_XXX_TYPE *)((&pCKC->PCLKCTRL00)+PERI_LCD0);
 	}
 
-	#if defined(CONFIG_LCD_LCDC0_USE)
-		pSC = (VIOC_SC *)tcc_p2v(HwVIOC_SC1);
-	#else
+
+	VIOC_DISP_TurnOff(pDISP);
+	VIOC_RDMA_SetImageDisable(pRDMA);
+	pLCDC_CKC->bREG.EN = 0;
+			
 		pSC = (VIOC_SC *)tcc_p2v(HwVIOC_SC0);
-	#endif
 	
 	if(lcdc_num)	
 	{
@@ -1462,9 +1467,6 @@ void tcc_output_starter_hdmi(unsigned char lcdc_num, unsigned char hdmi_resoluti
 	
 	output_width = LCDCTimimgParams[video.resolution].lpc + 1;
 	output_height = LCDCTimimgParams[video.resolution].flc + 1;
-
-	VIOC_DISP_TurnOff(pDISP);
-	VIOC_RDMA_SetImageDisable(pRDMA);
 
 	tcc_hdmi_ddi_config_init();
 	tcc_hdmi_set_hdmi_mode(video.mode);
@@ -2065,7 +2067,7 @@ void tcc_output_starter_component(unsigned char lcdc_num, unsigned char type)
 }
 #endif //CONFIG_ARCH_TCC892X
 
-static int tcc_output_starter_ioctl(struct inode *inode, struct file *file, unsigned int cmd, void *arg)
+static int tcc_output_starter_ioctl(struct file *file, unsigned int cmd, void *arg)
 {
 	switch(cmd)
 	{
@@ -2092,7 +2094,7 @@ static struct file_operations tcc_output_starter_fops =
 	.write		= NULL,
 	.read		= NULL,
 	.poll 		= NULL,
-	.ioctl		= tcc_output_starter_ioctl,
+	.unlocked_ioctl		= tcc_output_starter_ioctl,
 	.mmap		= NULL,
 	.open		= tcc_output_starter_open,
 	.release	= tcc_output_starter_release,
@@ -2132,7 +2134,12 @@ int __init tcc_output_starter_init(void)
 	tcc_output_starter_class = class_create(THIS_MODULE, DEVICE_NAME);
 	device_create(tcc_output_starter_class, NULL, MKDEV(MAJOR_ID, MINOR_ID), NULL, DEVICE_NAME);
 
-	#if defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
+	#if defined(CONFIG_MACH_TCC8920ST)
+		//gpio_set_value(TCC_GPG(4), 0);
+		//gpio_set_value(TCC_GPB(24), 1);
+	#endif
+
+	#if defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC88XX)/* || defined(CONFIG_ARCH_TCC892X)*/
 		lcdc_1st = STARTER_LCDC_0; /* LCDC0: HDMI or Component */
 		lcdc_2nd = STARTER_LCDC_1; /* LCDC1: Composite */
 	#else
