@@ -38,6 +38,7 @@
 
 #include <mach/bsp.h>
 #include <mach/pm.h>
+#include <mach/gpio.h>
 
 #include <linux/time.h>
 
@@ -135,8 +136,12 @@ static int tcc_remocon_set_clock_table(int enable)
 ******************************************************************************/
 static void Init_IR_Port(void)
 {
+#if defined(CONFIG_ARCH_TCC892X)
+	tcc_gpio_config(TCC_GPG(17), GPIO_FN7|GPIO_OUTPUT|GPIO_LOW);
+#else
 	PGPIO pGpioA = (volatile PGPIO)tcc_p2v(HwGPIOA_BASE);
 	BITCSET(pGpioA->GPAFN0, (Hw20 | Hw21 | Hw22 | Hw23), Hw20);	//GPIO_A5
+#endif
 }
 
 /*****************************************************************************
@@ -148,12 +153,21 @@ static void remocon_irq_init(void)
 {
 	volatile PPIC pPIC = (volatile PPIC)tcc_p2v(HwPIC_BASE);
 
+	#if defined(CONFIG_ARCH_TCC892X)
+		BITSET(pPIC->IEN1.nREG, Hw10);
+		BITSET(pPIC->SEL1.nREG, Hw10);
+		BITSET(pPIC->INTMSK1.nREG, Hw10);
+		BITCLR(pPIC->POL1.nREG, Hw10);
+		BITSET(pPIC->MODE1.nREG, Hw10);
+		BITCLR(pPIC->MODEA1.nREG, Hw10);
+	#else
 	BITSET(pPIC->IEN1, HwINT1_RMT);
 	BITSET(pPIC->SEL1, HwINT1_RMT);
 	BITSET(pPIC->INTMSK1, HwINT1_RMT);
 	BITCLR(pPIC->POL1, HwINT1_RMT);
 	BITSET(pPIC->MODE1, HwINT1_RMT);
 	BITCLR(pPIC->MODEA1, HwINT1_RMT);
+	#endif
 }
 
 /*****************************************************************************
@@ -256,7 +270,7 @@ static unsigned int tca_rem_readcode(char ch)
 		Rem.BitCnt = Rem.Buf = 0;
 		Rem.Stat = STATUS1;
 
-		if(machine_is_tcc9300() || machine_is_tcc9300st() || machine_is_tcc9300cm() || machine_is_tcc8800() || machine_is_tcc8800st())
+		if(machine_is_tcc9300() || machine_is_tcc9300st() || machine_is_tcc9300cm() || machine_is_tcc8800() || machine_is_tcc8800st() || machine_is_tcc8920st())
 		{
 			if (ch == 'S')
 			{
@@ -370,24 +384,44 @@ static void rem_getrawdata(int *rd_data)
 	int low, high;
 	char low_bit='x', high_bit='x';
 
+#if defined(CONFIG_ARCH_TCC892X)
+	#define LOW_MIN_VALUE		LOW_MIN_TCC892X
+	#define LOW_MAX_VALUE		LOW_MAX_TCC892X
+	#define HIGH_MIN_VALUE		HIGH_MIN_TCC892X
+	#define HIGH_MAX_VALUE		HIGH_MAX_TCC892X
+	#define REPEAT_MIN_VALUE	REPEAT_MIN_TCC892X
+	#define REPEAT_MAX_VALUE	REPEAT_MAX_TCC892X
+	#define START_MIN_VALUE		START_MIN_TCC892X
+	#define START_MAX_VALUE		START_MAX_TCC892X
+#else
+	#define LOW_MIN_VALUE		LOW_MIN
+	#define LOW_MAX_VALUE		LOW_MAX
+	#define HIGH_MIN_VALUE		HIGH_MIN
+	#define HIGH_MAX_VALUE		HIGH_MAX
+	#define REPEAT_MIN_VALUE	REPEAT_MIN
+	#define REPEAT_MAX_VALUE	REPEAT_MAX
+	#define START_MIN_VALUE		START_MIN
+	#define START_MAX_VALUE		START_MAX
+#endif
+
 	do
 	{
 		low = rd_data[i] & 0xffff;
 		high = (rd_data[i] >> 16) & 0xffff;
 
-		if ((low > LOW_MIN) && (low < LOW_MAX))
+		if ((low > LOW_MIN_VALUE) && (low < LOW_MAX_VALUE))
 		{		  
 			low_bit='0';
 		}
-		else if ((low > HIGH_MIN) && (low < HIGH_MAX))
+		else if ((low > HIGH_MIN_VALUE) && (low < HIGH_MAX_VALUE))
 		{
 			low_bit='1';
 		}
-		else if ((low > REPEAT_MIN) && (low < REPEAT_MAX))
+		else if ((low > REPEAT_MIN_VALUE) && (low < REPEAT_MAX_VALUE))
 		{
 			low_bit='R';
 		}
-		else if ((low > START_MIN) && (low < START_MAX))
+		else if ((low > START_MIN_VALUE) && (low < START_MAX_VALUE))
 		{
 			low_bit='S';
 			startbit_time= rd_data[i];  //get Start bit timing  and the 1st data bit timing
@@ -397,19 +431,19 @@ static void rem_getrawdata(int *rd_data)
 			low_bit='E';
 		}
 
-		if ((high > LOW_MIN) && (high < LOW_MAX))
+		if ((high > LOW_MIN_VALUE) && (high < LOW_MAX_VALUE))
 		{
 			high_bit='0';
 		}
-		else if ((high > HIGH_MIN) && (high < HIGH_MAX))
+		else if ((high > HIGH_MIN_VALUE) && (high < HIGH_MAX_VALUE))
 		{
 			high_bit='1';
 		}
-		else if ((high > REPEAT_MIN) && (high < REPEAT_MAX))
+		else if ((high > REPEAT_MIN_VALUE) && (high < REPEAT_MAX_VALUE))
 		{
 			high_bit='R';
 		}
-		else if ((high > START_MIN) && (high < START_MAX))
+		else if ((high > START_MIN_VALUE) && (high < START_MAX_VALUE))
 		{
 			high_bit='S';
 			startbit_time= rd_data[i];  //get Start bit timing  and the 1st data bit timing
@@ -447,13 +481,21 @@ static irqreturn_t remocon_handler(int irq, void *dev)
 
 	Rem.Stat = STATUS0;
 
+	#if defined(CONFIG_ARCH_TCC892X)
+		pRcu->CLKDIV.nREG = BITCLR(pRcu->CLKDIV.nREG, 0xFFFFFF00);	// Set CLK_DIV as 0
+	#else
 	pRcu->CLKDIV = BITCLR(pRcu->CLKDIV, 0xFFFFFF00);	// Set CLK_DIV as 0
+	#endif
 
 	udelay(150); //delay for fifo clear
 
 	do
 	{
+		#if defined(CONFIG_ARCH_TCC892X)
+		rd_data[i] = pRcu->RDATA.nREG;
+		#else
 		rd_data[i] = pRcu->RDATA;
+		#endif
 	}
 	while (++i < IR_FIFO_READ_COUNT);
 
