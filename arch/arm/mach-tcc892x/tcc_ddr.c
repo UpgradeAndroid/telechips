@@ -882,6 +882,7 @@ static void copy_change_clock(void)
 
 //--------------------------------------------------------------
 // disable LCD
+#if !defined(CONFIG_MACH_TCC8920ST)
 #if defined(CONFIG_LCD_LCDC0_USE)
 	RDMA_sts = DEV_RDMA_Status(0);
 	if(RDMA_sts)
@@ -890,6 +891,7 @@ static void copy_change_clock(void)
 	RDMA_sts = DEV_RDMA_Status(1);
 	if(RDMA_sts)
 		tcc_LCDC_onoff_ctrl(1,0);
+#endif
 #endif
 
 //--------------------------------------------------------------
@@ -966,12 +968,14 @@ static void copy_change_clock(void)
 	
 //--------------------------------------------------------------
 // enable LCD
+#if !defined(CONFIG_MACH_TCC8920ST)
 #if defined(CONFIG_LCD_LCDC0_USE)
 	if(RDMA_sts)
 		tcc_LCDC_onoff_ctrl(0,1);
 #else
 	if(RDMA_sts)
 		tcc_LCDC_onoff_ctrl(1,1);
+#endif
 #endif
 
 //--------------------------------------------------------------

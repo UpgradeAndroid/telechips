@@ -53,6 +53,9 @@ extern void SRAM_Boot(void);
 extern void save_cpu_reg(int sram_addr, unsigned int pReg, void *);
 extern void resore_cpu_reg(void);
 extern void __cpu_early_init(void);
+extern unsigned int IO_ARM_ChangeStackSRAM(void);
+extern void IO_ARM_RestoreStackSRAM(unsigned int);
+
 
 /*===========================================================================
 
@@ -71,249 +74,11 @@ extern void __cpu_early_init(void);
 #define denali_phy(x) (*(volatile unsigned long *)addr_mem(0x600000+(x)))
 #define ddr_phy(x) (*(volatile unsigned long *)addr_mem(0x420400+(x)))
 
+typedef void (*FuncPtr)(void);
+
 #define L2CACHE_BASE   0xFA000000
 
-/*===========================================================================
 
-                                 Shut-down
-
-===========================================================================*/
-
-/*===========================================================================
-VARIABLE
-===========================================================================*/
-
-/*===========================================================================
-FUNCTION
-===========================================================================*/
-static void shutdown(void)
-{
-	volatile unsigned int cnt = 0;
-
-// -------------------------------------------------------------------------
-// mmu & cache off
-
-	__asm__ volatile (
-	"mrc p15, 0, r0, c1, c0, 0 \n"
-	"bic r0, r0, #(1<<12) \n" //ICache
-	"bic r0, r0, #(1<<2) \n" //DCache
-	"bic r0, r0, #(1<<0) \n" //MMU
-	"mcr p15, 0, r0, c1, c0, 0 \n"
-	"nop \n"
-	);
-
-// -------------------------------------------------------------------------
-// SDRAM Self-refresh
-
-#if defined(CONFIG_DRAM_DDR3)
-	#if (0)
-		BITCSET(denali_ctl(20), 0xFF000000, ((2<<2)|(1<<1)|(0))<<24);
-		BITSET(denali_ctl(96), 0x3<<8); //DRAM_CLK_DISABLE[9:8] = [CS1, CS0] = 0x3
-	#else
-		while(denali_ctl(45)&(1<<8)); //CONTROLLER_BUSY
-		BITCSET(denali_ctl(20), 0xFF000000, ((2<<2)|(1<<1)|(0))<<24);
-		while(denali_ctl(45)&(1<<8)); //CONTROLLER_BUSY
-		while(!(denali_ctl(46)&(0x40)));
-		BITSET(denali_ctl(47), 0x40);
-		BITSET(denali_ctl(96), 0x3<<8); //DRAM_CLK_DISABLE[9:8] = [CS1, CS0] = 0x3
-		BITCLR(denali_ctl(0),0x1); //START[0] = 0
-		BITSET(denali_phy(0x0C), 0x1<<22); //ctrl_cmosrcv[22] = 0x1
-		BITCSET(denali_phy(0x0C), 0x001F0000, 0x1F<<16); //ctrl_pd[20:16] = 0x1f
-		BITCSET(denali_phy(0x20), 0x000000FF, 0xF<<4|0xF); //ctrl_pulld_dq[7:4] = 0xf, ctrl_pulld_dqs[3:0] = 0xf
-	#endif
-#elif defined(CONFIG_DRAM_DDR2)
-	//Miscellaneous Configuration : COMMON
-	*(volatile unsigned long *)addr_mem(0x410020) &= ~Hw17; //creq2=0 : enter low power
-	while((*(volatile unsigned long *)addr_mem(0x410020))&Hw24); //cack2==0 : wait for acknowledgement to request..
-
-	//MEMCTRL
-	*(volatile unsigned long *)addr_mem(0x430004) |= 0x00000001; //clk_stop_en=1 //Bruce_temp_8920
-#elif defined(CONFIG_DRAM_LPDDR2)
-	#error "LPDDR2 is not implemented"
-#else
-	#error "not selected"
-#endif
-
-	nop_delay(5);
-
-// -------------------------------------------------------------------------
-// Clock <- XIN, PLL <- OFF
-
-//Bruce_temp..
-	((PCKC)HwCKC_BASE)->CLKCTRL0.nREG = 0x002ffff4; //CPU
-	((PCKC)HwCKC_BASE)->CLKCTRL1.nREG = 0x00200014; //Memory Bus
-	((PCKC)HwCKC_BASE)->CLKCTRL2.nREG = 0x00000014; //DDI Bus
-	((PCKC)HwCKC_BASE)->CLKCTRL3.nREG = 0x00000014; //Graphic Bus
-	((PCKC)HwCKC_BASE)->CLKCTRL4.nREG = 0x00200014; //I/O Bus
-	((PCKC)HwCKC_BASE)->CLKCTRL5.nREG = 0x00000014; //Video Bus
-	((PCKC)HwCKC_BASE)->CLKCTRL6.nREG = 0x00000014; //Video core
-	((PCKC)HwCKC_BASE)->CLKCTRL7.nREG = 0x00000014; //HSIO BUS
-	((PCKC)HwCKC_BASE)->CLKCTRL8.nREG = 0x00200014; //SMU Bus
-
-	((PCKC)HwCKC_BASE)->PLL0CFG.nREG &= ~0x80000000;
-	((PCKC)HwCKC_BASE)->PLL1CFG.nREG &= ~0x80000000;
-	((PCKC)HwCKC_BASE)->PLL2CFG.nREG &= ~0x80000000;
-	((PCKC)HwCKC_BASE)->PLL3CFG.nREG &= ~0x80000000;
-	((PCKC)HwCKC_BASE)->PLL4CFG.nREG &= ~0x80000000;
-	((PCKC)HwCKC_BASE)->PLL5CFG.nREG &= ~0x80000000;
-
-// -------------------------------------------------------------------------
-// ZQ/VDDQ Power OFF
-	#if defined(CONFIG_MACH_M805_892X)
-	BITCLR(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
-	#else
-	BITCLR(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
-	#endif
-
-// -------------------------------------------------------------------------
-// SRAM Retention
-
-	BITCLR(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG, 1<<16); //PD_RETN : SRAM retention mode=0
-
-// -------------------------------------------------------------------------
-// Remap
-
-	BITCSET(((PPMU)HwPMU_BASE)->PMU_CONFIG.nREG, 0x30000000, 0x10000000); //remap : 0x00000000 <- sram(0x10000000)
-	BITSET(((PMEMBUSCFG)HwMBUSCFG_BASE)->MBUSCFG.nREG, 1<<31); //RMIR : remap for top area : 0xF0000000 <- sram(0x10000000)
-
-// -------------------------------------------------------------------------
-// BUS Power Down
-
-#if defined(TCC_PM_PMU_CTRL)
-	//IP isolation off
-	((PPMU)HwPMU_BASE)->PMU_ISOL.nREG = 0xFFFFFFFF;
-
-	//High Speed I/O Bus power down
-	((PMEMBUSCFG)HwMBUSCFG_BASE)->HCLKMASK.bREG.HSIOBUS = 0;
-	while (((PMEMBUSCFG)HwMBUSCFG_BASE)->MBUSSTS.bREG.HSIOBUS == 1);
-	((PPMU)HwPMU_BASE)->PMU_SYSRST.bREG.HSB = 0;
-	((PPMU)HwPMU_BASE)->PWRDN_HSBUS.bREG.DATA = 1;
-	while (((PPMU)HwPMU_BASE)->PMU_PWRSTS.bREG.PD_HSB == 0);
-
-	//DDI Bus power down
-	((PMEMBUSCFG)HwMBUSCFG_BASE)->HCLKMASK.bREG.DBUS = 0;
-	while ((((PMEMBUSCFG)HwMBUSCFG_BASE)->MBUSSTS.bREG.DBUS0 | ((PMEMBUSCFG)HwMBUSCFG_BASE)->MBUSSTS.bREG.DBUS1) == 1);
-	((PPMU)HwPMU_BASE)->PMU_SYSRST.bREG.DB = 0;
-	((PPMU)HwPMU_BASE)->PWRDN_DBUS.bREG.DATA = 1;
-	while (((PPMU)HwPMU_BASE)->PMU_PWRSTS.bREG.PD_DB == 0);
-
-	//Graphic Bus power down
-	((PMEMBUSCFG)HwMBUSCFG_BASE)->HCLKMASK.bREG.GBUS = 0;
-	while (((PMEMBUSCFG)HwMBUSCFG_BASE)->MBUSSTS.bREG.GBUS == 1);
-	((PPMU)HwPMU_BASE)->PMU_SYSRST.bREG.GB = 0;
-	((PPMU)HwPMU_BASE)->PWRDN_GBUS.bREG.DATA = 1;
-	while (((PPMU)HwPMU_BASE)->PMU_PWRSTS.bREG.PD_GB == 0);
-
-	//Video Bus power down
-	((PMEMBUSCFG)HwMBUSCFG_BASE)->HCLKMASK.bREG.VBUS = 0;
-	while ((((PMEMBUSCFG)HwMBUSCFG_BASE)->MBUSSTS.bREG.VBUS0 | ((PMEMBUSCFG)HwMBUSCFG_BASE)->MBUSSTS.bREG.VBUS1) == 1);
-	((PPMU)HwPMU_BASE)->PMU_SYSRST.bREG.VB = 0;
-	((PPMU)HwPMU_BASE)->PWRDN_VBUS.bREG.DATA = 1;
-	while (((PPMU)HwPMU_BASE)->PMU_PWRSTS.bREG.PD_VB == 0);
-#endif
-
-// -------------------------------------------------------------------------
-// SSTL & IO Retention
-
-	while(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG&(1<<8)){
-		BITCLR(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG, 1<<8); //SSTL_RTO : SSTL I/O retention mode =0
-	}
-	while(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG&(1<<4)){
-		BITCLR(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG, 1<<4); //IO_RTO : I/O retention mode =0
-	}
-
-// -------------------------------------------------------------------------
-// set wake-up
-//Bruce, wake-up source should be surely set here !!!!
-
-	//set wake-up trigger mode : level
-	((PPMU)HwPMU_BASE)->PMU_WKMOD0.nREG = 0xFFFFFFFF;
-	((PPMU)HwPMU_BASE)->PMU_WKMOD1.nREG = 0xFFFFFFFF;
-
-	/* Power Key */
-#if defined(CONFIG_MACH_M805_892X)
-	//set wake-up polarity
-	((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_D09 = 1; //power key - Active Low
-	//set wake-up source
-	((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D09 = 1; //power key
-#elif defined(CONFIG_MACH_TCC8920ST)
-	//set wake-up polarity
-	((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_D14 = 1; //power key - Active Low
-	//set wake-up source
-	((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D14 = 1; //power key
-#else
-	//set wake-up polarity
-	((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_G16 = 1; //power key - Active Low
-	//set wake-up source
-	((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_G16 = 1; //power key
-#endif
-
-	/* RTC Alarm Wake Up */
-	//set wake-up polarity
-	((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.RTC_WAKEUP = 0; //RTC_PMWKUP - Active High
-	//set wake-up source
-	((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.RTC_WAKEUP = 1; //RTC_PMWKUP - PMU WakeUp Enable
-
-// -------------------------------------------------------------------------
-// Enter Shutdown !!
-
-	while(1){
-		((PPMU)HwPMU_BASE)->PWRDN_TOP.nREG = 1;
-		nop_delay(100);
-	};
-}
-
-/*===========================================================================
-FUNCTION
-===========================================================================*/
-static void wakeup(void)
-{
-	volatile unsigned int cnt;
-	volatile unsigned *src;
-	volatile unsigned *dest;
-
-// -------------------------------------------------------------------------
-// GPIO Restore
-
-	src = (unsigned*)GPIO_REPOSITORY_ADDR;
-	dest = (unsigned*)HwGPIO_BASE;
-
-	for(cnt=0 ; cnt<(sizeof(GPIO)/sizeof(unsigned)) ; cnt++)
-		dest[cnt] = src[cnt];
-
-// -------------------------------------------------------------------------
-// set wake-up
-	//disable all for accessing PMU Reg. !!!
-	((PPMU)HwPMU_BASE)->PMU_WKUP0.nREG = 0x00000000;
-	((PPMU)HwPMU_BASE)->PMU_WKUP1.nREG = 0x00000000;
-
-// -------------------------------------------------------------------------
-// SSTL & IO Retention Disable
-
-	while(!(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG&(1<<8))){
-		BITSET(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG, 1<<8); //SSTL_RTO : SSTL I/O retention mode disable=1
-	}
-	while(!(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG&(1<<4))){
-		BITSET(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG, 1<<4); //IO_RTO : I/O retention mode disable=1
-	}
-
-// -------------------------------------------------------------------------
-// ZQ/VDDQ Power ON
-
-	#if defined(CONFIG_MACH_M805_892X)
-	BITSET(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
-	#else
-	BITSET(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
-	#endif
-
-// -------------------------------------------------------------------------
-// BUS Power On
-
-#if defined(TCC_PM_PMU_CTRL)
-	//IP isolation on
-	((PPMU)HwPMU_BASE)->PMU_ISOL.nREG = 0x00000000;
-#endif
-}
 
 /*===========================================================================
 FUNCTION
@@ -875,6 +640,278 @@ static void sdram_init(void)
 #endif
 }
 
+#if defined(CONFIG_SHUTDOWN_MODE)
+/*===========================================================================
+
+                                 Shut-down
+
+===========================================================================*/
+
+/*===========================================================================
+VARIABLE
+===========================================================================*/
+
+/*===========================================================================
+FUNCTION
+===========================================================================*/
+static void shutdown(void)
+{
+	volatile unsigned int cnt = 0;
+
+// -------------------------------------------------------------------------
+// mmu & cache off
+
+	__asm__ volatile (
+	"mrc p15, 0, r0, c1, c0, 0 \n"
+	"bic r0, r0, #(1<<12) \n" //ICache
+	"bic r0, r0, #(1<<2) \n" //DCache
+	"bic r0, r0, #(1<<0) \n" //MMU
+	"mcr p15, 0, r0, c1, c0, 0 \n"
+	"nop \n"
+	);
+
+// -------------------------------------------------------------------------
+// SDRAM Self-refresh
+
+#if defined(CONFIG_DRAM_DDR3)
+	#if (0)
+		BITCSET(denali_ctl(20), 0xFF000000, ((2<<2)|(1<<1)|(0))<<24);
+		BITSET(denali_ctl(96), 0x3<<8); //DRAM_CLK_DISABLE[9:8] = [CS1, CS0] = 0x3
+	#else
+		while(denali_ctl(45)&(1<<8)); //CONTROLLER_BUSY
+		BITCSET(denali_ctl(20), 0xFF000000, ((2<<2)|(1<<1)|(0))<<24);
+		while(denali_ctl(45)&(1<<8)); //CONTROLLER_BUSY
+		while(!(denali_ctl(46)&(0x40)));
+		BITSET(denali_ctl(47), 0x40);
+		BITSET(denali_ctl(96), 0x3<<8); //DRAM_CLK_DISABLE[9:8] = [CS1, CS0] = 0x3
+		BITCLR(denali_ctl(0),0x1); //START[0] = 0
+		BITSET(denali_phy(0x0C), 0x1<<22); //ctrl_cmosrcv[22] = 0x1
+		BITCSET(denali_phy(0x0C), 0x001F0000, 0x1F<<16); //ctrl_pd[20:16] = 0x1f
+		BITCSET(denali_phy(0x20), 0x000000FF, 0xF<<4|0xF); //ctrl_pulld_dq[7:4] = 0xf, ctrl_pulld_dqs[3:0] = 0xf
+	#endif
+#elif defined(CONFIG_DRAM_DDR2)
+	//Miscellaneous Configuration : COMMON
+	*(volatile unsigned long *)addr_mem(0x410020) &= ~Hw17; //creq2=0 : enter low power
+	while((*(volatile unsigned long *)addr_mem(0x410020))&Hw24); //cack2==0 : wait for acknowledgement to request..
+
+	//MEMCTRL
+	*(volatile unsigned long *)addr_mem(0x430004) |= 0x00000001; //clk_stop_en=1 //Bruce_temp_8920
+#elif defined(CONFIG_DRAM_LPDDR2)
+	#error "LPDDR2 is not implemented"
+#else
+	#error "not selected"
+#endif
+
+	nop_delay(5);
+
+// -------------------------------------------------------------------------
+// Clock <- XIN, PLL <- OFF
+
+//Bruce_temp..
+	((PCKC)HwCKC_BASE)->CLKCTRL0.nREG = 0x002ffff4; //CPU
+	((PCKC)HwCKC_BASE)->CLKCTRL1.nREG = 0x00200014; //Memory Bus
+	((PCKC)HwCKC_BASE)->CLKCTRL2.nREG = 0x00000014; //DDI Bus
+	((PCKC)HwCKC_BASE)->CLKCTRL3.nREG = 0x00000014; //Graphic Bus
+	((PCKC)HwCKC_BASE)->CLKCTRL4.nREG = 0x00200014; //I/O Bus
+	((PCKC)HwCKC_BASE)->CLKCTRL5.nREG = 0x00000014; //Video Bus
+	((PCKC)HwCKC_BASE)->CLKCTRL6.nREG = 0x00000014; //Video core
+	((PCKC)HwCKC_BASE)->CLKCTRL7.nREG = 0x00000014; //HSIO BUS
+	((PCKC)HwCKC_BASE)->CLKCTRL8.nREG = 0x00200014; //SMU Bus
+
+	((PCKC)HwCKC_BASE)->PLL0CFG.nREG &= ~0x80000000;
+	((PCKC)HwCKC_BASE)->PLL1CFG.nREG &= ~0x80000000;
+	((PCKC)HwCKC_BASE)->PLL2CFG.nREG &= ~0x80000000;
+	((PCKC)HwCKC_BASE)->PLL3CFG.nREG &= ~0x80000000;
+	((PCKC)HwCKC_BASE)->PLL4CFG.nREG &= ~0x80000000;
+	((PCKC)HwCKC_BASE)->PLL5CFG.nREG &= ~0x80000000;
+
+// -------------------------------------------------------------------------
+// ZQ/VDDQ Power OFF
+	#if defined(CONFIG_MACH_M805_892X)
+	BITCLR(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
+	#else
+	BITCLR(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
+	#endif
+
+// -------------------------------------------------------------------------
+// SRAM Retention
+
+	BITCLR(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG, 1<<16); //PD_RETN : SRAM retention mode=0
+
+// -------------------------------------------------------------------------
+// Remap
+
+	BITCSET(((PPMU)HwPMU_BASE)->PMU_CONFIG.nREG, 0x30000000, 0x10000000); //remap : 0x00000000 <- sram(0x10000000)
+	BITSET(((PMEMBUSCFG)HwMBUSCFG_BASE)->MBUSCFG.nREG, 1<<31); //RMIR : remap for top area : 0xF0000000 <- sram(0x10000000)
+
+// -------------------------------------------------------------------------
+// BUS Power Down
+
+#if defined(TCC_PM_PMU_CTRL)
+	//IP isolation off
+	((PPMU)HwPMU_BASE)->PMU_ISOL.nREG = 0xFFFFFFFF;
+
+	//High Speed I/O Bus power down
+	((PMEMBUSCFG)HwMBUSCFG_BASE)->HCLKMASK.bREG.HSIOBUS = 0;
+	while (((PMEMBUSCFG)HwMBUSCFG_BASE)->MBUSSTS.bREG.HSIOBUS == 1);
+	((PPMU)HwPMU_BASE)->PMU_SYSRST.bREG.HSB = 0;
+	((PPMU)HwPMU_BASE)->PWRDN_HSBUS.bREG.DATA = 1;
+	while (((PPMU)HwPMU_BASE)->PMU_PWRSTS.bREG.PD_HSB == 0);
+
+	//DDI Bus power down
+	((PMEMBUSCFG)HwMBUSCFG_BASE)->HCLKMASK.bREG.DBUS = 0;
+	while ((((PMEMBUSCFG)HwMBUSCFG_BASE)->MBUSSTS.bREG.DBUS0 | ((PMEMBUSCFG)HwMBUSCFG_BASE)->MBUSSTS.bREG.DBUS1) == 1);
+	((PPMU)HwPMU_BASE)->PMU_SYSRST.bREG.DB = 0;
+	((PPMU)HwPMU_BASE)->PWRDN_DBUS.bREG.DATA = 1;
+	while (((PPMU)HwPMU_BASE)->PMU_PWRSTS.bREG.PD_DB == 0);
+
+	//Graphic Bus power down
+	((PMEMBUSCFG)HwMBUSCFG_BASE)->HCLKMASK.bREG.GBUS = 0;
+	while (((PMEMBUSCFG)HwMBUSCFG_BASE)->MBUSSTS.bREG.GBUS == 1);
+	((PPMU)HwPMU_BASE)->PMU_SYSRST.bREG.GB = 0;
+	((PPMU)HwPMU_BASE)->PWRDN_GBUS.bREG.DATA = 1;
+	while (((PPMU)HwPMU_BASE)->PMU_PWRSTS.bREG.PD_GB == 0);
+
+	//Video Bus power down
+	((PMEMBUSCFG)HwMBUSCFG_BASE)->HCLKMASK.bREG.VBUS = 0;
+	while ((((PMEMBUSCFG)HwMBUSCFG_BASE)->MBUSSTS.bREG.VBUS0 | ((PMEMBUSCFG)HwMBUSCFG_BASE)->MBUSSTS.bREG.VBUS1) == 1);
+	((PPMU)HwPMU_BASE)->PMU_SYSRST.bREG.VB = 0;
+	((PPMU)HwPMU_BASE)->PWRDN_VBUS.bREG.DATA = 1;
+	while (((PPMU)HwPMU_BASE)->PMU_PWRSTS.bREG.PD_VB == 0);
+#endif
+
+// -------------------------------------------------------------------------
+// SSTL & IO Retention
+
+	while(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG&(1<<8)){
+		BITCLR(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG, 1<<8); //SSTL_RTO : SSTL I/O retention mode =0
+	}
+	while(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG&(1<<4)){
+		BITCLR(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG, 1<<4); //IO_RTO : I/O retention mode =0
+	}
+
+// -------------------------------------------------------------------------
+// set wake-up
+//Bruce, wake-up source should be surely set here !!!!
+
+	//set wake-up trigger mode : level
+	((PPMU)HwPMU_BASE)->PMU_WKMOD0.nREG = 0xFFFFFFFF;
+	((PPMU)HwPMU_BASE)->PMU_WKMOD1.nREG = 0xFFFFFFFF;
+
+	/* Power Key */
+#if defined(CONFIG_MACH_M805_892X)
+	//set wake-up polarity
+	((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_D09 = 1; //power key - Active Low
+	//set wake-up source
+	((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D09 = 1; //power key
+#elif defined(CONFIG_MACH_TCC8920ST)
+	//set wake-up polarity
+	((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_D14 = 1; //power key - Active Low
+	//set wake-up source
+	((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D14 = 1; //power key
+#else
+	//set wake-up polarity
+	((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_G16 = 1; //power key - Active Low
+	//set wake-up source
+	((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_G16 = 1; //power key
+#endif
+
+	/* RTC Alarm Wake Up */
+	//set wake-up polarity
+	((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.RTC_WAKEUP = 0; //RTC_PMWKUP - Active High
+	//set wake-up source
+	((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.RTC_WAKEUP = 1; //RTC_PMWKUP - PMU WakeUp Enable
+
+// -------------------------------------------------------------------------
+// Enter Shutdown !!
+
+	while(1){
+		((PPMU)HwPMU_BASE)->PWRDN_TOP.nREG = 1;
+		nop_delay(100);
+	};
+}
+
+/*===========================================================================
+FUNCTION
+===========================================================================*/
+static void wakeup(void)
+{
+	volatile unsigned int cnt;
+	volatile unsigned *src;
+	volatile unsigned *dest;
+
+// -------------------------------------------------------------------------
+// GPIO Restore
+
+	src = (unsigned*)GPIO_REPOSITORY_ADDR;
+	dest = (unsigned*)HwGPIO_BASE;
+
+	for(cnt=0 ; cnt<(sizeof(GPIO)/sizeof(unsigned)) ; cnt++)
+		dest[cnt] = src[cnt];
+
+// -------------------------------------------------------------------------
+// set wake-up
+	//disable all for accessing PMU Reg. !!!
+	((PPMU)HwPMU_BASE)->PMU_WKUP0.nREG = 0x00000000;
+	((PPMU)HwPMU_BASE)->PMU_WKUP1.nREG = 0x00000000;
+
+// -------------------------------------------------------------------------
+// SSTL & IO Retention Disable
+
+	while(!(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG&(1<<8))){
+		BITSET(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG, 1<<8); //SSTL_RTO : SSTL I/O retention mode disable=1
+	}
+	while(!(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG&(1<<4))){
+		BITSET(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG, 1<<4); //IO_RTO : I/O retention mode disable=1
+	}
+
+// -------------------------------------------------------------------------
+// ZQ/VDDQ Power ON
+
+	#if defined(CONFIG_MACH_M805_892X)
+	BITSET(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
+	#else
+	BITSET(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
+	#endif
+
+// -------------------------------------------------------------------------
+// BUS Power On
+
+#if defined(TCC_PM_PMU_CTRL)
+	while(((PPMU)HwPMU_BASE)->PMU_PWRSTS.bREG.MAIN_STATE);
+
+	((PPMU)HwPMU_BASE)->PWRUP_HSBUS.bREG.DATA = 1;
+	while (((PPMU)HwPMU_BASE)->PMU_PWRSTS.bREG.PU_HSB == 0);
+	((PPMU)HwPMU_BASE)->PMU_SYSRST.bREG.HSB = 1;
+	((PMEMBUSCFG)HwMBUSCFG_BASE)->HCLKMASK.bREG.HSIOBUS = 1;
+	while (((PMEMBUSCFG)HwMBUSCFG_BASE)->MBUSSTS.bREG.HSIOBUS == 0);
+
+	((PPMU)HwPMU_BASE)->PWRUP_DBUS.bREG.DATA = 1;
+	while (((PPMU)HwPMU_BASE)->PMU_PWRSTS.bREG.PU_DB == 0);
+	((PPMU)HwPMU_BASE)->PMU_SYSRST.bREG.DB = 1;
+	((PMEMBUSCFG)HwMBUSCFG_BASE)->HCLKMASK.bREG.DBUS = 1;
+	while ((((PMEMBUSCFG)HwMBUSCFG_BASE)->MBUSSTS.bREG.DBUS0 & ((PMEMBUSCFG)HwMBUSCFG_BASE)->MBUSSTS.bREG.DBUS1) == 0);
+
+	((PPMU)HwPMU_BASE)->PWRUP_GBUS.bREG.DATA = 1;
+	while (((PPMU)HwPMU_BASE)->PMU_PWRSTS.bREG.PU_GB == 0);
+	((PPMU)HwPMU_BASE)->PMU_SYSRST.bREG.GB = 1;
+	((PMEMBUSCFG)HwMBUSCFG_BASE)->HCLKMASK.bREG.GBUS = 1;
+	while (((PMEMBUSCFG)HwMBUSCFG_BASE)->MBUSSTS.bREG.GBUS == 0);
+
+	((PPMU)HwPMU_BASE)->PWRUP_VBUS.bREG.DATA = 1;
+	while (((PPMU)HwPMU_BASE)->PMU_PWRSTS.bREG.PU_VB == 0);
+	((PPMU)HwPMU_BASE)->PMU_SYSRST.bREG.VB = 1;
+	((PMEMBUSCFG)HwMBUSCFG_BASE)->HCLKMASK.bREG.VBUS = 1;
+	while ((((PMEMBUSCFG)HwMBUSCFG_BASE)->MBUSSTS.bREG.VBUS0 & ((PMEMBUSCFG)HwMBUSCFG_BASE)->MBUSSTS.bREG.VBUS1) == 0);
+
+	//IP isolation on
+	((PPMU)HwPMU_BASE)->PMU_ISOL.nREG = 0x00000000;
+#endif
+}
+
+/*===========================================================================
+VARIABLE
+===========================================================================*/
 static TCC_REG RegRepo;
 
 /*===========================================================================
@@ -884,6 +921,14 @@ static void shutdown_mode(void)
 {
 	volatile unsigned int cnt = 0;
 	unsigned way_mask;
+
+	/*--------------------------------------------------------------
+	 replace pm functions
+	--------------------------------------------------------------*/
+	memcpy((void*)SRAM_BOOT_ADDR,       (void*)SRAM_Boot,  SRAM_BOOT_SIZE);
+	memcpy((void*)SHUTDOWN_FUNC_ADDR,   (void*)shutdown,   SHUTDOWN_FUNC_SIZE);
+	memcpy((void*)WAKEUP_FUNC_ADDR,     (void*)wakeup,     WAKEUP_FUNC_SIZE);
+	memcpy((void*)SDRAM_INIT_FUNC_ADDR, (void*)sdram_init, SDRAM_INIT_FUNC_SIZE);
 
 	/*--------------------------------------------------------------
 	 BUS Config
@@ -947,46 +992,6 @@ static void shutdown_mode(void)
 	/*--------------------------------------------------------------
 	 SMU & PMU
 	--------------------------------------------------------------*/
-#if defined(TCC_PM_PMU_CTRL)
-	//memcpy((PPMU)tcc_p2v(HwPMU_BASE), &RegRepo.pmu, sizeof(PMU));
-	{
-		while(((PPMU)tcc_p2v(HwPMU_BASE))->PMU_PWRSTS.bREG.MAIN_STATE);
-
-		if(RegRepo.pmu.PMU_PWRSTS.bREG.PU_HSB){ //if High Speed I/O Bus has been turn on.
-			((PPMU)tcc_p2v(HwPMU_BASE))->PWRUP_HSBUS.bREG.DATA = 1;
-			while (((PPMU)tcc_p2v(HwPMU_BASE))->PMU_PWRSTS.bREG.PU_HSB == 0);
-			((PPMU)tcc_p2v(HwPMU_BASE))->PMU_SYSRST.bREG.HSB = 1;
-			((PMEMBUSCFG)tcc_p2v(HwMBUSCFG_BASE))->HCLKMASK.bREG.HSIOBUS = 1;
-			while (((PMEMBUSCFG)tcc_p2v(HwMBUSCFG_BASE))->MBUSSTS.bREG.HSIOBUS == 0);
-		}
-		if(RegRepo.pmu.PMU_PWRSTS.bREG.PU_DB){ //if DDI Bus has been turn on.
-			((PPMU)tcc_p2v(HwPMU_BASE))->PWRUP_DBUS.bREG.DATA = 1;
-			while (((PPMU)tcc_p2v(HwPMU_BASE))->PMU_PWRSTS.bREG.PU_DB == 0);
-			((PPMU)tcc_p2v(HwPMU_BASE))->PMU_SYSRST.bREG.DB = 1;
-			((PMEMBUSCFG)tcc_p2v(HwMBUSCFG_BASE))->HCLKMASK.bREG.DBUS = 1;
-			while ((((PMEMBUSCFG)tcc_p2v(HwMBUSCFG_BASE))->MBUSSTS.bREG.DBUS0 & ((PMEMBUSCFG)tcc_p2v(HwMBUSCFG_BASE))->MBUSSTS.bREG.DBUS1) == 0);
-		}
-		if(RegRepo.pmu.PMU_PWRSTS.bREG.PU_GB){ //if Graphic Bus has been turn on.
-			((PPMU)tcc_p2v(HwPMU_BASE))->PWRUP_GBUS.bREG.DATA = 1;
-			while (((PPMU)tcc_p2v(HwPMU_BASE))->PMU_PWRSTS.bREG.PU_GB == 0);
-			((PPMU)tcc_p2v(HwPMU_BASE))->PMU_SYSRST.bREG.GB = 1;
-			((PMEMBUSCFG)tcc_p2v(HwMBUSCFG_BASE))->HCLKMASK.bREG.GBUS = 1;
-			while (((PMEMBUSCFG)tcc_p2v(HwMBUSCFG_BASE))->MBUSSTS.bREG.GBUS == 0);
-		}
-		if(RegRepo.pmu.PMU_PWRSTS.bREG.PU_VB){ //if Video Bus has been turn on.
-			((PPMU)tcc_p2v(HwPMU_BASE))->PWRUP_VBUS.bREG.DATA = 1;
-			while (((PPMU)tcc_p2v(HwPMU_BASE))->PMU_PWRSTS.bREG.PU_VB == 0);
-			((PPMU)tcc_p2v(HwPMU_BASE))->PMU_SYSRST.bREG.VB = 1;
-			((PMEMBUSCFG)tcc_p2v(HwMBUSCFG_BASE))->HCLKMASK.bREG.VBUS = 1;
-			while ((((PMEMBUSCFG)tcc_p2v(HwMBUSCFG_BASE))->MBUSSTS.bREG.VBUS0 & ((PMEMBUSCFG)tcc_p2v(HwMBUSCFG_BASE))->MBUSSTS.bREG.VBUS1) == 0);
-		}
-
-		//IP isolation restore
-		//Bruce, PMU_ISOL is only write-only.. so it can't be set by back-up data..
-		//((PPMU)tcc_p2v(HwPMU_BASE))->PMU_ISOL.nREG = RegRepo.PMU_ISOL.nREG;
-		((PPMU)tcc_p2v(HwPMU_BASE))->PMU_ISOL.nREG = 0x00000000;
-	}
-#endif
 
 	//memcpy((PCKC)tcc_p2v(HwCKC_BASE), &RegRepo.ckc, sizeof(CKC));
 	{
@@ -1021,13 +1026,11 @@ static void shutdown_mode(void)
 	}
 	nop_delay(100);
 
-	memcpy((PPIC)tcc_p2v(HwPIC_BASE), &RegRepo.pic, sizeof(PIC));
-	memcpy((PVIC)tcc_p2v(HwVIC_BASE), &RegRepo.vic, sizeof(VIC));
-	memcpy((PTIMER *)tcc_p2v(HwTMR_BASE), &RegRepo.timer, sizeof(TIMER));
-
-#if (0)
+#if defined(TCC_PM_PMU_CTRL)
 	//memcpy((PPMU)tcc_p2v(HwPMU_BASE), &RegRepo.pmu, sizeof(PMU));
 	{
+		while(((PPMU)tcc_p2v(HwPMU_BASE))->PMU_PWRSTS.bREG.MAIN_STATE);
+
 		if(RegRepo.pmu.PMU_PWRSTS.bREG.PD_HSB){ //if High Speed I/O Bus has been turn off.
 			((PMEMBUSCFG)tcc_p2v(HwMBUSCFG_BASE))->HCLKMASK.bREG.HSIOBUS = 0;
 			while (((PMEMBUSCFG)tcc_p2v(HwMBUSCFG_BASE))->MBUSSTS.bREG.HSIOBUS == 1);
@@ -1056,15 +1059,17 @@ static void shutdown_mode(void)
 			((PPMU)tcc_p2v(HwPMU_BASE))->PWRDN_VBUS.bREG.DATA = 1;
 			while (((PPMU)tcc_p2v(HwPMU_BASE))->PMU_PWRSTS.bREG.PD_VB == 0);
 		}
-		//if(RegRepo.pmu.PMU_PWRSTS.bREG.PD_MB) //Memory bus should be always turn on.
 
-		//IP isolation off
+		//IP isolation restore
 		//Bruce, PMU_ISOL is only write-only.. so it can't be set by back-up data..
 		//((PPMU)tcc_p2v(HwPMU_BASE))->PMU_ISOL.nREG = RegRepo.PMU_ISOL.nREG;
 		((PPMU)tcc_p2v(HwPMU_BASE))->PMU_ISOL.nREG = 0x00000000;
 	}
 #endif
 
+	memcpy((PPIC)tcc_p2v(HwPIC_BASE), &RegRepo.pic, sizeof(PIC));
+	memcpy((PVIC)tcc_p2v(HwVIC_BASE), &RegRepo.vic, sizeof(VIC));
+	memcpy((PTIMER *)tcc_p2v(HwTMR_BASE), &RegRepo.timer, sizeof(TIMER));
 	memcpy((PSMUCONFIG)tcc_p2v(HwSMUCONFIG_BASE), &RegRepo.smuconfig, sizeof(SMUCONFIG));
 
 	/*--------------------------------------------------------------
@@ -1098,6 +1103,494 @@ static void shutdown_mode(void)
 }
 /*=========================================================================*/
 
+#elif defined(CONFIG_SLEEP_MODE)
+/*===========================================================================
+
+                                 SLEEP
+
+===========================================================================*/
+
+/*===========================================================================
+FUNCTION
+===========================================================================*/
+static void sleep(void)
+{
+	volatile unsigned int cnt = 0;
+
+	#define PLL5_VALUE      0x01012C03	// PLL5 : 600MHz for CPU
+
+// -------------------------------------------------------------------------
+// mmu & cache off
+
+	__asm__ volatile (
+	"mrc p15, 0, r0, c1, c0, 0 \n"
+	"bic r0, r0, #(1<<12) \n" //ICache
+	"bic r0, r0, #(1<<2) \n" //DCache
+	"bic r0, r0, #(1<<0) \n" //MMU
+	"mcr p15, 0, r0, c1, c0, 0 \n"
+	"nop \n"
+	);
+
+#if defined(CONFIG_DRAM_DDR3)
+	#if (0)
+		BITCSET(denali_ctl(20), 0xFF000000, ((2<<2)|(1<<1)|(0))<<24);
+		BITSET(denali_ctl(96), 0x3<<8); //DRAM_CLK_DISABLE[9:8] = [CS1, CS0] = 0x3
+	#else
+		while(denali_ctl(45)&(1<<8)); //CONTROLLER_BUSY
+		BITCSET(denali_ctl(20), 0xFF000000, ((2<<2)|(1<<1)|(0))<<24);
+		while(denali_ctl(45)&(1<<8)); //CONTROLLER_BUSY
+		while(!(denali_ctl(46)&(0x40)));
+		BITSET(denali_ctl(47), 0x40);
+		BITSET(denali_ctl(96), 0x3<<8); //DRAM_CLK_DISABLE[9:8] = [CS1, CS0] = 0x3
+		BITCLR(denali_ctl(0),0x1); //START[0] = 0
+		BITSET(denali_phy(0x0C), 0x1<<22); //ctrl_cmosrcv[22] = 0x1
+		BITCSET(denali_phy(0x0C), 0x001F0000, 0x1F<<16); //ctrl_pd[20:16] = 0x1f
+		BITCSET(denali_phy(0x20), 0x000000FF, 0xF<<4|0xF); //ctrl_pulld_dq[7:4] = 0xf, ctrl_pulld_dqs[3:0] = 0xf
+	#endif
+#elif defined(CONFIG_DRAM_DDR2)
+// -------------------------------------------------------------------------
+// SDRAM Self-refresh
+	//Miscellaneous Configuration : COMMON
+	*(volatile unsigned long *)addr_mem(0x410020) &= ~Hw17; //creq2=0 : enter low power
+	while((*(volatile unsigned long *)addr_mem(0x410020))&Hw24); //cack2==0 : wait for acknowledgement to request..
+
+	//MEMCTRL
+	*(volatile unsigned long *)addr_mem(0x430004) |= 0x00000001; //clk_stop_en=1 //Bruce_temp_8920
+#elif defined(CONFIG_DRAM_LPDDR2)
+	#error "LPDDR2 is not implemented"
+#else
+	#error "not selected"
+#endif
+
+	nop_delay(5);
+
+// -------------------------------------------------------------------------
+// Clock <- XIN, PLL <- OFF
+
+	((PCKC)HwCKC_BASE)->CLKCTRL0.nREG = 0x002ffff4; //CPU
+	((PCKC)HwCKC_BASE)->CLKCTRL1.nREG = 0x00200014; //Memory Bus
+	((PCKC)HwCKC_BASE)->CLKCTRL2.nREG = 0x00000014; //DDI Bus
+	((PCKC)HwCKC_BASE)->CLKCTRL3.nREG = 0x00000014; //Graphic Bus
+	((PCKC)HwCKC_BASE)->CLKCTRL4.nREG = 0x00200014; //I/O Bus
+	((PCKC)HwCKC_BASE)->CLKCTRL5.nREG = 0x00000014; //Video Bus
+	((PCKC)HwCKC_BASE)->CLKCTRL6.nREG = 0x00000014; //Video core
+	((PCKC)HwCKC_BASE)->CLKCTRL7.nREG = 0x00000014; //HSIO BUS
+	((PCKC)HwCKC_BASE)->CLKCTRL8.nREG = 0x00200014; //SMU Bus
+
+	((PCKC)HwCKC_BASE)->PLL0CFG.nREG &= ~0x80000000;
+	((PCKC)HwCKC_BASE)->PLL1CFG.nREG &= ~0x80000000;
+	((PCKC)HwCKC_BASE)->PLL2CFG.nREG &= ~0x80000000;
+	((PCKC)HwCKC_BASE)->PLL3CFG.nREG &= ~0x80000000;
+	((PCKC)HwCKC_BASE)->PLL4CFG.nREG &= ~0x80000000;
+	((PCKC)HwCKC_BASE)->PLL5CFG.nREG &= ~0x80000000;
+
+// -------------------------------------------------------------------------
+// ZQ/VDDQ Power OFF
+	#if defined(CONFIG_MACH_M805_892X)
+	BITCLR(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
+	#else
+	BITCLR(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
+	#endif
+
+// -------------------------------------------------------------------------
+// SRAM Retention
+
+	BITCLR(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG, 1<<16); //PD_RETN : SRAM retention mode=0
+
+// -------------------------------------------------------------------------
+// BUS Power Down
+
+#if defined(TCC_PM_PMU_CTRL)
+	//IP isolation off
+	((PPMU)HwPMU_BASE)->PMU_ISOL.nREG = 0xFFFFFFFF;
+
+	//High Speed I/O Bus power down
+	((PMEMBUSCFG)HwMBUSCFG_BASE)->HCLKMASK.bREG.HSIOBUS = 0;
+	while (((PMEMBUSCFG)HwMBUSCFG_BASE)->MBUSSTS.bREG.HSIOBUS == 1);
+	((PPMU)HwPMU_BASE)->PMU_SYSRST.bREG.HSB = 0;
+	((PPMU)HwPMU_BASE)->PWRDN_HSBUS.bREG.DATA = 1;
+	while (((PPMU)HwPMU_BASE)->PMU_PWRSTS.bREG.PD_HSB == 0);
+
+	//DDI Bus power down
+	((PMEMBUSCFG)HwMBUSCFG_BASE)->HCLKMASK.bREG.DBUS = 0;
+	while ((((PMEMBUSCFG)HwMBUSCFG_BASE)->MBUSSTS.bREG.DBUS0 | ((PMEMBUSCFG)HwMBUSCFG_BASE)->MBUSSTS.bREG.DBUS1) == 1);
+	((PPMU)HwPMU_BASE)->PMU_SYSRST.bREG.DB = 0;
+	((PPMU)HwPMU_BASE)->PWRDN_DBUS.bREG.DATA = 1;
+	while (((PPMU)HwPMU_BASE)->PMU_PWRSTS.bREG.PD_DB == 0);
+
+	//Graphic Bus power down
+	((PMEMBUSCFG)HwMBUSCFG_BASE)->HCLKMASK.bREG.GBUS = 0;
+	while (((PMEMBUSCFG)HwMBUSCFG_BASE)->MBUSSTS.bREG.GBUS == 1);
+	((PPMU)HwPMU_BASE)->PMU_SYSRST.bREG.GB = 0;
+	((PPMU)HwPMU_BASE)->PWRDN_GBUS.bREG.DATA = 1;
+	while (((PPMU)HwPMU_BASE)->PMU_PWRSTS.bREG.PD_GB == 0);
+
+	//Video Bus power down
+	((PMEMBUSCFG)HwMBUSCFG_BASE)->HCLKMASK.bREG.VBUS = 0;
+	while ((((PMEMBUSCFG)HwMBUSCFG_BASE)->MBUSSTS.bREG.VBUS0 | ((PMEMBUSCFG)HwMBUSCFG_BASE)->MBUSSTS.bREG.VBUS1) == 1);
+	((PPMU)HwPMU_BASE)->PMU_SYSRST.bREG.VB = 0;
+	((PPMU)HwPMU_BASE)->PWRDN_VBUS.bREG.DATA = 1;
+	while (((PPMU)HwPMU_BASE)->PMU_PWRSTS.bREG.PD_VB == 0);
+#endif
+
+// -------------------------------------------------------------------------
+// SSTL & IO Retention
+
+	while(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG&(1<<8)){
+		BITCLR(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG, 1<<8); //SSTL_RTO : SSTL I/O retention mode =0
+	}
+	while(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG&(1<<4)){
+		BITCLR(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG, 1<<4); //IO_RTO : I/O retention mode =0
+	}
+
+// -------------------------------------------------------------------------
+// set wake-up
+//Bruce, wake-up source should be surely set here !!!!
+
+	//set wake-up trigger mode : level
+	((PPMU)HwPMU_BASE)->PMU_WKMOD0.nREG = 0xFFFFFFFF;
+	((PPMU)HwPMU_BASE)->PMU_WKMOD1.nREG = 0xFFFFFFFF;
+
+	/* Power Key */
+#if defined(CONFIG_MACH_M805_892X)
+	//set wake-up polarity
+	((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_D09 = 1; //power key - Active Low
+	//set wake-up source
+	((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D09 = 1; //power key
+#elif defined(CONFIG_MACH_TCC8920ST)
+	//set wake-up polarity
+	((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_D14 = 1; //power key - Active Low
+	//set wake-up source
+	((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D14 = 1; //power key
+#else
+	//set wake-up polarity
+	((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_G16 = 1; //power key - Active Low
+	//set wake-up source
+	((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_G16 = 1; //power key
+#endif
+
+	/* RTC Alarm Wake Up */
+	//set wake-up polarity
+	((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.RTC_WAKEUP = 0; //RTC_PMWKUP - Active High
+	//set wake-up source
+	((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.RTC_WAKEUP = 1; //RTC_PMWKUP - PMU WakeUp Enable
+
+// -------------------------------------------------------------------------
+// Enter Sleep !!
+////////////////////////////////////////////////////////////////////////////
+	BITSET(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG, 1<<0); //SSTL_RTO : SSTL I/O retention mode =0
+////////////////////////////////////////////////////////////////////////////
+
+// -------------------------------------------------------------------------
+// set wake-up
+	//disable all for accessing PMU Reg. !!!
+	((PPMU)HwPMU_BASE)->PMU_WKUP0.nREG = 0x00000000;
+	((PPMU)HwPMU_BASE)->PMU_WKUP1.nREG = 0x00000000;
+
+// -------------------------------------------------------------------------
+// SSTL & IO Retention Disable
+
+	while(!(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG&(1<<8))){
+		BITSET(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG, 1<<8); //SSTL_RTO : SSTL I/O retention mode disable=1
+	}
+	while(!(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG&(1<<4))){
+		BITSET(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG, 1<<4); //IO_RTO : I/O retention mode disable=1
+	}
+
+// -------------------------------------------------------------------------
+// ZQ/VDDQ Power ON
+
+	#if defined(CONFIG_MACH_M805_892X)
+	BITSET(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
+	#else
+	BITSET(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
+	#endif
+
+// -------------------------------------------------------------------------
+// BUS Power On
+
+#if defined(TCC_PM_PMU_CTRL)
+	while(((PPMU)HwPMU_BASE)->PMU_PWRSTS.bREG.MAIN_STATE);
+
+	((PPMU)HwPMU_BASE)->PWRUP_HSBUS.bREG.DATA = 1;
+	while (((PPMU)HwPMU_BASE)->PMU_PWRSTS.bREG.PU_HSB == 0);
+	((PPMU)HwPMU_BASE)->PMU_SYSRST.bREG.HSB = 1;
+	((PMEMBUSCFG)HwMBUSCFG_BASE)->HCLKMASK.bREG.HSIOBUS = 1;
+	while (((PMEMBUSCFG)HwMBUSCFG_BASE)->MBUSSTS.bREG.HSIOBUS == 0);
+
+	((PPMU)HwPMU_BASE)->PWRUP_DBUS.bREG.DATA = 1;
+	while (((PPMU)HwPMU_BASE)->PMU_PWRSTS.bREG.PU_DB == 0);
+	((PPMU)HwPMU_BASE)->PMU_SYSRST.bREG.DB = 1;
+	((PMEMBUSCFG)HwMBUSCFG_BASE)->HCLKMASK.bREG.DBUS = 1;
+	while ((((PMEMBUSCFG)HwMBUSCFG_BASE)->MBUSSTS.bREG.DBUS0 & ((PMEMBUSCFG)HwMBUSCFG_BASE)->MBUSSTS.bREG.DBUS1) == 0);
+
+	((PPMU)HwPMU_BASE)->PWRUP_GBUS.bREG.DATA = 1;
+	while (((PPMU)HwPMU_BASE)->PMU_PWRSTS.bREG.PU_GB == 0);
+	((PPMU)HwPMU_BASE)->PMU_SYSRST.bREG.GB = 1;
+	((PMEMBUSCFG)HwMBUSCFG_BASE)->HCLKMASK.bREG.GBUS = 1;
+	while (((PMEMBUSCFG)HwMBUSCFG_BASE)->MBUSSTS.bREG.GBUS == 0);
+
+	((PPMU)HwPMU_BASE)->PWRUP_VBUS.bREG.DATA = 1;
+	while (((PPMU)HwPMU_BASE)->PMU_PWRSTS.bREG.PU_VB == 0);
+	((PPMU)HwPMU_BASE)->PMU_SYSRST.bREG.VB = 1;
+	((PMEMBUSCFG)HwMBUSCFG_BASE)->HCLKMASK.bREG.VBUS = 1;
+	while ((((PMEMBUSCFG)HwMBUSCFG_BASE)->MBUSSTS.bREG.VBUS0 & ((PMEMBUSCFG)HwMBUSCFG_BASE)->MBUSSTS.bREG.VBUS1) == 0);
+
+	//IP isolation on
+	((PPMU)HwPMU_BASE)->PMU_ISOL.nREG = 0x00000000;
+#endif
+
+// Exit SDRAM Self-refresh ------------------------------------------------------------
+#if defined(CONFIG_DRAM_DDR3)
+
+	((PCKC)HwCKC_BASE)->PLL5CFG.nREG = PLL5_VALUE; //for CPU clock
+	((PCKC)HwCKC_BASE)->PLL5CFG.nREG |= 0x80000000;
+	((PCKC)HwCKC_BASE)->PLL4CFG.nREG |= 0x80000000; //for Mem clock
+	cnt=3200; while(cnt--);
+	((PCKC)HwCKC_BASE)->CLKCTRL0.nREG = 0x002FFFF9;
+	((PCKC)HwCKC_BASE)->CLKCTRL1.nREG = 0x00200018;
+
+	BITCLR(denali_phy(0x0C), 0x1<<22); //ctrl_cmosrcv[22] = 0x0
+	BITCLR(denali_phy(0x0C), 0x001F0000); //ctrl_pd[20:16] = 0x0
+	BITCLR(denali_phy(0x20), 0x000000FF); //ctrl_pulld_dq[7:4] = 0x0, ctrl_pulld_dqs[3:0] = 0x0
+	while(((PPMU)tcc_p2v(HwPMU_BASE))->PWRDN_XIN.nREG&(1<<8)){
+		BITCLR(((PPMU)tcc_p2v(HwPMU_BASE))->PWRDN_XIN.nREG, 1<<8); //SSTL_RTO : SSTL I/O retention mode =0
+	}
+	*(volatile unsigned long *)addr_mem(0x810004) &= ~(1<<2); //PHY=0
+	*(volatile unsigned long *)addr_mem(0x810004) |= (1<<2); //PHY=1
+	while(!(((PPMU)tcc_p2v(HwPMU_BASE))->PWRDN_XIN.nREG&(1<<8))){
+		BITSET(((PPMU)tcc_p2v(HwPMU_BASE))->PWRDN_XIN.nREG, 1<<8); //SSTL_RTO : SSTL I/O retention mode disable=1
+	}
+	BITCLR(denali_ctl(96), 0x3<<8); //DRAM_CLK_DISABLE[9:8] = [CS1, CS0] = 0x0
+	BITSET(denali_ctl(0),0x1); //START[0] = 1
+//	while(!(denali_ctl(46)&(0x20000)));
+//	BITSET(denali_ctl(47), 0x20000);
+	BITCSET(denali_ctl(20), 0xFF000000, ((2<<2)|(0<<1)|(1))<<24);
+	while(!(denali_ctl(46)&(0x40)));
+	BITSET(denali_ctl(47), 0x40);
+
+//--------------------------------------------------------------------------
+// MRS Write
+
+	// MRS2
+	BITCSET(denali_ctl(29), 0x0000FFFF, (denali_ctl(28)&0xFFFF0000)>>16);
+	BITCSET(denali_ctl(31), 0xFFFF0000, (denali_ctl(31)&0x0000FFFF)<<16);
+	denali_ctl(26) = (2<<0)|(1<<23)|(1<<24)|(1<<25); // MR Select[7-0], MR enable[23], All CS[24], Trigger[25]
+	while(!(denali_ctl(46)&(0x8000)));
+	BITSET(denali_ctl(47), 0x8000);
+
+	// MRS3
+	BITCSET(denali_ctl(29), 0x0000FFFF, (denali_ctl(29)&0xFFFF0000)>>16);
+	BITCSET(denali_ctl(31), 0xFFFF0000, (denali_ctl(32)&0x0000FFFF)<<16);
+	denali_ctl(26) = (3<<0)|(1<<23)|(1<<24)|(1<<25); // MR Select[7-0], MR enable[23], All CS[24], Trigger[25]
+	while(!(denali_ctl(46)&(0x8000)));
+	BITSET(denali_ctl(47), 0x8000);
+
+	// MRS1
+	BITCSET(denali_ctl(29), 0x0000FFFF, (denali_ctl(28)&0x0000FFFF)>>0);
+	BITCSET(denali_ctl(31), 0xFFFF0000, (denali_ctl(30)&0xFFFF0000)<<0);
+	denali_ctl(26) = (1<<0)|(1<<23)|(1<<24)|(1<<25); // MR Select[7-0], MR enable[23], All CS[24], Trigger[25]
+	while(!(denali_ctl(46)&(0x8000)));
+	BITSET(denali_ctl(47), 0x8000);
+
+	// MRS0
+	BITCSET(denali_ctl(29), 0x0000FFFF, (denali_ctl(27)&0x00FFFF00)>>8);
+	BITCSET(denali_ctl(31), 0xFFFF0000, (denali_ctl(30)&0x0000FFFF)<<16);
+	denali_ctl(26) = (0<<0)|(1<<23)|(1<<24)|(1<<25); // MR Select[7-0], MR enable[23], All CS[24], Trigger[25]
+	while(!(denali_ctl(46)&(0x8000)));
+	BITSET(denali_ctl(47), 0x8000);
+
+//--------------------------------------------------------------------------
+
+	while(!(denali_phy(0x24)&(1<<10))); //ctrl_locked, DLL Locked ...
+
+	BITCLR(denali_ctl(40) ,0x1<<16); //ZQCS_ROTATE=0x0
+	BITCSET(denali_ctl(39) ,0x3<<16, 0x2<<16); //ZQ_REQ=2 : 0x1=short calibration, 0x2=long calibration
+
+//--------------------------------------------------------------------------
+// release holding to access to dram
+
+	cnt=1000; while(cnt--); // for reset DLL on DDR3
+//	BITCLR(denali_ctl(44),0x1); //inhibit_dram_cmd=0
+
+#elif defined(CONFIG_DRAM_DDR2)
+	{
+		FuncPtr pFunc = (FuncPtr)(SDRAM_INIT_FUNC_ADDR);
+		pFunc();
+	}
+#elif defined(CONFIG_DRAM_LPDDR2)
+	#error "LPDDR2 is not implemented"
+#else
+	#error "not selected"
+#endif
+
+// -------------------------------------------------------------------------
+// mmu & cache on
+
+	__asm__ volatile (
+	"mrc p15, 0, r0, c1, c0, 0 \n"
+	"orr r0, r0, #(1<<12) \n" //ICache
+	"orr r0, r0, #(1<<2) \n" //DCache
+	"orr r0, r0, #(1<<0) \n" //MMU
+	"mcr p15, 0, r0, c1, c0, 0 \n"
+	"nop \n"
+	);
+}
+
+/*===========================================================================
+VARIABLE
+===========================================================================*/
+static TCC_REG RegRepo;
+
+/*===========================================================================
+FUNCTION
+===========================================================================*/
+static void sleep_mode(void)
+{
+	volatile unsigned int cnt = 0;
+	unsigned stack;
+	unsigned way_mask;
+	FuncPtr  pFunc = (FuncPtr )SLEEP_FUNC_ADDR;
+
+	/*--------------------------------------------------------------
+	 replace pm functions
+	--------------------------------------------------------------*/
+	memcpy((void*)SLEEP_FUNC_ADDR,       (void*)sleep,  SLEEP_FUNC_SIZE);
+	memcpy((void*)SDRAM_INIT_FUNC_ADDR, (void*)sdram_init, SDRAM_INIT_FUNC_SIZE);
+
+	/*--------------------------------------------------------------
+	 CKC & PMU
+	--------------------------------------------------------------*/
+	memcpy(&RegRepo.pmu, (PPMU)tcc_p2v(HwPMU_BASE), sizeof(PMU));
+	memcpy(&RegRepo.ckc, (PCKC)tcc_p2v(HwCKC_BASE), sizeof(CKC));
+
+#ifdef CONFIG_CACHE_L2X0
+	/*--------------------------------------------------------------
+	 L2 cache
+	--------------------------------------------------------------*/
+	RegRepo.L2_aux = *(volatile unsigned int *)(L2CACHE_BASE+L2X0_AUX_CTRL); //save aux
+	if (RegRepo.L2_aux & (1 << 16))
+		way_mask = (1 << 16) - 1;
+	else
+		way_mask = (1 << 8) - 1;
+	*(volatile unsigned int *)(L2CACHE_BASE+L2X0_CLEAN_WAY) = way_mask; //clean all
+	while(*(volatile unsigned int *)(L2CACHE_BASE+L2X0_CLEAN_WAY)&way_mask); //wait for clean
+	*(volatile unsigned int *)(L2CACHE_BASE+L2X0_CACHE_SYNC) = 0; //sync
+	while(*(volatile unsigned int *)(L2CACHE_BASE+L2X0_CACHE_SYNC)&1); //wait for sync
+	*(volatile unsigned int *)(L2CACHE_BASE+L2X0_CTRL) = 0; //cache off
+#endif
+
+	/*--------------------------------------------------------------
+	 flush tlb & cache
+	--------------------------------------------------------------*/
+	local_flush_tlb_all();
+	flush_cache_all();
+
+	stack = IO_ARM_ChangeStackSRAM();
+	/////////////////////////////////////////////////////////////////
+	pFunc();
+	/////////////////////////////////////////////////////////////////
+	IO_ARM_RestoreStackSRAM(stack);
+
+	/*--------------------------------------------------------------
+	 CKC & PMU
+	--------------------------------------------------------------*/
+
+	//memcpy((PCKC)tcc_p2v(HwCKC_BASE), &RegRepo.ckc, sizeof(CKC));
+	{
+		//PLL
+		((PCKC)tcc_p2v(HwCKC_BASE))->PLL0CFG.nREG = RegRepo.ckc.PLL0CFG.nREG;
+		((PCKC)tcc_p2v(HwCKC_BASE))->PLL1CFG.nREG = RegRepo.ckc.PLL1CFG.nREG;
+		((PCKC)tcc_p2v(HwCKC_BASE))->PLL2CFG.nREG = RegRepo.ckc.PLL2CFG.nREG;
+		((PCKC)tcc_p2v(HwCKC_BASE))->PLL3CFG.nREG = RegRepo.ckc.PLL3CFG.nREG;
+		//((PCKC)tcc_p2v(HwCKC_BASE))->PLL4CFG.nREG = RegRepo.ckc.PLL4CFG.nREG; //PLL4 is used as a source of memory bus clock
+		//((PCKC)tcc_p2v(HwCKC_BASE))->PLL5CFG.nREG = RegRepo.ckc.PLL5CFG.nREG; //PLL5 is used as a source of CPU bus clock
+		nop_delay(1000);
+
+		//Divider
+		((PCKC)tcc_p2v(HwCKC_BASE))->CLKDIVC0.nREG = RegRepo.ckc.CLKDIVC0.nREG;
+		((PCKC)tcc_p2v(HwCKC_BASE))->CLKDIVC1.nREG = RegRepo.ckc.CLKDIVC1.nREG;
+		nop_delay(100);
+
+		//((PCKC)tcc_p2v(HwCKC_BASE))->CLKCTRL0.nREG = RegRepo.ckc.CLKCTRL0.nREG; //CPU Clock can't be adjusted freely.
+		//((PCKC)tcc_p2v(HwCKC_BASE))->CLKCTRL1.nREG = RegRepo.ckc.CLKCTRL1.nREG; //Memory Clock can't be adjusted freely.
+		((PCKC)tcc_p2v(HwCKC_BASE))->CLKCTRL2.nREG = RegRepo.ckc.CLKCTRL2.nREG;
+		((PCKC)tcc_p2v(HwCKC_BASE))->CLKCTRL3.nREG = RegRepo.ckc.CLKCTRL3.nREG;
+		((PCKC)tcc_p2v(HwCKC_BASE))->CLKCTRL4.nREG = RegRepo.ckc.CLKCTRL4.nREG;
+		((PCKC)tcc_p2v(HwCKC_BASE))->CLKCTRL5.nREG = RegRepo.ckc.CLKCTRL5.nREG;
+		((PCKC)tcc_p2v(HwCKC_BASE))->CLKCTRL6.nREG = RegRepo.ckc.CLKCTRL6.nREG;
+		((PCKC)tcc_p2v(HwCKC_BASE))->CLKCTRL7.nREG = RegRepo.ckc.CLKCTRL7.nREG;
+		((PCKC)tcc_p2v(HwCKC_BASE))->CLKCTRL8.nREG = RegRepo.ckc.CLKCTRL8.nREG;
+
+		((PCKC)tcc_p2v(HwCKC_BASE))->SWRESET.nREG = ~(RegRepo.ckc.SWRESET.nREG);
+
+		//Peripheral clock
+		memcpy((void*)&(((PCKC)tcc_p2v(HwCKC_BASE))->PCLKCTRL00.nREG), (void*)&(RegRepo.ckc.PCLKCTRL00.nREG), 0x150-0x80);
+	}
+	nop_delay(100);
+
+#if defined(TCC_PM_PMU_CTRL)
+	//memcpy((PPMU)tcc_p2v(HwPMU_BASE), &RegRepo.pmu, sizeof(PMU));
+	{
+		while(((PPMU)tcc_p2v(HwPMU_BASE))->PMU_PWRSTS.bREG.MAIN_STATE);
+
+		if(RegRepo.pmu.PMU_PWRSTS.bREG.PD_HSB){ //if High Speed I/O Bus has been turn off.
+			((PMEMBUSCFG)tcc_p2v(HwMBUSCFG_BASE))->HCLKMASK.bREG.HSIOBUS = 0;
+			while (((PMEMBUSCFG)tcc_p2v(HwMBUSCFG_BASE))->MBUSSTS.bREG.HSIOBUS == 1);
+			((PPMU)tcc_p2v(HwPMU_BASE))->PMU_SYSRST.bREG.HSB = 0;
+			((PPMU)tcc_p2v(HwPMU_BASE))->PWRDN_HSBUS.bREG.DATA = 1;
+			while (((PPMU)tcc_p2v(HwPMU_BASE))->PMU_PWRSTS.bREG.PD_HSB == 0);
+		}
+		if(RegRepo.pmu.PMU_PWRSTS.bREG.PD_DB){ //if DDI Bus has been turn off.
+			((PMEMBUSCFG)tcc_p2v(HwMBUSCFG_BASE))->HCLKMASK.bREG.DBUS = 0;
+			while ((((PMEMBUSCFG)tcc_p2v(HwMBUSCFG_BASE))->MBUSSTS.bREG.DBUS0 | ((PMEMBUSCFG)tcc_p2v(HwMBUSCFG_BASE))->MBUSSTS.bREG.DBUS1) == 1);
+			((PPMU)tcc_p2v(HwPMU_BASE))->PMU_SYSRST.bREG.DB = 0;
+			((PPMU)tcc_p2v(HwPMU_BASE))->PWRDN_DBUS.bREG.DATA = 1;
+			while (((PPMU)tcc_p2v(HwPMU_BASE))->PMU_PWRSTS.bREG.PD_DB == 0);
+		}
+		if(RegRepo.pmu.PMU_PWRSTS.bREG.PD_GB){ //if Graphic Bus has been turn off.
+			((PMEMBUSCFG)tcc_p2v(HwMBUSCFG_BASE))->HCLKMASK.bREG.GBUS = 0;
+			while (((PMEMBUSCFG)tcc_p2v(HwMBUSCFG_BASE))->MBUSSTS.bREG.GBUS == 1);
+			((PPMU)tcc_p2v(HwPMU_BASE))->PMU_SYSRST.bREG.GB = 0;
+			((PPMU)tcc_p2v(HwPMU_BASE))->PWRDN_GBUS.bREG.DATA = 1;
+			while (((PPMU)tcc_p2v(HwPMU_BASE))->PMU_PWRSTS.bREG.PD_GB == 0);
+		}
+		if(RegRepo.pmu.PMU_PWRSTS.bREG.PD_VB){ //if Video Bus has been turn off.
+			((PMEMBUSCFG)tcc_p2v(HwMBUSCFG_BASE))->HCLKMASK.bREG.VBUS = 0;
+			while ((((PMEMBUSCFG)tcc_p2v(HwMBUSCFG_BASE))->MBUSSTS.bREG.VBUS0 | ((PMEMBUSCFG)tcc_p2v(HwMBUSCFG_BASE))->MBUSSTS.bREG.VBUS1) == 1);
+			((PPMU)tcc_p2v(HwPMU_BASE))->PMU_SYSRST.bREG.VB = 0;
+			((PPMU)tcc_p2v(HwPMU_BASE))->PWRDN_VBUS.bREG.DATA = 1;
+			while (((PPMU)tcc_p2v(HwPMU_BASE))->PMU_PWRSTS.bREG.PD_VB == 0);
+		}
+
+		//IP isolation restore
+		//Bruce, PMU_ISOL is only write-only.. so it can't be set by back-up data..
+		//((PPMU)tcc_p2v(HwPMU_BASE))->PMU_ISOL.nREG = RegRepo.PMU_ISOL.nREG;
+		((PPMU)tcc_p2v(HwPMU_BASE))->PMU_ISOL.nREG = 0x00000000;
+	}
+#endif
+
+#ifdef CONFIG_CACHE_L2X0
+	/*--------------------------------------------------------------
+	 L2 cache enable
+	--------------------------------------------------------------*/
+	*(volatile unsigned int *)(L2CACHE_BASE+L2X0_CTRL) = 0; //cache off
+	*(volatile unsigned int *)(L2CACHE_BASE+L2X0_AUX_CTRL) = RegRepo.L2_aux; //restore aux
+	if (RegRepo.L2_aux & (1 << 16))
+		way_mask = (1 << 16) - 1;
+	else
+		way_mask = (1 << 8) - 1;
+	*(volatile unsigned int *)(L2CACHE_BASE+L2X0_INV_WAY) = way_mask; //invalidate all
+	while(*(volatile unsigned int *)(L2CACHE_BASE+L2X0_INV_WAY)&way_mask); //wait for invalidate
+	*(volatile unsigned int *)(L2CACHE_BASE+L2X0_CACHE_SYNC) = 0; //sync
+	while(*(volatile unsigned int *)(L2CACHE_BASE+L2X0_CACHE_SYNC)&1); //wait for sync
+	*(volatile unsigned int *)(L2CACHE_BASE+L2X0_CTRL) = 1; //cache on
+#endif
+
+}
+#endif
+
+
 
 
 /*===========================================================================
@@ -1121,15 +1614,12 @@ static int tcc_pm_enter(suspend_state_t state)
 	local_irq_disable();
 
 // -------------------------------------------------------------------------
-// replace pm functions
-	memcpy((void*)SRAM_BOOT_ADDR,       (void*)SRAM_Boot,  SRAM_BOOT_SIZE);
-	memcpy((void*)SHUTDOWN_FUNC_ADDR,   (void*)shutdown,   SHUTDOWN_FUNC_SIZE);
-	memcpy((void*)WAKEUP_FUNC_ADDR,     (void*)wakeup,     WAKEUP_FUNC_SIZE);
-	memcpy((void*)SDRAM_INIT_FUNC_ADDR, (void*)sdram_init, SDRAM_INIT_FUNC_SIZE);
-
-// -------------------------------------------------------------------------
 // enter shutdown mode
+#if defined(CONFIG_SHUTDOWN_MODE)
 	shutdown_mode();
+#elif defined(CONFIG_SLEEP_MODE)
+	sleep_mode();
+#endif
 
 // -------------------------------------------------------------------------
 // enable interrupt
