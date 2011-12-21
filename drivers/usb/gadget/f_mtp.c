@@ -69,6 +69,14 @@
 
 static const char mtp_shortname[] = "mtp_usb";
 
+#ifdef CONFIG_ARCH_TCC
+#if defined(CONFIG_TCC_DWC_HS_ELECT_TST)
+#undef DMA_MODE
+#else
+#define DMA_MODE
+#endif
+#endif
+
 struct mtp_dev {
 	struct usb_function function;
 	struct usb_composite_dev *cdev;
@@ -283,7 +291,7 @@ static struct usb_request *mtp_request_new(struct usb_ep *ep, int buffer_size)
 	if (!req)
 		return NULL;
 #ifdef DMA_MODE
-	req->buf = dma_alloc_coherent(NULL, 4096, &req->dma, GFP_KERNEL|GFP_DMA); 
+	req->buf = dma_alloc_coherent(NULL, MTP_BULK_BUFFER_SIZE, &req->dma, GFP_KERNEL|GFP_DMA); 
 #else
 	/* now allocate buffers for the requests */
 	req->buf = kmalloc(buffer_size, GFP_KERNEL);
@@ -300,7 +308,7 @@ static void mtp_request_free(struct usb_request *req, struct usb_ep *ep)
 {
 	if (req) {
 #ifdef DMA_MODE
-		dma_free_coherent(NULL, 4096, req->buf, req->dma);
+		dma_free_coherent(NULL, MTP_BULK_BUFFER_SIZE, req->buf, req->dma);
 #else		
 		kfree(req->buf);
 #endif

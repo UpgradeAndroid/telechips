@@ -49,6 +49,14 @@
 #define TX_REQ_MAX 4
 #define RX_REQ_MAX 2
 
+#ifdef CONFIG_ARCH_TCC
+#if defined(CONFIG_TCC_DWC_HS_ELECT_TST)
+#undef DMA_MODE
+#else
+#define DMA_MODE
+#endif
+#endif
+
 struct acc_dev {
 	struct usb_function function;
 	struct usb_composite_dev *cdev;
