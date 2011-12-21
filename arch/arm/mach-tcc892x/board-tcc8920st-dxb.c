@@ -284,6 +284,7 @@ static void tcc_dxb_init(void)
 		gpio_request(INT_DXB1_IRQ, NULL);
 		gpio_direction_output(INT_DXB1_IRQ, 0);
 	
+#if 0	
 		//smart Card Interface for CAS
 		tcc_gpio_config(TCC_GPD(13), GPIO_FN(0)|GPIO_PULL_DISABLE);
 		gpio_request(TCC_GPD(13), NULL);
@@ -293,6 +294,7 @@ static void tcc_dxb_init(void)
 		tcc_gpio_config(TCC_GPD(14), GPIO_FN(0)|GPIO_PULL_DISABLE);//
 		gpio_request(TCC_GPD(14), NULL);
 		gpio_direction_output(TCC_GPD(14), 0);
+#endif /* 0 */
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
