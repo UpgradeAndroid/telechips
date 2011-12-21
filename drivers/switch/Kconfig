@@ -14,7 +14,7 @@ config SWITCH_GPIO
 
 config SWITCH_GPIO_TCC
 	tristate "GPIO Swith support(TCC)"
-	depends on MACH_M57TE || MACH_M801_88 || MACH_M803
+	depends on MACH_M57TE || MACH_M801_88 || MACH_M803 || MACH_M805_892X
 	help
 	  Say Y here to enable GPIO based switch support.
 

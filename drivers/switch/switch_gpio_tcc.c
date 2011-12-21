@@ -33,11 +33,14 @@
 #include <linux/kthread.h>  /* thread */
 #include <linux/delay.h>    /* msleep_interruptible */
 
-#define TCC_BIT_HEADSET         (1 << 0)
-#define TCC_BIT_HEADSET_NO_MIC  (1 << 1)
-#define TCC_BIT_TTY             (1 << 2)
-#define TCC_BIT_FM_HEADSET      (1 << 3)
-#define TCC_BIT_FM_SPEAKER      (1 << 4)
+#define TCC_BIT_HEADSET             (1 << 0)
+#define TCC_BIT_HEADSET_NO_MIC      (1 << 1)
+#define TCC_BIT_USB_HEADSET_ANLG    (1 << 2)
+#define TCC_BIT_USB_HEADSET_DGTL    (1 << 3)
+#define TCC_BIT_HDMI_AUDIO          (1 << 4)
+
+#define TCC_BIT_FM_HEADSET          (1 << 5)
+#define TCC_BIT_FM_SPEAKER          (1 << 6)
 
 #define EARJACK_DETECT_GPIO_NUM        0x00000800
 
@@ -107,6 +110,12 @@ static int tcc_gpio_thread(void* _switch_data)
         gpio_request(TCC_GPD(10), "HP_DETECTION");
         gpio_direction_input(TCC_GPD(10));
     }
+#elif defined(CONFIG_ARCH_TCC892X)
+	if(machine_is_m805_892x()) {
+		tcc_gpio_config(TCC_GPE(5), GPIO_FN(0));
+		gpio_request(TCC_GPE(5), "HP_DETECTION");
+		gpio_direction_input(TCC_GPE(5));
+	}
 #endif
 
     while(!kthread_should_stop()) 
@@ -120,6 +129,9 @@ static int tcc_gpio_thread(void* _switch_data)
 #elif defined(CONFIG_ARCH_TCC88XX)
         if(machine_is_m801_88()|| machine_is_m803())
             state = gpio_get_value(TCC_GPD(10));
+#elif defined(CONFIG_ARCH_TCC892X)
+		if(machine_is_m805_892x())
+			state = gpio_get_value(TCC_GPE(5));
 #endif
 
         if(!state && state_old) {
@@ -141,6 +153,10 @@ static int tcc_gpio_thread(void* _switch_data)
             if(machine_is_m801_88()|| machine_is_m803()) {
                 tcc_dbg("%s(%4x)(%5d) DAT[%4x]EN[%4x]IEN[%4x]SET[%4x]FN1[%4x]EINTSEL0[%4x]\n", __func__, state, delta,
                     pGPIO->GPDDAT, pGPIO->GPDEN, pGPIO->GPDIEN, pGPIO->GPDSET, pGPIO->GPDFN1, pGPIO->EINTSEL0);
+            }
+            else if (machine_is_m805_892x()) {
+				tcc_dbg("%s(%4x)(%5d) DAT[%4x]EN[%4x]IEN[%4x]SET[%4x]FN1[%4x]EINTSEL0[%4x]\n", __func__, state, delta,
+					pGPIO->GPEDAT, pGPIO->GPEEN, pGPIO->GPEIEN, pGPIO->GPESET, pGPIO->GPEFN1, pGPIO->EINTSEL0);
             }
             else {
                 tcc_dbg("%s(%4x)(%5d) DAT[%4x]EN[%4x]SET[%4x]FN1[%4x]EINTSEL0[%4x]\n", __func__, state, delta,
@@ -239,6 +255,9 @@ static int __init tcc_gpio_switch_init(void)
 #elif defined(CONFIG_ARCH_TCC88XX)
     if( !(machine_is_m801_88() || machine_is_m803()) )
         return 0;
+#elif defined(CONFIG_ARCH_TCC892X)
+	if( !(machine_is_m805_892x()) )
+		return 0;
 #endif
 
     tcc_dbg("\n%s()...\n\n", __func__);

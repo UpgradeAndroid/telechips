@@ -33,7 +33,7 @@
 #if defined(CONFIG_TCC_DWC_HS_ELECT_TST)
 #undef DMA_MODE
 #else
-#undef DMA_MODE
+#define DMA_MODE
 #endif
 #endif
 
@@ -1099,7 +1099,7 @@ composite_unbind(struct usb_gadget *gadget)
 
 	if (cdev->req) {
 #ifdef DMA_MODE
-		dma_free_coherent(NULL, 256, cdev->req->buf, cdev->req->dma);
+		dma_free_coherent(NULL, USB_BUFSIZ, cdev->req->buf, cdev->req->dma);
 #else
 		kfree(cdev->req->buf);
 #endif
@@ -1143,7 +1143,7 @@ static int composite_bind(struct usb_gadget *gadget)
 	if (!cdev->req)
 		goto fail;
 #ifdef DMA_MODE
-	cdev->req->buf = dma_alloc_coherent(NULL, 256, &cdev->req->dma, GFP_KERNEL|GFP_DMA);
+	cdev->req->buf = dma_alloc_coherent(NULL, USB_BUFSIZ, &cdev->req->dma, GFP_KERNEL|GFP_DMA);
 #else
 	cdev->req->buf = kmalloc(USB_BUFSIZ, GFP_KERNEL);
 #endif
