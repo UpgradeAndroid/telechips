@@ -29,7 +29,7 @@ extern void sensor_init_fnc_mt9d112(SENSOR_FUNC_TYPE *sensor_func);
 #define SENSOR_FRAMERATE	15
 
 //CLOCK
-#if defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 #if defined(CONFIG_USE_ISP)
 #define CAM_POLARITY_VSYNC	0   // 1: low active,	0: high active	
 #define CAM_POLARITY_HSYNC	0   // 1: low active,	0: high active	

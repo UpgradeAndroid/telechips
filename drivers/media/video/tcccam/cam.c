@@ -17,7 +17,7 @@
 #include <linux/clk.h>
 
 
-#if defined(CONFIG_ARCH_TCC92XX) || defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC92XX) || defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 #include <mach/bsp.h>
 #elif defined(CONFIG_ARCH_TCC79X)
 #include <mach/tcc79x.h>
@@ -33,6 +33,8 @@ static struct clk *cifmc_clk;
 #if defined(CONFIG_USE_ISP)
 static struct clk *isps_clk;
 static struct clk *ispj_clk;
+#elif	defined(CONFIG_ARCH_TCC892X)
+		// Already, VIOC Block enable.	
 #else
 static struct clk *cifsc_clk;
 #endif
@@ -54,29 +56,40 @@ extern TCC_SENSOR_INFO_TYPE tcc_sensor_info;
 **********************************************************/
 void CIF_Clock_Get(void)
 {
-	cifmc_clk = clk_get(NULL, "cifmc");	
-	BUG_ON(cifmc_clk == NULL);
-	
-	#if defined(CONFIG_USE_ISP)
-	isps_clk = clk_get(NULL, "isps");
-	BUG_ON(isps_clk == NULL);
-
-	ispj_clk = clk_get(NULL, "ispj");
-	BUG_ON(ispj_clk == NULL);
+	#if	defined(CONFIG_ARCH_TCC892X)
+		//	In case of 892X, we have to add.
+		cifmc_clk = clk_get(NULL, "out0");	
+		BUG_ON(cifmc_clk == NULL);
 	#else
-	cifsc_clk = clk_get(NULL, "cifsc");	
-	BUG_ON(cifsc_clk == NULL);
+		cifmc_clk = clk_get(NULL, "cifmc");	
+		BUG_ON(cifmc_clk == NULL);
+		
+		#if defined(CONFIG_USE_ISP)
+		isps_clk = clk_get(NULL, "isps");
+		BUG_ON(isps_clk == NULL);
+
+		ispj_clk = clk_get(NULL, "ispj");
+		BUG_ON(ispj_clk == NULL);
+		#else
+		cifsc_clk = clk_get(NULL, "cifsc");	
+		BUG_ON(cifsc_clk == NULL);
+		#endif
 	#endif
 }
 
 void CIF_Clock_Put(void)
 {
-	clk_put(cifmc_clk);
-	#if defined(CONFIG_USE_ISP)
-	clk_put(isps_clk);
-	clk_put(ispj_clk);
+	#if	defined(CONFIG_ARCH_TCC892X)
+		//	In case of 892X, we have to add.
+		clk_put(cifmc_clk);
 	#else
-	clk_put(cifsc_clk);
+		clk_put(cifmc_clk);
+		#if defined(CONFIG_USE_ISP)
+		clk_put(isps_clk);
+		clk_put(ispj_clk);
+		#else
+		clk_put(cifsc_clk);
+		#endif
 	#endif
 }
 
@@ -96,6 +109,8 @@ void CIF_Open(void)
 {
 #if defined(CONFIG_ARCH_TCC93XX)  || defined(CONFIG_ARCH_TCC88XX)
 	volatile PCAMBUSCFG pCamBusCfg = (PCAMBUSCFG)tcc_p2v(HwCAMBUSCFG_BASE);
+#elif	defined(CONFIG_ARCH_TCC892X)	
+	volatile PVIOC_IREQ_CONFIG pVIOCCfg = (PVIOC_IREQ_CONFIG)tcc_p2v(HwVIOC_CONFIG);
 #endif
 
 #if defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC88XX)
@@ -139,6 +154,16 @@ void CIF_Open(void)
 	clk_enable(cifmc_clk);
 	clk_enable(cifsc_clk);
 	#endif
+#elif	defined(CONFIG_ARCH_TCC892X)
+	#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
+		clk_set_rate(cifmc_clk, tcc_sensor_info.m_clock*100);
+		printk("VIDEO IN Dual Camera CLK :: MCLK = %d \n", tcc_sensor_info.m_clock/10000);
+	#else	
+		clk_set_rate(cifmc_clk, CKC_CAMERA_MCLK*100);	
+		printk("VIDEO IN Single Camera CLK :: MCLK = %d \n", CKC_CAMERA_MCLK/10000);
+	#endif //CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
+
+	clk_enable(cifmc_clk);
 #else
 	#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
 	clk_set_rate(cifmc_clk, tcc_sensor_info.m_clock*100);
@@ -172,6 +197,19 @@ void CIF_Open(void)
 	BITSET(pCamBusCfg->SoftResetRegister, HwCAMBUS_SWRESET_CIF);   // Reset
 	BITCLR(pCamBusCfg->SoftResetRegister, HwCAMBUS_SWRESET_CIF);  // Normal
 	#endif
+#elif	defined(CONFIG_ARCH_TCC892X)
+	// VIN SW Reset
+	BITCSET(pVIOCCfg->uSOFTRESET.nREG[0], 0x03000000, (1<<24));
+	BITCSET(pVIOCCfg->uSOFTRESET.nREG[0], 0x03000000, (0<<24));
+	// Scaler Reset
+	BITCSET(pVIOCCfg->uSOFTRESET.nREG[0], 0x40000000, (1<<30));
+	BITCSET(pVIOCCfg->uSOFTRESET.nREG[0], 0x40000000, (0<<30));
+	// WMIX SW Reset
+	BITCSET(pVIOCCfg->uSOFTRESET.nREG[1], 0x00004000, (1<<14));
+	BITCSET(pVIOCCfg->uSOFTRESET.nREG[1], 0x00004000, (0<<14));
+	// WDMA Reset
+	BITCSET(pVIOCCfg->uSOFTRESET.nREG[1], 0x00000020, (1<<5));
+	BITCSET(pVIOCCfg->uSOFTRESET.nREG[1], 0x00000020, (0<<5));	
 #endif
 }
 
@@ -202,6 +240,8 @@ void CIF_Close(void)
 	#endif
 
 	BITSET(pCamBusCfg->CAMBusClk0Sel, HwCAMBUS_CLKO_SEL);
+#elif	defined(CONFIG_ARCH_TCC892X)
+	clk_disable(cifmc_clk);
 #else
 	clk_disable(cifmc_clk);
 	clk_disable(cifsc_clk);
@@ -231,6 +271,9 @@ void CIF_ONOFF(unsigned int uiOnOff)
 	{
 		BITCSET(HwICPCR1, HwICPCR1_ON, (uiOnOff << 31));
 	}
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #else  //CONFIG_ARCH_TCC92XX
 	volatile PCIF pCIF = (PCIF)tcc_p2v(HwCIF_BASE);
 
@@ -271,6 +314,9 @@ void CIF_WaitFrameSync(unsigned int exp_timer)
 			return;
 
 	}
+#elif	defined(CONFIG_ARCH_TCC892X)
+	// In case of 892X, we have to add
+
 #else  //CONFIG_ARCH_TCC92XX
 	PCIF pCIF = (PCIF)tcc_p2v(HwCIF_BASE);
 
@@ -309,6 +355,9 @@ void CIF_OpStop(char wait_SOF, char sw_reset )
 		CIF_WaitFrameSync(400);
 		BITSET(pCIF->CIRQ, HwCIRQ_SOF);
 	}
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #endif
 
 	CIF_ONOFF(OFF);
@@ -324,6 +373,9 @@ void CIF_OpStop(char wait_SOF, char sw_reset )
 #elif defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC88XX)
 		BITSET(pCamBusCfg->SoftResetRegister, HwCAMBUS_SWRESET_CIF);   // Reset
 		BITCLR(pCamBusCfg->SoftResetRegister, HwCAMBUS_SWRESET_CIF);  // Normal
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #endif
 	}
 }

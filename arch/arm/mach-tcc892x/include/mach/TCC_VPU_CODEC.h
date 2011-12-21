@@ -1,5 +1,5 @@
 
-#include "TCC_CODA960_CODEC.h"
+#include "TCC892x_VPU_CODEC.h"
 
 #ifndef _TCC_VPU_CODEC_H_
 #define _TCC_VPU_CODEC_H_

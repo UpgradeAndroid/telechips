@@ -23,7 +23,7 @@ when        who       what, where, why
 #include "cam_reg.h"
 #include "tcc_cam_i2c.h"
 
-#if defined(CONFIG_ARCH_TCC92XX) || defined(CONFIG_ARCH_TCC93XX)  || defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC92XX) || defined(CONFIG_ARCH_TCC93XX)  || defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 #include <mach/bsp.h>
 #elif defined(CONFIG_ARCH_TCC79X)
 #include <mach/tcc79x.h>
@@ -1599,6 +1599,11 @@ void sensor_info_init_mt9m113(TCC_SENSOR_INFO_TYPE *sensor_info)
 	sensor_info->s_clock 					= 1250000;
 	sensor_info->s_clock_source 			= PCDIRECTPLL1;
 	#endif  // CONFIG_USE_ISP
+	#elif defined(CONFIG_ARCH_TCC892X)
+	sensor_info->m_clock 				= 240000;
+	sensor_info->m_clock_source 			= PCDIRECTPLL2;
+	sensor_info->s_clock 					= 1250000;
+	sensor_info->s_clock_source 			= PCDIRECTPLL1;
 	#endif
 	sensor_info->preview_w 				= 640;
 	sensor_info->preview_h 				= 512;

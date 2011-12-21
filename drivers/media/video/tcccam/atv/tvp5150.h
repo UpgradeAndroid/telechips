@@ -40,12 +40,12 @@
 #define SENSOR_FRAMERATE	15
 
 #define PRV_W 720
-#define PRV_H 480	//525
+#define PRV_H 240//480	//525
 #define PRV_ZOFFX 0
 #define PRV_ZOFFY 8
 
 #define CAP_W 720 
-#define CAP_H 480	//525	//(240 - 2)
+#define CAP_H 240	//525	//(240 - 2)
 #define CAP_ZOFFX 0
 #define CAP_ZOFFY 0
 

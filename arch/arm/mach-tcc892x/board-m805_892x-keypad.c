@@ -26,10 +26,10 @@
 		TCC GPIO KEY
 *******************************************************************/
 static const struct gpio_event_direct_entry m805_892x_gpio_keymap[] = {
-	{ GPIO_PWR_KEY,	KEY_END },
+	{ GPIO_PWR_KEY,	KEY_POWER },
 	{ TCC_GPD(12),	KEY_MENU }, // menu
 	{ TCC_GPD(13),	KEY_BACK }, // back
-	{ TCC_GPE(27),	KEY_HOME }, // home
+	{ TCC_GPE(27),	KEY_HOMEPAGE }, // home
 	{ TCC_GPE(26),	KEY_VOLUMEDOWN }, // home
 	{ TCC_GPE(12),	KEY_VOLUMEUP }, // home
 };
@@ -78,13 +78,13 @@ static unsigned int m805_892x_row_gpios[] = { TCC_GPF(15), TCC_GPB(7), TCC_GPG(1
 static const unsigned short m805_892x_keymap[] = {
 	[KEYMAP_INDEX(0, 0)] = KEY_MENU,
 	[KEYMAP_INDEX(0, 1)] = KEY_RESERVED,
-	[KEYMAP_INDEX(0, 2)] = KEY_END,
+	[KEYMAP_INDEX(0, 2)] = KEY_POWER,	// KEY_END
 
 	[KEYMAP_INDEX(1, 0)] = KEY_VOLUMEUP,
 	[KEYMAP_INDEX(1, 1)] = KEY_VOLUMEDOWN,
 	[KEYMAP_INDEX(1, 2)] = KEY_RESERVED,
 	
-	[KEYMAP_INDEX(2, 0)] = KEY_HOME,
+	[KEYMAP_INDEX(2, 0)] = KEY_HOMEPAGE,	// KEY_HOME
 	[KEYMAP_INDEX(2, 1)] = KEY_BACK,
 	[KEYMAP_INDEX(2, 2)] = KEY_RESERVED,
 };

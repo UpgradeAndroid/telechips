@@ -102,7 +102,7 @@ config TCC_OUTPUT_AUTO_DETECTION
 
 config TCC_VIDEO_DISPLAY_BY_VSYNC_INT
     bool "Displaying video frame by hw vsync interrupt"
-	depends on FB && (ARCH_TCC93XX || ARCH_TCC88XX || (ARCH_TCC892X && MACH_TCC8920ST))
+	depends on FB && (ARCH_TCC93XX || ARCH_TCC88XX)
 	default y
 	help
 	  Video frame is displayed by hw vsync interrupt.

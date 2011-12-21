@@ -17,20 +17,20 @@
  ***********************************************************************
  *
  * \file
- *		TCC93_88xx_VPU_CODEC.h
+ *		TCC892x_VPU_CODEC.h
  * \date
- *		2011/03/08
+ *		2011/12/16
  * \author
  *		AV algorithm group(AValgorithm@telechips.com) 
  * \brief
  *		main api
  * \version
- *		0.0.41(2011/03/08) : first beta release
+ *		0.0.0.5(2011/12/16) : first beta release
  *
  ***********************************************************************
  */
-#ifndef _TCC93_88XX_VPU_CODEC_H_
-#define _TCC93_88XX_VPU_CODEC_H_
+#ifndef _TCC_892x_VPU_CODEC_H_
+#define _TCC_892x_VPU_CODEC_H_
 
 #include "TCCxxxx_VPU_CODEC_COMMON.h"
 
@@ -41,7 +41,6 @@
 #define RETCODE_ERR_STRIDE_ZERO_OR_ALIGN8	100
 #define RETCODE_ERR_MIN_RESOLUTION			101
 #define RETCODE_ERR_MAX_RESOLUTION			102
-#define RETCODE_ERR_SEQ_INIT_HANGUP			103
 #define RETCODE_H264ERR_PROFILE				110
 #define RETCODE_VC1ERR_COMPLEX_PROFILE		120
 #define RETCODE_H263ERR_ANNEX_D				130
@@ -62,18 +61,20 @@
 
 #define RETCODE_WRAP_AROUND					-10
 
-#define CODE_BUF_SIZE			( 152 * 1024 ) // 152K
-#define FMO_SLICE_SAVE_BUF_SIZE	( 32 )
-#define WORK_BUF_SIZE			(( 512 * 1024 ) + ( FMO_SLICE_SAVE_BUF_SIZE * 1024 * 8 ) + 100 * 1024) // 768K
-#define PARA_BUF2_SIZE			( 2 * 1024 ) // 2K
-#define PARA_BUF_SIZE			( 10 * 1024 ) // 10K
-#define WORK_CODE_PARA_BUF_SIZE ( CODE_BUF_SIZE + WORK_BUF_SIZE + PARA_BUF2_SIZE + PARA_BUF_SIZE )
+
+#define CODE_BUF_SIZE	(256*1024)
+#define TEMP_BUF_SIZE	(204*1024)
+#define WORK_BUF_SIZE	(47*1024)
+#define PARA_BUF_SIZE	(10*1024)
+#define SEC_AXI_BUF_SIZE (128*1024)
+#define SIZE_BIT_WORK	TEMP_BUF_SIZE + PARA_BUF_SIZE + CODE_BUF_SIZE + (WORK_BUF_SIZE*MAX_NUM_INSTANCE) + SEC_AXI_BUF_SIZE
+//#define SIZE_BIT_WORK	TEMP_BUF_SIZE + PARA_BUF_SIZE + CODE_BUF_SIZE + (WORK_BUF_SIZE*MAX_NUM_INSTANCE)
+
+#define WORK_CODE_PARA_BUF_SIZE		SIZE_BIT_WORK
 
 #define	LARGE_STREAM_BUF_SIZE	0x200000
 #define	SLICE_SAVE_SIZE			0x100000
 #define PS_SAVE_SIZE			0x080000
-
-
 
 //------------------------------------------------------------------------------
 // decode struct and definition
@@ -154,9 +155,14 @@ typedef struct dec_init_t
 #define M4V_GMC_FILE_SKIP		(0<<1)	// (default) seq.init failure
 #define M4V_GMC_FRAME_SKIP		(1<<1)	// frame skip without decoding
 
-#define SEC_AXI_BUS_DISABLE			(0<<21)	//don't use sec. AXI bus.
+#define SEC_AXI_BUS_DISABLE		(0<<21)	//don't use sec. AXI bus.
 #define SEC_AXI_BUS_ENABLE_TCC93XX	(1<<21)	//Use SRAM for sec. AXI bus on TCC93XX(gets about 5% improvement of performance)
 #define SEC_AXI_BUS_ENABLE_TCC88XX	(2<<21)	//Use SRAM for sec. AXI bus on TCC88XX(gets about 5% improvement of performance)
+
+//#define JPG_THUMB_DISABLE		(0<<23)	//decode JPEG itself, not thumbnail.
+//#define JPG_THUMB_ENABLE_OPTIONAL	(1<<23)	//decode thumbnail if it exist. If it doesn't, decode original jpeg itself.
+//#define JPG_THUMB_ENABLE_MANDATORY	(2<<23)	//decode thumbnail if it exist. If it doesn't, return error without decoding process.
+
 
 	unsigned int m_uiDecOptFlags;
 
@@ -365,7 +371,7 @@ typedef struct enc_init_t
 	codec_addr_t m_MeSearchRamAddr;		//!< physical address : multiple of 4
 	int m_iMeSearchRamSize;				//!< ( ( m_iPicWidth + 15 ) & ~15 ) * 36 + 2048; multiple of 16
 
-#define SEC_AXI_BUS_DISABLE			(0<<21)
+#define SEC_AXI_BUS_DISABLE		(0<<21)
 #define SEC_AXI_BUS_ENABLE_TCC93XX	(1<<21)
 #define SEC_AXI_BUS_ENABLE_TCC88XX	(2<<21)
 
@@ -425,7 +431,7 @@ typedef struct enc_output_t
 	int m_iSliceInfoNum;			//!< Number of encoded slices
 	int m_iSliceInfoSize;			//!< Size in bytes of the encoded slices information(end position)
 	codec_addr_t m_SliceInfoAddr;	//!< Address of slices information(last MB number and slice size in bits)
-	
+
 	int m_Reserved;
 } enc_output_t;
 
@@ -456,5 +462,5 @@ codec_result_t
 TCC_VPU_ENC( int Op, codec_handle_t* pHandle, void* pParam1, void* pParam2 );
 
 
-#endif//_TCC93_88XX_VPU_CODEC_H_
+#endif//_TCC_892x_VPU_CODEC_H_
 

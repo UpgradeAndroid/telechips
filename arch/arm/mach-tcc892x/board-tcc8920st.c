@@ -20,7 +20,6 @@
 #include <linux/i2c.h>
 #include <linux/i2c/pca953x.h>
 #include <linux/akm8975.h>
-#include <linux/usb/android_composite.h>
 #include <linux/spi/spi.h>
 #include <linux/regulator/axp192.h>
 #include <asm/mach-types.h>
@@ -103,6 +102,7 @@
 
 extern void __init tcc_init_irq(void);
 extern void __init tcc_map_common_io(void);
+extern void __init tcc_reserve_sdram(void);
 
 static struct spi_board_info tcc8920_spi0_board_info[] = {
 	{
@@ -233,6 +233,7 @@ static struct cs4954_i2c_platform_data  ths8200_i2c_data = {
 
 /* I2C core0 channel 0 devices */
 static struct i2c_board_info __initdata i2c_devices1[] = {
+#if 0
 	#if defined(CONFIG_VIDEO_TCCXX_CAMERA)
 	#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
 	{
@@ -254,6 +255,7 @@ static struct i2c_board_info __initdata i2c_devices1[] = {
 	},
 	#endif // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
 	#endif // CONFIG_VIDEO_TCCXX_CAMERA
+#endif
 	#if defined(CONFIG_RADIO_RDA5870)
 	{
 		I2C_BOARD_INFO("RDA5870E-FM", RADIO_I2C_SLAVE_ID),
@@ -263,7 +265,7 @@ static struct i2c_board_info __initdata i2c_devices1[] = {
     #if defined(CONFIG_SENSORS_AK8975)
     {
         I2C_BOARD_INFO("akm8975", 0x0F),
-        .irq           = IRQ_EI1,
+        .irq           = INT_EI1,
         .platform_data = &akm8975_data,
     },
     #endif
@@ -295,6 +297,39 @@ static struct i2c_board_info __initdata i2c_devices2[] = {
 	},
 };	
 #endif
+
+#if defined(CONFIG_TOUCHSCREEN_TCC_SITRONIX)
+static struct i2c_board_info __initdata i2c_devices2[] = {
+	{
+		I2C_BOARD_INFO("tcc-ts-sitronix", 0x55),
+		.platform_data = NULL,
+	},
+};
+#endif
+
+static struct i2c_board_info __initdata i2c_devices3[] = {
+	#if defined(CONFIG_VIDEO_TCCXX_CAMERA)
+	#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
+	{
+		#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9P111) || defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9T111)
+			I2C_BOARD_INFO("tcc-cam-sensor-0", (0x7A>>1)), //20100716 ysseung   sign-up to sensor slave-id.
+		#endif
+		.platform_data = &cam_i2c_data1,
+	},
+	{
+		#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9M113)
+			I2C_BOARD_INFO("tcc-cam-sensor-1", (0x78>>1)), //20100716 ysseung   sign-up to sensor slave-id.
+		#endif
+		.platform_data = &cam_i2c_data1,
+	},
+	#else // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
+	{
+		I2C_BOARD_INFO("tcc-cam-sensor", SENSOR_I2C_SLAVE_ID), //20100716 ysseung   sign-up to sensor slave-id.
+		.platform_data = &cam_i2c_data1,
+	},
+	#endif // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
+	#endif // CONFIG_VIDEO_TCCXX_CAMERA
+};
 
 #if defined(CONFIG_TCC_OUTPUT_STARTER)
 /* I2C SMU HDMI PHY devices */
@@ -416,117 +451,6 @@ static void tcc_add_nand_device(void)
 
 
 
-/*----------------------------------------------------------------------
- * Device     : USB Android Gadget
- * Description:
- *----------------------------------------------------------------------*/
-static struct usb_mass_storage_platform_data mass_storage_pdata = {
-#ifdef CONFIG_SCSI
-	.nluns = 4, // for iNand
-#else
-	.nluns = 3,
-#endif
-	.vendor = "Telechips, Inc.",
-	.product = "TCC8920",
-	.release = 0x0100,
-};
-
-static struct platform_device usb_mass_storage_device = {
-	.name = "usb_mass_storage",
-	.id = -1,
-	.dev = {
-		.platform_data = &mass_storage_pdata,
-	},
-};
-
-#ifdef CONFIG_USB_ANDROID_RNDIS
-static struct usb_ether_platform_data rndis_pdata = {
-	/* ethaddr is filled by board_serialno_setup */
-	.vendorID	= 0x18d1,
-	.vendorDescr	= "Telechips, Inc.",
-};
-
-static struct platform_device rndis_device = {
-	.name	= "rndis",
-	.id	= -1,
-	.dev	= {
-		.platform_data = &rndis_pdata,
-	},
-};
-#endif
-
-static char *usb_functions_ums[] = {
-	"usb_mass_storage",
-};
-
-static char *usb_functions_ums_adb[] = {
-	"usb_mass_storage",
-	"adb",
-};
-
-static char *usb_functions_rndis[] = {
-	"rndis",
-};
-
-static char *usb_functions_rndis_adb[] = {
-	"rndis",
-	"adb",
-};
-
-static char *usb_functions_all[] = {
-#ifdef CONFIG_USB_ANDROID_RNDIS
-	"rndis",
-#endif
-	"usb_mass_storage",
-	"adb",
-#ifdef CONFIG_USB_ANDROID_ACM
-	"acm",
-#endif
-};
-
-static struct android_usb_product usb_products[] = {
-	{
-		.product_id	= 0xb058, /* Telechips UMS PID */
-		.num_functions	= ARRAY_SIZE(usb_functions_ums),
-		.functions	= usb_functions_ums,
-	},
-	{
-		.product_id	= 0xdeed,
-		.num_functions	= ARRAY_SIZE(usb_functions_ums_adb),
-		.functions	= usb_functions_ums_adb,
-	},
-	{
-		.product_id	= 0x0002,
-		.num_functions	= ARRAY_SIZE(usb_functions_rndis),
-		.functions	= usb_functions_rndis,
-	},
-	{
-		.product_id	= 0x0003,
-		.num_functions	= ARRAY_SIZE(usb_functions_rndis_adb),
-		.functions	= usb_functions_rndis_adb,
-	},
-};
-
-static struct android_usb_platform_data android_usb_pdata = {
-	.vendor_id	= 0x18D1,
-	.product_id	= 0x0001,
-	.version	= 0x0100,
-	.product_name		= "TCC8920",
-	.manufacturer_name	= "Telechips, Inc.",
-	.num_products	= ARRAY_SIZE(usb_products),
-	.products	= usb_products,
-	.num_functions	= ARRAY_SIZE(usb_functions_all),
-	.functions	= usb_functions_all,
-};
-
-static struct platform_device android_usb_device = {
-	.name	= "android_usb",
-	.id		= -1,
-	.dev		= {
-		.platform_data = &android_usb_pdata,
-	},
-};
-
 #if defined(CONFIG_TCC_WATCHDOG)
 static struct platform_device tccwdt_device = {
 	.name	= "tcc-wdt",
@@ -538,14 +462,14 @@ static struct platform_device tccwdt_device = {
 static struct tcc_uart_platform_data uart2_data = {
     .tx_dma_use     = 0,
     .tx_dma_buf_size= SERIAL_TX_DMA_BUF_SIZE,
-    .tx_dma_base    = HwGDMA2_BASE,
+    .tx_dma_base    = io_p2v(HwGDMA2_BASE),
     .tx_dma_ch      = SERIAL_TX_DMA_CH_NUM,
     .tx_dma_intr    = INT_DMA2_CH0,
     .tx_dma_mode    = SERIAL_TX_DMA_MODE,
 
     .rx_dma_use     = 1,
     .rx_dma_buf_size= SERIAL_RX_DMA_BUF_SIZE,
-    .rx_dma_base    = HwGDMA2_BASE,
+    .rx_dma_base    = io_p2v(HwGDMA2_BASE),
     .rx_dma_ch      = SERIAL_RX_DMA_CH_NUM-2,
     .rx_dma_intr    = 0,
     .rx_dma_mode    = SERIAL_RX_DMA_MODE,
@@ -556,14 +480,14 @@ static struct tcc_uart_platform_data uart2_data = {
 static struct tcc_uart_platform_data uart3_data = {
     .tx_dma_use     = 0,
     .tx_dma_buf_size= SERIAL_TX_DMA_BUF_SIZE,
-    .tx_dma_base    = HwGDMA2_BASE,
+    .tx_dma_base    = io_p2v(HwGDMA2_BASE),
     .tx_dma_ch      = SERIAL_TX_DMA_CH_NUM+1,
     .tx_dma_intr    = INT_DMA2_CH1,
     .tx_dma_mode    = SERIAL_TX_DMA_MODE,
 
     .rx_dma_use     = 1,
     .rx_dma_buf_size= SERIAL_RX_DMA_BUF_SIZE,
-    .rx_dma_base    = HwGDMA2_BASE,
+    .rx_dma_base    = io_p2v(HwGDMA2_BASE),
     .rx_dma_ch      = SERIAL_RX_DMA_CH_NUM-1,
     .rx_dma_intr    = 0,
     .rx_dma_mode    = SERIAL_RX_DMA_MODE,
@@ -576,14 +500,14 @@ static struct tcc_uart_platform_data uart1_data_bt = {
 
     .tx_dma_use     = 0,
     .tx_dma_buf_size= SERIAL_TX_DMA_BUF_SIZE,
-    .tx_dma_base    = HwGDMA2_BASE,
+    .tx_dma_base    = io_p2v(HwGDMA2_BASE),
     .tx_dma_ch      = SERIAL_TX_DMA_CH_NUM+2,
     .tx_dma_intr    = INT_DMA2_CH2,
     .tx_dma_mode    = SERIAL_TX_DMA_MODE,
 
     .rx_dma_use     = 1,
     .rx_dma_buf_size= SERIAL_RX_DMA_BUF_SIZE,
-    .rx_dma_base    = HwGDMA2_BASE,
+    .rx_dma_base    = io_p2v(HwGDMA2_BASE),
     .rx_dma_ch      = SERIAL_RX_DMA_CH_NUM,
     .rx_dma_intr    = 0,
     .rx_dma_mode    = SERIAL_RX_DMA_MODE,
@@ -718,8 +642,6 @@ static struct platform_device *tcc8920_devices[] __initdata = {
 	&tcc_gmac_device,
 #endif
 
-	&usb_mass_storage_device,
-	&android_usb_device,
 #if defined(CONFIG_TCC_WATCHDOG)
 	&tccwdt_device,
 #endif
@@ -727,7 +649,6 @@ static struct platform_device *tcc8920_devices[] __initdata = {
 
 static int __init board_serialno_setup(char *serialno)
 {
-	android_usb_pdata.serial_number = serialno;
 
 	return 1;
 }
@@ -764,11 +685,11 @@ static void __init tcc8920_init_machine(void)
     /* Input mode */
     tcc_gpio_config(TCC_GPE(29), GPIO_FN(0)|GPIO_PULL_DISABLE);  // GPIOE[29]: input mode, disable pull-up/down
     gpio_direction_input(TCC_GPE(29));
-    tcc_gpio_config_ext_intr(INT_EI1, EI_SEL_GPIOE29);
+    tcc_gpio_config_ext_intr(INT_EI1, EXTINT_GPIOE_29);
 #endif
 
 	i2c_register_board_info(0, i2c_devices1, ARRAY_SIZE(i2c_devices1));
-#if defined(CONFIG_TOUCHSCREEN_TCC_AK4183)
+#if defined(CONFIG_TOUCHSCREEN_TCC_AK4183) || defined(CONFIG_TOUCHSCREEN_TCC_SITRONIX)
 	i2c_register_board_info(1, i2c_devices2, ARRAY_SIZE(i2c_devices2));
 #endif
 #if defined(CONFIG_TCC_OUTPUT_STARTER)
@@ -820,13 +741,17 @@ static void __init tcc8920_map_io(void)
 	tcc_map_common_io();
 }
 
+static void __init tcc8920_mem_reserve(void)
+{
+	tcc_reserve_sdram();
+}
+
 extern struct sys_timer tcc_timer;
 
 MACHINE_START(TCC8920ST, "tcc8920st")
 	/* Maintainer: Telechips Linux BSP Team <linux@telechips.com> */
-	.phys_io        = 0x70000000,
-	.io_pg_offst    = ((0xf0000000) >> 18) & 0xfffc,
 	.boot_params    = PHYS_OFFSET + 0x00000100,
+	.reserve        = tcc8920_mem_reserve,
 	.map_io         = tcc8920_map_io,
 	.init_irq       = tcc8920_init_irq,
 	.init_machine   = tcc8920_init_machine,

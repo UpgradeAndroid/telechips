@@ -87,6 +87,8 @@ static int debug	   = 0;
 
 #if defined(CONFIG_USE_ISP)
 static struct clk *isp_clk;
+#elif	defined(CONFIG_ARCH_TCC892X)
+static struct clk *vioc_clk;
 #else
 static struct clk *cif_clk;
 #endif
@@ -1115,6 +1117,9 @@ static int camera_core_release(struct file *file)
 
 	#if defined(CONFIG_USE_ISP)
 	clk_disable(isp_clk);
+	#elif	defined(CONFIG_ARCH_TCC892X)
+		// VIOC Block Disable.
+		clk_disable(vioc_clk);
 	#else
 	clk_disable(cif_clk);
 	#endif
@@ -1139,6 +1144,9 @@ static int camera_core_open(struct file *file)
 
 	#if defined(CONFIG_USE_ISP)
 	clk_enable(isp_clk);
+	#elif	defined(CONFIG_ARCH_TCC892X)
+		// VIOC Block enable.
+		clk_enable(vioc_clk);
 	#else
 	clk_enable(cif_clk);
 	#endif
@@ -1332,6 +1340,9 @@ camera_core_cleanup(void)
 
 	#if defined(CONFIG_USE_ISP)
 	clk_put(isp_clk);
+	#elif	defined(CONFIG_ARCH_TCC892X)
+		// VIOC Block Clock Put.
+		clk_put(vioc_clk);
 	#else
 	clk_put(cif_clk);
 	#endif
@@ -1359,6 +1370,10 @@ camera_core_init(void)
 	#if defined(CONFIG_USE_ISP)
 	isp_clk = clk_get(NULL, "isp");
 	BUG_ON(isp_clk == NULL);
+	#elif	defined(CONFIG_ARCH_TCC892X)
+		// VIOC Block Clk Get.	vioc_clk
+		vioc_clk = clk_get(NULL, "lcdc");
+		BUG_ON(vioc_clk == NULL);
 	#else
 	cif_clk = clk_get(NULL, "cif");
 	BUG_ON(cif_clk == NULL);

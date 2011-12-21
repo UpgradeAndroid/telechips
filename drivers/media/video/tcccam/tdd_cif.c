@@ -17,7 +17,7 @@
 #include <mach/hardware.h>
 #include <asm/io.h>
 
-#if defined(CONFIG_ARCH_TCC92XX) || defined(CONFIG_ARCH_TCC93XX)  || defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC92XX) || defined(CONFIG_ARCH_TCC93XX)  || defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 #include <mach/bsp.h>
 #elif defined(CONFIG_ARCH_TCC79X)
 #include <mach/tcc79x.h>
@@ -83,6 +83,25 @@ void TDD_CIF_Initialize()
 	// Change to Driving Strength that GPIO_E
 	BITSET(pGPIO_E->GPCD0, 0xFF000000);
 	BITSET(pGPIO_E->GPCD1, 0x000000FF);
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of CAM4
+	volatile PGPION pGPIO_F = (PGPION)tcc_p2v(HwGPIOF_BASE);
+
+	#if defined(CONFIG_MACH_M805_892X)
+		printk("m805_892x port configuration!!\n");
+		// Change to Functional GPIO that GPIO_D
+		BITCSET(pGPIO_F->GPFN0.nREG, 0xFFFFFFFF, 0x11111111);  
+		BITCSET(pGPIO_F->GPFN1.nREG, 0x0000FFFF, 0x0000B111);	
+	#else
+		// Change to Functional GPIO that GPIO_D
+		BITCSET(pGPIO_F->GPFN0.nREG, 0xFFFFFFFF, 0x11111111);  
+		BITCSET(pGPIO_F->GPFN1.nREG, 0x0000FFFF, 0x0001B111);
+		
+	#endif
+		// Change to Driving Strength that GPIO_D
+		BITCSET(pGPIO_F->GPCD0.nREG, 0x00FFFFFF, 0x01FFFFFF);
+	
+	
 #else // CONFIG_ARCH_TCC79X
 	unsigned int	hpcsn= 0x03; // PORTCFG13 HPCSN Field. value 3 is SD_D1(1)
 	
@@ -97,8 +116,17 @@ void TDD_CIF_Initialize()
 
 void TDD_CIF_Termination(void)
 {
-	volatile PGPION pGPIO_E = (PGPION)tcc_p2v(HwGPIOE_BASE);
+#if	defined(CONFIG_ARCH_TCC892X)
+	//	In case of CAM4
+	volatile PGPION pGPIO_F = (PGPION)tcc_p2v(HwGPIOF_BASE);
+
+	// Change to Functional GPIO that GPIO_D
+	BITCSET(pGPIO_F->GPFN0.nREG, 0xFFFFFFFF, 0x00000000);  
+	BITCSET(pGPIO_F->GPFN1.nREG, 0x0000FFFF, 0x00000000);
 	
+#else
+	volatile PGPION pGPIO_E = (PGPION)tcc_p2v(HwGPIOE_BASE);
+
 	// Change GPIO Setting From Functional Camera To General GPIO
 	BITCSET(pGPIO_E->GPFN1, 0xFFFF0000, 0x00000000);
 	BITCSET(pGPIO_E->GPFN2, 0xFFFFFFFF, 0x00000000);
@@ -109,6 +137,7 @@ void TDD_CIF_Termination(void)
 	// Enable Pull Down in Camera 
 	BITSET( pGPIO_E->GPPD0, 0xAA000000); // D0~D3+			
 	BITSET( pGPIO_E->GPPD1, 0x0000AAAA); // D4~D7, VS, HS
+#endif
 
 }
 
@@ -196,6 +225,9 @@ void TDD_CIF_SetInfo(unsigned int uiFlag, unsigned int uiBypass, unsigned int ui
 	{
 		BITCSET(pCIF->ICPCR1, HwICPCR1_BO_SW, (uiBusOrder << 2));
 	}
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #else  // (CONFIG_ARCH_TCC79X)
 	// 1.    HwICPCR1_BP        Hw15         // Bypass 
 	if(uiFlag & SET_CIF_BYPASS_MODE)
@@ -325,6 +357,9 @@ void TDD_CIF_SetCtrl(unsigned int uiFlag, unsigned int uiPWDN, unsigned int uiBy
 				BITCSET(pCIF->ICPCR1, 0xFFFFFFFF, HwICPCR1_ON  | HwICPCR1_TV| HwICPCR1_TI | HwICPCR1_UF // 
 				| HwICPCR1_BPS | HwICPCR1_C656 | HwICPCR1_PF_422 | HwICPCR1_BO_SW | HwICPCR1_HSP_HIGH); // 0xB8802406 //
 	}
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #else //(CONFIG_ARCH_TCC79X)	
 	// 1.  HwICPCR1_PWD      Power down mode in camera >> 0:Disable, 1:Power down mode , This power down mode is connected the PWDN of camera sensor  
 	if(uiFlag & SET_CIF_PWDN)
@@ -404,6 +439,8 @@ void TDD_CIF_SetTransfer(unsigned int uiFlag, unsigned int uiBurst, unsigned int
 	{
 		BITCSET(pCIF->CDCR1, HwCDCR1_BS_8, uiBurst); // PCIF->CDCR1
 	}
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
 
 #else // (CONFIG_ARCH_TCC79X)
 	//HwCDCR1_TM_INC        Hw3                    // INC Transfer
@@ -456,6 +493,9 @@ void TDD_R2Y_Convert(unsigned int uiFlag,  unsigned int uiFMT, unsigned int uiEN
 	{
 		BITCSET(pCIF->CR2Y, HwCR2Y_EN, (uiEN)); // PCIF->CR2Y
 	}
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #else //(CONFIG_ARCH_TCC79X)
 	//HwCR2Y_FMT                                  (Hw4|Hw3|Hw2|Hw1)  // FMT[4:1]  0000 -> Input format 16bit 565RGB(RGB sequence) 자세한 사항 750A CIF SPEC. 1-22
 	if(uiFlag & SET_CIF_CR2Y_FMT)
@@ -537,6 +577,9 @@ void TDD_CIF_OverlayCtrl(unsigned int uiFlag, unsigned int uiRgb)
 	{
 		BITCLR(pCIF->OCTRL2, HwOCTRL2_MD);
 	}
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #else //(CONFIG_ARCH_TCC79X)	
 	if(uiFlag & SET_CIF_ALPHA_ENABLE)
 	{
@@ -636,7 +679,10 @@ void TDD_CIF_SetOverlay(unsigned int uiFlag, unsigned int uiOverlayCNT, unsigned
 	if(uiFlag & SET_CIF_OVERLAY_ALPHA1)
 	{
 		BITCSET(pCIF->OCTRL1, HwOCTRL1_AP1_100, (uiAlpha1 << 6));
-	} 
+	}
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #else //(CONFIG_ARCH_TCC79X)
 	if(uiFlag & SET_CIF_OVERLAY_COUNT)
 	{
@@ -697,6 +743,9 @@ void TDD_CIF_SetOverlayKey(unsigned int uiFlag, unsigned int uiKEYR, unsigned in
 	{
 		BITCSET(pCIF->OCTRL4, (HwOCTRL4_MKEYR_MAX|HwOCTRL4_MKEYG_MAX|HwOCTRL4_MKEYB_MAX), ((uiMKEYR << 16)|(uiMKEYG << 8)|uiMKEYB));
 	} // pCIF->OCTRL4
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #else //(CONFIG_ARCH_TCC79X)
 	if(uiFlag & SET_CIF_OVERLAY_KEY)
 	{
@@ -728,6 +777,9 @@ void TDD_CIF_SetSyncPol(unsigned int uiHPolarity, unsigned int uiVpolarity)
 	
 	BITCSET(pCIF->ICPCR1, HwICPCR1_HSP_HIGH, (uiHPolarity << 1));
 	BITCSET(pCIF->ICPCR1, HwICPCR1_VSP_HIGH, uiVpolarity); // pCIF->ICPCR1
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #else
 	BITCSET(HwICPCR1, HwICPCR1_HSP_HIGH, (uiHPolarity << 1));
 	BITCSET(HwICPCR1, HwICPCR1_VSP_HIGH, uiVpolarity); // HwCIF->ICPCR1
@@ -777,7 +829,10 @@ void    TDD_CIF_SetImage(unsigned int uiType, unsigned int uiHsize, unsigned int
 		BITCSET(pCIF->OIS, 0xFFFFFFFF, ((uiHsize << 16) | uiVsize));
 		BITCSET(pCIF->OIW1, 0xFFFFFFFF, ((uiHorWindowingStart<< 16) | uiHorWindowingEnd));
 		BITCSET(pCIF->OIW2, 0xFFFFFFFF, ((uiVerWindowingStart<< 16) | uiVerWindowingEnd));
-	}	
+	}
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #else //(CONFIG_ARCH_TCC79X)
 	if (uiType & INPUT_IMG)
 	{
@@ -814,6 +869,9 @@ void TDD_CIF_SetSensorOutImgSize(unsigned int uiHsize, unsigned int uiVsize)
 	
 	BITCSET(pCIFEffect->CEIS, HwCEIS_HSIZE, (uiHsize<<16));
 	BITCSET(pCIFEffect->CEIS, HwCEIS_VSIZE, (uiVsize));    // HwCEM->CEIS
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #else //(CONFIG_ARCH_TCC79X)
 	BITCSET(HwCEIS, HwCEIS_HSIZE, (uiHsize<<16));
 	BITCSET(HwCEIS, HwCEIS_VSIZE, (uiVsize));    // HwCEM->CEIS
@@ -865,6 +923,9 @@ void TDD_CIF_SetBaseAddr (unsigned int uiType, unsigned int uiBaseAddr0,
 	{
 		BITCSET(pCIF->CESA, 0xFFFFFFFF, uiBaseAddr0);
 	}
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #else //(CONFIG_ARCH_TCC79X)
 
 	if (uiType & INPUT_IMG)
@@ -908,6 +969,9 @@ void TDD_CIF_SetBaseAddr_offset(unsigned int uiType, unsigned int uiOFFSET_Y, un
 	{
 		BITCSET(pCIF->COBO, 0xFFFFFFFF, (uiOFFSET_Y));
 	}
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #endif
 }
 
@@ -942,7 +1006,10 @@ void TDD_CIF_SetInterrupt(unsigned int uiFlag)
 		BITCLR(pPIC->IEN0, HwINT0_CAM);    
 		//BITCLR(HwPIC->SEL0, HwINT0_CAM);
 		BITCLR(pCIF->CIRQ, HwCIRQ_IEN);    // Camera Interrupt enable
-	}  
+	}
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #else //(CONFIG_ARCH_TCC79X)
 	if(uiFlag & SET_CIF_INT_ENABLE)
 	{
@@ -987,6 +1054,9 @@ void TDD_CIF_SetInterrupt(unsigned int uiFlag)
 	{
 		BITSET(pCIF->CIRQ, HwCIRQ_ICR);
 	}
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #else //(CONFIG_ARCH_TCC79X)
 	// Update Register in VSYNC   0:Register is update without VSYNC , 1:When VSYNC is posedge, register is updated.  //Hw30
 	if(uiFlag & SET_CIF_UPDATE_IN_VSYNC)
@@ -1171,6 +1241,9 @@ void TDD_CIF_SetMaskIntStatus(unsigned int uiFlag)
 	{
 		BITCLR(pCIF->CIRQ, 0x5FF<<16);// Hw29 should be written "1"!!
 	} // pCIF->CIRQ
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #else //(CONFIG_ARCH_TCC79X)
 	// Hw26           // Mask interrupt of VS negative edge,  0:Don't mask, 1:Mask
 	if(uiFlag & SET_CIF_INT_VS_NEGA_MASK)
@@ -1491,6 +1564,9 @@ unsigned int TDD_CIF_GetIntStatus(unsigned int uiFlag)
 		uiRegStatus = pCIF->CIRQ & HwCIRQ_SOF;  // PCIF->CIRQ
 		//BITSET(HwCIRQ, HwCIRQ_SOF);
 	}
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+
 #endif
 	
     return (unsigned int)uiRegStatus;
@@ -1574,6 +1650,9 @@ void TDD_CIF_Set656FormatConfig(unsigned int uiType, unsigned int uiPsl, unsigne
 	{
 		BITCSET(pCIF->CCIR656FCR2, 0x0000000F, uiVb); // PCIF->CCIR656FCR2
 	}
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #endif
 }
 
@@ -1595,6 +1674,9 @@ void TDD_CIF_SetFIFOStatusClear(void)
 	volatile PCIF pCIF = (PCIF)tcc_p2v(HwCIF_BASE);
 	
 	BITSET(pCIF->FIFOSTATE, HwFIFOSTATE_CLR); // HwCIF->FIFOSTATE
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #else //(CONFIG_ARCH_TCC92XX)
 	BITSET(HwFIFOSTATE, HwFIFOSTATE_CLR); // HwCIF->FIFOSTATE
 #endif
@@ -1778,6 +1860,9 @@ unsigned int TDD_CIF_GetFIFOStatus(unsigned int uiType)
 	{
 		uiRet |= (pCIF->FIFOSTATE & HwFIFOSTATE_FY); // PCIF->FIFOSTATE
 	}
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #endif
     return (unsigned int)uiRet;
 }
@@ -1959,6 +2044,9 @@ void TDD_CIF_SetCaptureCtrl(unsigned int uiType,  unsigned int uiSkipNum, unsign
 	{
 		BITCLR(pCIF->CCM2, HwCCM2_VEN); // PCIF->CCM2
 	}
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #endif
 }
 
@@ -2039,6 +2127,9 @@ unsigned int TDD_CIF_GetCaptureStatus(unsigned int uiType)
 	{
 		uiCaptureStatus = (pCIF->CCM1 & HwCCM1_CB);  
 	} // HwCIF->CCM1
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #endif
   return (unsigned int)uiCaptureStatus;	
 }
@@ -2270,6 +2361,9 @@ void TDD_CIF_SetEffectMode(unsigned int uiFlag)
 	{
 		BITCSET(pCIFEffect->CEM, 0xFFFFFFFF, 0x00000000);  // 모두 0 시킴
 	} // HwCEM->CEM
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #endif
 }
 
@@ -2292,6 +2386,9 @@ void TDD_CIF_SetEffectSepiaUV(unsigned int uiSepiaU, unsigned int uiSepiaV)
 	
 	BITCSET(pCIFEffect->CSUV, HwHwCSUV_SEPIA_U, (uiSepiaU<<8));
 	BITCSET(pCIFEffect->CSUV, HwHwCSUV_SEPIA_V, (uiSepiaV));    // HwCEM->CSUV
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #else //(CONFIG_ARCH_TCC92XX)
 	BITCSET(HwCSUV, HwHwCSUV_SEPIA_U, (uiSepiaU<<8));
 	BITCSET(HwCSUV, HwHwCSUV_SEPIA_V, (uiSepiaV));    // HwCEM->CSUV
@@ -2321,6 +2418,9 @@ void TDD_CIF_SetEffectColorSelect(unsigned int uiUStart, unsigned int uiUEnd,
 	BITCSET(pCIFEffect->CCS, HwCCS_UEND, (uiUEnd<<16));
 	BITCSET(pCIFEffect->CCS, HwCCS_VSTART, (uiVStart<<8));
 	BITCSET(pCIFEffect->CCS, HwCCS_VEND, (uiVEnd)); // HwCEM->CCS
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #else //(CONFIG_ARCH_TCC92XX)
 	BITCSET(HwCCS, HwCCS_USTART, (uiUStart<<24));
 	BITCSET(HwCCS, HwCCS_UEND, (uiUEnd<<16));
@@ -2350,6 +2450,9 @@ void TDD_CIF_SetEffectHFilterCoeff(unsigned int uiCoeff0, unsigned int uiCoeff1,
 	BITCSET(pCIFEffect->CHFC, HwCHFC_COEF0, (uiCoeff0<<16));
 	BITCSET(pCIFEffect->CHFC, HwCHFC_COEF1, (uiCoeff1<<8));
 	BITCSET(pCIFEffect->CHFC, HwCHFC_COEF2, (uiCoeff2)); // HwCEM->CHFC
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #else //(CONFIG_ARCH_TCC92XX)
 	BITCSET(HwCHFC, HwCHFC_COEF0, (uiCoeff0<<16));
 	BITCSET(HwCHFC, HwCHFC_COEF1, (uiCoeff1<<8));
@@ -2376,6 +2479,9 @@ void TDD_CIF_SetEffectSketchTh(unsigned int uithreshold)
 	volatile PEFFECT pCIFEffect = (PEFFECT)tcc_p2v(HwCEM_BASE);
 	
 	BITCSET(pCIFEffect->CST, HwCST_THRESHOLD, (uithreshold)); // HwCEM->CST
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #else //(CONFIG_ARCH_TCC92XX)
 	BITCSET(HwCST, HwCST_THRESHOLD, (uithreshold)); // HwCEM->CST
 #endif
@@ -2400,6 +2506,9 @@ void TDD_CIF_SetEffectClampTh(unsigned int uithreshold)
 	volatile PEFFECT pCIFEffect = (PEFFECT)tcc_p2v(HwCEM_BASE);
 	
 	BITCSET(pCIFEffect->CCT, HwCCT_THRESHOLD, (uithreshold));         //HwCEM->CCT
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #else //(CONFIG_ARCH_TCC92XX)
 	BITCSET(HwCCT, HwCCT_THRESHOLD, (uithreshold));         //HwCEM->CCT
 #endif
@@ -2426,6 +2535,9 @@ void TDD_CIF_SetEffectBias(unsigned int uiYBias, unsigned int uiUBias, unsigned 
 	BITCSET(pCIFEffect->CBR, HwCBR_YBIAS, (uiYBias<<16));
 	BITCSET(pCIFEffect->CBR, HwCBR_UBIAS, (uiUBias<<8));
 	BITCSET(pCIFEffect->CBR, HwCBR_VBIAS, (uiVBias));        //PEFFECT->CBR
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #else //(CONFIG_ARCH_TCC92XX)
 	BITCSET(HwCBR, HwCBR_YBIAS, (uiYBias<<16));
 	BITCSET(HwCBR, HwCBR_UBIAS, (uiUBias<<8));
@@ -2509,6 +2621,9 @@ void TDD_CIF_SetInpathCtrl(unsigned int uiType, unsigned int uiHWait,
 	//
 	//20100628 ysseung   tcc9300에선 INPATH_CTRL register가 없어졌음.
 	//
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #else //(CONFIG_ARCH_TCC92XX)
 	if(uiType & SET_CIF_INPATH_H_WAIT)
 	{
@@ -2594,6 +2709,9 @@ void TDD_CIF_SetInpathAddr(unsigned int uiSrcType, unsigned int uiSrcBase, unsig
 	BITCSET(pCIFEffect->CISA2, HwCISA2_SRC_BASE_U, (uiSrcBaseU)); // HwCEM->CISA2
 	//HwCISA3_SRC_BASE_V           0x0FFFFFFF           // SRC_BASE_V [27:0] Source base address in V channal (27 down to 0 bit assign in base address)
 	BITCSET(pCIFEffect->CISA3, HwCISA3_SRC_BASE_V, (uiSrcBaseV)); // HwCEM->CISA3
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #else //(CONFIG_ARCH_TCC92XX)
 	BITCSET(HwCISA2, HwCISA2_SRCTYPE_420SEP, (uiSrcType<<28));
 	BITCSET(HwCISA1, HwCISA1_SRC_BASE, (uiSrcBase << 28));  // HwCEM->CISA1
@@ -2648,6 +2766,9 @@ void TDD_CIF_SetInpathScale(unsigned int uiType, unsigned int uiSrcHSize, unsign
 		BITCSET(pCIFEffect->CIS, HwCIS_HSCALE, (uiHScale<<16)); // pCIFEffect->CIS
 		BITCSET(pCIFEffect->CIS, HwCIS_VSCALE, (uiVScale));    
 	}
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #else //(CONFIG_ARCH_TCC92XX)
 	if(uiType & SET_CIF_INPATH_SRC_SIZE)
 	{
@@ -2694,6 +2815,9 @@ void TDD_CIF_SetDownScale(unsigned int uiScaleEnable, unsigned int uiXScale, uns
 	BITCSET(pCIF->CDS, HwCDS_SEN_EN, uiScaleEnable); // pCIF->CDS
 	BITCSET(pCIF->CDS, HwCDS_SFH_8, (uiXScale << 4));
 	BITCSET(pCIF->CDS, HwCDS_SFV_8, (uiYScale << 2));
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #else //(CONFIG_ARCH_TCC92XX)
 	BITCSET(HwCDS, HwCDS_SEN_EN, uiScaleEnable); // HwCIF->CDS
 	BITCSET(HwCDS, HwCDS_SFH_8, (uiXScale << 4));
@@ -2728,6 +2852,9 @@ void TDD_CIF_SetScalerCtrl(unsigned int uiEN)
 	{
 		BITCLR(pCIFScaler->CSC, HwSCC_EN);
 	}
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #else //(CONFIG_ARCH_TCC92XX)
 	if(uiEN & SET_CIF_SCALER_ENABLE) // HwCSC->CSC
 	{
@@ -2783,6 +2910,9 @@ void TDD_CIF_SetFreeScale(unsigned int uiType, unsigned int uiSrcHSize, unsigned
 		BITCSET(pCIFScaler->CSSF, HwSCSF_HSCALE, (uiHFactor<<16)); // HwCSC->CSSF
 		BITCSET(pCIFScaler->CSSF, HwSCSF_VSCALE, (uiVFactor));    
 	}
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #else //(CONFIG_ARCH_TCC92XX)
 	if(uiType & SET_CIF_SCALER_SRC_SIZE)
 	{
@@ -2824,6 +2954,9 @@ void ISP_INTERRUPT_SET(void)
 
 	BITSET(pPIC->IEN0, HwINT0_ISP2);
 	BITSET(pPIC->SEL0, HwINT0_ISP2);
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #else
 	BITSET(pPIC->IEN0, HwINT1_ISP1);
 	BITSET(pPIC->SEL0, HwINT1_ISP1);
@@ -2843,6 +2976,9 @@ void ISP_INTERRUPT_CLEAR(void)
 #ifndef	CONFIG_ARCH_TCC93XX
 	BITCLR(pPIC->IEN0, HwINT0_ISP1);
 	BITCLR(pPIC->IEN0, HwINT0_ISP2);
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #else
 	BITCLR(pPIC->IEN0, HwINT1_ISP1);
 	BITCLR(pPIC->IEN0, HwINT0_ISP2);
@@ -2860,12 +2996,15 @@ void TDD_CIF_SWReset(void)
 	#elif defined(CONFIG_ARCH_TCC93XX)  || defined(CONFIG_ARCH_TCC88XX)
 	volatile PCAMBUSCFG pCamBusCfg = (PCAMBUSCFG)tcc_p2v(HwCAMBUSCFG_BASE);
 	#if defined(CONFIG_USE_ISP)
-	BITSET(pCamBusCfg->SoftResetRegister, HwCAMBUS_SWRESET_ISP);   // Reset
-	BITCLR(pCamBusCfg->SoftResetRegister, HwCAMBUS_SWRESET_ISP);  // Normal
-	#else
-	BITSET(pCamBusCfg->SoftResetRegister, HwCAMBUS_SWRESET_CIF);   // Reset
-	BITCLR(pCamBusCfg->SoftResetRegister, HwCAMBUS_SWRESET_CIF);  // Normal
-	#endif
+			BITSET(pCamBusCfg->SoftResetRegister, HwCAMBUS_SWRESET_ISP);   // Reset
+			BITCLR(pCamBusCfg->SoftResetRegister, HwCAMBUS_SWRESET_ISP);  // Normal
+		#else
+			BITSET(pCamBusCfg->SoftResetRegister, HwCAMBUS_SWRESET_CIF);   // Reset
+			BITCLR(pCamBusCfg->SoftResetRegister, HwCAMBUS_SWRESET_CIF);  // Normal
+		#endif
+	#elif	defined(CONFIG_ARCH_TCC892X)
+		//	In case of 892X, we have to add.
+	
 	#endif
 }
 

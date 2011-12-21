@@ -39,6 +39,15 @@
 #define REPEAT_MIN		0x2000
 #define REPEAT_MAX		0x2800
 
+#define LOW_MIN_TCC892X		LOW_MIN * 2
+#define LOW_MAX_TCC892X		LOW_MAX * 2
+#define HIGH_MIN_TCC892X	HIGH_MIN * 2
+#define HIGH_MAX_TCC892X	HIGH_MAX * 2
+#define START_MIN_TCC892X	START_MIN * 2
+#define START_MAX_TCC892X	START_MAX * 2
+#define REPEAT_MIN_TCC892X	REPEAT_MIN * 2
+#define REPEAT_MAX_TCC892X	REPEAT_MAX * 2
+
 
 /*****************************************************************************
 *

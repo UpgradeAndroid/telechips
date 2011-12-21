@@ -30,6 +30,7 @@
 #include <linux/errno.h>
 
 #include <linux/cpufreq.h>
+#include <linux/clk.h>
 
 #define dbg(msg...)	if (0) { printk( "TCC_CLOCKCTRL: " msg); }
 
@@ -48,9 +49,17 @@ enum {
 	TCC_CLOCKCTRL_FLASH_MAX_CLOCK_ENABLE,	
 #if defined(CONFIG_CPU_HIGHSPEED)
 	TCC_CLOCKCTRL_LIMIT_OVERCLOCK_DISABLE = 110,
-	TCC_CLOCKCTRL_LIMIT_OVERCLOCK_ENABLE
+	TCC_CLOCKCTRL_LIMIT_OVERCLOCK_ENABLE,
 #endif
+	TCC_CLOCKCTRL_JPEG_MAX_CLOCK_DISABLE = 112,
+	TCC_CLOCKCTRL_JPEG_MAX_CLOCK_ENABLE
 };
+
+// for JPU control
+static struct clk *vcore_clk;
+static struct clk *vcache_clk; // for pwdn and vBus.
+static struct clk *vcodec_clk; // for pwdn and vBus.
+static struct clk *jpu_clk;
 
 static struct class *clockctrl_class;
 static struct device *clockctrl_dev;
@@ -106,6 +115,21 @@ static long tcc_clockctrl_ioctl(struct file *filp, unsigned int cmd, unsigned lo
 			tcc_cpufreq_set_limit_table(NULL, TCC_FREQ_LIMIT_OVERCLOCK, 0);
 			break;
 #endif
+		case TCC_CLOCKCTRL_JPEG_MAX_CLOCK_ENABLE:
+			clk_enable(vcore_clk);
+			clk_enable(vcache_clk);
+			clk_enable(vcodec_clk);
+			clk_set_rate(jpu_clk, 200*1000*1000);
+			clk_enable(jpu_clk);			
+			tcc_cpufreq_set_limit_table(&gtJpegMaxClockLimitTable, TCC_FREQ_LIMIT_JPEG, 1);
+			break;
+		case TCC_CLOCKCTRL_JPEG_MAX_CLOCK_DISABLE:
+			clk_disable(vcache_clk);
+			clk_disable(vcodec_clk);
+			clk_disable(vcore_clk);
+			clk_disable(jpu_clk);
+			tcc_cpufreq_set_limit_table(&gtJpegMaxClockLimitTable, TCC_FREQ_LIMIT_JPEG, 0);
+			break;	
 		default:
 			break;
 	}
@@ -159,6 +183,18 @@ struct file_operations tcc_clockctrl_fops = {
 int __init tcc_clockctrl_init(void)
 {
 	int err=0;
+	// for JPU control
+	vcore_clk = clk_get(NULL, "vcore");
+	BUG_ON(vcore_clk == NULL);
+
+	vcache_clk = clk_get(NULL, "vcache");
+	BUG_ON(vcache_clk == NULL);
+	
+	vcodec_clk = clk_get(NULL, "vcodec");
+	BUG_ON(vcodec_clk == NULL);
+
+	jpu_clk = clk_get(NULL, "jpeg");
+	BUG_ON(jpu_clk == NULL);
 
 	android_system_booting_finished = 0;
 
@@ -194,6 +230,12 @@ out:
 
 void __exit tcc_clockctrl_exit(void)
 {
+	// for JPU control
+	clk_put(vcore_clk);
+	clk_put(vcache_clk);
+	clk_put(vcodec_clk);
+	clk_put(jpu_clk);
+
 	device_destroy(clockctrl_class, MKDEV(MajorNum, 0));
 	class_destroy(clockctrl_class);
 	unregister_chrdev(MajorNum, CLOCKCTRL_DEV_NAME);

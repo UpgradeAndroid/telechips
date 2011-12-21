@@ -81,6 +81,11 @@ snd-soc-wm9712-objs := wm9712.o
 snd-soc-wm9713-objs := wm9713.o
 snd-soc-wm-hubs-objs := wm_hubs.o
 snd-soc-jz4740-codec-objs := jz4740.o
+# Everest
+snd-soc-es8388-objs := es8388.o
+# Realtek
+snd-soc-rt5625-objs := rt5625.o
+
 
 # Amp
 snd-soc-lm4857-objs := lm4857.o
@@ -172,6 +177,11 @@ obj-$(CONFIG_SND_SOC_WM9705)	+= snd-soc-wm9705.o
 obj-$(CONFIG_SND_SOC_WM9712)	+= snd-soc-wm9712.o
 obj-$(CONFIG_SND_SOC_WM9713)	+= snd-soc-wm9713.o
 obj-$(CONFIG_SND_SOC_WM_HUBS)	+= snd-soc-wm-hubs.o
+# Everest 
+obj-$(CONFIG_SND_SOC_ES8388)	+= snd-soc-es8388.o
+# RealTek
+obj-$(CONFIG_SND_SOC_RT5625)	+= snd-soc-rt5625.o
+
 
 # Amp
 obj-$(CONFIG_SND_SOC_LM4857)	+= snd-soc-lm4857.o
@@ -179,3 +189,4 @@ obj-$(CONFIG_SND_SOC_MAX9877)	+= snd-soc-max9877.o
 obj-$(CONFIG_SND_SOC_TPA6130A2)	+= snd-soc-tpa6130a2.o
 obj-$(CONFIG_SND_SOC_WM2000)	+= snd-soc-wm2000.o
 obj-$(CONFIG_SND_SOC_WM9090)	+= snd-soc-wm9090.o
+

@@ -139,15 +139,15 @@ void __init tcc_map_common_io(void)
 	__cpu_early_init();
 
 #ifdef CONFIG_CACHE_L2X0
-	// Way size = 16KB, Associativity = 8 Way
-	l2x0_init(0xFA000000, 0x70120001, ~0x022D0000);
+	// Way size = 16KB, Associativity = 16Way
+	l2x0_init(0xFA000000, 0x70130001, ~0x022C0000);
 #endif
 
 #if defined(__TODO__)
 	IO_UTIL_ReadECID();
 #endif
 
-	tcc_reserve_sdram();
+//	tcc_reserve_sdram();
 
 	// XXX
 	tca_ckc_init();

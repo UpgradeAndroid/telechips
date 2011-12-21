@@ -30,17 +30,33 @@
 #include <linux/interrupt.h>
 #include <linux/clk.h>
 #include <linux/sched.h>
+#include <linux/irq.h>
 
 #include <mach/irqs.h>
 //#include <asm/arch/dma.h>
 #include <mach/hardware.h>
 #include <asm/io.h>
 
-#if defined(CONFIG_ARCH_TCC92XX) || defined(CONFIG_ARCH_TCC93XX)  || defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC92XX) || defined(CONFIG_ARCH_TCC93XX)  || defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 #include <mach/bsp.h>
+#include <mach/reg_physical.h>
 #elif defined(CONFIG_ARCH_TCC79X)
 #include <mach/tcc79x.h>
 #include <asm/plat-tcc/tcc_ckc.h>
+#endif
+
+#ifdef CONFIG_ARCH_TCC892X
+//#include <mach/vioc_outcfg.h>
+//#include <mach/vioc_rdma.h>
+#include <mach/vioc_ireq.h>
+#include <mach/vioc_config.h>
+#include <mach/vioc_wdma.h>
+#include <mach/vioc_wmix.h>
+#include <mach/vioc_scaler.h>
+#include <mach/vioc_vin.h>
+#include <mach/vioc_viqe.h>
+#include <mach/vioc_global.h>
+#include <mach/vioc_plugin_tcc892x.h>
 #endif
 
 #include <mach/memory.h>
@@ -111,6 +127,7 @@ static pmap_t pmap_cam;
 
 #define PA_PREVIEW_BASE_ADDR	pmap_cam.base
 #define PREVIEW_MEM_SIZE	pmap_cam.size
+#define PA_TEMP		(PA_PREVIEW_BASE_ADDR + PREVIEW_MEM_SIZE/2)
 
 u8 current_effect_mode = 0;
 struct TCCxxxCIF hardware_data;
@@ -141,6 +158,24 @@ static unsigned chkpnt = 0;
 #endif
 #endif
 
+#ifdef CONFIG_ARCH_TCC892X
+static VIOC_VIN_DEMUX * pVINDemuxBase;
+static VIOC_WMIX* 		pWMIXBase;
+static VIOC_WDMA*		pWDMABase;
+static VIOC_VIN* 		pVINBase;
+static VIOC_SC* 		pSCBase;
+static DDICONFIG*		pDDIConfig;
+static VIQE*			pVIQEBase;
+static VIOC_IREQ_CONFIG* 		pVIOCConfig;
+static unsigned int old_zoom_step;
+struct tccxxx_cif_buffer *prev_buf;
+static unsigned int		prev_num;
+#ifdef	CONFIG_VIDEO_ATV_SENSOR_TVP5150
+static uint				bfield;
+static uint				frm_cnt;
+static uint				field_cnt;
+#endif
+#endif
 
 void cif_set_frameskip(unsigned char skip_count, unsigned char locked)
 {
@@ -184,8 +219,12 @@ EXPORT_SYMBOL(Get_Index_sizeTable);
 int tccxxx_isalive_camera(void)
 {
 	unsigned short HSize, VSize;
+#if	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+#else
 	volatile PCKC pCKC = (PCKC)tcc_p2v(HwCLK_BASE);
 	volatile PCIF pCIF = (PCIF)tcc_p2v(HwCIF_BASE);
+#endif
 
 #if defined(CONFIG_USE_ISP)
 	struct TCCxxxCIF *data = (struct TCCxxxCIF *)&hardware_data;
@@ -195,6 +234,9 @@ int tccxxx_isalive_camera(void)
 		dprintk("JPEG - Cam Alive = %d x %d \n", data->cif_cfg.main_set.target_x, data->cif_cfg.main_set.target_y);
 		return (data->cif_cfg.main_set.target_x * data->cif_cfg.main_set.target_y);
 	}
+#elif	defined(CONFIG_ARCH_TCC892X)
+	//	In case of 892X, we have to add.
+	
 #else
 	#if defined(CONFIG_ARCH_TCC92XX)
 	if(pCKC->PCLK_CIFMC & Hw28)
@@ -261,7 +303,7 @@ static void cif_data_init(void *priv)
 	data->cif_cfg.polarity_pclk 	= NEGATIVE_EDGE;
 #endif
 
-#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MV9317) || defined(CONFIG_VIDEO_CAMERA_SENSOR_OV7690)
+#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MV9317) || defined(CONFIG_VIDEO_CAMERA_SENSOR_OV7690) || defined(CONFIG_VIDEO_CAMERA_SENSOR_SIV100B)
 	data->cif_cfg.polarity_vsync 	= ACT_LOW;
 #else
 	data->cif_cfg.polarity_vsync 	= ACT_HIGH;
@@ -540,6 +582,7 @@ static irqreturn_t isp_cam_isr3(int irq, void *client_data/*, struct pt_regs *re
 }
 #endif
 
+#ifndef CONFIG_ARCH_TCC892X
 static irqreturn_t cif_cam_isr(int irq, void *client_data/*, struct pt_regs *regs*/)
 {
 	struct TCCxxxCIF *data = (struct TCCxxxCIF *)&hardware_data;
@@ -705,6 +748,9 @@ static irqreturn_t cif_cam_isr(int irq, void *client_data/*, struct pt_regs *reg
 			BITSET(pCIF->CIRQ, HwCIRQ_SOF);
 			BITSET(pCIF->CIRQ, HwCIRQ_MSOF);
 			BITCLR(pCIF->CIRQ, HwCIRQ_MSOF);
+			#elif	defined(CONFIG_ARCH_TCC892X)
+				//	In case of 892X, we have to add.
+				
 			#else // (CONFIG_ARCH_TCC79X)
 			BITSET(HwCIRQ, HwCIRQ_SOF);
 			BITSET(HwCIRQ, HwCIRQ_MSOF);
@@ -721,6 +767,198 @@ static irqreturn_t cif_cam_isr(int irq, void *client_data/*, struct pt_regs *reg
 
 	return IRQ_HANDLED;
 }
+#endif
+
+#ifdef CONFIG_ARCH_TCC892X
+static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_regs *regs*/)
+{
+	struct TCCxxxCIF *data = (struct TCCxxxCIF *)&hardware_data;
+	struct tccxxx_cif_buffer *curr_buf, *next_buf;
+	unsigned int curr_num, next_num, nCnt;
+	
+	
+#ifdef JPEG_ENCODE_WITH_CAPTURE
+	unsigned int uCLineCnt, uTempVCNT;
+#endif
+
+#if defined(CONFIG_ARCH_TCC92XX) || defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC88XX)
+	volatile PCIF pCIF;
+
+	pCIF = (PCIF)tcc_p2v(HwCIF_BASE);
+#endif
+
+	//preview : Stored-One-Frame in DMA
+	if(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_EOFR_MASK)
+	{
+		if (data->cif_cfg.oper_mode == OPER_CAPTURE) 
+		{
+			if(skip_frm == 0 && !frame_lock)
+			{
+		
+				data->cif_cfg.now_frame_num = 0;
+				curr_buf = data->buf + data->cif_cfg.now_frame_num;		
+				
+				curr_buf->v4lbuf.bytesused =	data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y*2;
+				curr_buf->v4lbuf.flags &= ~V4L2_BUF_FLAG_QUEUED;
+				curr_buf->v4lbuf.flags |= V4L2_BUF_FLAG_DONE;
+
+				list_move_tail(&curr_buf->buf_list, &data->done_list);		
+
+				data->cif_cfg.cap_status = CAPTURE_DONE;
+
+				wake_up_interruptible(&data->frame_wait); //POLL
+
+				BITCSET(pWDMABase->uIRQSTS.nREG, VIOC_WDMA_IREQ_ALL_MASK, VIOC_WDMA_IREQ_ALL_MASK);	
+
+				return IRQ_HANDLED;
+			}
+			else
+			{
+				if(skip_frm > 0){
+					skip_frm--;
+					printk("decrease frm!!\n");
+				}
+				else
+					skip_frm = 0;
+
+				VIOC_WDMA_SetImageEnable(pWDMABase, OFF);
+				BITCSET(pWDMABase->uIRQSTS.nREG, VIOC_WDMA_IREQ_ALL_MASK, VIOC_WDMA_IREQ_ALL_MASK);	
+				VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_EOFR_MASK, 0x0);
+			}
+		}
+		
+		if(data->stream_state == STREAM_ON)
+		{
+			
+			TDD_CIF_SetInterrupt(SET_CIF_UPDATE_WITHOUT_VSYNC);	
+			sensor_if_check_control();
+	
+			if(skip_frm == 0 && !frame_lock)
+			{
+				if(prev_buf != NULL){
+					list_move_tail(&prev_buf->buf_list, &data->done_list);
+				}
+				
+				//printk("[Camera Preview] Interrupt Rising Up!!\n");
+				prev_buf = data->buf + data->cif_cfg.now_frame_num;
+				prev_num = data->cif_cfg.now_frame_num;
+	
+				next_buf = list_entry(data->list.next->next, struct tccxxx_cif_buffer, buf_list);	
+				next_num = next_buf->v4lbuf.index;
+
+				if(next_buf != &data->list && prev_buf != next_buf)
+				{
+					
+					//exception process!!
+					if(prev_num != prev_buf->v4lbuf.index)
+					{
+						printk("Frame num mismatch :: true num  :: %d \n", curr_num);
+						printk("Frame num mismatch :: false num :: %d \n", curr_buf->v4lbuf.index);
+						prev_buf->v4lbuf.index = prev_num ;
+					}
+
+						
+					cif_dma_hw_reg(next_num);					
+				
+					if(data->cif_cfg.fmt == M420_ZERO)
+						prev_buf->v4lbuf.bytesused = data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y*2;
+					else
+						prev_buf->v4lbuf.bytesused = (data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y*3)/2;
+
+					prev_buf->v4lbuf.flags &= ~V4L2_BUF_FLAG_QUEUED;
+					prev_buf->v4lbuf.flags |= V4L2_BUF_FLAG_DONE;
+			
+					#ifdef	CONFIG_VIDEO_ATV_SENSOR_TVP5150
+						if((frm_cnt == 1) && (bfield == 0)){
+							dprintk("Deintl Initialization\n");
+							VIOC_VIQE_InitDeintlCoreNormal((VIQE *)pVIQEBase);
+
+							// if we want to operate temporal deinterlacer mode,
+							// initial 3 field are operated by spatial, then 
+							// change the temporal mode in next fields.
+							// (VERY IMPORTANT)
+						}
+						else {
+							field_cnt++;
+						}			
+					
+
+						if (bfield == 1) {		// end fied of bottom field
+							bfield = 0;
+							frm_cnt++;
+						} else {
+							bfield = 1;
+						}
+
+					#endif
+
+					if(data->cif_cfg.zoom_step != old_zoom_step){							
+
+						// Block WDMA's IRQ
+						VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_EOFR_MASK, 0x1);
+								
+						// Disable WDMA
+						BITCSET(pWDMABase->uCTRL.nREG, 1<<28, 0<<28);
+
+						// Update WDMA
+						BITCSET(pWDMABase->uCTRL.nREG, 1<<16, 1<<16);
+
+						// Before camera quit, we have to wait WMDA's SEN signal to LOW.
+						// Note that do not decrease below Cnt.
+						while(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_STSEN_MASK){
+							for(nCnt=0; nCnt<10000; nCnt++);
+						}							
+						
+						VIOC_VIN_SetImageSize(pVINBase, data->cif_cfg.main_set.source_x, data->cif_cfg.main_set.source_y);
+						VIOC_VIN_SetImageOffset(pVINBase,data->cif_cfg.main_set.win_hor_ofst, data->cif_cfg.main_set.win_ver_ofst, 0);
+
+						dprintk("VIN WxH[%dx%d] Crop Start XxY[%dx%d] \n", data->cif_cfg.main_set.source_x, data->cif_cfg.main_set.source_y,
+															data->cif_cfg.main_set.win_hor_ofst, data->cif_cfg.main_set.win_ver_ofst);
+
+						//VIOC_WMIX_SetSize(pWMIXBase, data->cif_cfg.main_set.source_x, data->cif_cfg.main_set.source_y);
+						VIOC_SC_SetUpdate (pSCBase);		
+						//VIOC_WMIX_SetUpdate(pWMIXBase);
+
+						// Enable WDMA							
+						VIOC_WDMA_SetImageEnable(pWDMABase, ON);					
+
+					}
+					old_zoom_step = data->cif_cfg.zoom_step;							
+					
+				}
+				else
+				{
+					//dprintk("no-buf change... wakeup!! \n");
+					skipped_frm++;
+				}
+
+				data->wakeup_int = 1;
+				wake_up_interruptible(&data->frame_wait);					
+			}
+			else
+			{
+				if(skip_frm > 0){
+					skip_frm--;
+					printk("decrease frm!!\n");
+				}
+				else
+					skip_frm = 0;
+			}
+
+			
+			BITCSET(pWDMABase->uCTRL.nREG, 1<<16, (1<<16));	
+			//VIOC_WDMA_SetImageEnable(pWDMABase, OFF);
+			BITCSET(pWDMABase->uIRQSTS.nREG, VIOC_WDMA_IREQ_ALL_MASK, VIOC_WDMA_IREQ_ALL_MASK);	
+			VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_EOFR_MASK, 0x0);
+					
+			TDD_CIF_SetInterrupt(SET_CIF_UPDATE_IN_VSYNC);
+		
+		}		
+	}
+
+	return IRQ_HANDLED;
+}
+#endif
  
 /* ------------- below are interface functions ----------------- */
 /* ------------- these functions are named tccxxxcif_<name> -- */
@@ -866,46 +1104,52 @@ void cif_scaler_set(void *priv, enum cifoper_mode mode)
 		crop_vert_end 	= (data->scaler_y - data->target_y - crop_vert_start);			
 	}
 #endif /*CONFIG_VIDEO_CAMERA_SENSOR_TVP5150*/
-	
-	sc_hfactor = (data->source_x*256/data->scaler_x);
-	sc_vfactor = (data->source_y*256/data->scaler_y);
 
-	TDD_CIF_SetFreeScale(SET_CIF_SCALER_SRC_SIZE|SET_CIF_SCALER_DST_SIZE,
-							data->source_x, data->source_y, 0, 0, data->scaler_x, data->scaler_y, 0, 0);
-	TDD_CIF_SetFreeScale(SET_CIF_SCALER_SRC_OFFSET,
-							0, 0, data->win_hor_ofst, data->win_ver_ofst, 0, 0, 0, 0);
-	TDD_CIF_SetFreeScale(SET_CIF_SCALER_FACTOR, 0, 0, 0, 0, 0, 0, sc_hfactor, sc_vfactor);
-#if defined(CONFIG_VIDEO_ATV_SENSOR_TVP5150) || defined(CONFIG_VIDEO_ATV_SENSOR_RDA5888)
-	crop_hor_ofst = (data->scaler_x - data->target_x)/2;
-	crop_ver_ofst = (data->scaler_y - data->target_y)/2;
-	//TDD_CIF_SetImage(INPUT_IMG, data->scaler_x, data->scaler_y, 
-	TDD_CIF_SetImage(INPUT_IMG, data->source_x, data->source_y,
-								crop_hor_ofst, (data->scaler_x - data->target_x - crop_hor_ofst), 
-								crop_ver_ofst, (data->scaler_y - data->target_y - crop_ver_ofst));
-	TDD_CIF_SetBaseAddr_offset(INPUT_IMG, data->scaler_x, data->scaler_x/2);
-#else
-	//Crop
-	TDD_CIF_SetImage(INPUT_IMG, data->scaler_x, data->scaler_y, crop_hori_start, crop_hori_end, crop_vert_start, crop_vert_end);
+	#if defined(CONFIG_ARCH_TCC892X)
 
-	#if defined(CONFIG_ARCH_TCC88XX)
-		TDD_CIF_SetBaseAddr_offset(INPUT_IMG, data->target_x, data->target_x/2);
+
+		
 	#else
-		TDD_CIF_SetBaseAddr_offset(INPUT_IMG, data->scaler_x, data->scaler_x/2);
-	#endif
-	
-	dprintk("Crop Information -> crop_hori_start : %d, crop_hori_end : %d, crop_vert_start : %d, crop_vert_end : %d \n", crop_hori_start, crop_hori_end, crop_vert_start, crop_vert_end);
-#endif
+			sc_hfactor = (data->source_x*256/data->scaler_x);
+			sc_vfactor = (data->source_y*256/data->scaler_y);
 
-#if defined(CONFIG_VIDEO_CAMERA_SENSOR_AIT848_ISP) || defined(CONFIG_VIDEO_CAMERA_SENSOR_ISX006) || defined(CONFIG_VIDEO_ATV_SENSOR_TVP5150) || defined(CONFIG_VIDEO_ATV_SENSOR_RDA5888)
-	if(mode == OPER_CAPTURE)
-	{
-		TDD_CIF_SetScalerCtrl(SET_CIF_SCALER_DISABLE);
-	}
-	else
-#endif
-	{
-		TDD_CIF_SetScalerCtrl(SET_CIF_SCALER_ENABLE);
-	}
+			TDD_CIF_SetFreeScale(SET_CIF_SCALER_SRC_SIZE|SET_CIF_SCALER_DST_SIZE,
+									data->source_x, data->source_y, 0, 0, data->scaler_x, data->scaler_y, 0, 0);
+			TDD_CIF_SetFreeScale(SET_CIF_SCALER_SRC_OFFSET,
+									0, 0, data->win_hor_ofst, data->win_ver_ofst, 0, 0, 0, 0);
+			TDD_CIF_SetFreeScale(SET_CIF_SCALER_FACTOR, 0, 0, 0, 0, 0, 0, sc_hfactor, sc_vfactor);
+		#if defined(CONFIG_VIDEO_ATV_SENSOR_TVP5150) || defined(CONFIG_VIDEO_ATV_SENSOR_RDA5888)
+			crop_hor_ofst = (data->scaler_x - data->target_x)/2;
+			crop_ver_ofst = (data->scaler_y - data->target_y)/2;
+			//TDD_CIF_SetImage(INPUT_IMG, data->scaler_x, data->scaler_y, 
+			TDD_CIF_SetImage(INPUT_IMG, data->source_x, data->source_y,
+										crop_hor_ofst, (data->scaler_x - data->target_x - crop_hor_ofst), 
+										crop_ver_ofst, (data->scaler_y - data->target_y - crop_ver_ofst));
+			TDD_CIF_SetBaseAddr_offset(INPUT_IMG, data->scaler_x, data->scaler_x/2);
+		#else
+			//Crop
+			TDD_CIF_SetImage(INPUT_IMG, data->scaler_x, data->scaler_y, crop_hori_start, crop_hori_end, crop_vert_start, crop_vert_end);
+
+			#if defined(CONFIG_ARCH_TCC88XX)
+				TDD_CIF_SetBaseAddr_offset(INPUT_IMG, data->target_x, data->target_x/2);
+			#else
+				TDD_CIF_SetBaseAddr_offset(INPUT_IMG, data->scaler_x, data->scaler_x/2);
+			#endif
+			
+			dprintk("Crop Information -> crop_hori_start : %d, crop_hori_end : %d, crop_vert_start : %d, crop_vert_end : %d \n", crop_hori_start, crop_hori_end, crop_vert_start, crop_vert_end);
+		#endif
+
+		#if defined(CONFIG_VIDEO_CAMERA_SENSOR_AIT848_ISP) || defined(CONFIG_VIDEO_CAMERA_SENSOR_ISX006) || defined(CONFIG_VIDEO_ATV_SENSOR_TVP5150) || defined(CONFIG_VIDEO_ATV_SENSOR_RDA5888)
+			if(mode == OPER_CAPTURE)
+			{
+				TDD_CIF_SetScalerCtrl(SET_CIF_SCALER_DISABLE);
+			}
+			else
+		#endif
+			{
+				TDD_CIF_SetScalerCtrl(SET_CIF_SCALER_ENABLE);
+			}
+	#endif
 }
 
 void cif_scaler_calc(void)
@@ -1016,6 +1260,11 @@ void cif_dma_hw_reg(unsigned char frame_num)
 	ISP_SetPreviewH_StartAddress((unsigned int)data->cif_cfg.preview_buf[frame_num].p_Y,
 									(unsigned int)data->cif_cfg.preview_buf[frame_num].p_Cb,
 									(unsigned int)data->cif_cfg.preview_buf[frame_num].p_Cr);
+#elif	defined(CONFIG_ARCH_TCC892X)
+	// For Making the format android(ICS) wants, we had to change between Cb and Cr.
+	VIOC_WDMA_SetImageBase(pWDMABase, (unsigned int)data->cif_cfg.preview_buf[frame_num].p_Y, 
+									(unsigned int)data->cif_cfg.preview_buf[frame_num].p_Cr,
+									(unsigned int)data->cif_cfg.preview_buf[frame_num].p_Cb);	
 #else
 	TDD_CIF_SetBaseAddr(INPUT_IMG, (unsigned int)data->cif_cfg.preview_buf[frame_num].p_Y,
 									(unsigned int)data->cif_cfg.preview_buf[frame_num].p_Cb,
@@ -1140,6 +1389,11 @@ void cif_capture_dma_set(void *priv)
 	#endif // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT 
 
 	ISP_SetCapture_Zoom(data->cif_cfg.zoom_step);	
+#else
+	#if	defined(CONFIG_ARCH_TCC892X)
+		VIOC_WDMA_SetImageBase(pWDMABase, (unsigned int)data->cif_cfg.capture_buf.p_Y, 
+											(unsigned int)data->cif_cfg.capture_buf.p_Cb,
+											(unsigned int)data->cif_cfg.capture_buf.p_Cr);		
 #else // CONFIG_USE_ISP
 	TDD_CIF_SetBaseAddr(INPUT_IMG,  (unsigned int)data->cif_cfg.capture_buf.p_Y,
 									(unsigned int)data->cif_cfg.capture_buf.p_Cb,
@@ -1176,6 +1430,7 @@ void cif_capture_dma_set(void *priv)
 										((unsigned int)data->cif_cfg.capture_buf.p_Cr+(JPEG_Info.JpegCaptureBuffSize/2/4)-4));
 		}
 	}
+		#endif
 	#endif
 #endif // CONFIG_USE_ISP
 }
@@ -1284,6 +1539,355 @@ void cif_global_reset(void)
 #endif
 #endif //CONFIG_USE_ISP
 }
+
+
+#ifdef CONFIG_ARCH_TCC892X
+void cif_set_port(unsigned int nUsingPort)
+{
+	// please note that every port mapping's number has to different!!
+	// In now, we have to use Number 4 port.
+	BITCSET(pDDIConfig->CIFPORT.nREG, 0x00077777, (0 << 16) | (3 << 12) | (2 << 8) | (1 << 4) |
+												nUsingPort);	
+}
+
+int tccxxx_vioc_vin_main(VIOC_VIN *pVIN)
+{
+
+	uint 	*pLUT;
+	uint	width;
+	uint	height;
+	uint	offs_width, offs_height, offs_height_intl;
+	struct TCCxxxCIF *data = (struct TCCxxxCIF *) &hardware_data;
+
+	offs_width	= 0;		// Not crop mode
+	offs_height	= 0;		// Not crop mode
+	offs_height_intl	= 0;		// Not crop mode
+
+	if(data->cif_cfg.oper_mode == OPER_CAPTURE)
+	{
+		#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
+			width 	= tcc_sensor_info.capture_w;
+			height 	= tcc_sensor_info.capture_h;
+		#else
+			width 	= CAP_W;
+			height 	= CAP_H;
+		#endif
+	
+	}
+	else
+	{
+		#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
+			width 	= tcc_sensor_info.preview_w;
+			height 	= tcc_sensor_info.preview_h;
+		#else
+			width 	= PRV_W;
+			height 	= PRV_H;
+		#endif
+	}
+
+	if ((uint)pVIN == (uint)tcc_p2v(HwVIOC_VIN00)) {		// VIN00 means VIN0 component
+		pLUT = (unsigned int *)tcc_p2v(HwVIOC_VIN01);		// VIN01 means LUT of VIN0 component
+		dprintk("In VIN, WMIX 5\n");
+		VIOC_CONFIG_WMIXPath(WMIX50, ON);
+		//VIOC_WMIX_SetSize(pWMIXBase, width, height);
+		VIOC_WMIX_SetSize(pWMIXBase, data->cif_cfg.main_set.target_x, data->cif_cfg.main_set.target_y);
+		VIOC_WMIX_SetUpdate(pWMIXBase);		
+	} else {						// VIN10 means VIN1 component
+		pLUT = (uint *)tcc_p2v(HwVIOC_VIN11);		// VIN11 means LUT of VIN1 component
+		dprintk("In VIN, WMIX 6\n");
+		VIOC_CONFIG_WMIXPath(WMIX60, ON);
+		VIOC_WMIX_SetSize(pWMIXBase, width, height);
+		VIOC_WMIX_SetUpdate(pWMIXBase);		
+	}						// Modified code
+
+	dprintk("VIOC VIN WxH[%dx%d] \n",width, height);
+							
+	#ifdef	CONFIG_VIDEO_ATV_SENSOR_TVP5150
+		VIOC_VIN_SetSyncPolarity(pVIN, OFF, OFF, OFF, OFF, OFF, ON);
+		VIOC_VIN_SetCtrl(pVIN, ON, OFF, OFF, FMT_YUV422_8BIT, ORDER_RGB);
+		VIOC_VIN_SetInterlaceMode(pVIN, ON, OFF);
+	#else
+		VIOC_VIN_SetSyncPolarity(pVIN, !(data->cif_cfg.polarity_href), !(data->cif_cfg.polarity_vsync), 
+								OFF, OFF, OFF, !(data->cif_cfg.polarity_pclk));
+			#if defined(CONFIG_MACH_M805_892X) // Because of DE signal, M805S_8923 doesn't have DE signal.
+				VIOC_VIN_SetCtrl(pVIN, OFF, ON, ON, FMT_YUV422_8BIT, ORDER_RGB);
+			#else
+				VIOC_VIN_SetCtrl(pVIN, OFF, OFF, OFF, FMT_YUV422_8BIT, ORDER_RGB);
+			#endif
+		VIOC_VIN_SetInterlaceMode(pVIN, OFF, OFF);
+	#endif
+
+	VIOC_VIN_SetImageSize(pVIN, width, height);
+	VIOC_VIN_SetImageOffset(pVIN,offs_width, offs_height, offs_height_intl);
+		
+	VIOC_VIN_SetY2RMode(pVIN, 2);
+	VIOC_VIN_SetY2REnable(pVIN, OFF);
+	VIOC_VIN_SetLUT(pVIN, pLUT);
+	VIOC_VIN_SetLUTEnable(pVIN, OFF, OFF, OFF);
+	VIOC_VIN_SetEnable(pVIN, ON);
+
+	return 0;
+
+}
+
+int  tccxxx_vioc_vin_demux_main(VIOC_VIN_DEMUX *pVINDEMUX, uint enable)
+{
+    //VIOC_VIN_SetDemuxPort(VIOC_VIN_DEMUX *pVINDEMUX, uint p0, uint p1, uint p2, uint p3)
+    VIOC_VIN_SetDemuxPort(pVINDEMUX, EXT_PORT0, EXT_PORT1, EXT_PORT2, EXT_PORT3);
+
+    //VIOC_VIN_SetDemuxClock(VIOC_VIN_DEMUX *pVINDEMUX, uint mode)
+    VIOC_VIN_SetDemuxClock(pVINDEMUX, CLK_DOUBLE_EDGE);
+
+    //VIOC_VIN_SetDemuxEnable(VIOC_VIN_DEMUX *pVINDEMUX, uint enable)
+    VIOC_VIN_SetDemuxEnable(pVINDEMUX, enable);
+
+	return 0;
+}
+
+
+int tccxxx_vioc_vin_wdma_set(VIOC_WDMA *pDMA_CH)
+{
+	struct TCCxxxCIF *data = (struct TCCxxxCIF *) &hardware_data;
+	uint dw, dh;			// destination image size
+	uint fmt;			// image format
+
+	volatile PVIOC_IREQ_CONFIG pIREQConfig;
+	pIREQConfig = (volatile PVIOC_IREQ_CONFIG)tcc_p2v(HwVIOC_IREQ);
+
+	dw = data->cif_cfg.main_set.target_x;
+	dh = data->cif_cfg.main_set.target_y;
+	//	dw 	= tcc_sensor_info.preview_w;
+	//	dh 	= tcc_sensor_info.preview_h;
+	if(data->cif_cfg.oper_mode == OPER_CAPTURE)
+		fmt = VIOC_IMG_FMT_YUV422SEP;	// 4:2:2 separate format
+	else
+		fmt = VIOC_IMG_FMT_YUV420SEP;	// 4:2:0 separate format
+
+	if(data->cif_cfg.oper_mode == OPER_CAPTURE){
+		cif_capture_dma_set(data);
+		dprintk("VIOC WDMA addr Y[0x%x] U[0x%x] V[0x%x]\n",data->cif_cfg.capture_buf.p_Y
+														,data->cif_cfg.capture_buf.p_Cb
+														,data->cif_cfg.capture_buf.p_Cr);
+	}
+	else{
+		//cif_preview_dma_set();
+		cif_dma_hw_reg(0);
+		dprintk("VIOC WDMA addr Y[0x%x] U[0x%x] V[0x%x]\n",data->cif_cfg.preview_buf[0].p_Y
+														,data->cif_cfg.preview_buf[0].p_Cb
+														,data->cif_cfg.preview_buf[0].p_Cr);
+	}
+
+	dprintk("VIOC WDMA size[%dx%d] \n", dw, dh);
+
+	
+	VIOC_WDMA_SetImageFormat(pDMA_CH, fmt);
+	VIOC_WDMA_SetImageSize(pDMA_CH, dw, dh);
+	VIOC_WDMA_SetImageOffset(pDMA_CH, fmt, dw);
+						
+	VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_EOFR_MASK, 0x0);
+	if(data->cif_cfg.oper_mode == OPER_CAPTURE)
+		VIOC_WDMA_SetImageEnable(pDMA_CH, OFF);	// operating start in 1 frame
+	else
+		VIOC_WDMA_SetImageEnable(pDMA_CH, ON);	// operating start in 1 frame
+
+	return 0;
+}
+
+int tccxxx_vioc_scaler_set(VIOC_SC *pSC, VIOC_VIN *pVIN, VIOC_WMIX *pWMIX, uint plug_in)
+{
+	uint channel;
+	uint dw, dh;			// destination size in SCALER
+	uint mw, mh;			// image size in WMIX
+	struct TCCxxxCIF *data = (struct TCCxxxCIF *) &hardware_data;
+
+	dprintk("pVIN[0x%x] HWVIN0[0x%x] \n", pVIN, tcc_p2v(HwVIOC_VIN00));
+
+	if ((uint)pVIN == (uint)tcc_p2v(HwVIOC_VIN00)) {
+		dw = data->cif_cfg.main_set.target_x;
+		dh = data->cif_cfg.main_set.target_y;
+	} else if ((uint)pVIN == (uint)tcc_p2v(HwVIOC_VIN10)) {
+		dw = data->cif_cfg.main_set.target_x;
+		dh = data->cif_cfg.main_set.target_y;	
+	}
+
+	if (plug_in == VIOC_SC_VIN_00) {			// PlugIn path : VIN0 - SCALE - WMIX
+		mw = data->cif_cfg.main_set.target_x;
+		mh = data->cif_cfg.main_set.target_y;
+	} else if (plug_in == VIOC_SC_VIN_01) {		// PlugIn path : VIN1 - SCALE - WMIX
+		mw = data->cif_cfg.main_set.target_x;
+		mh = data->cif_cfg.main_set.target_y;
+	} else if (plug_in == VIOC_SC_WDMA_06) {		// PlugIn path : VIN0 - WMIX - SCALE
+		#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
+		mw 	= tcc_sensor_info.preview_w;
+		mh 	= tcc_sensor_info.preview_h;
+		#else
+		mw 	= PRV_W;
+		mh 	= PRV_H;
+		#endif
+	} else if (plug_in == VIOC_SC_WDMA_05) {		// PlugIn path : VIN0 - WMIX - SCALE
+		#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
+		mw 	= tcc_sensor_info.preview_w;
+		mh 	= tcc_sensor_info.preview_h;
+		#else
+		mw 	= PRV_W;
+			#ifdef	CONFIG_VIDEO_ATV_SENSOR_TVP5150
+				mh 	= PRV_H*2;
+			#else
+				mh 	= PRV_H;
+			#endif
+		#endif
+	} else if (plug_in == VIOC_SC_WDMA_08) {		// PlugIn path : VIN1 - WMIX - SCALE
+		#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
+		mw 	= tcc_sensor_info.preview_w;
+		mh 	= tcc_sensor_info.preview_h;
+		#else
+		mw 	= PRV_W;
+		mh 	= PRV_H;
+		#endif
+	} else if (plug_in == VIOC_SC_WDMA_07) {		// PlugIn path : VIN1 - WMIX - SCALE
+		#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
+		mw 	= tcc_sensor_info.preview_w;
+		mh 	= tcc_sensor_info.preview_h;
+		#else
+		mw 	= PRV_W;
+		mh 	= PRV_H;
+		#endif
+	}
+
+	dprintk("pSC[0x%x] HWSC0[0x%x] HW channel[%d]\n", (uint)(pSC), (uint)tcc_p2v(HwVIOC_SC3), VIOC_SC3);
+
+	if ((uint)(pSC) == (uint)tcc_p2v(HwVIOC_SC0)) {
+		channel = VIOC_SC0;
+	} else if ((uint)(pSC) == (uint)tcc_p2v(HwVIOC_SC1)) {
+		channel = VIOC_SC1;
+	} else if ((uint)(pSC) == (uint)tcc_p2v(HwVIOC_SC2)) {
+		channel = VIOC_SC2;
+	} else if ((uint)(pSC) == (uint)tcc_p2v(HwVIOC_SC3)) {
+		channel = VIOC_SC3;
+	}
+
+	dprintk("VIOC SC Channel[%d] Dst[%dx%d] WMIX[%dx%d]\n",channel,dw,dh, mw,mh);
+
+	VIOC_SC_SetBypass (pSC, OFF);
+	VIOC_SC_SetDstSize (pSC, dw, dh);			// set destination size in scaler
+	VIOC_SC_SetOutSize (pSC, dw, dh);			// set output size in scaer
+
+	VIOC_CONFIG_PlugIn (channel, plug_in);		// PlugIn position in SCALER
+	VIOC_SC_SetUpdate (pSC);				// Scaler update
+
+	VIOC_WMIX_SetSize (pWMIX, mw, mh);		// set WMIX image size
+	VIOC_WMIX_SetUpdate (pWMIX);			// WMIX update
+
+	return 0;
+}
+
+#if	defined(CONFIG_VIDEO_ATV_SENSOR_TVP5150)
+int tccxxx_vioc_viqe_main(uint use_top_size)
+{
+	uint	width, height;
+	uint	fmt;
+	uint	bypass_deintl, bypass_d3d;
+	uint	deintl_base0;
+	uint	deintl_base1;
+	uint	deintl_base2;
+	uint	deintl_base3;
+	uint	denoise_base0;
+	uint	denoise_base1;
+	uint	frmnum;
+	int		cdf_lut_en;
+	int		his_en;
+	int		gamut_en;
+	int		d3d_en;
+	int		deintl_en;
+
+	unsigned int	*pVIQE_DEINTL_BASE0;
+	unsigned int	*pVIQE_DEINTL_BASE1;
+	unsigned int	*pVIQE_DEINTL_BASE2;
+	unsigned int	*pVIQE_DEINTL_BASE3;
+	unsigned int	*pVIQE_D3D_BASE0;
+	unsigned int	*pVIQE_D3D_BASE1;
+
+	cdf_lut_en	= OFF;				// color LUT (pixel_mapper)
+	his_en		= OFF;				// histogram
+	gamut_en		= OFF;				// gamut
+	d3d_en		= OFF;				// denoise 3d
+	deintl_en	= ON;				// deinterlacer
+	
+	fmt		= FMT_FC_YUV420;
+	bypass_deintl	= OFF;
+	bypass_d3d	= ON;
+
+	width		= PRV_W;
+	height		= PRV_H;
+
+	// If you use VIQE, you have to use physical address.
+	pVIQE_DEINTL_BASE0 = PA_TEMP;
+	pVIQE_DEINTL_BASE1 = PA_TEMP + (width*height*2*2);
+	pVIQE_DEINTL_BASE2 = PA_TEMP + (width*height*2*2)*2;
+	pVIQE_DEINTL_BASE3 = PA_TEMP + (width*height*2*2)*3;
+
+	deintl_base0	= (unsigned char *)(pVIQE_DEINTL_BASE0);
+	deintl_base1	= (unsigned char *)(pVIQE_DEINTL_BASE1);
+	deintl_base2	= (unsigned char *)(pVIQE_DEINTL_BASE2);
+	deintl_base3	= (unsigned char *)(pVIQE_DEINTL_BASE3);
+	denoise_base0	= (uint)(pVIQE_D3D_BASE0);
+	denoise_base1	= (uint)(pVIQE_D3D_BASE1);
+
+	frmnum 		= 0;
+
+	if (use_top_size == ON)			// If (use_top_size == ON), size information of 
+									// VIQE is gotten by VIOC modules. 
+
+	{
+		width 	= 0;
+		height	= 0;
+	}
+
+	VIOC_VIQE_SetControlRegister((VIQE *)(pVIQEBase), width, height, fmt);
+
+	VIOC_VIQE_SetDeintlRegister((VIQE *)(pVIQEBase), fmt, width, height, bypass_deintl,
+			deintl_base0, deintl_base1, deintl_base2, deintl_base3);
+	VIOC_VIQE_SetDenoise((VIQE *)(pVIQEBase), fmt, width, height, bypass_d3d, frmnum,
+			denoise_base0, denoise_base1);
+	VIOC_VIQE_SetControlEnable((VIQE *)(pVIQEBase), cdf_lut_en, his_en, gamut_en, d3d_en,
+			deintl_en);
+	
+	return 0;
+}
+
+int tccxxx_vioc_viqe_wmix_set(VIOC_WMIX *pWMIX, uint plug_in, unchar bUseSimpleDeIntl)
+{
+	uint channel;
+	uint mw, mh;			
+
+	mw = PRV_W;
+	mh = PRV_H * 2;
+	
+	if (plug_in == VIOC_VIQE_VIN_00) {
+		mw = PRV_W;
+		mh = PRV_H * 2;				// set vertical size in WMIX 
+	} else if (plug_in == VIOC_VIQE_VIN_01) {
+		mw = PRV_W;
+		mh = PRV_H * 2;				// set vertical size in WMIX
+	}
+	
+	if(!bUseSimpleDeIntl)
+		channel = VIOC_VIQE; 
+	else
+		channel = VIOC_DEINTLS;
+
+	VIOC_CONFIG_PlugIn (channel, plug_in);			// PlugIn in VIQE
+	VIOC_WMIX_SetSize (pWMIX, mw, mh);			
+	VIOC_WMIX_SetUpdate (pWMIX);				// Update WMIX
+
+
+	return 0;
+}
+#endif
+
+#endif
+
+
 
 #ifdef JPEG_ENCODE_WITH_CAPTURE
 static irqreturn_t tccxxx_jpeg_handler(int irq, void *dev_id/*, struct pt_regs *reg*/)
@@ -1714,6 +2318,10 @@ int tccxxx_cif_cam_restart(struct v4l2_pix_format *pix, unsigned long xclk)
 
 int tccxxx_cif_start_stream(void)
 {
+	#if	defined(CONFIG_ARCH_TCC892X)
+		uint    sc_plug_in0, sc_plug_in1, nCnt;
+		unchar	bUseSimpleDeIntl;
+	#endif
 	struct TCCxxxCIF *data = (struct TCCxxxCIF *) &hardware_data;
 
 	dprintk("%s Start!! \n", __FUNCTION__);
@@ -1778,45 +2386,110 @@ int tccxxx_cif_start_stream(void)
 #endif
 	ISP_SetPreview_Control(ON);
 #else
-	TDD_CIF_ONOFF(OFF);
-	TDD_CIF_SWReset();
-	TDD_CIF_SetCaptureCtrl(SET_CIF_SKIP_NUM, 0, 0, SET_CIF_CAP_DISABLE); // after capture!!
-	
-	sensor_if_change_mode(OPER_PREVIEW);
-#if !defined(CONFIG_VIDEO_ATV_SENSOR_TVP5150)
-	TDD_CIF_SetInterrupt(SET_CIF_UPDATE_IN_VSYNC);
-#endif
-	cif_global_reset();
+	#if	defined(CONFIG_ARCH_TCC892X)
+			data->stream_state = STREAM_ON;
+			sc_plug_in0 = VIOC_SC_VIN_00;//VIOC_SC_WDMA_05;	
+		    sc_plug_in1 = VIOC_SC_WDMA_05;//VIOC_SC_WDMA_07;
 
-	tccxxx_cif_set_effect(current_effect_mode);
-	
-	cif_scaler_calc();
-	cif_preview_dma_set();
-	cif_dma_hw_reg(0);
+			old_zoom_step = 0;
 
-	#if defined(CONFIG_VIDEO_CAMERA_SENSOR_OV7690)
-		TDD_CIF_SetEffectMode(SET_CIF_CEM_YCS);
-	#endif
-	
-	TDD_CIF_ONOFF(ON);
+			cif_set_port(4);
 
-	data->stream_state = STREAM_ON;
+			prev_buf = NULL;
+
+		#ifdef	CONFIG_VIDEO_ATV_SENSOR_TVP5150
+			frm_cnt = 0;
+			bfield = 0;
+			field_cnt = 0;
+
+			// If you use DEINTL_S, you have to change below variable
+			bUseSimpleDeIntl = OFF;
+
+			dprintk("TVP5150 start!!\n");
+
+			sensor_if_change_mode(OPER_PREVIEW);
+
+			tccxxx_vioc_vin_main(pVINBase);
+
+			if(!bUseSimpleDeIntl)
+				tccxxx_vioc_viqe_main(ON);
+
+			tccxxx_vioc_viqe_wmix_set(pWMIXBase, VIOC_VIQE_VIN_00, bUseSimpleDeIntl);
+
+			tccxxx_vioc_scaler_set(pSCBase, pVINBase, pWMIXBase, sc_plug_in1);
+
+			tccxxx_vioc_vin_wdma_set(pWDMABase);
+		#else
+			if(data->cif_cfg.cap_status == CAPTURE_DONE){				
+				VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_ALL_MASK, 0x1);
 		
-	cif_interrupt_enable(data->cif_cfg.oper_mode);
-	cif_timer_register(data, HZ);
+				// Disable WDMA
+				BITCSET(pWDMABase->uCTRL.nREG, 1<<28, 0<<28);
 
-	#if defined(CONFIG_VIDEO_CAMERA_SENSOR_GT2005)
-		cif_set_frameskip(35, 0);		// Temporary Setting!! By Mun
-	#else
-		cif_set_frameskip(0, 0);
-	#endif
+				BITCSET(pWDMABase->uCTRL.nREG, 1<<16, 1<<16);
 
-	skipped_frm = 0;
+				// Before camera quit, we have to wait WMDA's SEN signal to LOW.
+				while(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_STSEN_MASK){
+					for(nCnt=0; nCnt<10000; nCnt++);
+				}	
+
+					// Disable VIN
+				VIOC_VIN_SetEnable(pVINBase, OFF);
+					
+				data->cif_cfg.cap_status = CAPTURE_NONE;
+			}
+		
+			sensor_if_change_mode(OPER_PREVIEW);
+
+		    tccxxx_vioc_scaler_set(pSCBase, pVINBase, pWMIXBase, sc_plug_in0);
+
+		    tccxxx_vioc_vin_main(pVINBase);
+		   
+		    tccxxx_vioc_vin_wdma_set(pWDMABase);
+		#endif
+
 	
-	while(skip_frm)
-	{
-		msleep(1);
-	}
+	#else
+		TDD_CIF_ONOFF(OFF);
+		TDD_CIF_SWReset();
+		TDD_CIF_SetCaptureCtrl(SET_CIF_SKIP_NUM, 0, 0, SET_CIF_CAP_DISABLE); // after capture!!
+		
+		sensor_if_change_mode(OPER_PREVIEW);
+		#if !defined(CONFIG_VIDEO_ATV_SENSOR_TVP5150)
+			TDD_CIF_SetInterrupt(SET_CIF_UPDATE_IN_VSYNC);
+		#endif
+		cif_global_reset();
+
+		tccxxx_cif_set_effect(current_effect_mode);
+		
+		cif_scaler_calc();
+		cif_preview_dma_set();
+		cif_dma_hw_reg(0);
+
+		#if defined(CONFIG_VIDEO_CAMERA_SENSOR_OV7690)
+			TDD_CIF_SetEffectMode(SET_CIF_CEM_YCS);
+		#endif
+		
+		TDD_CIF_ONOFF(ON);
+
+		data->stream_state = STREAM_ON;
+			
+		cif_interrupt_enable(data->cif_cfg.oper_mode);
+		cif_timer_register(data, HZ);
+
+		#if defined(CONFIG_VIDEO_CAMERA_SENSOR_GT2005)
+			cif_set_frameskip(35, 0);		// Temporary Setting!! By Mun
+		#else
+			cif_set_frameskip(0, 0);
+		#endif
+
+				skipped_frm = 0;
+				
+				while(skip_frm)
+				{
+					msleep(1);
+				}
+	#endif
 #endif //CONFIG_USE_ISP	
 
 	dprintk("%s End!! \n", __FUNCTION__);
@@ -1826,13 +2499,30 @@ int tccxxx_cif_start_stream(void)
 
 int tccxxx_cif_stop_stream(void)
 {	
+	int nCnt;
 	struct TCCxxxCIF *data = (struct TCCxxxCIF *) &hardware_data;
 
 #if defined(CONFIG_USE_ISP)
 	ISP_SetPreview_Control(OFF);
-#endif
+#elif defined(CONFIG_ARCH_TCC892X)
+	VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_ALL_MASK, 0x1);
+		
+		// Disable WDMA
+	BITCSET(pWDMABase->uCTRL.nREG, 1<<28, 0<<28);
+
+	BITCSET(pWDMABase->uCTRL.nREG, 1<<16, 1<<16);
+
+	// Before camera quit, we have to wait WMDA's SEN signal to LOW.
+	while(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_STSEN_MASK){
+		for(nCnt=0; nCnt<10000; nCnt++);
+	}	
+
+		// Disable VIN
+	VIOC_VIN_SetEnable(pVINBase, OFF);
+#else
 	cif_timer_deregister();
 	cif_interrupt_disable();
+#endif
 	
 	data->stream_state= STREAM_OFF;	
 
@@ -1956,6 +2646,9 @@ int tccxxx_cif_capture(int quality)
 	unsigned int target_width, target_height;
 	unsigned int ens_addr;
 	int skip_frame = 0;
+	#if	defined(CONFIG_ARCH_TCC892X)
+		uint    sc_plug_in0;
+	#endif
 #if defined(CONFIG_USE_ISP)
 	int mode=0;
 
@@ -2026,10 +2719,58 @@ int tccxxx_cif_capture(int quality)
 	ISP_Capture_Shooting(mode);
 	ISP_SetPreview_Control(OFF);
 #else
-	cif_interrupt_disable();
-	CIF_OpStop(1, 1);
+	#if	defined(CONFIG_ARCH_TCC892X)
+		sc_plug_in0 = VIOC_SC_VIN_00;//VIOC_SC_WDMA_05;
+		data->cif_cfg.oper_mode = OPER_CAPTURE;
+
+		memset(&(data->cif_cfg.jpg_info), 0x00, sizeof(TCCXXX_JPEG_ENC_DATA));
+
+		target_width  = data->cif_cfg.main_set.target_x;
+		target_height = data->cif_cfg.main_set.target_y;
+		#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
+			if(target_width >= tcc_sensor_info.cam_capchg_width && !(data->cif_cfg.retry_cnt)){
+				sensor_if_change_mode(OPER_CAPTURE);
+				msleep(300); 
+			}
+		#else // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
+			if(target_width >= CAM_CAPCHG_WIDTH && !(data->cif_cfg.retry_cnt)){
+				sensor_if_change_mode(OPER_CAPTURE);
+				msleep(300); 
+			}
+		#endif
+
+		// for Rotate Capture
+		data->cif_cfg.jpg_info.start_phy_addr = data->cif_cfg.base_buf;
+			//capture config
+			if(data->cif_cfg.retry_cnt)
+			{		
+				skip_frame = 0;
+			}
+			else
+			{
+		#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
+				skip_frame = tcc_sensor_info.capture_skip_frame;
+		#else // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
+				skip_frame = FRAMESKIP_COUNT_FOR_CAPTURE;
+		#endif // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
+			}
+
+		cif_set_frameskip(skip_frame, 0);
+
+		data->cif_cfg.cap_status = CAPTURE_NONE;
+
+		tccxxx_vioc_vin_main(pVINBase);
+
+		tccxxx_vioc_scaler_set(pSCBase, pVINBase, pWMIXBase, sc_plug_in0);
+
+		tccxxx_vioc_vin_wdma_set(pWDMABase);
 	
-	data->cif_cfg.oper_mode = OPER_CAPTURE;
+	#else
+
+			cif_interrupt_disable();
+			CIF_OpStop(1, 1);
+			
+			data->cif_cfg.oper_mode = OPER_CAPTURE;
 
 	cif_global_reset();
 	tccxxx_cif_set_effect(current_effect_mode);
@@ -2138,12 +2879,13 @@ int tccxxx_cif_capture(int quality)
 	sensor_if_change_mode(OPER_CAPTURE);
 #endif
 
-	// Turn on Camera Flash
-	sensor_turn_on_camera_flash();
+			// Turn on Camera Flash
+			sensor_turn_on_camera_flash();
 
-	TDD_CIF_ONOFF(ON);
-	msleep(100); 
-#endif //CONFIG_USE_ISP
+			TDD_CIF_ONOFF(ON);
+			msleep(100); 
+		#endif //CONFIG_USE_ISP
+#endif
 
 	return 0;
 }
@@ -2186,7 +2928,8 @@ int tccxxx_cif_set_resolution(unsigned int pixel_fmt, unsigned short width, unsi
 	data->cif_cfg.main_set.target_x = width;
 	data->cif_cfg.main_set.target_y = height;
 
-	if(data->stream_state != STREAM_OFF) {
+	if(data->stream_state != STREAM_OFF)
+	{
 		tccxxx_cif_stop_stream();
 		tccxxx_cif_start_stream();
 	}
@@ -2222,7 +2965,10 @@ int tccxxx_cif_open(void)
 	if(!cam_irq)
 	{
 		#if defined(CONFIG_ARCH_TCC88XX)
-			if ((ret = request_irq(IRQ_CIF, cif_cam_isr, IRQF_DISABLED, "camera", NULL)) < 0) 
+			if ((ret = request_irq(IRQ_CIF, cif_cam_isr, IRQF_DISABLED, "camera", NULL)) < 0)
+		#elif	defined(CONFIG_ARCH_TCC892X)
+			//	In case of 892X, we have to add.			
+			if ((ret = request_irq(INT_VIOC_WD5, cif_cam_isr_in8920, IRQF_SHARED, "camera", cif_cam_isr_in8920)) < 0)
 		#else
 			if ((ret = request_irq(IRQ_CAM, cif_cam_isr, IRQF_DISABLED, "camera", NULL)) < 0) 
 		#endif
@@ -2286,6 +3032,10 @@ int tccxxx_cif_close(void)
 #else
 	#if defined(CONFIG_ARCH_TCC88XX)
 		free_irq(IRQ_CIF, NULL);
+	#elif	defined(CONFIG_ARCH_TCC892X)
+		free_irq(INT_VIOC_WD5, cif_cam_isr_in8920);
+		//	In case of 892X, we have to add.
+	
 	#else
 		free_irq(IRQ_CAM, NULL);
 	#endif
@@ -2328,7 +3078,7 @@ int  tccxxx_cif_init(void)
 	memset(&hardware_data,0x00,sizeof(struct TCCxxxCIF));
 	hardware_data.buf = hardware_data.static_buf;
 
-#if (0) //20111209 ysseung   test...
+
 #ifdef JPEG_ENCODE_WITH_CAPTURE
 	buf->bytes = PAGE_ALIGN(CAPTURE_MEM+JPEG_MEM);
 	buf->addr = PA_VIDEO_BASE;
@@ -2355,8 +3105,18 @@ int  tccxxx_cif_init(void)
 		printk(KERN_ERR CAM_NAME ": cannot remap buffer\n");
 		return ENODEV;
 	}
-#endif
 
+	#if defined(CONFIG_ARCH_TCC892X)
+	pVINDemuxBase = (VIOC_VIN_DEMUX*)tcc_p2v(HwVIOC_VINDEMUX);
+	pWMIXBase = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX5);
+	pWDMABase = (VIOC_WDMA *)tcc_p2v(HwVIOC_WDMA05);
+	pVINBase = (VIOC_VIN *)tcc_p2v(HwVIOC_VIN00);
+	pSCBase = (VIOC_SC *)tcc_p2v(HwVIOC_SC2);
+	pDDIConfig = (DDICONFIG *)tcc_p2v(HwDDI_CONFIG_BASE);
+	pVIOCConfig = (VIOC_IREQ_CONFIG *)tcc_p2v(HwVIOC_IREQ);
+	pVIQEBase = (VIQE *)tcc_p2v(HwVIOC_VIQE0);
+	#endif
+  
 	/* Init the camera IF */
 	cif_data_init((void*)&hardware_data);
 	/* enable it. This is needed for sensor detection */
