@@ -2504,6 +2504,9 @@ int tccxxx_cif_stop_stream(void)
 
 #if defined(CONFIG_USE_ISP)
 	ISP_SetPreview_Control(OFF);
+	cif_timer_deregister();
+	cif_interrupt_disable();
+	
 #elif defined(CONFIG_ARCH_TCC892X)
 	VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_ALL_MASK, 0x1);
 		
