@@ -57,6 +57,16 @@
 #define TS_TIMER_PERIOD 10
 #define MULTI_TOUCH 1
 
+#define MAX_SAME_COUNT 10
+#define MAX_SYNC_COUNT 5
+
+#define REMOVE_SAME_POINT 1
+
+#define TS_X_REVERSE 0
+#define TS_Y_REVERSE 0
+#define TS_XY_SWAP 0
+
+
 struct sitronix_ts_priv {
 	struct i2c_client *client;
 	struct input_dev *input;
@@ -64,7 +74,7 @@ struct sitronix_ts_priv {
 	struct mutex mutex;
       struct early_suspend early_suspend;
       struct early_suspend earlier_suspend;	
-#ifdef TS_TIMER_SUPPORT	
+#if TS_TIMER_SUPPORT	
 	struct timer_list ts_timer;	
  	int running;	
 	int opened;	
@@ -102,6 +112,14 @@ typedef struct {
 	xy_data_t	xy_data[5];
 } stx_report_data_t;
 
+
+
+static int gp_penirq = 0;
+
+static int temp_x;
+static int same_count=0;
+static int sync_count = 0;
+static u16 x_res = 0, y_res = 0;
 
 static int i2c_read_bytes(struct i2c_client *client, uint8_t *buf, int len)
 {
@@ -150,6 +168,27 @@ static int i2c_write_bytes(struct i2c_client *client,uint8_t *data,int len)
 	}
 	return ret;
 }
+
+
+static int sitronix_ts_get_sc(struct i2c_client *client, u32 *var)
+{
+	char buf[2];
+	int ret;
+
+	buf[0] = 0x7;
+	if ((ret = i2c_master_send(client, buf, 1)) != 1)
+	return -EIO;
+
+	//Read 1 byte FW version from Reg. 0x0 set previously.
+	if ((ret = i2c_master_recv(client, buf, 2)) != 2)
+		return -EIO;
+
+	*var = (u32)(buf[0]<<8 + buf[1]);
+
+	return 0;	
+}
+
+
 
 static int sitronix_ts_get_fingers(struct i2c_client *client, u32 *var)
 {
@@ -323,6 +362,27 @@ static int sitronix_ts_get_resolution(struct i2c_client *client, u16 *x_res, u16
 
 }
 
+
+static int sitronix_ts_pendown(void)
+{
+	int i = 0;
+	int temp = 0;
+	
+	for(i=0 ; i<5; i++)
+	{
+		if(gpio_get_value(gp_penirq))
+			temp++;
+	}
+	
+	if(temp == 5){
+		printk("pen up\n");
+		return 0;
+	}else{
+		printk("pen down\n");
+		return 1;
+	}
+}
+
 static void sitronix_ts_work(struct work_struct *work)
 {
 #if 1
@@ -331,9 +391,8 @@ static void sitronix_ts_work(struct work_struct *work)
 	int i,err,ret,valid;
 	char buf[8], fingers;
 	char point_data[1 + (MAX_FINGERS*4)];
-	unsigned int x, y, z;	
-	int temp;
-	int temp_x;
+	unsigned int x, swap_x, y, z;	
+	char sc;
 	//printk("%s\n", __func__);
 	mutex_lock(&priv->mutex);
 
@@ -348,56 +407,87 @@ static void sitronix_ts_work(struct work_struct *work)
 	
 
 #if MULTI_TOUCH
-	if(fingers && (fingers != 0xff))
-	{
-		point_data[0] = 0x12;
-		ret = i2c_read_bytes(priv->client, point_data, (fingers*4)+1);
-		pt_data = (stx_report_data_t*)(point_data+1);
-	
-		for(i=0;i<fingers;i++)
+		if(fingers && (fingers != 0xff))
 		{
-			valid = pt_data->xy_data[i].valid;
-			x = pt_data->xy_data[i].x_h << 8 | pt_data->xy_data[i].x_l;
-			y = pt_data->xy_data[i].y_h << 8 | pt_data->xy_data[i].y_l;
-			z = pt_data->xy_data[i].z;
-			
-			if(valid && x > 0 && x < MAX_X && y > 0 && y < MAX_Y)
+			point_data[0] = 0x12;
+		ret = i2c_read_bytes(priv->client, point_data, (MAX_FINGERS*4)+1);
+			pt_data = (stx_report_data_t*)(point_data+1);
+	
+			for(i=0;i<fingers;i++)
 			{
-				if(fingers > 1 && x > 600 && y < 50){  // temporary tuning
-								
-				}
-				else{
-				input_report_key(priv->input, BTN_TOUCH, 1);
-				input_report_abs(priv->input, ABS_MT_TOUCH_MAJOR, 5);
-				input_report_abs(priv->input, ABS_MT_WIDTH_MAJOR, 5);
-				input_report_abs(priv->input, ABS_MT_POSITION_X, x);
-				input_report_abs(priv->input, ABS_MT_POSITION_Y, y);
-				input_report_abs(priv->input, ABS_PRESSURE, 1);			
-				input_report_abs(priv->input, ABS_MT_TRACKING_ID, i);
-				input_mt_sync(priv->input);
-				//printk("pt[%d] x = %x, y = %d, z = %d\n", i, x, y, z);
-				}
-			}
-			
-		}
-		input_sync(priv->input);
-#ifdef TS_TIMER_SUPPORT		
-		priv->ts_timer.expires = jiffies + msecs_to_jiffies(TS_TIMER_PERIOD);
-		add_timer(&priv->ts_timer);
+				valid = pt_data->xy_data[i].valid;
+				x = pt_data->xy_data[i].x_h << 8 | pt_data->xy_data[i].x_l;
+#if TS_X_REVERSE
+			x = x_res - x;
 #endif
-		
-	}
+			y = pt_data->xy_data[i].y_h << 8 | pt_data->xy_data[i].y_l;
+#if TS_Y_REVERSE
+			y = y_res -y;
+#endif
+
+#if TS_XY_SWAP
+			swap_x = x;
+			x = y;
+			y = swap_x;
+#endif
+				z = pt_data->xy_data[i].z;
+
+#if REMOVE_SAME_POINT
+				if(i == 0 && temp_x == x && same_count<MAX_SAME_COUNT && sync_count>MAX_SYNC_COUNT)
+				{
+					//printk("same count = %d\n", same_count);
+					same_count++;
+				}else{
+#endif
+				if(valid && x > 0 && x < MAX_X && y > 0 && y < MAX_Y)
+				{
+					sync_count++;
+					if(sync_count>0x7FFFFFFF) sync_count = 0;
+					if(fingers > 1 && x > 600 && y < 50){  // temporary tuning
+								
+					}
+					else{
+					input_report_key(priv->input, BTN_TOUCH, 1);
+					input_report_abs(priv->input, ABS_MT_POSITION_X, x);
+					input_report_abs(priv->input, ABS_MT_POSITION_Y, y);
+					input_report_abs(priv->input, ABS_MT_TOUCH_MAJOR, 5);
+					input_report_abs(priv->input, ABS_MT_WIDTH_MAJOR, 5);
+//					input_report_abs(priv->input, ABS_PRESSURE, 1);			
+					input_report_abs(priv->input, ABS_MT_TRACKING_ID, i);
+					input_mt_sync(priv->input);
+					//printk("pt[%d] x = %x, y = %d, z = %d\n", i, x, y, z);
+					}
+				}
+#if REMOVE_SAME_POINT				
+				}
+#endif
+				temp_x = x;
+				//printk("temp_x = %d\n", temp_x);
+				
+				
+			}
+			input_sync(priv->input);
+#if TS_TIMER_SUPPORT		
+			priv->ts_timer.expires = jiffies + msecs_to_jiffies(TS_TIMER_PERIOD);
+			add_timer(&priv->ts_timer);
+#endif
+			}
+	
 	else
 	{
+		same_count = 0;
+		sync_count = 0;
+		//printk("pen release\n");
 		input_report_key(priv->input, BTN_TOUCH, 0);
 		input_report_abs(priv->input, ABS_MT_TOUCH_MAJOR, 0);
 		input_report_abs(priv->input, ABS_MT_WIDTH_MAJOR, 0);
 		input_mt_sync(priv->input);
 		input_sync(priv->input);
-#ifdef TS_TIMER_SUPPORT		
+#if TS_TIMER_SUPPORT		
 		priv->running = 0;
 		enable_irq(priv->irq);
 #endif
+
 	}
 
 
@@ -423,7 +513,7 @@ static void sitronix_ts_work(struct work_struct *work)
 			input_sync(priv->input);
 			//printk("pt x = %x, y = %d, z = %d\n", x, y, z);			
 		}
-#ifdef TS_TIMER_SUPPORT		
+#if TS_TIMER_SUPPORT		
 		priv->ts_timer.expires = jiffies + msecs_to_jiffies(TS_TIMER_PERIOD);
 		add_timer(&priv->ts_timer);
 #endif		
@@ -432,7 +522,7 @@ static void sitronix_ts_work(struct work_struct *work)
 		input_report_key(priv->input, BTN_TOUCH, 0);
 		input_report_abs(priv->input, ABS_PRESSURE, 0);
 		input_sync(priv->input);
-#ifdef TS_TIMER_SUPPORT		
+#if TS_TIMER_SUPPORT		
 		priv->running = 0;
 		enable_irq(priv->irq);
 #endif		
@@ -447,7 +537,7 @@ out:
 
 static irqreturn_t sitronix_ts_isr(int irq, void *dev_data)
 {
-#ifdef TS_TIMER_SUPPORT
+#if TS_TIMER_SUPPORT
 	struct sitronix_ts_priv *priv = dev_data;
 	//printk("%s\n", __func__);
 	if(priv->running == 0)
@@ -469,7 +559,7 @@ static irqreturn_t sitronix_ts_isr(int irq, void *dev_data)
 }
 
 
-#ifdef TS_TIMER_SUPPORT
+#if TS_TIMER_SUPPORT
 static void sitronix_timer_handler(unsigned long data)
 {
 	struct sitronix_ts_priv *priv = (struct sitronix_ts_priv *) data;
@@ -507,7 +597,7 @@ static void sitronix_ts_close(struct input_dev *dev)
 static void sitronix_ts_port_init(void)
 {
 	volatile PGPIO pGPIO = (volatile PGPIO)tcc_p2v(HwGPIO_BASE);
-	int gp_penirq;
+	//int gp_penirq;
 
 #if defined(CONFIG_ARCH_TCC88XX)
 	if (machine_is_tcc8800()) {
@@ -650,7 +740,7 @@ void sitronix_ts_early_suspend(struct early_suspend *h)
 	//when enter suspend, disable irq
 	disable_irq_nosync(priv->irq);
 	//cancel_work_sync(&priv->work);
-#ifdef TS_TIMER_SUPPORT	
+#if TS_TIMER_SUPPORT	
 	del_timer_sync(&priv->ts_timer);
 #endif
 	sitronix_ts_enter_powerdown(priv->client);
@@ -672,7 +762,6 @@ static int __devinit sitronix_ts_probe(struct i2c_client *client, const struct i
 	struct sitronix_ts_priv *priv;
 	struct input_dev *input;
 	int err = -ENOMEM;
-	u16 x_res = 0, y_res = 0;
 	u32 ver, rev, var;
 	char buf[2];
 	//u8 struct_ver;
@@ -732,6 +821,7 @@ static int __devinit sitronix_ts_probe(struct i2c_client *client, const struct i
 #endif
 
 
+
 	if ((err = sitronix_ts_get_device_status(client, &var))) {
 		printk("Unable to get device control!\n");
 		goto err1;
@@ -774,11 +864,11 @@ static int __devinit sitronix_ts_probe(struct i2c_client *client, const struct i
 #endif	// 0
 //	set_bit(BTN_TOUCH, input->keybit);
 #if MULTI_TOUCH
-	input_set_abs_params(input, ABS_MT_WIDTH_MAJOR, 0, 255, 0, 0);
-	input_set_abs_params(input, ABS_MT_TOUCH_MAJOR, 0, 255, 0, 0);
+	input_set_abs_params(input, ABS_MT_WIDTH_MAJOR, 0, 50, 0, 0);
+	input_set_abs_params(input, ABS_MT_TOUCH_MAJOR, 0, 50, 0, 0);
 	input_set_abs_params(input, ABS_MT_POSITION_X, 0, (int)x_res, 0, 0);
 	input_set_abs_params(input, ABS_MT_POSITION_Y, 0, (int)y_res, 0, 0);
-	input_set_abs_params(input, ABS_PRESSURE, 0, 0, 0, 0);	
+//	input_set_abs_params(input, ABS_PRESSURE, 0, 0, 0, 0);	
 	input_set_abs_params(input, ABS_MT_TRACKING_ID, 0, MAX_FINGERS, 0, 0);	
 #else
 	input_set_abs_params(input, ABS_X, 0, (int)x_res, 0, 0);
@@ -800,7 +890,7 @@ static int __devinit sitronix_ts_probe(struct i2c_client *client, const struct i
 	priv->always_update = false;
 
 	INIT_WORK(&priv->work, sitronix_ts_work);
-#ifdef TS_TIMER_SUPPORT
+#if TS_TIMER_SUPPORT
 	priv->running = 0;
 	priv->opened = 1;
 	//priv->pen_status = PEN_RELEASE;

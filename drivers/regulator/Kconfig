@@ -88,7 +88,7 @@ config REGULATOR_AXP192
 
 config REGULATOR_AXP192_PEK
 	tristate "AXP192 PMIC PEK Power Key USE"
-	depends on (REGULATOR_AXP192 && (MACH_M801_88 || MACH_M803))
+	depends on (REGULATOR_AXP192 && (MACH_M801_88 || MACH_M803 || MACH_M805_892X))
 
 config REGULATOR_ACT8810
 	tristate "Active-Semi Eight Channel ActivePath Power Managemant IC"
