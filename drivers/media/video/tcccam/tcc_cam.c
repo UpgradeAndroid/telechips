@@ -928,6 +928,7 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 				}
 				else
 				{
+					prev_buf = NULL;
 					//dprintk("no-buf change... wakeup!! \n");
 					skipped_frm++;
 				}
@@ -3111,7 +3112,7 @@ int  tccxxx_cif_init(void)
 	pWMIXBase = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX5);
 	pWDMABase = (VIOC_WDMA *)tcc_p2v(HwVIOC_WDMA05);
 	pVINBase = (VIOC_VIN *)tcc_p2v(HwVIOC_VIN00);
-	pSCBase = (VIOC_SC *)tcc_p2v(HwVIOC_SC2);
+	pSCBase = (VIOC_SC *)tcc_p2v(HwVIOC_SC0);
 	pDDIConfig = (DDICONFIG *)tcc_p2v(HwDDI_CONFIG_BASE);
 	pVIOCConfig = (VIOC_IREQ_CONFIG *)tcc_p2v(HwVIOC_IREQ);
 	pVIQEBase = (VIQE *)tcc_p2v(HwVIOC_VIQE0);
