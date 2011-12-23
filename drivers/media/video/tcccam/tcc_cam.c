@@ -156,6 +156,9 @@ static 	struct tccxxx_cif_buffer * next_buf = 0;
 static unsigned next_num = 0;
 static unsigned chkpnt = 0;
 #endif
+struct tccxxx_cif_buffer *prev_buf;
+static unsigned int		prev_num;
+
 #endif
 
 #ifdef CONFIG_ARCH_TCC892X
@@ -396,13 +399,16 @@ static irqreturn_t isp_cam_isr1(int irq, void *client_data/*, struct pt_regs *re
 		{
 			if(skip_frm == 0 && !frame_lock)
 			{
-				curr_buf = data->buf + data->cif_cfg.now_frame_num;
-				curr_num = data->cif_cfg.now_frame_num;
+				if(prev_buf != NULL)
+					list_move_tail(&prev_buf->buf_list, &data->done_list);
+			
+				prev_buf = data->buf + data->cif_cfg.now_frame_num;
+				prev_num = data->cif_cfg.now_frame_num;
 #ifndef TCCISP_GEN_CFG_UPD
 				next_buf = list_entry(data->list.next->next, struct tccxxx_cif_buffer, buf_list);
 				next_num = next_buf->v4lbuf.index;
 
-				if(next_buf != &data->list && curr_buf != next_buf )
+				if(next_buf != &data->list && prev_buf != next_buf )
 				{
 					//exception process!!
 #else
@@ -415,11 +421,11 @@ static irqreturn_t isp_cam_isr1(int irq, void *client_data/*, struct pt_regs *re
 	#endif   // TCCISP_ONE_IRQ				
 #endif
 	#ifndef TCCISP_ONE_IRQ
-					if(curr_num != curr_buf->v4lbuf.index)
+					if(prev_num != prev_buf->v4lbuf.index)
 					{
-						printk("Frame num mismatch :: true num  :: %d \n", curr_num);
-						printk("Frame num mismatch :: false num :: %d \n", curr_buf->v4lbuf.index);
-						curr_buf->v4lbuf.index = curr_num ;
+						printk("Frame num mismatch :: true num  :: %d \n", prev_num);
+						printk("Frame num mismatch :: false num :: %d \n", prev_buf->v4lbuf.index);
+						prev_buf->v4lbuf.index = prev_num ;
 					}
 
 					#if (0) //20101122 ysseung   test code.
@@ -471,20 +477,21 @@ static irqreturn_t isp_cam_isr1(int irq, void *client_data/*, struct pt_regs *re
 						#endif
 					}
 					if(data->cif_cfg.fmt == M420_ZERO)
-						curr_buf->v4lbuf.bytesused = data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y*2;
+						prev_buf->v4lbuf.bytesused = data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y*2;
 					else
-						curr_buf->v4lbuf.bytesused = (data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y*3)/2;
+						prev_buf->v4lbuf.bytesused = (data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y*3)/2;
 
 				        //cif_buf->v4lbuf.sequence = cam->buf_seq[bufno];
-					curr_buf->v4lbuf.flags &= ~V4L2_BUF_FLAG_QUEUED;
-					curr_buf->v4lbuf.flags |= V4L2_BUF_FLAG_DONE;
+					prev_buf->v4lbuf.flags &= ~V4L2_BUF_FLAG_QUEUED;
+					prev_buf->v4lbuf.flags |= V4L2_BUF_FLAG_DONE;
 					//spin_lock_irqsave(&data->dev_lock, flags);
 					//cif_buf->v4lbuf.timestamp = gettimeofday(.., ..);
 
-					list_move_tail(&curr_buf->buf_list, &data->done_list);
+					//list_move_tail(&curr_buf->buf_list, &data->done_list);
 				}
 				else
 				{
+					prev_buf = NULL;
 					dprintk("no-buf change... wakeup!! \n");
 					skipped_frm++;
 				}
@@ -2332,6 +2339,8 @@ int tccxxx_cif_start_stream(void)
 
 #if defined(CONFIG_USE_ISP)
 
+	prev_buf = NULL;
+
 	sensor_if_change_mode(OPER_PREVIEW);
 
 	//cif_scaler_calc();
@@ -2505,6 +2514,9 @@ int tccxxx_cif_stop_stream(void)
 
 #if defined(CONFIG_USE_ISP)
 	ISP_SetPreview_Control(OFF);
+	cif_timer_deregister();
+	cif_interrupt_disable();
+	
 #elif defined(CONFIG_ARCH_TCC892X)
 	VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_ALL_MASK, 0x1);
 		
