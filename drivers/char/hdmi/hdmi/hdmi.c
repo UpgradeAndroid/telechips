@@ -30,6 +30,8 @@
 #include <asm/mach-types.h>
 
 #include "key.h"
+//#include "key-tcc.h"
+
 #include <linux/gpio.h>
 #include <mach/gpio.h>
 
@@ -1756,6 +1758,7 @@ static int hdmi_probe(struct platform_device *pdev)
     init_waitqueue_head(&hdcp_struct.waitq);
     // set up work queue struct
     INIT_WORK(&hdcp_struct.work, hdcp_work/*, NULL*/);  //@storm::modify
+    spin_lock_init(&hdcp_struct.lock) ;
 
 	if (hdmi_clk)
 		clk_disable(hdmi_clk);
