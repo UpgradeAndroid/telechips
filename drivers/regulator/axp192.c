@@ -374,7 +374,9 @@ static void axp192_work_func(struct work_struct *work)
     if (data[2]&AXP192_IRQ_3_LONG_KEY) {
 #if defined(CONFIG_REGULATOR_AXP192_PEK)
         del_timer(&axp192->timer);
-        input_report_key(axp192->input_dev, KEY_END, 1);
+        input_report_key(axp192->input_dev, KEY_POWER, 1);
+        //input_event(axp192->input_dev, EV_KEY, KEY_POWER, 1);
+        input_event(axp192->input_dev, EV_SYN, 0, 0);
         axp192->timer.expires = jiffies + msecs_to_jiffies(1000);
         add_timer(&axp192->timer);
 #endif
@@ -383,7 +385,9 @@ static void axp192_work_func(struct work_struct *work)
     if (data[2]&AXP192_IRQ_3_SHORT_KEY) {
 #if defined(CONFIG_REGULATOR_AXP192_PEK)
         del_timer(&axp192->timer);
-        input_report_key(axp192->input_dev, KEY_END, 1);
+        input_report_key(axp192->input_dev, KEY_POWER, 1);
+        //input_event(axp192->input_dev, EV_KEY, KEY_POWER, 1);
+        input_event(axp192->input_dev, EV_SYN, 0, 0);
         axp192->timer.expires = jiffies + msecs_to_jiffies(100);
         add_timer(&axp192->timer);
 #endif
@@ -445,7 +449,9 @@ static void axp192_timer_func(unsigned long data)
     struct axp192_data *axp192 = (struct axp192_data *)data;
     dbg("%s\n", __func__);
 
-    input_report_key(axp192->input_dev, KEY_END, 0);
+    input_report_key(axp192->input_dev, KEY_POWER, 0);
+    //input_event(axp192->input_dev, EV_KEY, KEY_POWER, 0);
+    input_event(axp192->input_dev, EV_SYN, 0, 0);
 }
 #endif
 
@@ -863,8 +869,7 @@ static int axp192_pmic_probe(struct i2c_client *client, const struct i2c_device_
 
     axp192->input_dev->evbit[0] = BIT(EV_KEY);
     axp192->input_dev->name = "axp192 power-key";
-    set_bit(KEY_END & KEY_MAX, axp192->input_dev->keybit);
-
+    set_bit(KEY_POWER & KEY_MAX, axp192->input_dev->keybit);
     ret = input_register_device(axp192->input_dev);
     if (ret) {
         dev_err(&client->dev, "%s: Unable to register %s input device\n", __func__, axp192->input_dev->name);
