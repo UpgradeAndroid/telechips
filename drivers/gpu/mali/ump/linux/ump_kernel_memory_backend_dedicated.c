@@ -195,6 +195,11 @@ static int block_allocator_allocate(void* ctx, ump_dd_mem * mem)
 					check=0;
 					for(j=i; j<mem->nr_blocks +i; j++)
 					{
+						if(j==allocator->num_blocks-1)
+						{
+							check++;
+							break;
+						}
 						temp4 = allocator->all_blocks[j].next;
 						if(temp4 == NULL)
 						{

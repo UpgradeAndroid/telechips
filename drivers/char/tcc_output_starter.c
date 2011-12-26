@@ -1395,6 +1395,7 @@ void tcc_output_starter_hdmi(unsigned char lcdc_num, unsigned char hdmi_resoluti
 	PCLK_XXX_TYPE *pLCDC_CKC;
 	PCKC pCKC = (PCKC)tcc_p2v(HwCKC_BASE);
 	PDDICONFIG pDDI_Config = (PDDICONFIG)tcc_p2v(HwDDI_CONFIG_BASE);
+	unsigned char *pBaseAddr;
 	
 	struct clk *clock;
 	struct HDMIVideoParameter audio;
@@ -1434,7 +1435,7 @@ void tcc_output_starter_hdmi(unsigned char lcdc_num, unsigned char hdmi_resoluti
 	VIOC_RDMA_SetImageDisable(pRDMA);
 	pLCDC_CKC->bREG.EN = 0;
 			
-		pSC = (VIOC_SC *)tcc_p2v(HwVIOC_SC0);
+	pSC = (VIOC_SC *)tcc_p2v(HwVIOC_SC0);
 	
 	if(lcdc_num)	
 	{
@@ -1465,6 +1466,20 @@ void tcc_output_starter_hdmi(unsigned char lcdc_num, unsigned char hdmi_resoluti
 	image_height = 720;
 	image_fmt = TCC_LCDC_IMG_FMT_RGB565;
 	
+	#if 0
+	if(pRDMA->nBASE0)
+	{
+		pBaseAddr = (unsigned)ioremap_nocache(pRDMA->nBASE0, image_width*image_height*2);
+		if(pBaseAddr)
+		{
+			memset(pBaseAddr, 0x00, image_width*image_height*2);
+ 			iounmap(pBaseAddr);
+		}
+
+		printk("%s paddr=0x%08x laddr=0x%08x\n", __func__, pRDMA->nBASE0, pBaseAddr);
+	}
+	#endif
+
 	output_width = LCDCTimimgParams[video.resolution].lpc + 1;
 	output_height = LCDCTimimgParams[video.resolution].flc + 1;
 
