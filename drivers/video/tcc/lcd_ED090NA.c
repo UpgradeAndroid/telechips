@@ -137,8 +137,8 @@ static int ed090na_set_power(struct lcd_panel *panel, int on)
 	else 
 	{
 		#if defined(CONFIG_ARCH_TCC892X)
-//			pDDICfg->LVDS_CTRL.bREG.RST = 1;		// reset		
-//			pDDICfg->LVDS_CTRL.bREG.EN = 0;		// reset		
+			pDDICfg->LVDS_CTRL.bREG.RST = 1;		// reset		
+			pDDICfg->LVDS_CTRL.bREG.EN = 0;		// reset		
 		#else	
 			#if defined(CONFIG_ARCH_TCC88XX)		
 				BITCLR(pDDICfg->LVDS_CTRL, Hw1);	// reset			
