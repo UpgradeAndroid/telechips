@@ -316,7 +316,7 @@ int tcc_videobuf_s_fmt(struct v4l2_format *fmt)
 	temp_sizeimage = pix.sizeimage;
 	
 	out_width  = pix.width	= fmt->fmt.pix.width;
-	out_height = pix.height	= fmt->fmt.pix.height;	
+	out_height = pix.height	= fmt->fmt.pix.height;
 
 	return tccxxx_cif_set_resolution(fmt->fmt.pix.pixelformat, fmt->fmt.pix.width, fmt->fmt.pix.height);
 }
