@@ -182,7 +182,7 @@ struct lcd_panel ed090na_panel = {
 	.width		= 235,
 	.height		= 163,
 	.bpp		= 24,
-	.clk_freq	= 600000,
+	.clk_freq	= 680000,
 	.clk_div	= 2,
 	.bus_width	= 24,
 	
@@ -202,7 +202,7 @@ struct lcd_panel ed090na_panel = {
 	.flc2		= 800,
 	.fswc2		= 10,
 	.fewc2		= 25,
-	.sync_invert	= IV_INVERT | IH_INVERT | IP_INVERT,
+	.sync_invert	= IV_INVERT | IH_INVERT,
 	.init		= ed090na_panel_init,
 	.set_power	= ed090na_set_power,
 	.set_backlight_level = ed090na_set_backlight_level,

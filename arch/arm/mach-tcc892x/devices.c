@@ -903,11 +903,22 @@ static struct platform_device tcc_iec958 = {
 	.id	= -1,
 };
 
+#if defined(CONFIG_MACH_TCC8920ST)
+static struct platform_device tcc_wm8524 = {
+	.name	= "tcc-wm8524",
+	.id	= -1,
+};
+#endif
+
 static void tcc_init_audio(void)
 {
 	platform_device_register(&tcc_pcm);
 	platform_device_register(&tcc_dai);
 	platform_device_register(&tcc_iec958);
+
+	#if defined(CONFIG_MACH_TCC8920ST)
+		platform_device_register(&tcc_wm8524);
+	#endif
 }
 #else
 static void tcc_init_audio(void){;}
