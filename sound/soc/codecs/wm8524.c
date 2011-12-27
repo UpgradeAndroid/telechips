@@ -262,7 +262,6 @@ static struct snd_soc_codec_driver soc_codec_dev_wm8524 = {
 
 static __devinit int wm8524_probe(struct platform_device *pdev)
 {
-printk("### %s 001\n", __func__);
 	return snd_soc_register_codec(&pdev->dev, &soc_codec_dev_wm8524, &wm8524_dai, 1);
 }
 
@@ -283,7 +282,6 @@ static struct platform_driver wm8524_codec_driver = {
 
 static int __init wm8524_init(void)
 {
-printk("### %s 001\n", __func__);
 	return platform_driver_register(&wm8524_codec_driver);
 }
 module_init(wm8524_init);
