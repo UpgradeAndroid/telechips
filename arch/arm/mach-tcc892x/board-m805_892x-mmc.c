@@ -17,15 +17,13 @@
 #include "devices.h"
 #include "board-m805_892x.h"
 
+extern void tcc_init_sdhc_devices(void);
+
+struct tcc_mmc_platform_data tcc8920_mmc_platform_data[];
+
 typedef enum {
-#if defined(CONFIG_MMC_TCC_SDHC2)
-	TCC_MMC_TYPE_EMMC,
-#endif
-#if defined(CONFIG_MMC_TCC_SDHC3)
-	TCC_MMC_TYPE_SD3_0,
-#endif
 	TCC_MMC_TYPE_SD,
-	TCC_MMC_TYPE_WIFI,
+//	TCC_MMC_TYPE_WIFI,
 	TCC_MMC_TYPE_MAX
 } tcc_mmc_type;
 
@@ -101,24 +99,24 @@ int m805_892x_mmc_card_detect(struct device *dev, int id)
 {
 	BUG_ON(id >= TCC_MMC_TYPE_MAX);
 
-	if(id == TCC_MMC_TYPE_WIFI)
-		return 1;
+//	if(id == TCC_MMC_TYPE_WIFI)
+//		return 1;
 
 	return gpio_get_value(mmc_ports[id].cd) ? 0 : 1;	
 }
 
 int m805_892x_mmc_suspend(struct device *dev, int id)
 {
-	if(id == TCC_MMC_TYPE_WIFI) 
-		gpio_direction_output(GPIO_SD1_ON,0);
+//	if(id == TCC_MMC_TYPE_WIFI)
+//		gpio_direction_output(GPIO_SD1_ON,0);
 
 	return 0;
 }
 
 int m805_892x_mmc_resume(struct device *dev, int id)
 {
-	if(id == TCC_MMC_TYPE_WIFI) 
-		gpio_direction_output(GPIO_SD1_ON,1);
+//	if(id == TCC_MMC_TYPE_WIFI)
+//		gpio_direction_output(GPIO_SD1_ON,1);
 
  	return 0;
 }
@@ -144,9 +142,9 @@ int m805_892x_mmc_set_bus_width(struct device *dev, int id, int width)
 
 int m805_892x_mmc_cd_int_config(struct device *dev, int id, unsigned int cd_irq)
 {
-	if(id == TCC_MMC_TYPE_SD)
+	if(tcc8920_mmc_platform_data[id].cd_int_num > 0)
 	{
-		tcc_gpio_config_ext_intr(INT_EI4, EXTINT_GPIOD_17);
+		tcc_gpio_config_ext_intr(tcc8920_mmc_platform_data[id].cd_irq_num, tcc8920_mmc_platform_data[id].cd_ext_irq);
 	}
 	else
 	{
@@ -157,8 +155,8 @@ int m805_892x_mmc_cd_int_config(struct device *dev, int id, unsigned int cd_irq)
 }
 
 
-struct tcc_mmc_platform_data m805_892x_mmc_platform_data[] = {
-	
+struct tcc_mmc_platform_data tcc8920_mmc_platform_data[] = {
+
 	[TCC_MMC_TYPE_SD] = {
 		.slot	= 0,
 		.caps	= MMC_CAP_SDIO_IRQ | MMC_CAP_4_BIT_DATA
@@ -177,6 +175,7 @@ struct tcc_mmc_platform_data m805_892x_mmc_platform_data[] = {
 
 		.cd_int_num = HwINT0_EI4,
 		.cd_irq_num = INT_EI4,
+		.cd_ext_irq = EXTINT_GPIOD_17,
 		.peri_name = PERI_SDMMC0,
 		.io_name = RB_SDMMC0CONTROLLER,
 		.pic = HwINT1_SD0,
@@ -190,12 +189,12 @@ static int __init m805_892x_init_mmc(void)
 
 	printk("%s\n",__func__);
 
+	tcc_init_sdhc_devices();
+
 #if defined(CONFIG_MMC_TCC_SDHC)
 #if defined(CONFIG_MMC_TCC_SDHC0)
-	tcc_sdhc0_device.dev.platform_data = &m805_892x_mmc_platform_data[0];
+	tcc_sdhc0_device.dev.platform_data = &tcc8920_mmc_platform_data[0];
 	platform_device_register(&tcc_sdhc0_device);
-#else
-	return 0;
 #endif
 #endif
 
