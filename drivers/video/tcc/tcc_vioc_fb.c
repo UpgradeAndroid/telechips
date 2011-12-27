@@ -335,7 +335,6 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 				#endif /*CONFIG_TCC_HDMI_UI_DISPLAY_OFF*/
 				TCC_HDMI_LCDC_OutputEnable(EX_OUT_LCDC, 1);
 
-				TCC_OUTPUT_FB_MouseIconSelect(TCC_OUTPUT_HDMI);
 				TCC_OUTPUT_FB_MouseShow(0, TCC_OUTPUT_HDMI);
 		}
 			break;
@@ -369,7 +368,6 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 
 			}
 
-			TCC_OUTPUT_FB_MouseIconSelect(TCC_OUTPUT_HDMI);
 			TCC_OUTPUT_FB_MouseShow(0, TCC_OUTPUT_HDMI);
 			break;
 
@@ -461,7 +459,14 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 				TCC_OUTPUT_FB_MouseMove(fb_info->fb->var.xres, fb_info->fb->var.yres, &mouse, Output_SelectMode);
 			}
 			break;
-
+		case TCC_LCDC_MOUSE_ICON:
+			{
+				tcc_mouse_icon mouse_icon;
+				if (copy_from_user((void *)&mouse_icon, (const void *)arg, sizeof(tcc_mouse_icon)))
+					return -EFAULT;
+				TCC_OUTPUT_FB_MouseSetIcon(&mouse_icon);
+			}
+			break;
 		default:
 			dprintk("ioctl: Unknown [%d/0x%X]", cmd, cmd);
 			break;

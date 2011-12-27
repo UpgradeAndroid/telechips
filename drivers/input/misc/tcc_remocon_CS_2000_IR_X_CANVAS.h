@@ -118,7 +118,7 @@
 ******************************************************************************/
 static SCANCODE_MAPPING key_mapping[] = 
 {
-	{SCAN_PWR, 			REM_ENDCALL},
+	{SCAN_PWR, 			REM_POWER},
 
 	{SCAN_NUM_1,		REM_1},
 	{SCAN_NUM_2,		REM_2},
@@ -144,7 +144,7 @@ static SCANCODE_MAPPING key_mapping[] =
 	{SCAN_STOP, 		REM_MEDIA_STOP},
 	{SCAN_PLAY,			REM_MEDIA_PLAY_PAUSE},
 	{SCAN_PAUSE,		REM_MEDIA_PLAY_PAUSE},
-	{SCAN_REC,			REM_NOTIFICATION},
+	{SCAN_REC,			REM_MEDIA_RECORD},
 #if 1
 	{SCAN_FB,			REM_MEDIA_REWIND},
 	{SCAN_FF,			REM_MEDIA_FAST_FORWARD},
