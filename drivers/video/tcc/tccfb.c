@@ -1635,8 +1635,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 				#endif
 #endif /*CONFIG_TCC_HDMI_UI_DISPLAY_OFF*/
 
-#if defined(CONFIG_ARCH_TCC88XX)
-				TCC_OUTPUT_FB_MouseIconSelect(TCC_OUTPUT_HDMI);
+#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 				TCC_OUTPUT_FB_MouseShow(1, TCC_OUTPUT_HDMI);
 #endif
 			}
@@ -1715,9 +1714,6 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 				#if defined(TCC_VIDEO_DISPLAY_DEINTERLACE_MODE)
 				tcc_vsync_viqe_deinitialize();
 				#endif /* TCC_VIDEO_DISPLAY_DEINTERLACE_MODE */
-				#if defined(CONFIG_ARCH_TCC88XX)
-				TCC_OUTPUT_FB_MouseIconSelect(0);
-				#endif
 
 				Output_SelectMode = TCC_OUTPUT_NONE;
 				
@@ -1829,8 +1825,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 					TCC_OUTPUT_FB_UpdateSync(Output_SelectMode);
 #endif /*CONFIG_TCC_HDMI_UI_DISPLAY_OFF*/
 
-#if defined(CONFIG_ARCH_TCC88XX)
- 					TCC_OUTPUT_FB_MouseIconSelect(TCC_OUTPUT_COMPOSITE);
+#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 					TCC_OUTPUT_FB_MouseShow(1, TCC_OUTPUT_COMPOSITE);
 #endif
 				}
@@ -1876,8 +1871,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 					TCC_OUTPUT_FB_Update(fb_info->fb->var.xres, fb_info->fb->var.yres, fb_info->fb->var.bits_per_pixel,Output_BaseAddr, Output_SelectMode);
 					TCC_OUTPUT_FB_UpdateSync(Output_SelectMode);
 #endif /*CONFIG_TCC_HDMI_UI_DISPLAY_OFF*/
-#if defined(CONFIG_ARCH_TCC88XX)
-					TCC_OUTPUT_FB_MouseIconSelect(TCC_OUTPUT_COMPONENT);
+#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 					TCC_OUTPUT_FB_MouseShow(1, TCC_OUTPUT_COMPONENT);
 #endif
 				}
@@ -2881,7 +2875,7 @@ TCC_VSYNC_PUSH_ERROR:
 				tcc_output_fb_update_disable(disable);
 			}
 			break;
-#if defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 		case TCC_LCDC_MOUSE_SHOW:
 			{
 				unsigned int enable;
@@ -2897,6 +2891,14 @@ TCC_VSYNC_PUSH_ERROR:
 				if (copy_from_user((void *)&mouse, (const void *)arg, sizeof(tcc_mouse)))
 					return -EFAULT;
 				TCC_OUTPUT_FB_MouseMove(fb_info->fb->var.xres, fb_info->fb->var.yres, &mouse, Output_SelectMode);
+			}
+			break;
+		case TCC_LCDC_MOUSE_ICON:
+			{
+				tcc_mouse_icon mouse_icon;
+				if (copy_from_user((void *)&mouse_icon, (const void *)arg, sizeof(tcc_mouse_icon)))
+					return -EFAULT;
+				TCC_OUTPUT_FB_MouseSetIcon(&mouse_icon);
 			}
 			break;
 #endif

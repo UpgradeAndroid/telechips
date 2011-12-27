@@ -217,7 +217,7 @@ static void tca_rem_sendremocondata(unsigned int key_type)
 	switch(key_type) {
 	case NEW_KEY:
 		nRem = tca_rem_getkeycodebyscancode(Rem.Code);
-		if(nRem == -1 || (fb_power_state==0 && nRem!=REM_ENDCALL))
+		if(nRem == -1 || (fb_power_state==0 && nRem!=REM_POWER))
 			return;
 		del_timer(&remocon_timer);
 		if(rem->status==KEY_PRESSED) {
@@ -236,13 +236,14 @@ static void tca_rem_sendremocondata(unsigned int key_type)
 	case REPEAT_KEY:
 		if(fb_power_state==0 || !isRepeatableKey(rem->old_key))
 			return;
-		if(rem->old_key == REM_ENDCALL)
+		if(rem->old_key == REM_POWER)
             repeatCheck = 15;
 
 		del_timer(&remocon_timer);
 		if(rem->status==KEY_PRESSED && Rem.repeatCount>repeatCheck) {
 			dbg("############### nRem=%d repeat=%d\n",rem->old_key, Rem.repeatCount);
 			input_event(dev, EV_KEY, rem->old_key, 2);    // repeat event
+			input_sync(dev);
 		}
 		Rem.repeatCount++;
 		break;
