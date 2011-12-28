@@ -42,6 +42,8 @@
 #include <asm/hardware/cache-l2x0.h>
 #endif
 
+#include <asm/mach-types.h>
+
 
 /*===========================================================================
 
@@ -1002,6 +1004,9 @@ FUNCTION
 void tcc_ddr_set_clock(unsigned int freq)
 {
 	unsigned int   mem_freq;
+
+	if (machine_is_tcc8920() && (system_rev == 0x1005))
+		return;
 
 	mem_freq = get_membus_ckc(freq*10);
 	get_ddr_param(mem_freq);
