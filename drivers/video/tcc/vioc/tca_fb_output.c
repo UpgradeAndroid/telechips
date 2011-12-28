@@ -66,10 +66,6 @@
 #include <mach/vioc_config.h>
 #include <mach/vioc_scaler.h>
 
-#include "../tcc_mouse_icon.h"
-
-
-
 #if 0
 #define dprintk(msg...)	 { printk( "tca_fb_output: " msg); }
 #else
@@ -98,20 +94,16 @@ static char *fb_scaler_pbuf1;
 static char *fb_g2d_pbuf0;
 static char *fb_g2d_pbuf1;
 
-#define MOUSE_CURSOR_MAX_WIDTH			30
-#define MOUSE_CURSOR_MAX_HEIGHT			30
-#define MOUSE_CURSOR_WIDTH_30			30
-#define MOUSE_CURSOR_HEIGHT_30			30
-#define MOUSE_CURSOR_WIDTH_20			20
-#define MOUSE_CURSOR_HEIGHT_20			20
-#define MOUSE_CURSOR_WIDTH_12			12
-#define MOUSE_CURSOR_HEIGHT_12			12
+#define MOUSE_CURSOR_MAX_WIDTH			200
+#define MOUSE_CURSOR_MAX_HEIGHT			200
 
 #define MOUSE_CURSOR_BUFF_SIZE		(MOUSE_CURSOR_MAX_WIDTH*MOUSE_CURSOR_MAX_HEIGHT*4)
 
-static char *pMouseBuffer;
-static unsigned int mouse_cursor_width;
-static unsigned int mouse_cursor_height;
+static char *pMouseBuffer1;
+static char *pMouseBuffer2;
+static char MouseBufIdx = 0;
+static unsigned int mouse_cursor_width = 0;
+static unsigned int mouse_cursor_height = 0;
 
 dma_addr_t		Gmap_dma;	/* physical */
 u_char *		Gmap_cpu;	/* virtual */
@@ -289,8 +281,8 @@ void TCC_OUTPUT_LCDC_Init(void)
 		Gmap_cpu = dma_alloc_writecombine(0, size, &Gmap_dma, GFP_KERNEL);
 		memset(Gmap_cpu, 0x00, MOUSE_CURSOR_BUFF_SIZE);
 
-		pMouseBuffer = (char *)Gmap_dma;
-		TCC_OUTPUT_FB_MouseIconSelect(0);
+		pMouseBuffer1 = (char *)Gmap_dma;
+		pMouseBuffer2 = (char *)(Gmap_dma + MOUSE_CURSOR_BUFF_SIZE/2);
 	}
  }
 
@@ -802,52 +794,6 @@ void TCC_OUTPUT_FB_WaitVsyncInterrupt(unsigned int type)
 	}
 }
 
-int TCC_OUTPUT_FB_MouseIconSelect(unsigned int output_type)
-{
-	VIOC_DISP * pDISPBase;
-	VIOC_WMIX * pWMIXBase;
-	VIOC_RDMA * pRDMABase;
-
-	unsigned int lcd_width, lcd_height;
-
-	if(pDISP_OUTPUT[output_type].pVIOC_DispBase == NULL)
-	{
-		dprintk("%s - Err: Output DISP is not valil\n", __func__);
-		return;
-	}
-
-	pDISPBase = pDISP_OUTPUT[output_type].pVIOC_DispBase;
-
-	VIOC_DISP_GetSize(pDISPBase, &lcd_width, &lcd_height);
-	
-	if((!lcd_width) || (!lcd_height))
-		return;
-
-	dprintk("%s : lcd_width = %d, lcd_height = %d\n", __func__, lcd_width, lcd_height);
-
-	if( lcd_width > 1280 && lcd_height > 720 )
-	{
-		mouse_cursor_width = MOUSE_CURSOR_WIDTH_30;
-		mouse_cursor_height = MOUSE_CURSOR_HEIGHT_30;
-		memcpy(Gmap_cpu,(char *)&gMouseIcon30X30[0], mouse_cursor_width*mouse_cursor_height*4);
-	}
-	else if( lcd_width == 1280 || lcd_height == 720 )
-	{
-		mouse_cursor_width = MOUSE_CURSOR_WIDTH_20;
-		mouse_cursor_height = MOUSE_CURSOR_HEIGHT_20;
-		memcpy(Gmap_cpu,(char *)&gMouseIcon20X20[0], mouse_cursor_width*mouse_cursor_height*4);
-	}
-	else
-	{
-		mouse_cursor_width = MOUSE_CURSOR_WIDTH_12;
-		mouse_cursor_height = MOUSE_CURSOR_WIDTH_12;
-		memcpy(Gmap_cpu,(char *)&gMouseIcon12X12[0], mouse_cursor_width*mouse_cursor_height*4);
-	}
-
-	return 1;
-}
-
-
 int TCC_OUTPUT_FB_MouseShow(unsigned int enable, unsigned int type)
 {
 	VIOC_RDMA * pRDMABase;
@@ -888,7 +834,6 @@ int TCC_OUTPUT_FB_MouseMove(unsigned int width, unsigned int height, tcc_mouse *
 		dprintk("%s - Err: Output LCDC is not valid, type=%d\n", __func__, type);
 		return 0;
 	}
-	
 
 	pDISPBase = pDISP_OUTPUT[type].pVIOC_DispBase;
 	pWMIXBase = pDISP_OUTPUT[type].pVIOC_WMIXBase;
@@ -916,7 +861,6 @@ int TCC_OUTPUT_FB_MouseMove(unsigned int width, unsigned int height, tcc_mouse *
 		image_width = mouse_cursor_width;
 		image_height = mouse_cursor_height;
 	}
-
 		
 	VIOC_RDMA_SetImageOffset(pRDMABase, TCC_LCDC_IMG_FMT_RGB888, image_width);
 	VIOC_RDMA_SetImageFormat(pRDMABase, TCC_LCDC_IMG_FMT_RGB888);
@@ -953,7 +897,10 @@ int TCC_OUTPUT_FB_MouseMove(unsigned int width, unsigned int height, tcc_mouse *
 	VIOC_RDMA_SetImageAlphaEnable(pRDMABase, 1);
 	
 	// image address
-	VIOC_RDMA_SetImageBase(pRDMABase, pMouseBuffer, NULL, NULL);
+	if(MouseBufIdx)
+		VIOC_RDMA_SetImageBase(pRDMABase, pMouseBuffer1, NULL, NULL);
+	else
+		VIOC_RDMA_SetImageBase(pRDMABase, pMouseBuffer2, NULL, NULL);
 
 	VIOC_WMIX_SetUpdate(pWMIXBase);
 	VIOC_RDMA_SetImageEnable(pRDMABase);
@@ -962,3 +909,41 @@ int TCC_OUTPUT_FB_MouseMove(unsigned int width, unsigned int height, tcc_mouse *
 	return 1;
 }
 
+int TCC_OUTPUT_FB_MouseSetIcon(tcc_mouse_icon *mouse_icon)
+{
+    char *dst;
+    char *src = mouse_icon->buf;
+    int i, j , k;
+
+    if( !MouseBufIdx )
+        dst = (char *)Gmap_cpu;
+    else
+        dst = (char *)(Gmap_cpu + MOUSE_CURSOR_BUFF_SIZE/2);
+
+    MouseBufIdx = !MouseBufIdx;
+
+    mouse_cursor_width = ((mouse_icon->width + 3) >> 2) << 2;
+    mouse_cursor_height = mouse_icon->height;
+
+    for(i=0; i<mouse_icon->height; i++)
+    {
+        for(j=0; j<mouse_icon->width; j++)
+        {
+            *(dst+3) = *(src+3);
+            *(dst+2) = *(src+0);
+            *(dst+1) = *(src+1);
+            *(dst+0) = *(src+2);
+            dst+=4;
+            src+=4;
+        }
+        for(k=0; k<(mouse_cursor_width-mouse_icon->width); k++)
+        {
+            *(dst+3) = 0;
+            *(dst+2) = 0;
+            *(dst+1) = 0;
+            *(dst+0) = 0;
+            dst+=4;
+        }
+    }
+    return 1;
+}

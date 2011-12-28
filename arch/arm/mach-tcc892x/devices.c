@@ -32,59 +32,71 @@
 #include <mach/tcc_cam_ioctrl.h>
 #include <mach/tccfb_ioctrl.h>
 
+#ifdef CONFIG_MMC_TCC_SDHC
+#include <mach/mmc.h>
+
 /*----------------------------------------------------------------------
  * Device	  : SD/MMC resource
- * Description: tcc8920_mmc_core0_resource
- *				tcc8920_mmc_core1_resource
- *				tcc8920_mmc_core2_resource
- *				tcc8920_mmc_core3_resource
+ * Description: tcc8920_sdhc_resource[4][2]
  *----------------------------------------------------------------------*/
+static struct resource tcc_sdhc_resource[4][2] = {
+	[0] = {		//SDHC Host Controller 0
+		[0] = {
+			.start	= tcc_p2v(HwSDMMC0_BASE),
+			.end	= tcc_p2v(HwSDMMC0_BASE + 0x1ff),
+			.flags	= IORESOURCE_MEM,
+		},
+		[1] = {
+			.start	= INT_SD0,
+			.end	= INT_SD0,
+			.flags	= IORESOURCE_IRQ,
+		},
+	},
+	[1] = {		//SDHC Host Controller 1
+		[0] = {
+			.start	= tcc_p2v(HwSDMMC1_BASE),
+			.end	= tcc_p2v(HwSDMMC1_BASE + 0x1ff),
+			.flags	= IORESOURCE_MEM,
+		},
+		[1] = {
+			.start	= INT_SD1,
+			.end	= INT_SD1,
+			.flags	= IORESOURCE_IRQ,
+		},
+	},
+	[2] = {		//SDHC Host Controller 2
+		[0] = {
+			.start	= tcc_p2v(HwSDMMC2_BASE),
+			.end	= tcc_p2v(HwSDMMC2_BASE + 0x1ff),
+			.flags	= IORESOURCE_MEM,
+		},
+		[1] = {
+			.start	= INT_SD2,
+			.end	= INT_SD2,
+			.flags	= IORESOURCE_IRQ,
+		},
+	},
+	[3] = {		//SDHC Host Controller 3
+		[0] = {
+			.start	= tcc_p2v(HwSDMMC3_BASE),
+			.end	= tcc_p2v(HwSDMMC3_BASE + 0x1ff),
+			.flags	= IORESOURCE_MEM,
+		},
+		[1] = {
+			.start	= INT_SD3,
+			.end	= INT_SD3,
+			.flags	= IORESOURCE_IRQ,
+		},
+	},
+};
+
 #if defined(CONFIG_MMC_TCC_SDHC0) || defined(CONFIG_MMC_TCC_SDHC0_MODULE)
 static u64 tcc_device_sdhc0_dmamask = 0xffffffffUL;
-static struct resource tcc_sdhc0_resource[] = {
-	#if defined(CONFIG_MMC_TCC_SDHC2) || defined(CONFIG_MACH_TCC8920ST)	//for eMMC Booting
-	[0] = {
-		.start	= tcc_p2v(HwSDMMC1_BASE),
-		.end	= tcc_p2v(HwSDMMC1_BASE + 0x1ff),
-		.flags	= IORESOURCE_MEM,
-	},
-	[1] = {
-		.start	= INT_SD1,
-		.end	= INT_SD1,
-		.flags	= IORESOURCE_IRQ,
-	},
-	#else		//for NAND Booting
-	#if defined (CONFIG_MACH_M805_892X)
-	[0] = {
-		.start	= tcc_p2v(HwSDMMC0_BASE),
-		.end	= tcc_p2v(HwSDMMC0_BASE + 0x1ff),
-		.flags	= IORESOURCE_MEM,
-	},
-	[1] = {
-		.start	= INT_SD0,
-		.end	= INT_SD0,
-		.flags	= IORESOURCE_IRQ,
-	},
-	#else
-	[0] = {
-		.start	= tcc_p2v(HwSDMMC2_BASE),
-		.end	= tcc_p2v(HwSDMMC2_BASE + 0x1ff),
-		.flags	= IORESOURCE_MEM,
-	},
-	[1] = {
-		.start	= INT_SD2,
-		.end	= INT_SD2,
-		.flags	= IORESOURCE_IRQ,
-	},
-
-	#endif
-	#endif
-};
 struct platform_device tcc_sdhc0_device = {
 	.name			= "tcc-sdhc0",
 	.id 			= 0,
-	.num_resources	= ARRAY_SIZE(tcc_sdhc0_resource),
-	.resource		= tcc_sdhc0_resource,
+	.num_resources	= ARRAY_SIZE(tcc_sdhc_resource[0]),
+	.resource		= (struct resource *)&tcc_sdhc_resource[0],
 	.dev			= {
 		.dma_mask			= &tcc_device_sdhc0_dmamask,
 		.coherent_dma_mask	= 0xffffffffUL
@@ -94,47 +106,11 @@ struct platform_device tcc_sdhc0_device = {
 
 #if defined(CONFIG_MMC_TCC_SDHC1) || defined(CONFIG_MMC_TCC_SDHC1_MODULE)
 static u64 tcc_device_sdhc1_dmamask = 0xffffffffUL;
-static struct resource tcc_sdhc1_resource[] = {
-	#if defined(CONFIG_MMC_TCC_SDHC3)     // for eMMC Booting + SD3.0 + SD + WiFi (1,0,2,3)
-	[0] = {
-		.start	= tcc_p2v(HwSDMMC0_BASE),
-		.end	= tcc_p2v(HwSDMMC0_BASE + 0x1ff),
-		.flags	= IORESOURCE_MEM,
-	},
-	[1] = {
-		.start	= INT_SD0,
-		.end	= INT_SD0,
-		.flags	= IORESOURCE_IRQ,
-	},
-	#elif defined(CONFIG_MMC_TCC_SDHC2) || defined (CONFIG_MACH_TCC8920ST) // for eMMC Booting + SD + WiFi (1,2,3,0)
-	[0] = {
-		.start	= tcc_p2v(HwSDMMC2_BASE),
-		.end	= tcc_p2v(HwSDMMC2_BASE + 0x1ff),
-		.flags	= IORESOURCE_MEM,
-	},
-	[1] = {
-		.start	= INT_SD2,
-		.end	= INT_SD2,
-		.flags	= IORESOURCE_IRQ,
-	},
-	#else		//for NAND Booting + SD + WiFi (2,3,1,0)
-	[0] = {
-		.start	= tcc_p2v(HwSDMMC3_BASE),
-		.end	= tcc_p2v(HwSDMMC3_BASE + 0x1ff),
-		.flags	= IORESOURCE_MEM,
-	},
-	[1] = {
-		.start	= INT_SD3,
-		.end	= INT_SD3,
-		.flags	= IORESOURCE_IRQ,
-	},
-	#endif
-};
 struct platform_device tcc_sdhc1_device = {
 	.name			= "tcc-sdhc1",
 	.id 			= 1,
-	.num_resources	= ARRAY_SIZE(tcc_sdhc1_resource),
-	.resource		= tcc_sdhc1_resource,
+	.num_resources	= ARRAY_SIZE(tcc_sdhc_resource[1]),
+	.resource		= (struct resource *)&tcc_sdhc_resource[1],
 	.dev			= {
 		.dma_mask			= &tcc_device_sdhc1_dmamask,
 		.coherent_dma_mask	= 0xffffffffUL
@@ -144,47 +120,11 @@ struct platform_device tcc_sdhc1_device = {
 
 #if defined(CONFIG_MMC_TCC_SDHC2) || defined(CONFIG_MMC_TCC_SDHC2_MODULE)
 static u64 tcc_device_sdhc2_dmamask = 0xffffffffUL;
-static struct resource tcc_sdhc2_resource[] = {
-	#if defined(CONFIG_MMC_TCC_SDHC3)     // for eMMC Booting + SD3.0 + SD + WiFi (1,0,2,3)
-	[0] = {
-		.start	= tcc_p2v(HwSDMMC2_BASE),
-		.end	= tcc_p2v(HwSDMMC2_BASE + 0x1ff),
-		.flags	= IORESOURCE_MEM,
-	},
-	[1] = {
-		.start	= INT_SD2,
-		.end	= INT_SD2,
-		.flags	= IORESOURCE_IRQ,
-	},
-	#elif defined(CONFIG_MMC_TCC_SDHC2)  // for eMMC Booting + SD + WiFi (1,2,3,0)
-	[0] = {
-		.start	= tcc_p2v(HwSDMMC3_BASE),
-		.end	= tcc_p2v(HwSDMMC3_BASE + 0x1ff),
-		.flags	= IORESOURCE_MEM,
-	},
-	[1] = {
-		.start	= INT_SD3,
-		.end	= INT_SD3,
-		.flags	= IORESOURCE_IRQ,
-	},
-	#else		//for NAND Booting + SD + WiFi (2,3,1,0)
-	[0] = {
-		.start	= tcc_p2v(HwSDMMC1_BASE),
-		.end	= tcc_p2v(HwSDMMC1_BASE + 0x1ff),
-		.flags	= IORESOURCE_MEM,
-	},
-	[1] = {
-		.start	= INT_SD1,
-		.end	= INT_SD1,
-		.flags	= IORESOURCE_IRQ,
-	},
-	#endif
-};
 struct platform_device tcc_sdhc2_device = {
 	.name			= "tcc-sdhc2",
 	.id 			= 2,
-	.num_resources	= ARRAY_SIZE(tcc_sdhc2_resource),
-	.resource		= tcc_sdhc2_resource,
+	.num_resources	= ARRAY_SIZE(tcc_sdhc_resource[2]),
+	.resource		= (struct resource *)&tcc_sdhc_resource[2],
 	.dev			= {
 		.dma_mask			= &tcc_device_sdhc2_dmamask,
 		.coherent_dma_mask	= 0xffffffffUL
@@ -194,41 +134,45 @@ struct platform_device tcc_sdhc2_device = {
 
 #if defined(CONFIG_MMC_TCC_SDHC3) || defined(CONFIG_MMC_TCC_SDHC3_MODULE)
 static u64 tcc_device_sdhc3_dmamask = 0xffffffffUL;
-static struct resource tcc_sdhc3_resource[] = {
-	#if defined(CONFIG_MMC_TCC_SDHC3)     // for eMMC Booting + SD3.0 + SD + WiFi (1,0,2,3)
-	[0] = {
-		.start	= tcc_p2v(HwSDMMC3_BASE),
-		.end	= tcc_p2v(HwSDMMC3_BASE + 0x1ff),
-		.flags	= IORESOURCE_MEM,
-	},
-	[1] = {
-		.start	= INT_SD3,
-		.end	= INT_SD3,
-		.flags	= IORESOURCE_IRQ,
-	},
-	#else
-	[0] = {
-		.start	= tcc_p2v(HwSDMMC0_BASE),
-		.end	= tcc_p2v(HwSDMMC0_BASE + 0x1ff),
-		.flags	= IORESOURCE_MEM,
-	},
-	[1] = {
-		.start	= INT_SD0,
-		.end	= INT_SD0,
-		.flags	= IORESOURCE_IRQ,
-	},
-	#endif
-};
 struct platform_device tcc_sdhc3_device = {
 	.name			= "tcc-sdhc3",
 	.id 			= 3,
-	.num_resources	= ARRAY_SIZE(tcc_sdhc3_resource),
-	.resource		= tcc_sdhc3_resource,
+	.num_resources	= ARRAY_SIZE(tcc_sdhc_resource[3]),
+	.resource		= (struct resource *)&tcc_sdhc_resource[3],
 	.dev			= {
 		.dma_mask			= &tcc_device_sdhc3_dmamask,
 		.coherent_dma_mask	= 0xffffffffUL
 	}
 };
+#endif
+
+extern struct tcc_mmc_platform_data tcc8920_mmc_platform_data[];
+
+void tcc_init_sdhc_devices(void)
+{
+	int core;
+
+#if defined(CONFIG_MMC_TCC_SDHC0) || defined(CONFIG_MMC_TCC_SDHC0_MODULE)
+	core = tcc8920_mmc_platform_data[0].slot % 4;
+	tcc_sdhc0_device.num_resources	= ARRAY_SIZE(tcc_sdhc_resource[core]);
+	tcc_sdhc0_device.resource		= (struct resource *)&tcc_sdhc_resource[core];
+#endif
+#if defined(CONFIG_MMC_TCC_SDHC1) || defined(CONFIG_MMC_TCC_SDHC1_MODULE)
+	core = tcc8920_mmc_platform_data[1].slot % 4;
+	tcc_sdhc1_device.num_resources	= ARRAY_SIZE(tcc_sdhc_resource[core]);
+	tcc_sdhc1_device.resource		= (struct resource *)&tcc_sdhc_resource[core];
+#endif
+#if defined(CONFIG_MMC_TCC_SDHC2) || defined(CONFIG_MMC_TCC_SDHC2_MODULE)
+	core = tcc8920_mmc_platform_data[2].slot % 4;
+	tcc_sdhc2_device.num_resources	= ARRAY_SIZE(tcc_sdhc_resource[core]);
+	tcc_sdhc2_device.resource		= (struct resource *)&tcc_sdhc_resource[core];
+#endif
+#if defined(CONFIG_MMC_TCC_SDHC3) || defined(CONFIG_MMC_TCC_SDHC3_MODULE)
+	core = tcc8920_mmc_platform_data[3].slot % 4;
+	tcc_sdhc3_device.num_resources	= ARRAY_SIZE(tcc_sdhc_resource[core]);
+	tcc_sdhc3_device.resource		= (struct resource *)&tcc_sdhc_resource[core];
+#endif
+}
 #endif
 
 #if defined(CONFIG_I2C_TCC)
@@ -903,11 +847,22 @@ static struct platform_device tcc_iec958 = {
 	.id	= -1,
 };
 
+#if defined(CONFIG_MACH_TCC8920ST)
+static struct platform_device tcc_wm8524 = {
+	.name	= "tcc-wm8524",
+	.id	= -1,
+};
+#endif
+
 static void tcc_init_audio(void)
 {
 	platform_device_register(&tcc_pcm);
 	platform_device_register(&tcc_dai);
 	platform_device_register(&tcc_iec958);
+
+	#if defined(CONFIG_MACH_TCC8920ST)
+		platform_device_register(&tcc_wm8524);
+	#endif
 }
 #else
 static void tcc_init_audio(void){;}
@@ -917,6 +872,7 @@ static int __init tcc892x_init_devices(void)
 {
 	tcc_add_pmem_devices();
     tcc_init_audio();
+
 	return 0;
 }
 arch_initcall(tcc892x_init_devices);

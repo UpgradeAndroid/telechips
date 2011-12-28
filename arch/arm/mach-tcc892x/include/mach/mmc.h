@@ -41,6 +41,7 @@ struct tcc_mmc_platform_data {
 
 	unsigned int cd_int_num;
 	unsigned int cd_irq_num;
+	unsigned int cd_ext_irq;
 	unsigned int peri_name;			/* sd core name */
 	unsigned int io_name;			/* sd core name */	
 	unsigned int pic;			/* Priority Interrupt Controller register name */

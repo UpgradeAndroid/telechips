@@ -56,6 +56,13 @@
 #define TCC_SPK_ON    0
 #define TCC_SPK_OFF   1
 
+#undef alsa_dbg
+#if 0
+#define alsa_dbg(fmt,arg...)    printk("== alsa-debug == "fmt,##arg)
+#else
+#define alsa_dbg(fmt,arg...)
+#endif
+
 // /* audio clock in Hz - rounded from 12.235MHz */
 //#define TCC83X_AUDIO_CLOCK 12288000
 
@@ -65,56 +72,48 @@ static int tcc_spk_func;
 static void tcc_ext_control(struct snd_soc_codec *codec)
 {
 	int spk = 0, mic = 0, line = 0, hp = 0, hs = 0;
+    struct snd_soc_dapm_context *dapm = &codec->dapm;
 
 	/* set up jack connection */
 	switch (tcc_jack_func) {
-	case TCC_HP:
-		hp = 1;
-#if !defined(CONFIG_ARCH_TCC92X)
-		snd_soc_dapm_disable_pin(codec,    "Ext Spk");
-		snd_soc_dapm_enable_pin(codec, "Headphone Jack");
-		snd_soc_dapm_disable_pin(codec, "Headset Jack");
-#endif
-		/* set = unmute headphone */
-//		set_scoop_gpio(&corgiscoop_device.dev, CORGI_SCP_MUTE_L);
-//		set_scoop_gpio(&corgiscoop_device.dev, CORGI_SCP_MUTE_R);
-		break;
-	case TCC_HEADSET:
-		hs = 1;
-		mic = 1;
-#if !defined(CONFIG_ARCH_TCC92X)		
-		snd_soc_dapm_disable_pin(codec,    "Ext Spk");
-		snd_soc_dapm_disable_pin(codec, "Headphone Jack");
-		snd_soc_dapm_enable_pin(codec, "Headset Jack");		
-#endif		
-//		reset_scoop_gpio(&corgiscoop_device.dev, CORGI_SCP_MUTE_L);
-//		set_scoop_gpio(&corgiscoop_device.dev, CORGI_SCP_MUTE_R);
-		break;
+    	case TCC_HP:
+    		hp = 1;
+    		snd_soc_dapm_disable_pin(dapm,    "Ext Spk");
+    		snd_soc_dapm_disable_pin(dapm, "Mic Jack");
+    		snd_soc_dapm_disable_pin(dapm, "Line Jack");
+    		snd_soc_dapm_enable_pin(dapm, "Headphone Jack");
+    		snd_soc_dapm_disable_pin(dapm, "Headset Jack");
+    		break;
+
+    	case TCC_HEADSET:
+    		hs = 1;
+    		mic = 1;
+    		snd_soc_dapm_disable_pin(dapm,    "Ext Spk");
+    		snd_soc_dapm_enable_pin(dapm, "Mic Jack");
+    		snd_soc_dapm_disable_pin(dapm, "Line Jack");
+    		snd_soc_dapm_disable_pin(dapm, "Headphone Jack");
+    		snd_soc_dapm_enable_pin(dapm, "Headset Jack");		
+    		break;
 	}
 
 	if (tcc_spk_func == TCC_SPK_ON)
 	{
 		spk = 1;
-		snd_soc_dapm_enable_pin(codec, "Ext Spk");		
+		snd_soc_dapm_enable_pin(dapm, "Ext Spk");		
 	}
 
 	/* set the enpoints to their new connetion states */
-//	snd_soc_dapm_set_endpoint(codec, "Ext Spk", spk);
-//	snd_soc_dapm_set_endpoint(codec, "Headphone Jack", hp);
-//	snd_soc_dapm_set_endpoint(codec, "Headset Jack", hs);
+	snd_soc_dapm_enable_pin(dapm, "Headphone Jack");
+	snd_soc_dapm_enable_pin(dapm, "Headphone Jack");
 
-#if !defined(CONFIG_ARCH_TCC92X)	
-	snd_soc_dapm_enable_pin(codec, "Headphone Jack");
-	snd_soc_dapm_enable_pin(codec, "Headphone Jack");
-#endif
 	/* signal a DAPM event */
-	snd_soc_dapm_sync(codec);
+	snd_soc_dapm_sync(dapm);
 }
 
 static int tcc_startup(struct snd_pcm_substream *substream)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_codec *codec = rtd->socdev->card->codec;
+	struct snd_soc_codec *codec = rtd->codec;
 
 	/* check the jack status at stream startup */
 	tcc_ext_control(codec);
@@ -124,20 +123,13 @@ static int tcc_startup(struct snd_pcm_substream *substream)
 /* we need to unmute the HP at shutdown as the mute burns power on tcc83x */
 static void tcc_shutdown(struct snd_pcm_substream *substream)
 {
-	//struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	//struct snd_soc_codec *codec = rtd->socdev->card->codec;
-
-	/* set = unmute headphone */
-//	set_scoop_gpio(&corgiscoop_device.dev, CORGI_SCP_MUTE_L);
-//	set_scoop_gpio(&corgiscoop_device.dev, CORGI_SCP_MUTE_R);
-	//return 0;
 }
 
 static int tcc_hw_params(struct snd_pcm_substream *substream, struct snd_pcm_hw_params *params)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
-	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
+	struct snd_soc_dai *codec_dai = rtd->codec_dai;
+	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
 	unsigned int clk = 0;
 	int ret = 0;
 
@@ -152,6 +144,7 @@ static int tcc_hw_params(struct snd_pcm_substream *substream, struct snd_pcm_hw_
 	case 22050:
     case 32000:
 	case 44100:
+    default:
 		clk = 11289600;
 		break;
 	}
@@ -159,25 +152,33 @@ static int tcc_hw_params(struct snd_pcm_substream *substream, struct snd_pcm_hw_
 	/* set codec DAI configuration */
 	ret = snd_soc_dai_set_fmt(codec_dai, SND_SOC_DAIFMT_I2S |
 		SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_CBS_CFS);
-	if (ret < 0)
+	if (ret < 0) {
+        printk("tcc_hw_params()  codec_dai: set_fmt error[%d]\n", ret);
 		return ret;
+    }
 
 	/* set cpu DAI configuration */
 	ret = snd_soc_dai_set_fmt(cpu_dai, SND_SOC_DAIFMT_I2S |
 		SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_CBS_CFS);
-	if (ret < 0)
+	if (ret < 0) {
+        printk("tcc_hw_params()  cpu_dai: set_fmt error[%d]\n", ret);
 		return ret;
+    }
 
 	/* set the codec system clock for DAC and ADC */
 	ret = snd_soc_dai_set_sysclk(codec_dai, WM8524_SYSCLK, clk,
 		SND_SOC_CLOCK_IN);
-	if (ret < 0)
+	if (ret < 0) {
+        printk("tcc_hw_params()  codec_dai: sysclk error[%d]\n", ret);
 		return ret;
+    }
 
 	/* set the I2S system clock as input (unused) */
    	ret = snd_soc_dai_set_sysclk(cpu_dai, 0, 0, SND_SOC_CLOCK_IN);
-	if (ret < 0)
+	if (ret < 0) {
+        printk("tcc_hw_params()  cpu_dai: sysclk error[%d]\n", ret);
 		return ret;
+    }
  
 	return 0;
 }
@@ -276,134 +277,157 @@ static const struct snd_kcontrol_new wm8524_tcc_controls[] = {
 /*
  * Logic for a wm8524 as connected on a Sharp SL-C7x0 Device
  */
-static int tcc_wm8524_init(struct snd_soc_codec *codec)
+static int tcc_wm8524_init(struct snd_soc_pcm_runtime *rtd)
 {
-	int i, err;
+	int ret;
+	struct snd_soc_codec *codec = rtd->codec;
+	struct snd_soc_dapm_context *dapm = &codec->dapm;
+
+    //alsa_dbg("%s() in...\n", __func__);
+
+    snd_soc_dapm_enable_pin(dapm, "MICIN");
 
 	/* Add tcc specific controls */
-	for (i = 0; i < ARRAY_SIZE(wm8524_tcc_controls); i++) {
-		err = snd_ctl_add(codec->card,
-			snd_soc_cnew(&wm8524_tcc_controls[i],codec, NULL));
-		if (err < 0)
-			return err;
-	}
+	ret = snd_soc_add_controls(codec, wm8524_tcc_controls,
+				ARRAY_SIZE(wm8524_tcc_controls));
+	if (ret)
+		return ret;
 
 	/* Add tcc specific widgets */
-	snd_soc_dapm_new_controls(codec, wm8524_dapm_widgets,
+	snd_soc_dapm_new_controls(dapm, wm8524_dapm_widgets,
 				  ARRAY_SIZE(wm8524_dapm_widgets));
 
 	/* Set up Telechips specific audio path audio_map */
-	snd_soc_dapm_add_routes(codec, audio_map, ARRAY_SIZE(audio_map));
+	snd_soc_dapm_add_routes(dapm, audio_map, ARRAY_SIZE(audio_map));
 
-	snd_soc_dapm_sync(codec);
+	snd_soc_dapm_sync(dapm);
 	return 0;
 }
 
-extern struct snd_soc_platform tcc_soc_platform;
-
-static int tcc_iec958_dummy_init(struct snd_soc_codec *codec)
+#if !defined(CONFIG_SND_TCC_DAI2SPDIF)
+static int tcc_iec958_dummy_init(struct snd_soc_pcm_runtime *rtd)
 {
     return 0;
 }
+#endif
 
 /* tcc digital audio interface glue - connects codec <--> CPU */
 static struct snd_soc_dai_link tcc_dai[] = {
-	{
-		.name = "WM8524",
-		.stream_name = "WM8524",
-		.cpu_dai = &tcc_i2s_dai[0],
-		.codec_dai = &wm8524_dai,
-		.init = tcc_wm8524_init,
-		.ops = &tcc_ops,
-	},
+    {
+        .name = "WM8524",
+        .stream_name = "WM8524",
+        .platform_name  = "tcc-pcm-audio",
+        .cpu_dai_name   = "tcc-dai-i2s",
+
+        .codec_name = "tcc-wm8524",
+        .codec_dai_name = "wm8524-hifi",
+        .init = &tcc_wm8524_init,
+        .ops = &tcc_ops,
+    },
+#if !defined(CONFIG_SND_TCC_DAI2SPDIF)
     {
         .name = "TCC",
         .stream_name = "IEC958",
-        .cpu_dai = &tcc_i2s_dai[1],
-        .codec_dai = &iec958_dai,
-        .init = tcc_iec958_dummy_init,
+        .platform_name  = "tcc-pcm-audio",
+        .cpu_dai_name   = "tcc-dai-spdif",
+
+        .codec_name     = "tcc-iec958",
+        .codec_dai_name = "IEC958",
+        .init = &tcc_iec958_dummy_init,
         .ops = &tcc_ops,
     },
+#endif
 };
-
-static int tcc_board_probe(struct platform_device *pdev)
-{
-    GPIO *pStrGPIOBaseReg = (GPIO *)tcc_p2v(HwGPIO_BASE);
-    printk("TCC Board probe [%s]\n", __FUNCTION__);
-    tca_tcc_initport();
-    return 0;
-}
 
 /* tcc audio machine driver */
-static struct snd_soc_card snd_soc_machine_tcc = {
-	.platform = &tcc_soc_platform,
-	.name = "tccx_board",
-    .probe = tcc_board_probe,
-	.dai_link = tcc_dai,
+static struct snd_soc_card tcc_soc_card = {
+	.driver_name      = "TCC Audio",
+    .long_name = "Telechips Board",
+	.dai_link  = tcc_dai,
 	.num_links = ARRAY_SIZE(tcc_dai),
-};
-
-
-/* tcc audio subsystem */
-static struct snd_soc_device tcc_snd_devdata = {
-	.card = &snd_soc_machine_tcc,
-	.codec_dev = &soc_codec_dev_wm8524,
-	.codec_data = NULL,
 };
 
 static struct platform_device *tcc_snd_device;
 
-static int __init tcc_init(void)
+static int __init tcc_init_wm8524(void)
 {
 	volatile PGPIO pGpio = (volatile PGPIO)tcc_p2v(HwGPIO_BASE);
 	int ret;
 
-	if(machine_is_tcc9300st()) {
-        gpio_request(TCC_GPF(4), "AIF_MODE");
-        gpio_request(TCC_GPF(3), "MUTE_ANG");
-        gpio_request(TCC_GPF(2), "MUTE_CTL");
- 
-        BITCLR(pGpio->GPFFN0, Hw20-Hw8);	    /* GPIOF[4:2]: AIFMode, MUTE_ANG, MUTE_CTL */
-        gpio_direction_output(TCC_GPF(4), 1);   /* AIFMode: 0(24-bit LJ), 1(24bit I2S), Z(24bit RJ) */
-        gpio_direction_output(TCC_GPF(3), 0);   /* MUT_ANG: h/w mute */
-        gpio_direction_output(TCC_GPF(2), 0);   /* MUTE_CTL of WM8524 */
-    }
-    else if(machine_is_tcc8800st()) {
-        gpio_request(TCC_GPD(20), "AIF_MODE");
-        gpio_request(TCC_GPD(19), "MUTE_ANG");
-        gpio_request(TCC_GPD(18), "MUTE_CTL");
-
-        BITCLR(pGpio->GPDFN2, Hw20-Hw8);	    /* GPIOD[20:18]: AIFMode, MUTE_ANG, MUTE_CTL */
-        gpio_direction_output(TCC_GPD(20), 1);   /* AIFMode: 0(24-bit LJ), 1(24bit I2S), Z(24bit RJ) */
-        gpio_direction_output(TCC_GPD(19), 0);   /* MUT_ANG: h/w mute */
-        gpio_direction_output(TCC_GPD(18), 0);   /* MUTE_CTL of WM8524 */
+    if( !(machine_is_tcc8800st() || machine_is_tcc8920st()) ) {
+        alsa_dbg("\n\n\n\n%s() do not execution....\n\n", __func__);
+        return 0;
     }
 
-    printk("tcc_init(): call gpio_set_value() \n");
+    alsa_dbg("TCC Board probe [%s]\n", __FUNCTION__);
+
+	#if defined(CONFIG_ARCH_TCC93XX)
+		if(machine_is_tcc9300st()) {
+	        gpio_request(TCC_GPF(4), "AIF_MODE");
+	        gpio_request(TCC_GPF(3), "MUTE_ANG");
+	        gpio_request(TCC_GPF(2), "MUTE_CTL");
+	 
+	        BITCLR(pGpio->GPFFN0, Hw20-Hw8);	    /* GPIOF[4:2]: AIFMode, MUTE_ANG, MUTE_CTL */
+	        gpio_direction_output(TCC_GPF(4), 1);   /* AIFMode: 0(24-bit LJ), 1(24bit I2S), Z(24bit RJ) */
+	        gpio_direction_output(TCC_GPF(3), 0);   /* MUT_ANG: h/w mute */
+	        gpio_direction_output(TCC_GPF(2), 0);   /* MUTE_CTL of WM8524 */
+
+	        tcc_soc_card.name = "tcc9300st";
+	    }
+	#elif defined(CONFIG_ARCH_TCC88XX)
+	    if(machine_is_tcc8800st()) {
+	        gpio_request(TCC_GPD(20), "AIF_MODE");
+	        gpio_request(TCC_GPD(19), "MUTE_ANG");
+	        gpio_request(TCC_GPD(18), "MUTE_CTL");
+
+	        BITCLR(pGpio->GPDFN2, Hw20-Hw8);	    /* GPIOD[20:18]: AIFMode, MUTE_ANG, MUTE_CTL */
+	        gpio_direction_output(TCC_GPD(20), 1);   /* AIFMode: 0(24-bit LJ), 1(24bit I2S), Z(24bit RJ) */
+	        gpio_direction_output(TCC_GPD(19), 0);   /* MUT_ANG: h/w mute */
+	        gpio_direction_output(TCC_GPD(18), 0);   /* MUTE_CTL of WM8524 */
+
+	        tcc_soc_card.name = "tcc8800st";
+	    }
+	#elif defined(CONFIG_ARCH_TCC892X)
+		if(machine_is_tcc8920st()) {
+	        gpio_request(TCC_GPF(24), "AIF_MODE");
+	        gpio_request(TCC_GPB(7), "MUTE_ANG");
+	        gpio_request(TCC_GPB(6), "MUTE_CTL");
+	 
+	        //BITCLR(pGpio->GPFFN0, Hw20-Hw8);	    /* GPIOF[4:2]: AIFMode, MUTE_ANG, MUTE_CTL */
+	        gpio_direction_output(TCC_GPF(24), 1);  /* AIFMode: 0(24-bit LJ), 1(24bit I2S), Z(24bit RJ) */
+	        gpio_direction_output(TCC_GPB(7), 0);   /* MUT_ANG: h/w mute */
+	        gpio_direction_output(TCC_GPB(6), 0);   /* MUTE_CTL of WM8524 */
+
+	        tcc_soc_card.name = "tcc8920st";
+		}
+    #endif
+
+    tca_tcc_initport();
 
     tcc_snd_device = platform_device_alloc("soc-audio", -1);
     if (!tcc_snd_device)
         return -ENOMEM;
 
-	platform_set_drvdata(tcc_snd_device, &tcc_snd_devdata);
-	tcc_snd_devdata.dev = &tcc_snd_device->dev;
-	ret = platform_device_add(tcc_snd_device);
+	platform_set_drvdata(tcc_snd_device, &tcc_soc_card);
 
-	if (ret)
+	ret = platform_device_add(tcc_snd_device);
+	if (ret) {
+        printk(KERN_ERR "Unable to add platform device\n");\
 		platform_device_put(tcc_snd_device);
+	}
 
 	return ret;
 }
 
-static void __exit tcc_exit(void)
+static void __exit tcc_exit_wm8524(void)
 {
 	platform_device_unregister(tcc_snd_device);
 }
 
-module_init(tcc_init);
-module_exit(tcc_exit);
+module_init(tcc_init_wm8524);
+module_exit(tcc_exit_wm8524);
 
 /* Module information */
 MODULE_AUTHOR("linux <linux@telechips.com>");
-MODULE_DESCRIPTION("ALSA SoC TCCxx Board");
+MODULE_DESCRIPTION("ALSA SoC TCCxx Board (WM8524)");
 MODULE_LICENSE("GPL");

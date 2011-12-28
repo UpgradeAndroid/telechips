@@ -9,6 +9,7 @@
 #include <mach/mmc.h>
 
 #include <mach/gpio.h>
+#include <mach/irqs.h>
 //#include <mach/bsp.h>
 #include <mach/bsp.h>
 #include <asm/mach-types.h>
@@ -16,13 +17,11 @@
 #include "devices.h"
 #include "board-tcc8920st.h"
 
+extern void tcc_init_sdhc_devices(void);
+
+struct tcc_mmc_platform_data tcc8920_mmc_platform_data[];
+
 typedef enum {
-#if defined(CONFIG_MMC_TCC_SDHC2)
-	TCC_MMC_TYPE_EMMC,
-#endif
-#if defined(CONFIG_MMC_TCC_SDHC3)
-	TCC_MMC_TYPE_SD3_0,
-#endif
 	TCC_MMC_TYPE_SD,
 	TCC_MMC_TYPE_WIFI,
 	TCC_MMC_TYPE_MAX
@@ -129,7 +128,6 @@ int tcc8920_mmc_card_detect(struct device *dev, int id)
 		return 1;
 
 	return gpio_get_value(mmc_ports[id].cd) ? 0 : 1;	
-
 }
 
 int tcc8920_mmc_suspend(struct device *dev, int id)
@@ -171,9 +169,9 @@ int tcc8920_mmc_set_bus_width(struct device *dev, int id, int width)
 
 int tcc8920_mmc_cd_int_config(struct device *dev, int id, unsigned int cd_irq)
 {
-	if(id == TCC_MMC_TYPE_SD)
+	if(tcc8920_mmc_platform_data[id].cd_int_num > 0)
 	{
-		tcc_gpio_config_ext_intr(INT_EI4, EXTINT_GPIOD_12);
+		tcc_gpio_config_ext_intr(tcc8920_mmc_platform_data[id].cd_irq_num, tcc8920_mmc_platform_data[id].cd_ext_irq);
 	}
 	else
 	{
@@ -203,6 +201,7 @@ struct tcc_mmc_platform_data tcc8920_mmc_platform_data[] = {
 
 		.cd_int_num = HwINT0_EI4,
 		.cd_irq_num = INT_EI4,
+		.cd_ext_irq = EXTINT_GPIOD_12,
 		.peri_name = PERI_SDMMC1,
 		.io_name = RB_SDMMC1CONTROLLER,
 		.pic = HwINT1_SD1,
@@ -259,6 +258,8 @@ static int __init tcc8920_init_mmc(void)
 		return 0;
 
 	printk("%s\n",__func__);
+
+	tcc_init_sdhc_devices();
 
 #if defined(CONFIG_MMC_TCC_SDHC)
 #if defined(CONFIG_MMC_TCC_SDHC0)

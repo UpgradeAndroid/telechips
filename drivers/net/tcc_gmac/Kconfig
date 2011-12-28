@@ -3,7 +3,7 @@
 #
 config TCC_GMAC
 	tristate "Telechips 10/100/1000 Ethernet Driver"
-	depends on ARCH_TCC88XX || ARCH_TCC93XX
+	depends on ARCH_TCC88XX || ARCH_TCC93XX || ARCH_TCC892X
 	select CRC32
 	select MII 
 	---help---

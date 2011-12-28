@@ -241,20 +241,6 @@ config TCC88XX_RTC_EXTERNAL_PATH
 
 endchoice
 
-choice
-	prompt "Suspend mode configration"
-	depends on ARCH_TCC892X
-	default SHUTDOWN_MODE
-config SHUTDOWN_MODE
-	bool "Shut-down mode"
-	help
-	  Shut-down mode is used on suspend status.
-config SLEEP_MODE
-	bool "Sleep mode"
-	help
-	  Sleep mode is used on suspend status.
-endchoice
-
 config TCC_ECID_SUPPORT
 	bool "TCC ECID(CPU ID) SUPPORT"
         default n
