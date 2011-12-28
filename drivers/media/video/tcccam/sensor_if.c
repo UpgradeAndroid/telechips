@@ -994,17 +994,17 @@ int sensor_if_init(struct v4l2_pix_format *pix)
 			{
 				#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9P111)
 				gpio_request(TCC_GPC(29), NULL);
-				gpio_direction_output(TCC_GPC(29), 1);
+				gpio_direction_output(TCC_GPC(29), 1);		
 				#endif
 			}
 			#else
 				#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9P111) || defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9T111)
 					gpio_request(TCC_GPC(29), NULL);
-					gpio_direction_output(TCC_GPC(29), 1);
+					gpio_direction_output(TCC_GPC(29), 1);					
 				#else
 					#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9T113)
 						gpio_request(TCC_GPD(16), NULL);
-						gpio_direction_output(TCC_GPD(16), 1);
+						gpio_direction_output(TCC_GPD(16), 1);						
 					#else
 						gpio_request(TCC_GPF(13), NULL);
 						gpio_direction_output(TCC_GPF(13), 1);
@@ -1615,11 +1615,11 @@ int sensor_get_powerdown(void)
 				else
 				{
 					#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9P111) || defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9T111)
-						return gpio_get_value(TCC_GPC(29)); // must enable to use 5M(mt9p111)
+						return gpio_get_value(TCC_GPC(29)); // must enable to use 5M(mt9p111)						
 					#endif
 				}
 			#else
-				#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9P111) || defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9T111)
+				#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9P111) || defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9T111)					
 					return gpio_get_value(TCC_GPC(29)); // must enable to use 5M(mt9p111)
 				#else
 					return gpio_get_value(TCC_GPD(16));
@@ -1749,17 +1749,19 @@ void sensor_powerdown_enable(void)
 			#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
 				if(CameraID){
 					#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9M113)
+						dprintk("mt9m113 powerdown Enable!!\n");
 						gpio_set_value(TCC_GPD(16), 1);
 					#endif
 				}
 				else{
 					#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9P111) || defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9T111)
-						gpio_set_value(TCC_GPC(29), 1);		// must enable to use 5M(mt9p111)
+						dprintk("mt9p111 powerdown Enable!!\n");
+						gpio_set_value(TCC_GPC(29), 1);		// must enable to use 5M(mt9p111)							
 					#endif
 				}
 			#else
 				#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9P111) || defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9T111)
-					gpio_set_value(TCC_GPC(29), 1);		// must enable to use 5M(mt9p111)
+					gpio_set_value(TCC_GPC(29), 1);		// must enable to use 5M(mt9p111)					
 				#else					
 					#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9T113)
 						gpio_set_value(TCC_GPD(16), 1);
@@ -1892,17 +1894,19 @@ void sensor_powerdown_disable(void)
 			#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
 				if(CameraID){
 					#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9M113)
+						dprintk("mt9m113 powerdown Disable!!\n");
 						gpio_set_value(TCC_GPD(16), 0);
 					#endif
 				}
 				else{
 					#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9P111) || defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9T111)
-						gpio_set_value(TCC_GPC(29), 0);		// must enable to use 5M(mt9p111)
+						dprintk("mt9p111 powerdown Disable!!\n");
+						gpio_set_value(TCC_GPC(29), 0);		// must enable to use 5M(mt9p111)							
 					#endif
 				}
 			#else
 				#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9P111) || defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9T111)
-					gpio_set_value(TCC_GPC(29), 0);		// must enable to use 5M(mt9p111)
+					gpio_set_value(TCC_GPC(29), 0);		// must enable to use 5M(mt9p111)						
 				#else					
 					#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9T113)
 						gpio_set_value(TCC_GPD(16), 0);
@@ -2032,12 +2036,14 @@ void sensor_reset_high(void)
 			if(CameraID)
 			{
 				#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9M113)
+				dprintk("mt9m113 reset high!!\n");
 				gpio_set_value(TCC_GPF(14), 1);
 				#endif
 			}
 			else
 			{
 				#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9P111) || defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9T111)
+				dprintk("mt9p111 reset high!!\n");
 				gpio_set_value(TCC_GPF(13), 1); // must enable to use 5M(mt9p111)
 				#endif
 			}
@@ -2077,13 +2083,13 @@ void sensor_reset_low(void)
 			#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
 			if(CameraID)
 			{
-				#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9M113)
+				#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9M113)				
 				gpio_set_value(TCC_GPG(2), 0);
 				#endif
 			}
 			else
 			{
-				#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9P111) || defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9T111)
+				#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9P111) || defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9T111)				
 				gpio_set_value(TCC_GPE(2), 0); // must enable to use 5M(mt9p111)
 				#endif
 			}
@@ -2165,13 +2171,15 @@ void sensor_reset_low(void)
 			if(CameraID)
 			{
 				#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9M113)
+				dprintk("mt9m113 reset Low!!\n");
 				gpio_set_value(TCC_GPF(14), 0);
 				#endif
 			}
 			else
 			{
 				#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9P111) || defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9T111)
-				gpio_set_value(TCC_GPD(13), 0); // must enable to use 5M(mt9p111)
+				dprintk("mt9p111 reset Low!!\n");
+				gpio_set_value(TCC_GPF(13), 0); // must enable to use 5M(mt9p111)
 				#endif
 			}
 			#else

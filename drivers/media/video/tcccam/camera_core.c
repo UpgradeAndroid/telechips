@@ -455,14 +455,22 @@ int tcc_videobuf_dqbuf(struct v4l2_buffer *buf, struct file *file )
 	if(data->cif_cfg.esd_restart) tccxxx_cif_cam_restart(&pix,xclk);
 
 	if(list_empty(&data->done_list)) {
-		if(file->f_flags & O_NONBLOCK) return -EAGAIN;
+		if(file->f_flags & O_NONBLOCK){
+			printk("file->f_flags Fail!!\n");
+			return -EAGAIN;
+		}
 			
 		data->wakeup_int = 0;
-		if(wait_event_interruptible_timeout(data->frame_wait, data->wakeup_int == 1, msecs_to_jiffies(500)) <= 0)
+		if(wait_event_interruptible_timeout(data->frame_wait, data->wakeup_int == 1, msecs_to_jiffies(500)) <= 0){
+			printk("wait_event_interruptible_timeout 500ms!!\n");
 			return -EFAULT;
+		}
 
 		/* Should probably recheck !list_empty() here */
-		if(list_empty(&data->done_list)) return -ENOMEM;
+		if(list_empty(&data->done_list)){
+			printk("It needs list_empty!!\n");
+			return -ENOMEM;
+		}
 	}
 
 	cif_buf = list_entry(data->done_list.next, struct tccxxx_cif_buffer, buf_list);

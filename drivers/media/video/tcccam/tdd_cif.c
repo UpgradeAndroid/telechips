@@ -86,6 +86,8 @@ void TDD_CIF_Initialize()
 #elif	defined(CONFIG_ARCH_TCC892X)
 	//	In case of CAM4
 	volatile PGPION pGPIO_F = (PGPION)tcc_p2v(HwGPIOF_BASE);
+	volatile PGPION pGPIO_C = (PGPION)tcc_p2v(HwGPIOC_BASE);
+	volatile PGPION pGPIO_D = (PGPION)tcc_p2v(HwGPIOD_BASE);
 
 	#if defined(CONFIG_MACH_M805_892X)
 		printk("m805_892x port configuration!!\n");
@@ -96,6 +98,9 @@ void TDD_CIF_Initialize()
 		// Change to Functional GPIO that GPIO_D
 		BITCSET(pGPIO_F->GPFN0.nREG, 0xFFFFFFFF, 0x11111111);  
 		BITCSET(pGPIO_F->GPFN1.nREG, 0x0000FFFF, 0x0001B111);
+
+		BITCSET(pGPIO_C->GPFN3.nREG, 0x00F00000, 0x00000000); // Temporary, C29 to GPIO (FL_EN), 5M PWDN
+		BITCSET(pGPIO_D->GPFN2.nREG, 0x0000000F, 0x00000000); // Temporary, D16 to GPIO (STDBY), 1.3M PWDN
 		
 	#endif
 		// Change to Driving Strength that GPIO_D
