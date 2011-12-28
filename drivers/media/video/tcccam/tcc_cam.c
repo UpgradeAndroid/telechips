@@ -484,12 +484,12 @@ static irqreturn_t isp_cam_isr1(int irq, void *client_data/*, struct pt_regs *re
 						unsigned int stride = ALIGNED_BUFF(data->cif_cfg.main_set.target_x, 16);
 						prev_buf->v4lbuf.bytesused = ALIGNED_BUFF((stride/2), 16) * (data->cif_cfg.main_set.target_y/2);
 					}
-					#else
+					#else // FEATURE_ANDROID_ICS
 					if(data->cif_cfg.fmt == M420_ZERO)
 						prev_buf->v4lbuf.bytesused = data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y*2;
 					else
 						prev_buf->v4lbuf.bytesused = (data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y*3)/2;
-					#endif
+					#endif // FEATURE_ANDROID_ICS
 
 				    //cif_buf->v4lbuf.sequence = cam->buf_seq[bufno];
 					prev_buf->v4lbuf.flags &= ~V4L2_BUF_FLAG_QUEUED;
@@ -736,12 +736,12 @@ static irqreturn_t cif_cam_isr(int irq, void *client_data/*, struct pt_regs *reg
 						unsigned int stride = ALIGNED_BUFF(data->cif_cfg.main_set.target_x, 16);
 						prev_buf->v4lbuf.bytesused = ALIGNED_BUFF((stride/2), 16) * (data->cif_cfg.main_set.target_y/2);
 					}
-					#else
+					#else // FEATURE_ANDROID_ICS
 					if(data->cif_cfg.fmt == M420_ZERO)
 						curr_buf->v4lbuf.bytesused = data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y*2;
 					else
 						curr_buf->v4lbuf.bytesused = (data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y*3)/2;
-					#endif
+					#endif // FEATURE_ANDROID_ICS
 
 					//cif_buf->v4lbuf.sequence = cam->buf_seq[bufno];
 					curr_buf->v4lbuf.flags &= ~V4L2_BUF_FLAG_QUEUED;
@@ -799,26 +799,21 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 	struct TCCxxxCIF *data = (struct TCCxxxCIF *)&hardware_data;
 	struct tccxxx_cif_buffer *curr_buf, *next_buf;
 	unsigned int curr_num, next_num, nCnt;
-	
-	
-#ifdef JPEG_ENCODE_WITH_CAPTURE
+	#ifdef JPEG_ENCODE_WITH_CAPTURE
 	unsigned int uCLineCnt, uTempVCNT;
-#endif
-
-#if defined(CONFIG_ARCH_TCC92XX) || defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC88XX)
+	#endif
+	#if defined(CONFIG_ARCH_TCC92XX) || defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC88XX)
 	volatile PCIF pCIF;
-
 	pCIF = (PCIF)tcc_p2v(HwCIF_BASE);
-#endif
+	#endif
 
 	//preview : Stored-One-Frame in DMA
 	if(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_EOFR_MASK)
 	{
-		if (data->cif_cfg.oper_mode == OPER_CAPTURE) 
+		if(data->cif_cfg.oper_mode == OPER_CAPTURE)
 		{
 			if(skip_frm == 0 && !frame_lock)
 			{
-		
 				data->cif_cfg.now_frame_num = 0;
 				curr_buf = data->buf + data->cif_cfg.now_frame_num;		
 				
@@ -826,7 +821,7 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 				curr_buf->v4lbuf.flags &= ~V4L2_BUF_FLAG_QUEUED;
 				curr_buf->v4lbuf.flags |= V4L2_BUF_FLAG_DONE;
 
-				list_move_tail(&curr_buf->buf_list, &data->done_list);		
+				list_move_tail(&curr_buf->buf_list, &data->done_list);
 
 				data->cif_cfg.cap_status = CAPTURE_DONE;
 
@@ -838,12 +833,12 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 			}
 			else
 			{
-				if(skip_frm > 0){
+				if(skip_frm > 0) {
 					skip_frm--;
 					printk("decrease frm!!\n");
-				}
-				else
+				} else {
 					skip_frm = 0;
+				}
 
 				VIOC_WDMA_SetImageEnable(pWDMABase, OFF);
 				BITCSET(pWDMABase->uIRQSTS.nREG, VIOC_WDMA_IREQ_ALL_MASK, VIOC_WDMA_IREQ_ALL_MASK);	
@@ -853,54 +848,50 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 		
 		if(data->stream_state == STREAM_ON)
 		{
-			
 			TDD_CIF_SetInterrupt(SET_CIF_UPDATE_WITHOUT_VSYNC);	
 			sensor_if_check_control();
-	
+
 			if(skip_frm == 0 && !frame_lock)
 			{
-				if(prev_buf != NULL){
+				if(prev_buf != NULL) {
 					list_move_tail(&prev_buf->buf_list, &data->done_list);
 				}
 				
 				//printk("[Camera Preview] Interrupt Rising Up!!\n");
 				prev_buf = data->buf + data->cif_cfg.now_frame_num;
 				prev_num = data->cif_cfg.now_frame_num;
-	
-				next_buf = list_entry(data->list.next->next, struct tccxxx_cif_buffer, buf_list);	
+
+				next_buf = list_entry(data->list.next->next, struct tccxxx_cif_buffer, buf_list);
 				next_num = next_buf->v4lbuf.index;
 
 				if(next_buf != &data->list && prev_buf != next_buf)
 				{
-					
 					//exception process!!
-					if(prev_num != prev_buf->v4lbuf.index)
-					{
+					if(prev_num != prev_buf->v4lbuf.index) {
 						printk("Frame num mismatch :: true num  :: %d \n", curr_num);
 						printk("Frame num mismatch :: false num :: %d \n", curr_buf->v4lbuf.index);
 						prev_buf->v4lbuf.index = prev_num ;
 					}
 
-						
-					cif_dma_hw_reg(next_num);					
+					cif_dma_hw_reg(next_num);
 
 					#if defined(FEATURE_ANDROID_ICS)
 					{
 						unsigned int stride = ALIGNED_BUFF(data->cif_cfg.main_set.target_x, 16);
 						prev_buf->v4lbuf.bytesused = ALIGNED_BUFF((stride/2), 16) * (data->cif_cfg.main_set.target_y/2);
 					}
-					#else
+					#else // FEATURE_ANDROID_ICS
 					if(data->cif_cfg.fmt == M420_ZERO)
 						prev_buf->v4lbuf.bytesused = data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y*2;
 					else
 						prev_buf->v4lbuf.bytesused = (data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y*3)/2;
-					#endif
+					#endif // FEATURE_ANDROID_ICS
 
 					prev_buf->v4lbuf.flags &= ~V4L2_BUF_FLAG_QUEUED;
 					prev_buf->v4lbuf.flags |= V4L2_BUF_FLAG_DONE;
-			
-					#ifdef	CONFIG_VIDEO_ATV_SENSOR_TVP5150
-						if((frm_cnt == 1) && (bfield == 0)){
+
+					#if defined(CONFIG_VIDEO_ATV_SENSOR_TVP5150)
+						if((frm_cnt == 1) && (bfield == 0)) {
 							dprintk("Deintl Initialization\n");
 							VIOC_VIQE_InitDeintlCoreNormal((VIQE *)pVIQEBase);
 
@@ -908,23 +899,19 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 							// initial 3 field are operated by spatial, then 
 							// change the temporal mode in next fields.
 							// (VERY IMPORTANT)
-						}
-						else {
+						} else {
 							field_cnt++;
-						}			
-					
+						}
 
-						if (bfield == 1) {		// end fied of bottom field
+						if(bfield == 1) {		// end fied of bottom field
 							bfield = 0;
 							frm_cnt++;
 						} else {
 							bfield = 1;
 						}
+					#endif // CONFIG_VIDEO_ATV_SENSOR_TVP5150
 
-					#endif
-
-					if(data->cif_cfg.zoom_step != old_zoom_step){							
-
+					if(data->cif_cfg.zoom_step != old_zoom_step) {
 						// Block WDMA's IRQ
 						VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_EOFR_MASK, 0x1);
 								
@@ -936,26 +923,25 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 
 						// Before camera quit, we have to wait WMDA's SEN signal to LOW.
 						// Note that do not decrease below Cnt.
-						while(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_STSEN_MASK){
+						while(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_STSEN_MASK) {
 							for(nCnt=0; nCnt<10000; nCnt++);
-						}							
-						
+						}
+
 						VIOC_VIN_SetImageSize(pVINBase, data->cif_cfg.main_set.source_x, data->cif_cfg.main_set.source_y);
 						VIOC_VIN_SetImageOffset(pVINBase,data->cif_cfg.main_set.win_hor_ofst, data->cif_cfg.main_set.win_ver_ofst, 0);
 
-						dprintk("VIN WxH[%dx%d] Crop Start XxY[%dx%d] \n", data->cif_cfg.main_set.source_x, data->cif_cfg.main_set.source_y,
+						dprintk("VIN WxH[%dx%d] Crop Start XxY[%dx%d] \n", data->cif_cfg.main_set.source_x, data->cif_cfg.main_set.source_y, \
 															data->cif_cfg.main_set.win_hor_ofst, data->cif_cfg.main_set.win_ver_ofst);
 
 						//VIOC_WMIX_SetSize(pWMIXBase, data->cif_cfg.main_set.source_x, data->cif_cfg.main_set.source_y);
-						VIOC_SC_SetUpdate (pSCBase);		
+						VIOC_SC_SetUpdate (pSCBase);
 						//VIOC_WMIX_SetUpdate(pWMIXBase);
 
-						// Enable WDMA							
-						VIOC_WDMA_SetImageEnable(pWDMABase, ON);					
-
+						// Enable WDMA
+						VIOC_WDMA_SetImageEnable(pWDMABase, ON);
 					}
+
 					old_zoom_step = data->cif_cfg.zoom_step;							
-					
 				}
 				else
 				{
@@ -969,29 +955,27 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 			}
 			else
 			{
-				if(skip_frm > 0){
+				if(skip_frm > 0) {
 					skip_frm--;
 					printk("decrease frm!!\n");
-				}
-				else
+				} else {
 					skip_frm = 0;
+				}
 			}
-
 			
-			BITCSET(pWDMABase->uCTRL.nREG, 1<<16, (1<<16));	
+			BITCSET(pWDMABase->uCTRL.nREG, 1<<16, (1<<16));
 			//VIOC_WDMA_SetImageEnable(pWDMABase, OFF);
-			BITCSET(pWDMABase->uIRQSTS.nREG, VIOC_WDMA_IREQ_ALL_MASK, VIOC_WDMA_IREQ_ALL_MASK);	
+			BITCSET(pWDMABase->uIRQSTS.nREG, VIOC_WDMA_IREQ_ALL_MASK, VIOC_WDMA_IREQ_ALL_MASK);
 			VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_EOFR_MASK, 0x0);
-					
+
 			TDD_CIF_SetInterrupt(SET_CIF_UPDATE_IN_VSYNC);
-		
-		}		
+		}
 	}
 
 	return IRQ_HANDLED;
 }
 #endif
- 
+
 /* ------------- below are interface functions ----------------- */
 /* ------------- these functions are named tccxxxcif_<name> -- */
 
@@ -1325,14 +1309,14 @@ void cif_preview_dma_set(void)
 	stride 		= ALIGNED_BUFF(data->cif_cfg.main_set.target_x, 16);
 	y_offset 	= stride * data->cif_cfg.main_set.target_y;
 	uv_offset 	= ALIGNED_BUFF((stride/2), 16) * (data->cif_cfg.main_set.target_y/2);
-	#else
+	#else // FEATURE_ANDROID_ICS
 	y_offset = data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y;
 
 	if(data->cif_cfg.fmt == M420_ZERO)
 		uv_offset = (data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y)/2;
 	else
 		uv_offset = (data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y)/4;
-	#endif
+	#endif // FEATURE_ANDROID_ICS
 
 	dprintk("RDA5888E Interrupt, Width=%d, Height=%d. \n", data->cif_cfg.main_set.target_x, data->cif_cfg.main_set.target_y);
 
@@ -2111,9 +2095,9 @@ int tccxxx_cif_buffer_set(struct v4l2_requestbuffers *req)
 		#if defined(FEATURE_ANDROID_ICS)
 		stride = ALIGNED_BUFF(data->cif_cfg.main_set.target_x, 16);
 		y_offset = stride * data->cif_cfg.main_set.target_y;
-		#else
+		#else // FEATURE_ANDROID_ICS
 		y_offset = data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y;
-		#endif
+		#endif // FEATURE_ANDROID_ICS
 		if(data->cif_cfg.fmt == M420_ZERO) 	buff_size = PAGE_ALIGN(y_offset*2);
 		else 								buff_size = PAGE_ALIGN(y_offset + y_offset/2);
 
@@ -2143,12 +2127,12 @@ int tccxxx_cif_buffer_set(struct v4l2_requestbuffers *req)
 	stride = ALIGNED_BUFF(data->cif_cfg.main_set.target_x, 16);
 	y_offset = stride * data->cif_cfg.main_set.target_y;
 	uv_offset = ALIGNED_BUFF((stride/2), 16) * (data->cif_cfg.main_set.target_y/2);
-	#else
+	#else // FEATURE_ANDROID_ICS
 	if(data->cif_cfg.fmt == M420_ZERO)
 		uv_offset = (data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y)/2;
 	else
 		uv_offset = (data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y)/4;
-	#endif
+	#endif // FEATURE_ANDROID_ICS
 
 	data->cif_cfg.preview_buf[req->count].p_Y  = (unsigned int)req->reserved[0];
 	data->cif_cfg.preview_buf[req->count].p_Cb = (unsigned int)data->cif_cfg.preview_buf[req->count].p_Y + y_offset;
@@ -2176,13 +2160,13 @@ void tccxxx_set_camera_addr(int index, unsigned int addr, unsigned int cameraSta
 			uv_offset = data->cif_cfg.main_set.target_x * data->cif_cfg.main_set.target_y / 4;
 		}
 	}
-	#else
+	#else // FEATURE_ANDROID_ICS
 	y_offset = data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y;
 	if(data->cif_cfg.fmt == M420_ZERO)
 		uv_offset = (data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y)/2;
 	else
 		uv_offset = (data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y)/4;
-	#endif
+	#endif // FEATURE_ANDROID_ICS
 
 	if(cameraStatus == 1 /* MODE_PREVIEW */) {
 		data->cif_cfg.preview_buf[index].p_Y  = addr;
@@ -2319,8 +2303,7 @@ int tccxxx_cif_cam_restart(struct v4l2_pix_format *pix, unsigned long xclk)
 	sensor_if_restart();
 	sensor_if_change_mode(OPER_PREVIEW);
 
-	while(!list_empty(&data->done_list)) 
-	{
+	while(!list_empty(&data->done_list)) {
 		cif_buf = list_entry(data->done_list.next, struct tccxxx_cif_buffer, buf_list);
 		list_del(&cif_buf->buf_list);
 	
@@ -2356,7 +2339,7 @@ int tccxxx_cif_cam_restart(struct v4l2_pix_format *pix, unsigned long xclk)
 	ISP_SetPreviewH_Size(y_offset, uv_offset, uv_offset);
 	if(data->cif_cfg.fmt == M420_ZERO) 	ISP_SetPreviewH_Format(ISP_FORMAT_YUV422);
 	else 								ISP_SetPreviewH_Format(ISP_FORMAT_YUV420);
-	#else
+	#else // FEATURE_ANDROID_ICS
 	if(data->cif_cfg.fmt == M420_ZERO) {
 		ISP_SetPreviewH_Size(data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y, 	\
 							 data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y/2, \
@@ -2368,16 +2351,16 @@ int tccxxx_cif_cam_restart(struct v4l2_pix_format *pix, unsigned long xclk)
 							 data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y/4);
 		ISP_SetPreviewH_Format(ISP_FORMAT_YUV420);		
 	}
-	#endif
+	#endif // FEATURE_ANDROID_ICS
 	printk ("prevSize:(%d,%d)=%x restart \n", data->cif_cfg.main_set.target_x, data->cif_cfg.main_set.target_y, \
 											  data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y);
 
 	ISP_SetPreviewH_Resolution(data->cif_cfg.main_set.target_x, data->cif_cfg.main_set.target_y);
 
 	tccxxx_cif_set_effect(current_effect_mode);
-#ifdef TCCISP_GEN_CFG_UPD	
+	#ifdef TCCISP_GEN_CFG_UPD
 	chkpnt = 0;
-#endif
+	#endif
 	ISP_SetPreview_Control(ON);
 #endif
 
@@ -2430,7 +2413,7 @@ int tccxxx_cif_start_stream(void)
 	ISP_SetPreviewH_Size(y_offset, uv_offset, uv_offset);
 	if(data->cif_cfg.fmt == M420_ZERO) 	ISP_SetPreviewH_Format(ISP_FORMAT_YUV422);
 	else 								ISP_SetPreviewH_Format(ISP_FORMAT_YUV420);
-	#else	
+	#else // FEATURE_ANDROID_ICS
 	if(data->cif_cfg.fmt == M420_ZERO) {
 		ISP_SetPreviewH_Size(data->cif_cfg.main_set.target_x * data->cif_cfg.main_set.target_y, 	\
  							 data->cif_cfg.main_set.target_x * data->cif_cfg.main_set.target_y / 2, \
@@ -2442,7 +2425,7 @@ int tccxxx_cif_start_stream(void)
 							 data->cif_cfg.main_set.target_x * data->cif_cfg.main_set.target_y / 4);
 		ISP_SetPreviewH_Format(ISP_FORMAT_YUV420);
 	}
-	#endif
+	#endif // FEATURE_ANDROID_ICS
 	printk("prevSize:(%d, %d) = %x. \n", data->cif_cfg.main_set.target_x, data->cif_cfg.main_set.target_y, \
 										 data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y);
 	
@@ -2455,15 +2438,15 @@ int tccxxx_cif_start_stream(void)
 	ISP_SetPreview_Zoom(data->cif_cfg.zoom_step);
 	
 	tccxxx_cif_set_effect(current_effect_mode);
-#ifdef TCCISP_GEN_CFG_UPD	
+	#ifdef TCCISP_GEN_CFG_UPD
 	chkpnt = 0;
-#endif
+	#endif
 	ISP_SetPreview_Control(ON);
-#else
+#else // CONFIG_USE_ISP
 	#if	defined(CONFIG_ARCH_TCC892X)
 			data->stream_state = STREAM_ON;
-			sc_plug_in0 = VIOC_SC_VIN_00;//VIOC_SC_WDMA_05;	
-		    sc_plug_in1 = VIOC_SC_WDMA_05;//VIOC_SC_WDMA_07;
+			sc_plug_in0 = VIOC_SC_VIN_00; 	// VIOC_SC_WDMA_05;
+		    sc_plug_in1 = VIOC_SC_WDMA_05; 	// VIOC_SC_WDMA_07;
 
 			old_zoom_step = 0;
 
@@ -2471,7 +2454,7 @@ int tccxxx_cif_start_stream(void)
 
 			prev_buf = NULL;
 
-		#ifdef	CONFIG_VIDEO_ATV_SENSOR_TVP5150
+		#if defined(CONFIG_VIDEO_ATV_SENSOR_TVP5150)
 			frm_cnt = 0;
 			bfield = 0;
 			field_cnt = 0;
@@ -2493,8 +2476,8 @@ int tccxxx_cif_start_stream(void)
 			tccxxx_vioc_scaler_set(pSCBase, pVINBase, pWMIXBase, sc_plug_in1);
 
 			tccxxx_vioc_vin_wdma_set(pWDMABase);
-		#else
-			if(data->cif_cfg.cap_status == CAPTURE_DONE){				
+		#else // CONFIG_VIDEO_ATV_SENSOR_TVP5150
+			if(data->cif_cfg.cap_status == CAPTURE_DONE) {
 				VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_ALL_MASK, 0x1);
 		
 				// Disable WDMA
@@ -2503,11 +2486,11 @@ int tccxxx_cif_start_stream(void)
 				BITCSET(pWDMABase->uCTRL.nREG, 1<<16, 1<<16);
 
 				// Before camera quit, we have to wait WMDA's SEN signal to LOW.
-				while(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_STSEN_MASK){
+				while(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_STSEN_MASK) {
 					for(nCnt=0; nCnt<10000; nCnt++);
-				}	
+				}
 
-					// Disable VIN
+				// Disable VIN
 				VIOC_VIN_SetEnable(pVINBase, OFF);
 					
 				data->cif_cfg.cap_status = CAPTURE_NONE;
@@ -2520,10 +2503,8 @@ int tccxxx_cif_start_stream(void)
 		    tccxxx_vioc_vin_main(pVINBase);
 		   
 		    tccxxx_vioc_vin_wdma_set(pWDMABase);
-		#endif
-
-	
-	#else
+		#endif // CONFIG_VIDEO_ATV_SENSOR_TVP5150
+	#else // CONFIG_ARCH_TCC892X
 		TDD_CIF_ONOFF(OFF);
 		TDD_CIF_SWReset();
 		TDD_CIF_SetCaptureCtrl(SET_CIF_SKIP_NUM, 0, 0, SET_CIF_CAP_DISABLE); // after capture!!
@@ -2557,17 +2538,15 @@ int tccxxx_cif_start_stream(void)
 			cif_set_frameskip(0, 0);
 		#endif
 
-				skipped_frm = 0;
-				
-				while(skip_frm)
-				{
-					msleep(1);
-				}
-	#endif
-#endif //CONFIG_USE_ISP	
+		skipped_frm = 0;
+
+		while(skip_frm) {
+			msleep(1);
+		}
+	#endif // CONFIG_ARCH_TCC892X
+#endif // CONFIG_USE_ISP
 
 	dprintk("%s End!! \n", __FUNCTION__);
-	
 	return 0;
 }
 
