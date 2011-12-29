@@ -806,29 +806,27 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 	//preview : Stored-One-Frame in DMA
 	if(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_EOFR_MASK)
 	{
-		if(data->cif_cfg.oper_mode == OPER_CAPTURE)
-		{
+		if(data->cif_cfg.oper_mode == OPER_CAPTURE) {
 			if(skip_frm == 0 && !frame_lock)
 			{
 				VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_ALL_MASK, 0x1);
-					
+
 				// Disable WDMA
 				BITCSET(pWDMABase->uCTRL.nREG, 1<<28, 0<<28);
-
 				BITCSET(pWDMABase->uCTRL.nREG, 1<<16, 1<<16);
 
 				// Before camera quit, we have to wait WMDA's SEN signal to LOW.
-				while(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_STSEN_MASK){
-					for(nCnt=0; nCnt<10000; nCnt++);
-				}	
+				while(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_STSEN_MASK) {
+					for(nCnt=0; nCnt < 10000; nCnt++);
+				}
 
-					// Disable VIN
+				// Disable VIN
 				VIOC_VIN_SetEnable(pVINBase, OFF);
 
 				data->cif_cfg.now_frame_num = 0;
 				curr_buf = data->buf + data->cif_cfg.now_frame_num;		
 				
-				curr_buf->v4lbuf.bytesused =	data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y*2;
+				curr_buf->v4lbuf.bytesused = data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y*2;
 				curr_buf->v4lbuf.flags &= ~V4L2_BUF_FLAG_QUEUED;
 				curr_buf->v4lbuf.flags |= V4L2_BUF_FLAG_DONE;
 
@@ -838,21 +836,20 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 
 				wake_up_interruptible(&data->frame_wait); //POLL
 
-				BITCSET(pWDMABase->uIRQSTS.nREG, VIOC_WDMA_IREQ_ALL_MASK, VIOC_WDMA_IREQ_ALL_MASK);					
+				BITCSET(pWDMABase->uIRQSTS.nREG, VIOC_WDMA_IREQ_ALL_MASK, VIOC_WDMA_IREQ_ALL_MASK);
 
 				return IRQ_HANDLED;
 			}
-			else
-			{
+			else {
 				if(skip_frm > 0) {
+					printk("capture frame skip. skip count is %d. \n", skip_frm);
 					skip_frm--;
-					printk("decrease frm!!\n");
 				} else {
 					skip_frm = 0;
 				}
 
 				VIOC_WDMA_SetImageEnable(pWDMABase, OFF);
-				BITCSET(pWDMABase->uIRQSTS.nREG, VIOC_WDMA_IREQ_ALL_MASK, VIOC_WDMA_IREQ_ALL_MASK);	
+				BITCSET(pWDMABase->uIRQSTS.nREG, VIOC_WDMA_IREQ_ALL_MASK, VIOC_WDMA_IREQ_ALL_MASK);
 				VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_EOFR_MASK, 0x0);
 			}
 		}
@@ -2727,28 +2724,24 @@ int tccxxx_cif_capture(int quality)
 	#endif
 	{
 		#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9T113)
-			unsigned char data_r[2];
-			unsigned short data_read;
-			unsigned char polling_reg[2] = {0x09, 0x8E};
-			unsigned char polling_cmd[2] = {0x30, 0x00};
-			unsigned short read_reg = 0x0990;
+		unsigned char data_r[2];
+		unsigned short data_read;
+		unsigned char polling_reg[2] = {0x09, 0x8E};
+		unsigned char polling_cmd[2] = {0x30, 0x00};
+		unsigned short read_reg = 0x0990;
 
-			do {
-				DDI_I2C_Write(polling_reg, 2, 0);	
-				DDI_I2C_Write(polling_cmd, 2, 0);		
-				DDI_I2C_Read(read_reg, 2, data_r, 2);
+		do {
+			DDI_I2C_Write(polling_reg, 2, 0);
+			DDI_I2C_Write(polling_cmd, 2, 0);
+			DDI_I2C_Read(read_reg, 2, data_r, 2);
 
-				data_read = data_r[0];
-				data_read = (data_read<<8)&0xff00 | data_r[1];
+			data_read = data_r[0];
+			data_read = (data_read<<8)&0xff00 | data_r[1];
+			printk("MT9T113 Autofocus 0[0x%x] 1[0x%x] data_read = 0x%x \n",data_r[0], data_r[1], data_read);
 
-				printk("MT9T113 Autofocus 0[0x%x] 1[0x%x] data_read = 0x%x \n",data_r[0], data_r[1], data_read);
-
-				if(data_read == 0x0001)
-					break;
-				else
-					msleep(10);
-								
-			} while(data_read != 0x0001);
+			if(data_read == 0x0001) 	break;
+			else 						msleep(10);
+		} while(data_read != 0x0001);
 		#endif
 		
 		sensor_if_change_mode(OPER_CAPTURE);
@@ -2762,76 +2755,68 @@ int tccxxx_cif_capture(int quality)
 
 	// for Rotate Capture
 	data->cif_cfg.jpg_info.start_phy_addr = data->cif_cfg.base_buf;
-	
+
 	cif_interrupt_enable(data->cif_cfg.oper_mode);
-	
+
 	if(data->cif_cfg.si_overlay.buff_offset != 0)
 		tccxxx_cif_set_overlay();
 
 	data->cif_cfg.cap_status = CAPTURE_NONE;
 
-#ifdef TCCISP_GEN_CFG_UPD	
-	chkpnt==0;
-#endif
+	#ifdef TCCISP_GEN_CFG_UPD
+	chkpnt = 0;
+	#endif
 
 	// Turn on Camera Flash
 	sensor_turn_on_camera_flash();
-	
+
 	ISP_Capture_Shooting(mode);
 	ISP_SetPreview_Control(OFF);
-#else
+#else // CONFIG_USE_ISP
 	#if	defined(CONFIG_ARCH_TCC892X)
-		sc_plug_in0 = VIOC_SC_VIN_00;//VIOC_SC_WDMA_05;
-		data->cif_cfg.oper_mode = OPER_CAPTURE;
+	sc_plug_in0 = VIOC_SC_VIN_00; // VIOC_SC_WDMA_05;
+	data->cif_cfg.oper_mode = OPER_CAPTURE;
 
-		memset(&(data->cif_cfg.jpg_info), 0x00, sizeof(TCCXXX_JPEG_ENC_DATA));
+	memset(&(data->cif_cfg.jpg_info), 0x00, sizeof(TCCXXX_JPEG_ENC_DATA));
 
-		target_width  = data->cif_cfg.main_set.target_x;
-		target_height = data->cif_cfg.main_set.target_y;
+	target_width  = data->cif_cfg.main_set.target_x;
+	target_height = data->cif_cfg.main_set.target_y;
+	#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
+	if(target_width >= tcc_sensor_info.cam_capchg_width && !(data->cif_cfg.retry_cnt)) {
+		sensor_if_change_mode(OPER_CAPTURE);
+		//msleep(300);
+	}
+	#else // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
+	if(target_width >= CAM_CAPCHG_WIDTH && !(data->cif_cfg.retry_cnt)) {
+		sensor_if_change_mode(OPER_CAPTURE);
+		//msleep(300);
+	}
+	#endif // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
+
+	// for Rotate Capture
+	data->cif_cfg.jpg_info.start_phy_addr = data->cif_cfg.base_buf;
+	//capture config
+	if(data->cif_cfg.retry_cnt) 	{
+		skip_frame = 0;
+	} else {
 		#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
-			if(target_width >= tcc_sensor_info.cam_capchg_width && !(data->cif_cfg.retry_cnt)){
-				sensor_if_change_mode(OPER_CAPTURE);
-				msleep(300); 
-			}
+		skip_frame = tcc_sensor_info.capture_skip_frame;
 		#else // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
-			if(target_width >= CAM_CAPCHG_WIDTH && !(data->cif_cfg.retry_cnt)){
-				sensor_if_change_mode(OPER_CAPTURE);
-				msleep(300); 
-			}
-		#endif
-
-		// for Rotate Capture
-		data->cif_cfg.jpg_info.start_phy_addr = data->cif_cfg.base_buf;
-			//capture config
-			if(data->cif_cfg.retry_cnt)
-			{		
-				skip_frame = 0;
-			}
-			else
-			{
-		#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
-				skip_frame = tcc_sensor_info.capture_skip_frame;
-		#else // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
-				skip_frame = FRAMESKIP_COUNT_FOR_CAPTURE;
+		skip_frame = FRAMESKIP_COUNT_FOR_CAPTURE;
 		#endif // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
-			}
+	}
 
-		cif_set_frameskip(skip_frame, 0);
+	cif_set_frameskip(skip_frame, 0);
+	data->cif_cfg.cap_status = CAPTURE_NONE;
 
-		data->cif_cfg.cap_status = CAPTURE_NONE;
-
-		tccxxx_vioc_vin_main(pVINBase);
-
-		tccxxx_vioc_scaler_set(pSCBase, pVINBase, pWMIXBase, sc_plug_in0);
-
-		tccxxx_vioc_vin_wdma_set(pWDMABase);
+	tccxxx_vioc_vin_main(pVINBase);
+	tccxxx_vioc_scaler_set(pSCBase, pVINBase, pWMIXBase, sc_plug_in0);
+	tccxxx_vioc_vin_wdma_set(pWDMABase);
+	#else // CONFIG_ARCH_TCC892X
+	cif_interrupt_disable();
+	CIF_OpStop(1, 1);
 	
-	#else
-
-			cif_interrupt_disable();
-			CIF_OpStop(1, 1);
-			
-			data->cif_cfg.oper_mode = OPER_CAPTURE;
+	data->cif_cfg.oper_mode = OPER_CAPTURE;
 
 	cif_global_reset();
 	tccxxx_cif_set_effect(current_effect_mode);
@@ -2863,64 +2848,60 @@ int tccxxx_cif_capture(int quality)
 	data->cif_cfg.jpg_info.bitstream_size	= 0;
 	data->cif_cfg.jpg_info.thumb_size		= 0;
 	data->cif_cfg.jpg_info.header_size		= 0;
-#else
+	#else
 	target_width  = data->cif_cfg.main_set.target_x;
 	target_height = data->cif_cfg.main_set.target_y;
-#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
+	#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
 	if(target_width >= tcc_sensor_info.cam_capchg_width && !(data->cif_cfg.retry_cnt)){
 		sensor_if_change_mode(OPER_CAPTURE);
 		msleep(300); 
 	}
-#else // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
+	#else // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
 	if(target_width >= CAM_CAPCHG_WIDTH && !(data->cif_cfg.retry_cnt)){
 		sensor_if_change_mode(OPER_CAPTURE);
 		msleep(300); 
 	}
-#endif // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT	
+	#endif // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT	
 #endif
 	cif_scaler_calc();
 
-#ifdef JPEG_ENCODE_WITH_CAPTURE
+	#ifdef JPEG_ENCODE_WITH_CAPTURE
 	gIsRolling = tccxxx_jpeg_encode_method();
-#endif
+	#endif
 	cif_capture_dma_set(data);
 
 	// for Rotate Capture
 	data->cif_cfg.jpg_info.start_phy_addr = data->cif_cfg.base_buf;
 	//capture config
-	if(data->cif_cfg.retry_cnt)
-	{
-#if defined(CONFIG_VIDEO_CAMERA_SENSOR_ISX006)
+	if(data->cif_cfg.retry_cnt) {
+		#if defined(CONFIG_VIDEO_CAMERA_SENSOR_ISX006)
 		sensor_if_change_mode(OPER_PREVIEW);
 		msleep(100);
-#endif	
+		#endif
 		skip_frame = 0;
-	}
-	else
-	{
-#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
+	} else {
+		#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
 		skip_frame = tcc_sensor_info.capture_skip_frame;
-#else // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
+		#else // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
 		skip_frame = FRAMESKIP_COUNT_FOR_CAPTURE;
-#endif // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
+		#endif // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
 	}
 	
-#ifdef JPEG_ENCODE_WITH_CAPTURE
-	if(gIsRolling)
-	{
+	#ifdef JPEG_ENCODE_WITH_CAPTURE
+	if(gIsRolling) {
 		TDD_CIF_SetInterrupt(SET_CIF_UPDATE_WITHOUT_VSYNC);
 		TDD_CIF_SetCaptureCtrl(SET_CIF_SKIP_NUM|SET_CIF_VCNT_NUM, skip_frame, FRAME_LINE_CNT/16,
 								SET_CIF_EIT_ENC_INT|SET_CIF_RLV_ENABLE|SET_CIF_RLU_ENABLE|SET_CIF_RLY_ENABLE|
 								SET_CIF_CAP_ENABLE|SET_CIF_VEN_ENABLE);
 	}
 	else
-#endif
+	#endif
 	{
-#if defined(CONFIG_VIDEO_CAMERA_SENSOR_AIT848_ISP) || defined(CONFIG_VIDEO_CAMERA_SENSOR_ISX006)
+		#if defined(CONFIG_VIDEO_CAMERA_SENSOR_AIT848_ISP) || defined(CONFIG_VIDEO_CAMERA_SENSOR_ISX006)
 		ens_addr = (unsigned int)data->cif_cfg.capture_buf.p_Y + (target_width * (target_height - 100));
-#else
+		#else
 		ens_addr = (unsigned int)data->cif_cfg.capture_buf.p_Y + (target_width * (target_height - 2));
-#endif
+		#endif
 
 		TDD_CIF_SetCaptureCtrl(SET_CIF_SKIP_NUM, skip_frame, 0,SET_CIF_EIT_ENC_INT|SET_CIF_CAP_ENABLE|SET_CIF_UES_ENABLE);		
 		TDD_CIF_SetBaseAddr(IN_ENC_START_ADDR, ens_addr, 0, 0);
@@ -2928,28 +2909,26 @@ int tccxxx_cif_capture(int quality)
 
 	cif_interrupt_enable(data->cif_cfg.oper_mode);
 
-#ifdef JPEG_ENCODE_WITH_CAPTURE
+	#ifdef JPEG_ENCODE_WITH_CAPTURE
 	tccxxx_jpeg_encode_init(quality);
-#endif
+	#endif
 
-	if(data->cif_cfg.si_overlay.buff_offset != 0)
-		tccxxx_cif_set_overlay();
+	if(data->cif_cfg.si_overlay.buff_offset != 0) 	tccxxx_cif_set_overlay();
 
 	data->cif_cfg.cap_status = CAPTURE_NONE;
-#if defined(CONFIG_VIDEO_CAMERA_SENSOR_AIT848_ISP) || defined(CONFIG_VIDEO_CAMERA_SENSOR_ISX006)
+	#if defined(CONFIG_VIDEO_CAMERA_SENSOR_AIT848_ISP) || defined(CONFIG_VIDEO_CAMERA_SENSOR_ISX006)
 	sensor_if_change_mode(OPER_CAPTURE);
-#endif
+	#endif
 
-			// Turn on Camera Flash
-			sensor_turn_on_camera_flash();
+	// Turn on Camera Flash
+	sensor_turn_on_camera_flash();
 
-			TDD_CIF_ONOFF(ON);
-			msleep(100); 
-		#endif //CONFIG_USE_ISP
-#endif
+	TDD_CIF_ONOFF(ON);
+	msleep(100);
+	#endif // CONFIG_ARCH_TCC892X
+#endif // CONFIG_USE_ISP
 
 	dprintk("%s End!! \n", __FUNCTION__);
-
 	return 0;
 }
 		
