@@ -3756,32 +3756,32 @@ void sensor_info_init_mt9p111(TCC_SENSOR_INFO_TYPE *sensor_info)
 	sensor_info->val_term 				= 0x0000;
 	#if defined(CONFIG_ARCH_TCC92XX)
 	sensor_info->m_clock 				= 240000;
-	sensor_info->m_clock_source 			= PCDIRECTPLL2;
-	sensor_info->s_clock 					= 1440000;
-	sensor_info->s_clock_source 			= PCDIRECTPLL2;
+	sensor_info->m_clock_source 		= PCDIRECTPLL2;
+	sensor_info->s_clock 				= 1440000;
+	sensor_info->s_clock_source 		= PCDIRECTPLL2;
 	#elif defined(CONFIG_ARCH_TCC93XX)
 	#if defined(CONFIG_USE_ISP)
 	sensor_info->m_clock 				= 240000;
-	sensor_info->m_clock_source 			= PCDIRECTPLL1;
-	sensor_info->s_clock 					= 1680000;
-	sensor_info->s_clock_source 			= PCDIRECTPLL1;
+	sensor_info->m_clock_source 		= PCDIRECTPLL1;
+	sensor_info->s_clock 				= 1680000;
+	sensor_info->s_clock_source 		= PCDIRECTPLL1;
 	#else // CONFIG_USE_ISP
 	sensor_info->m_clock 				= 240000;
-	sensor_info->m_clock_source 			= PCDIRECTPLL1;
-	sensor_info->s_clock 					= 1680000;
-	sensor_info->s_clock_source 			= PCDIRECTPLL1;
+	sensor_info->m_clock_source 		= PCDIRECTPLL1;
+	sensor_info->s_clock 				= 1680000;
+	sensor_info->s_clock_source 		= PCDIRECTPLL1;
 	#endif// CONFIG_USE_ISP
 	#elif defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 	#if defined(CONFIG_USE_ISP)
 	sensor_info->m_clock 				= 240000;
-	sensor_info->m_clock_source 			= PCDIRECTPLL2;
-	sensor_info->s_clock 					= 1440000;
-	sensor_info->s_clock_source 			= PCDIRECTPLL2;
+	sensor_info->m_clock_source 		= PCDIRECTPLL2;
+	sensor_info->s_clock 				= 1440000;
+	sensor_info->s_clock_source 		= PCDIRECTPLL2;
 	#else  // CONFIG_USE_ISP
 	sensor_info->m_clock 				= 240000;
-	sensor_info->m_clock_source 			= PCDIRECTPLL2;
-	sensor_info->s_clock 					= 1440000;
-	sensor_info->s_clock_source 			= PCDIRECTPLL2;
+	sensor_info->m_clock_source 		= PCDIRECTPLL2;
+	sensor_info->s_clock 				= 1440000;
+	sensor_info->s_clock_source 		= PCDIRECTPLL2;
 	#endif  // CONFIG_USE_ISP
 	#endif
 	sensor_info->preview_w 				= 1280;
@@ -3794,12 +3794,12 @@ void sensor_info_init_mt9p111(TCC_SENSOR_INFO_TYPE *sensor_info)
 	sensor_info->capture_zoom_offset_y 	= 60;
 	sensor_info->max_zoom_step 			= 5;
 	sensor_info->cam_capchg_width 		= 1280;
-	sensor_info->framerate				= 20;
-	sensor_info->p_clock_pol 				= POSITIVE_EDGE;//NEGATIVE_EDGE;//
-	sensor_info->v_sync_pol 				= ACT_HIGH;
-	sensor_info->h_sync_pol                 = ACT_HIGH;
-	sensor_info->format 					= M420_ZERO;
-	sensor_info->capture_skip_frame 		= 1;
+	sensor_info->framerate 				= 20;
+	sensor_info->p_clock_pol 			= POSITIVE_EDGE; // NEGATIVE_EDGE;
+	sensor_info->v_sync_pol 			= ACT_HIGH;
+	sensor_info->h_sync_pol 			= ACT_HIGH;
+	sensor_info->format 				= M420_ZERO;
+	sensor_info->capture_skip_frame 	= 3;
 	sensor_info->sensor_sizes 			= sensor_sizes_mt9p111;
 }
 
