@@ -125,10 +125,10 @@ void *jpeg_remapped_base_address;
 #define JPEG_PHY_ADDRESS	PA_VIDEO_BASE + CAPTURE_MEM
 #endif
 
-static pmap_t pmap_cam;
+static pmap_t pmap_ump_reserved;
 
-#define PA_PREVIEW_BASE_ADDR	pmap_cam.base
-#define PREVIEW_MEM_SIZE	pmap_cam.size
+#define PA_PREVIEW_BASE_ADDR	pmap_ump_reserved.base
+#define PREVIEW_MEM_SIZE	pmap_ump_reserved.size
 #define PA_TEMP		(PA_PREVIEW_BASE_ADDR + PREVIEW_MEM_SIZE/2)
 
 u8 current_effect_mode = 0;
@@ -184,12 +184,8 @@ static uint				field_cnt;
 
 void cif_set_frameskip(unsigned char skip_count, unsigned char locked)
 {
-#ifdef CONFIG_CPU_FREQ_DEFAULT_GOV_PERFORMANCE
-	skip_frm = frame_lock = 0;
-#else
 	skip_frm = skip_count;
 	frame_lock = locked;
-#endif
 }
 EXPORT_SYMBOL(cif_set_frameskip);
 
@@ -814,6 +810,21 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 		{
 			if(skip_frm == 0 && !frame_lock)
 			{
+				VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_ALL_MASK, 0x1);
+					
+				// Disable WDMA
+				BITCSET(pWDMABase->uCTRL.nREG, 1<<28, 0<<28);
+
+				BITCSET(pWDMABase->uCTRL.nREG, 1<<16, 1<<16);
+
+				// Before camera quit, we have to wait WMDA's SEN signal to LOW.
+				while(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_STSEN_MASK){
+					for(nCnt=0; nCnt<10000; nCnt++);
+				}	
+
+					// Disable VIN
+				VIOC_VIN_SetEnable(pVINBase, OFF);
+
 				data->cif_cfg.now_frame_num = 0;
 				curr_buf = data->buf + data->cif_cfg.now_frame_num;		
 				
@@ -827,7 +838,7 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 
 				wake_up_interruptible(&data->frame_wait); //POLL
 
-				BITCSET(pWDMABase->uIRQSTS.nREG, VIOC_WDMA_IREQ_ALL_MASK, VIOC_WDMA_IREQ_ALL_MASK);	
+				BITCSET(pWDMABase->uIRQSTS.nREG, VIOC_WDMA_IREQ_ALL_MASK, VIOC_WDMA_IREQ_ALL_MASK);					
 
 				return IRQ_HANDLED;
 			}
@@ -1704,11 +1715,15 @@ int tccxxx_vioc_vin_wdma_set(VIOC_WDMA *pDMA_CH)
 	VIOC_WDMA_SetImageSize(pDMA_CH, dw, dh);
 	VIOC_WDMA_SetImageOffset(pDMA_CH, fmt, dw);
 						
-	VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_EOFR_MASK, 0x0);
-	if(data->cif_cfg.oper_mode == OPER_CAPTURE)
+	if(data->cif_cfg.oper_mode == OPER_CAPTURE){
+		printk("While capture, Frame by Frame mode !!\n");
 		VIOC_WDMA_SetImageEnable(pDMA_CH, OFF);	// operating start in 1 frame
-	else
+	}
+	else{
 		VIOC_WDMA_SetImageEnable(pDMA_CH, ON);	// operating start in 1 frame
+	}
+
+	VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_EOFR_MASK, 0x0);
 
 	return 0;
 }
@@ -2555,6 +2570,8 @@ int tccxxx_cif_stop_stream(void)
 	int nCnt;
 	struct TCCxxxCIF *data = (struct TCCxxxCIF *) &hardware_data;
 
+	dprintk("%s Start!! \n", __FUNCTION__);
+
 #if defined(CONFIG_USE_ISP)
 	ISP_SetPreview_Control(OFF);
 	cif_timer_deregister();
@@ -2581,6 +2598,8 @@ int tccxxx_cif_stop_stream(void)
 
 	data->stream_state = STREAM_OFF;	
 	dprintk("\n\n SKIPPED FRAME = %d \n\n", skipped_frm);
+
+	dprintk("%s End!! \n", __FUNCTION__);
 
 	return 0;
 }
@@ -2688,6 +2707,9 @@ int tccxxx_cif_capture(int quality)
 	#if	defined(CONFIG_ARCH_TCC892X)
 		uint    sc_plug_in0;
 	#endif
+
+	dprintk("%s Start!! \n", __FUNCTION__);
+	
 #if defined(CONFIG_USE_ISP)
 	int mode=0;
 
@@ -2926,6 +2948,8 @@ int tccxxx_cif_capture(int quality)
 		#endif //CONFIG_USE_ISP
 #endif
 
+	dprintk("%s End!! \n", __FUNCTION__);
+
 	return 0;
 }
 		
@@ -3105,7 +3129,7 @@ int  tccxxx_cif_init(void)
 {
 	struct cif_dma_buffer *buf = &hardware_data.cif_buf;    
 
-	pmap_get_info("camera", &pmap_cam);
+	pmap_get_info("ump_reserved", &pmap_ump_reserved);
 
 	memset(&hardware_data,0x00,sizeof(struct TCCxxxCIF));
 	hardware_data.buf = hardware_data.static_buf;

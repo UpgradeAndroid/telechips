@@ -633,7 +633,7 @@ static void tcc_add_pmem_devices(void)
 	pmap_t pmem_cam;
 
 	pmap_get_info("pmem", &pmem);
-	pmap_get_info("camera", &pmem_cam);
+	pmap_get_info("ump_reserved", &pmem_cam);
 
 	pmem_pdata.start = pmem.base;
 	pmem_pdata.size = pmem.size;
