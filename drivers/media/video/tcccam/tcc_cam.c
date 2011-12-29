@@ -125,10 +125,10 @@ void *jpeg_remapped_base_address;
 #define JPEG_PHY_ADDRESS	PA_VIDEO_BASE + CAPTURE_MEM
 #endif
 
-static pmap_t pmap_cam;
+static pmap_t pmap_ump_reserved;
 
-#define PA_PREVIEW_BASE_ADDR	pmap_cam.base
-#define PREVIEW_MEM_SIZE	pmap_cam.size
+#define PA_PREVIEW_BASE_ADDR	pmap_ump_reserved.base
+#define PREVIEW_MEM_SIZE	pmap_ump_reserved.size
 #define PA_TEMP		(PA_PREVIEW_BASE_ADDR + PREVIEW_MEM_SIZE/2)
 
 u8 current_effect_mode = 0;
@@ -3116,7 +3116,7 @@ int  tccxxx_cif_init(void)
 {
 	struct cif_dma_buffer *buf = &hardware_data.cif_buf;    
 
-	pmap_get_info("camera", &pmap_cam);
+	pmap_get_info("ump_reserved", &pmap_ump_reserved);
 
 	memset(&hardware_data,0x00,sizeof(struct TCCxxxCIF));
 	hardware_data.buf = hardware_data.static_buf;

@@ -42,11 +42,11 @@ ump_memory_backend* ump_memory_backend_create ( int ump_backend  )
 	/* Create the dynamic memory allocator backend */
 	if (0 == ump_backend)
 	{
-		pmap_t pmap_cam;
-		pmap_get_info("camera", &pmap_cam);
+		pmap_t pmap_ump_reserved;
+		pmap_get_info("ump_reserved", &pmap_ump_reserved);
 
-		ump_memory_address = pmap_cam.base;
-		ump_memory_size = pmap_cam.size;
+		ump_memory_address = pmap_ump_reserved.base;
+		ump_memory_size = pmap_ump_reserved.size;
 		DBG_MSG(2, ("Using dedicated memory backend\n"));
 
 		DBG_MSG(2, ("Requesting dedicated memory: 0x%08x, size: %u\n", ump_memory_address, ump_memory_size));
