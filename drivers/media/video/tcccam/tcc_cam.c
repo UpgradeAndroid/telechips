@@ -810,7 +810,20 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 		{
 			if(skip_frm == 0 && !frame_lock)
 			{
-				VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_ALL_MASK, 0x1);		
+				VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_ALL_MASK, 0x1);
+					
+				// Disable WDMA
+				BITCSET(pWDMABase->uCTRL.nREG, 1<<28, 0<<28);
+
+				BITCSET(pWDMABase->uCTRL.nREG, 1<<16, 1<<16);
+
+				// Before camera quit, we have to wait WMDA's SEN signal to LOW.
+				while(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_STSEN_MASK){
+					for(nCnt=0; nCnt<10000; nCnt++);
+				}	
+
+					// Disable VIN
+				VIOC_VIN_SetEnable(pVINBase, OFF);
 
 				data->cif_cfg.now_frame_num = 0;
 				curr_buf = data->buf + data->cif_cfg.now_frame_num;		
