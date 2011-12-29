@@ -69,7 +69,8 @@ int m805_892x_mmc_init(struct device *dev, int id)
 {
 	BUG_ON(id >= TCC_MMC_TYPE_MAX);
 
-	gpio_request(mmc_ports[id].pwr, "sd_power");
+	if(mmc_ports[id].pwr != TCC_MMC_PORT_NULL)
+		gpio_request(mmc_ports[id].pwr, "sd_power");
 
 	tcc_gpio_config(mmc_ports[id].data0, mmc_ports[id].func | GPIO_CD(1));
 	tcc_gpio_config(mmc_ports[id].data1, mmc_ports[id].func | GPIO_CD(1));
@@ -125,7 +126,9 @@ int m805_892x_mmc_set_power(struct device *dev, int id, int on)
 {
 	if (on) {
 		/* power */
-		gpio_direction_output(mmc_ports[id].pwr, 1);
+		if(mmc_ports[id].pwr != TCC_MMC_PORT_NULL)
+			gpio_direction_output(mmc_ports[id].pwr, 1);
+
 		mdelay(1);
 	} else {
 

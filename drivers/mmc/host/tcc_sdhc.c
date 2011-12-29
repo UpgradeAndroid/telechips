@@ -1425,7 +1425,7 @@ static int __init tcc_mmc_probe(struct platform_device *pdev)
 	} else {
 		mmc->max_segs = 128;
 	}
-	//mmc->max_phys_segs = 128;
+	mmc->max_phys_segs = 128;
 
 	/*
 	 * Maximum number of sectors in one transfer. Limited by DMA boundary
