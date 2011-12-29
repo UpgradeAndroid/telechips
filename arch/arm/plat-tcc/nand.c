@@ -28,8 +28,8 @@
 
 struct tcc_ptbl_entry {
 	char name[TCC_PART_NAME_LEN];
-	__u32 offset;
-	__u32 size;
+	__u64 offset;
+	__u64 size;
 	__u32 flags;
 };
 
@@ -55,8 +55,8 @@ static int __init parse_tag_tcc_partition(const struct tag *tag)
 		name[15] = 0;
 
 		ptn->name = name;
-		ptn->offset = entry->offset;
-		ptn->size = entry->size;
+		ptn->offset = (unsigned long long)entry->offset;
+		ptn->size = (unsigned long long)entry->size;
 
 		name += 16;
 		entry++;
