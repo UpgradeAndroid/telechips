@@ -113,7 +113,7 @@ void RDA_bt_Power_On(void)
 	volatile PGPIO pGPIO = (volatile PGPIO)tcc_p2v(HwGPIO_BASE);
 
 
-	if(machine_is_tcc9300() || machine_is_tcc8800()) { 	 // #elif defined (CONFIG_MACH_TCC9300)
+	if(machine_is_tcc9300() || machine_is_tcc8800() || machine_is_tcc8920()) { 	 // #elif defined (CONFIG_MACH_TCC9300)
 		//gpio_set_value(TCC_GPEXT1(7), 1);	 /* BT-ON Enable */
 		gpio_set_value(TCC_GPEXT3(2), 1);   /* BT_WAKE Enable , pwr_ctrl*/
 		gpio_set_value(TCC_GPEXT2(4), 0);   /* reset */
@@ -129,7 +129,7 @@ void RDA_bt_Power_Off(void)
 {
 	volatile PGPIO pGPIO = (volatile PGPIO)tcc_p2v(HwGPIO_BASE);
 
-	if (machine_is_tcc9300() || machine_is_tcc8800()) {	   // #elif defined (CONFIG_MACH_TCC9300)
+	if (machine_is_tcc9300() || machine_is_tcc8800()|| machine_is_tcc8920()) {	   // #elif defined (CONFIG_MACH_TCC9300)
 		//gpio_set_value(TCC_GPEXT1(7), 0);   /* BT-ON Disable */
 		gpio_set_value(TCC_GPEXT3(2), 0);	/* BT_WAKE Disable */
 		gpio_set_value(TCC_GPEXT2(4), 0);	/* reset */
