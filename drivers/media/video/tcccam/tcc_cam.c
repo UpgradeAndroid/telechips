@@ -184,12 +184,8 @@ static uint				field_cnt;
 
 void cif_set_frameskip(unsigned char skip_count, unsigned char locked)
 {
-#ifdef CONFIG_CPU_FREQ_DEFAULT_GOV_PERFORMANCE
-	skip_frm = frame_lock = 0;
-#else
 	skip_frm = skip_count;
 	frame_lock = locked;
-#endif
 }
 EXPORT_SYMBOL(cif_set_frameskip);
 
@@ -814,6 +810,8 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 		{
 			if(skip_frm == 0 && !frame_lock)
 			{
+				VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_ALL_MASK, 0x1);		
+
 				data->cif_cfg.now_frame_num = 0;
 				curr_buf = data->buf + data->cif_cfg.now_frame_num;		
 				
@@ -827,7 +825,7 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 
 				wake_up_interruptible(&data->frame_wait); //POLL
 
-				BITCSET(pWDMABase->uIRQSTS.nREG, VIOC_WDMA_IREQ_ALL_MASK, VIOC_WDMA_IREQ_ALL_MASK);	
+				BITCSET(pWDMABase->uIRQSTS.nREG, VIOC_WDMA_IREQ_ALL_MASK, VIOC_WDMA_IREQ_ALL_MASK);					
 
 				return IRQ_HANDLED;
 			}
@@ -1704,11 +1702,15 @@ int tccxxx_vioc_vin_wdma_set(VIOC_WDMA *pDMA_CH)
 	VIOC_WDMA_SetImageSize(pDMA_CH, dw, dh);
 	VIOC_WDMA_SetImageOffset(pDMA_CH, fmt, dw);
 						
-	VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_EOFR_MASK, 0x0);
-	if(data->cif_cfg.oper_mode == OPER_CAPTURE)
+	if(data->cif_cfg.oper_mode == OPER_CAPTURE){
+		printk("While capture, Frame by Frame mode !!\n");
 		VIOC_WDMA_SetImageEnable(pDMA_CH, OFF);	// operating start in 1 frame
-	else
+	}
+	else{
 		VIOC_WDMA_SetImageEnable(pDMA_CH, ON);	// operating start in 1 frame
+	}
+
+	VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_EOFR_MASK, 0x0);
 
 	return 0;
 }
@@ -2555,6 +2557,8 @@ int tccxxx_cif_stop_stream(void)
 	int nCnt;
 	struct TCCxxxCIF *data = (struct TCCxxxCIF *) &hardware_data;
 
+	dprintk("%s Start!! \n", __FUNCTION__);
+
 #if defined(CONFIG_USE_ISP)
 	ISP_SetPreview_Control(OFF);
 	cif_timer_deregister();
@@ -2581,6 +2585,8 @@ int tccxxx_cif_stop_stream(void)
 
 	data->stream_state = STREAM_OFF;	
 	dprintk("\n\n SKIPPED FRAME = %d \n\n", skipped_frm);
+
+	dprintk("%s End!! \n", __FUNCTION__);
 
 	return 0;
 }
@@ -2688,6 +2694,9 @@ int tccxxx_cif_capture(int quality)
 	#if	defined(CONFIG_ARCH_TCC892X)
 		uint    sc_plug_in0;
 	#endif
+
+	dprintk("%s Start!! \n", __FUNCTION__);
+	
 #if defined(CONFIG_USE_ISP)
 	int mode=0;
 
@@ -2925,6 +2934,8 @@ int tccxxx_cif_capture(int quality)
 			msleep(100); 
 		#endif //CONFIG_USE_ISP
 #endif
+
+	dprintk("%s End!! \n", __FUNCTION__);
 
 	return 0;
 }
