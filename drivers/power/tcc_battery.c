@@ -96,6 +96,9 @@ struct tcc_battery_info {
 
 struct mutex batt_lock;
 struct task_struct	*batt_thread_task;
+
+static int adc_channel;
+static int ac_channel;
 // XXX
 void usb_register_notifier(struct notifier_block *nb);
 
@@ -244,6 +247,17 @@ const tcc_batt_vol m801_88_battery_levels[] = {
 #if 0
     	{ 0, 4095, 50 },
 #else
+
+#if defined(CONFIG_MACH_M805_892X)
+	{ 2552, 2900 , 100}, // 4.1v ~ 4.2v
+	{ 2486, 2551,  90},  // 4.0v ~ 4.1v   
+	{ 2423, 2485,  75}, // 3.9v ~ 4.0v   
+	{ 2361, 2422,  60}, // 3.8v ~ 3.9v    
+	{ 2297, 2360,  45}, // 3.7v ~ 3.8v    
+	{ 2232, 2296,  30},  // 3.6v ~ 3.7v    
+	{ 2181, 2231,  15},  // 3.5v ~ 3.6v  
+	{ 550, 2180,  0},     // 3.4v ~ 3.5v
+#else
 	{ 2710, 2900,  100},    // 4.1v ~ 4.2v
 	{ 2626, 2709,  90},     // 4.0v ~ 4.1v
 	{ 2559, 2625,  75},     // 3.9v ~ 4.0v
@@ -254,6 +268,7 @@ const tcc_batt_vol m801_88_battery_levels[] = {
 	{ 545, 2270,  0},     // 3.4v ~ 3.5v    
 //	{ 2179, 2196,  10},     // 3.3v ~ 3.4v    // low battery level is under 10 percentage.
 //	{ 545, 2178,  0},     // 3.2v ~ 3.3v  power off level is zero percentage.
+#endif
 #endif
 };
 #endif
@@ -314,42 +329,27 @@ static unsigned long tcc_read_adc(void)
 	
 	if (client) { 
 
-		if (machine_is_tcc8900() || machine_is_tcc9201() || machine_is_m57te() || machine_is_m801() ) {
-			adcValue = tcc_adc_start(client, 1, 0);
-		} else if (machine_is_tcc9200s()) {
-			adcValue = tcc_adc_start(client, 2, 0);
-		} else if (machine_is_tcc8800()) {
-			adcValue = tcc_adc_start(client, 5, 0);
-		} else if (machine_is_m801_88() || machine_is_m803()) {
 #if defined(CONFIG_REGULATOR_AXP192)
 			adcValue = axp192_battery_voltage();
 #else
-			adcValue = tcc_adc_start(client, 5, 0);
+			adcValue = tcc_adc_start(client, adc_channel, 0);
 #endif
-		}
+
 
 		// If invalid value is read, Get value again
 		if( adcValue < EMPTLIMIT) {
-			if (machine_is_tcc8900() || machine_is_tcc9201() || machine_is_m57te() || machine_is_m801() ) {
-				adcValue = tcc_adc_start(client, 1, 0);
-			} else if (machine_is_tcc9200s()) {
-				adcValue = tcc_adc_start(client, 2, 0);
-			} else if (machine_is_tcc8800()) {
-				adcValue = tcc_adc_start(client, 5, 0);
-			} else if (machine_is_m801_88() || machine_is_m803()) {
 #if defined(CONFIG_REGULATOR_AXP192)
                         adcValue = axp192_battery_voltage();
 #else
-                        adcValue = tcc_adc_start(client, 5, 0);
+                        adcValue = tcc_adc_start(client, adc_channel, 0);
 #endif
-			}
 		}
 
 		if( adcValue < EMPTLIMIT) {
             if( machine_is_m57te() || machine_is_m801()) {
                 adcValue = m57te_battery_levels[ARRAY_SIZE(m57te_battery_levels)-1].voltage_high;
             } 
-		else if(machine_is_m801_88() || machine_is_m803())
+		else if(machine_is_m801_88() || machine_is_m803() || machine_is_m805_892x())
 		{
 		   adcValue = m801_88_battery_levels[ARRAY_SIZE(m801_88_battery_levels)-1].voltage_high;
 		}
@@ -432,7 +432,7 @@ int tcc_cable_status_update(int status)
 		tcc_batt_info.rep.charging_source = CHARGER_AC;
 	}
 
-	if (machine_is_m801_88() || machine_is_m803()) {
+	if (machine_is_m801_88() || machine_is_m803() || machine_is_m805_892x()) {
 		if ((status == CHARGER_BATTERY) && (g_usb_online == 1)) {
 			g_usb_online = 0;
 		}
@@ -791,7 +791,7 @@ dont_need_update:
 }
 void tcc_ac_charger_detect_process(void) 
 {
-	if(machine_is_m801_88() || machine_is_m803())
+	if(machine_is_m801_88() || machine_is_m803()  || machine_is_m805_892x())
 	{
 		unsigned long adcValue = 0;
 		  int i=0;
@@ -800,7 +800,7 @@ void tcc_ac_charger_detect_process(void)
 #if defined(CONFIG_REGULATOR_AXP192)
 		if(axp192_acin_detect())
 #else
-		if(tcc_adc_start(client, 4, 0) > 1500) 
+		if(tcc_adc_start(client, ac_channel, 0) > 1500) 
 #endif
 	            g_ac_plugin = 1;
         	else
@@ -929,7 +929,7 @@ void tcc_battery_process(void)
         battery_level_count = ARRAY_SIZE(m57te_battery_levels);
         pbattery_levels = m57te_battery_levels;
     }
-    else if(machine_is_m801_88() || machine_is_m803()){
+    else if(machine_is_m801_88() || machine_is_m803() || machine_is_m805_892x()){
         battery_level_count = ARRAY_SIZE(m801_88_battery_levels);
         pbattery_levels = m801_88_battery_levels;
     	}	
@@ -1070,7 +1070,24 @@ void batt_conv(void)
 	/* dummy */
 }
 
+static tcc_battery_adc_channel(void)
+{
+	BATT("%s\n",__func__);
 
+	if(machine_is_tcc8800() || machine_is_m801_88() || machine_is_m803() || machine_is_tcc8920()){
+		adc_channel = 5;
+		ac_channel = 4;
+	}
+	else if(machine_is_tcc8900() || machine_is_m57te() || machine_is_m801()){
+		adc_channel = 1;
+	}
+	else if(machine_is_m805_892x()){
+		adc_channel = 2;
+		ac_channel = 3;
+	}
+
+
+}
 static int tcc_battery_probe(struct platform_device *pdev)
 {
 	int i, err, ret;
@@ -1090,6 +1107,7 @@ static int tcc_battery_probe(struct platform_device *pdev)
 		BITCLR(pGPIO->GPEEN , Hw26); // Port as Input
 	}
 #endif
+	tcc_battery_adc_channel();
 	
 	tcc_batt_info.update_time = jiffies;
 	tcc_battery_initial = 1;
@@ -1150,12 +1168,12 @@ static int tcc_battery_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	if( machine_is_m801_88() || machine_is_m803()){
+	if( machine_is_m801_88() || machine_is_m803() || machine_is_m805_892x()){
 		printk("dc input value = %d\n", tcc_adc_start(client, 4, 0));
 #if defined(CONFIG_REGULATOR_AXP192)
 		if(axp192_acin_detect())
 #else		
-		if(tcc_adc_start(client, 4, 0) > 1500)	
+		if(tcc_adc_start(client, ac_channel, 0) > 1500)	
 #endif
 		        tcc_batt_info.rep.charging_source = CHARGER_AC;
 		}
@@ -1205,22 +1223,8 @@ static struct platform_driver tcc_battery_driver = {
 	.resume			= tcc_battery_resume,
 };
 
-static int __init tcc_battery_init(void)
+static tcc_battery_port_init(void)
 {
-	struct clk *clk;
-
-	printk("%s\n", __func__);
-
-	wake_lock_init(&vbus_wake_lock, WAKE_LOCK_SUSPEND, "vbus_present");
-
-	mutex_init(&tcc_batt_info.lock);
-	clk  = clk_get(NULL, "adc");
-	if (!clk) {
-		printk(KERN_ERR "can't get ADC clock\n");
-		return -ENODEV;
-	}
-	tcc_batt_info.clk = clk;
-
 	if(machine_is_m801_88()) {
 		gpio_request(TCC_GPF(15), "LED0");
 		gpio_request(TCC_GPF(16), "LED1");
@@ -1233,13 +1237,6 @@ static int __init tcc_battery_init(void)
 	}
 
 	if( machine_is_m57te() ) {
-		//GPIOE[2] CHRG_CTL O
-		//GPIOE[3] CHRG_EN O
-		//GPIOE[5] CHRG_STBY# I
-		//GPIOE[26] DC_INPUT I
-		//GPIOE[25] BAT_DET I	    
-		//GPIOD[9] CHRG# I
-
 		gpio_request(TCC_GPE(2), "CHRG_CTL");
 		gpio_request(TCC_GPE(3), "CHRG_EN");	
 		gpio_request(TCC_GPE(5), "CHRG_STBY");
@@ -1273,8 +1270,39 @@ static int __init tcc_battery_init(void)
 		gpio_set_value(TCC_GPD(11), 0);
 	}
 
-	// for usb cable detection
-	// B090183... need to modification
+	if(machine_is_tcc8920()){
+	//TODO:adc_gpio set config , led config, ricoh pmic config
+	}
+
+
+	if(machine_is_m805_892x()){
+	//TODO:adc_gpio set config , led config, ricoh pmic config
+		gpio_request(TCC_GPADC(0), GPIO_FN(1));
+		gpio_request(TCC_GPADC(1), GPIO_FN(1));
+		gpio_request(TCC_GPADC(2), GPIO_FN(1));
+		gpio_request(TCC_GPADC(3), GPIO_FN(1));		
+	}	
+
+}
+
+static int __init tcc_battery_init(void)
+{
+	struct clk *clk;
+
+	printk("%s\n", __func__);
+
+	wake_lock_init(&vbus_wake_lock, WAKE_LOCK_SUSPEND, "vbus_present");
+
+	mutex_init(&tcc_batt_info.lock);
+	clk  = clk_get(NULL, "adc");
+	if (!clk) {
+		printk(KERN_ERR "can't get ADC clock\n");
+		return -ENODEV;
+	}
+	tcc_batt_info.clk = clk;
+
+	tcc_battery_port_init();
+
 
 	return platform_driver_register(&tcc_battery_driver);
 }

@@ -1638,6 +1638,27 @@ static void tcc_pm_power_off(void)
 
 	tca_alarm_disable(tcc_p2v(HwRTC_BASE));
 #endif
+
+#if defined(CONFIG_REGULATOR_AXP192)
+        extern void axp192_power_off(void);
+        axp192_power_off();
+#endif
+
+        if(machine_is_m801_88() || machine_is_m803()){
+                gpio_set_value(TCC_GPA(4), 0);  // LCD_BLCTL
+		   gpio_set_value(TCC_GPG(2), 0);   // LCD_PWREN
+                gpio_set_value(TCC_GPF(26), 0); // SHDN
+        }
+	  else if(machine_is_m805_892x())
+	  {
+                gpio_set_value(TCC_GPD(10), 0);  // LCD_BLCTL
+		   gpio_set_value(TCC_GPD(18), 0);   // LCD_PWREN
+                gpio_set_value(TCC_GPE(7), 0); // SHDN	  
+	  }
+
+        while(1);
+
+
 }
 
 /*===========================================================================
