@@ -827,7 +827,7 @@ int TCC_OUTPUT_FB_MouseMove(unsigned int width, unsigned int height, tcc_mouse *
 	VIOC_WMIX * pWMIXBase;
 	VIOC_RDMA * pRDMABase;
 	
-	unsigned int lcd_width, lcd_height, lcd_w_pos,lcd_h_pos, mouse_x, mouse_y, image_width, image_height;
+	unsigned int lcd_width, lcd_height, lcd_w_pos,lcd_h_pos, mouse_x, mouse_y;
 
 	if(pDISP_OUTPUT[type].pVIOC_DispBase == NULL)
 	{
@@ -849,20 +849,7 @@ int TCC_OUTPUT_FB_MouseMove(unsigned int width, unsigned int height, tcc_mouse *
 	mouse_x = (unsigned int)(lcd_width * mouse->x / width);
 	mouse_y = (unsigned int)(lcd_height *mouse->y / height);
 
-	if( mouse_x > lcd_width - mouse_cursor_width )
-	{
-		//pLCDC_OUTPUT[type]->LI3S = (mouse_cursor_height << 16) | lcd_width - mouse_x;
-		image_width = lcd_width - mouse_x;
-		image_height = mouse_cursor_height;
-	}
-	else
-	{
-		//pLCDC_OUTPUT[type]->LI3S = (mouse_cursor_height << 16) | mouse_cursor_width;
-		image_width = mouse_cursor_width;
-		image_height = mouse_cursor_height;
-	}
-		
-	VIOC_RDMA_SetImageOffset(pRDMABase, TCC_LCDC_IMG_FMT_RGB888, image_width);
+	VIOC_RDMA_SetImageOffset(pRDMABase, TCC_LCDC_IMG_FMT_RGB888, mouse_cursor_width);
 	VIOC_RDMA_SetImageFormat(pRDMABase, TCC_LCDC_IMG_FMT_RGB888);
 
 	lcd_w_pos = mouse_x;
@@ -877,7 +864,7 @@ int TCC_OUTPUT_FB_MouseMove(unsigned int width, unsigned int height, tcc_mouse *
 	// scale
 	VIOC_RDMA_SetImageScale(pRDMABase, 0, 0);
 	
-	VIOC_RDMA_SetImageSize(pRDMABase, image_width, image_height);
+	VIOC_RDMA_SetImageSize(pRDMABase, mouse_cursor_width, mouse_cursor_height);
 		
 	// position
 	//if(ISZERO(pLCDC->LCTRL, HwLCTRL_NI)) //--
