@@ -116,10 +116,13 @@ int tcc8920_mmc_init(struct device *dev, int id)
 	tcc_gpio_config(mmc_ports[id].cmd, mmc_ports[id].func | GPIO_CD(1));
 	tcc_gpio_config(mmc_ports[id].clk, mmc_ports[id].func | GPIO_CD(3));
 
-	tcc_gpio_config(mmc_ports[id].cd, GPIO_FN(0)|GPIO_PULL_DISABLE);
-	gpio_request(mmc_ports[id].cd, "sd_cd");
+	if(mmc_ports[id].cd != TCC_MMC_PORT_NULL)
+	{
+		tcc_gpio_config(mmc_ports[id].cd, GPIO_FN(0)|GPIO_PULL_DISABLE);
+		gpio_request(mmc_ports[id].cd, "sd_cd");
 
-	gpio_direction_input(mmc_ports[id].cd);
+		gpio_direction_input(mmc_ports[id].cd);
+	}
 
 	return 0;
 }
@@ -128,10 +131,8 @@ int tcc8920_mmc_card_detect(struct device *dev, int id)
 {
 	BUG_ON(id >= TCC_MMC_TYPE_MAX);
 
-	#if defined(TCC_MMC_TYPE_WIFI)
-	if(id == TCC_MMC_TYPE_WIFI)
+	if(mmc_ports[id].cd == TCC_MMC_PORT_NULL)
 		return 1;
-	#endif
 
 	return gpio_get_value(mmc_ports[id].cd) ? 0 : 1;	
 }
@@ -163,9 +164,11 @@ int tcc8920_mmc_set_power(struct device *dev, int id, int on)
 	if (on) {
 		/* power */
 		if(mmc_ports[id].pwr != TCC_MMC_PORT_NULL)
+		{
 			gpio_direction_output(mmc_ports[id].pwr, 1);
 
-		mdelay(1);
+			mdelay(1);
+		}
 	} else {
 
 		//mdelay(10);

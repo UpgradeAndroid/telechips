@@ -78,6 +78,7 @@ static struct mmc_port_config mmc_ports[] = {
 		.cd = TCC_GPD(14),
 		.func = GPIO_FN(3),
 		.width = TCC_MMC_BUS_WIDTH_4,
+
 		.pwr = GPIO_SD1_ON,
 	},
 };
@@ -103,7 +104,7 @@ static struct mmc_port_config mmc_ports[] = {
 		.data7	= TCC_GPD(11),
 		.cmd	= TCC_GPD(19),
 		.clk	= TCC_GPD(20),
-		.cd = TCC_GPE(26),
+		.cd = TCC_MMC_PORT_NULL,	//TCC_GPE(26),
 		.func = GPIO_FN(2),
 		.width = TCC_MMC_BUS_WIDTH_8,
 
@@ -152,7 +153,7 @@ static struct mmc_port_config mmc_ports[] = {
 		.data7	= TCC_GPF(26),
 		.cmd	= TCC_GPF(18),
 		.clk	= TCC_GPF(17),
-		.cd = TCC_GPD(12),
+		.cd = TCC_MMC_PORT_NULL,	//TCC_GPD(12),
 		.func = GPIO_FN(2),
 		.width = TCC_MMC_BUS_WIDTH_8,
 
@@ -238,10 +239,13 @@ int tcc8920_mmc_init(struct device *dev, int id)
 	tcc_gpio_config(mmc_ports[id].cmd, mmc_ports[id].func | GPIO_CD(1));
 	tcc_gpio_config(mmc_ports[id].clk, mmc_ports[id].func | GPIO_CD(3));
 
-	tcc_gpio_config(mmc_ports[id].cd, GPIO_FN(0)|GPIO_PULL_DISABLE);
-	gpio_request(mmc_ports[id].cd, "sd_cd");
+	if(mmc_ports[id].cd != TCC_MMC_PORT_NULL)
+	{
+		tcc_gpio_config(mmc_ports[id].cd, GPIO_FN(0)|GPIO_PULL_DISABLE);
+		gpio_request(mmc_ports[id].cd, "sd_cd");
 
-	gpio_direction_input(mmc_ports[id].cd);
+		gpio_direction_input(mmc_ports[id].cd);
+	}
 
 	return 0;
 }
@@ -250,10 +254,8 @@ int tcc8920_mmc_card_detect(struct device *dev, int id)
 {
 	BUG_ON(id >= TCC_MMC_TYPE_MAX);
 
-	#if defined(TCC_MMC_TYPE_EMMC)
-	if(id == TCC_MMC_TYPE_EMMC)
+	if(mmc_ports[id].cd == TCC_MMC_PORT_NULL)
 		return 1;
-	#endif
 
 	return gpio_get_value(mmc_ports[id].cd) ? 0 : 1;	
 }
@@ -285,9 +287,11 @@ int tcc8920_mmc_set_power(struct device *dev, int id, int on)
 	if (on) {
 		/* power */
 		if(mmc_ports[id].pwr != TCC_MMC_PORT_NULL)
+		{
 			gpio_direction_output(mmc_ports[id].pwr, 1);
 
-		mdelay(1);
+			mdelay(1);
+		}
 	} else {
 
 		//mdelay(10);
@@ -554,7 +558,7 @@ static void tcc8920_mmc_port_setup(void)
 		mmc_ports[TCC_MMC_TYPE_EMMC].data7 = TCC_GPD(11);
 		mmc_ports[TCC_MMC_TYPE_EMMC].cmd = TCC_GPD(19);
 		mmc_ports[TCC_MMC_TYPE_EMMC].clk = TCC_GPD(20);
-		mmc_ports[TCC_MMC_TYPE_EMMC].cd = TCC_GPB(14);
+		//mmc_ports[TCC_MMC_TYPE_EMMC].cd = TCC_MMC_PORT_NULL,	//TCC_GPB(14);
 		mmc_ports[TCC_MMC_TYPE_EMMC].func = GPIO_FN(2);
 
 		tcc8920_mmc_platform_data[TCC_MMC_TYPE_EMMC].slot = 4;
