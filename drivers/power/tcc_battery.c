@@ -1277,10 +1277,12 @@ static tcc_battery_port_init(void)
 
 	if(machine_is_m805_892x()){
 	//TODO:adc_gpio set config , led config, ricoh pmic config
+#if defined(CONFIG_ARCH_TCC892X)
 		gpio_request(TCC_GPADC(0), GPIO_FN(1));
 		gpio_request(TCC_GPADC(1), GPIO_FN(1));
 		gpio_request(TCC_GPADC(2), GPIO_FN(1));
 		gpio_request(TCC_GPADC(3), GPIO_FN(1));		
+#endif
 	}	
 
 }
