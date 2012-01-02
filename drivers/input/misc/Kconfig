@@ -238,6 +238,10 @@ config SAMSUNG_42BIT
 	bool "SAMSUNG 42"
     help 
 
+config HDS892S
+	bool "HDS892S"
+    help 
+
 endchoice
 
 endif

@@ -120,7 +120,7 @@
 ******************************************************************************/
 static SCANCODE_MAPPING key_mapping[] = 
 {
-	{SCAN_PWR, 			REM_ENDCALL},
+	{SCAN_PWR, 			REM_POWER},
 	{SCAN_MUTE, 		REM_MUTE},
 
 	{SCAN_NUM_1,		REM_1},
@@ -173,7 +173,7 @@ static SCANCODE_MAPPING key_mapping[] =
 	{SCAN_STOP, 		REM_MEDIA_STOP},
 	{SCAN_PLAY,			REM_MEDIA_PLAY_PAUSE},
 	{SCAN_PAUSE,		REM_MEDIA_PLAY_PAUSE},
-	{SCAN_REC,			REM_NOTIFICATION},
+//	{SCAN_REC,			REM_NOTIFICATION},
 
 	{SCAN_RED, 			REM_FUNCTION_F5},
 	{SCAN_GREEN, 		REM_FUNCTION_F6},

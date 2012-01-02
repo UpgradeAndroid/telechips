@@ -57,7 +57,7 @@ extern void clk_disable(struct clk *clk);
 #define KEY_RELEASED	0
 #define KEY_PRESSED		1
 
-#if 0
+#if 1
 #define dbg printk
 #else /* no debug */
 #define dbg(x...) do {} while(0)

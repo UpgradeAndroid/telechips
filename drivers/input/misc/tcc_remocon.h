@@ -187,6 +187,8 @@ extern void tcc_remocon_set_io(void);
 	#include "tcc_remocon_jh_4202_1011_03.h"
 #elif defined(CONFIG_SAMSUNG_42BIT)
 	#include "tcc_remocon_SAMSUNG_42bit.h"
+#elif defined(CONFIG_HDS892S)
+	#include "tcc_remocon_HDS892S.h"
 #else
 	#error you don not select proper remocon module
 #endif
