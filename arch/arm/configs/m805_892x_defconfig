@@ -1641,6 +1641,7 @@ CONFIG_HID_SUPPORT=y
 CONFIG_HID=y
 # CONFIG_HIDRAW is not set
 # CONFIG_HID_PID is not set
+# CONFIG_USB_HIDDEV is not set
 
 #
 # Special HID drivers
@@ -1658,8 +1659,16 @@ CONFIG_USB=y
 #
 # Miscellaneous USB options
 #
+# CONFIG_USB_DEVICEFS is not set
+# CONFIG_USB_DEVICE_CLASS is not set
+# CONFIG_USB_DYNAMIC_MINORS is not set
 CONFIG_USB_SUSPEND=y
 CONFIG_USB_OTG=y
+# CONFIG_USB_OTG_WHITELIST is not set
+# CONFIG_USB_OTG_BLACKLIST_HUB is not set
+# CONFIG_USB_MON is not set
+# CONFIG_USB_WUSB is not set
+# CONFIG_USB_WUSB_CBAF is not set
 
 #
 # Telechips DWC OTG Controller Drivers
@@ -1668,6 +1677,10 @@ CONFIG_TCC_DWC_OTG=y
 CONFIG_TCC_DWC_OTG0=y
 CONFIG_TCC_DWC_OTG_V281A=y
 CONFIG_TCC_DWC_OTG_DUAL_ROLE=y
+# CONFIG_TCC_DWC_OTG_DEVICE_ONLY is not set
+# CONFIG_TCC_DWC_OTG_HOST_ONLY is not set
+# CONFIG_TCC_DWC_OTG_DEBUG is not set
+# CONFIG_TCC_DWC_HS_ELECT_TST is not set
 
 #
 # USB Host Controller Drivers
