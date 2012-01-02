@@ -423,10 +423,11 @@ int tca_spi_register_pids(tca_spi_handle_t *h, unsigned int *pids, unsigned int 
 
             }
             h->set_mpegts_pidmode(h, 1);
-        } else {
-            printk("tsif: PID TABLE is so big !!!\n");
-            ret = -EINVAL;
-        }
+        } 
+    }
+    else {
+        printk("tsif: PID TABLE is so big !!!\n");
+        ret = -EINVAL;
     }
     return ret;
 }
