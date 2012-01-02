@@ -56,6 +56,7 @@
 #endif
 #include <asm/delay.h>
 #include <linux/delay.h>
+#include <plat/pmap.h>
 #include <mach/tca_ckc.h>
 
 #include <mach/audio.h>
@@ -573,6 +574,8 @@ static struct i2c_driver tcc_hdmi_phy_i2c_driver;
 struct i2c_client *tcc_hdmi_phy_i2c_client = NULL;
 struct i2c_client *tcc_hdmi_edid_i2c_client = NULL;
 struct i2c_client *tcc_hdmi_edid_seg_i2c_client = NULL;
+
+static pmap_t pmap_fb;
 
 #if defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 static int tcc_hdmi_phy_i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
@@ -1466,19 +1469,19 @@ void tcc_output_starter_hdmi(unsigned char lcdc_num, unsigned char hdmi_resoluti
 	image_height = 720;
 	image_fmt = TCC_LCDC_IMG_FMT_RGB565;
 	
-	#if 0
-	if(pRDMA->nBASE0)
+	if(pmap_fb.base)
 	{
-		pBaseAddr = (unsigned)ioremap_nocache(pRDMA->nBASE0, image_width*image_height*2);
+		pBaseAddr = (unsigned)ioremap_nocache(pmap_fb.base, pmap_fb.size);
 		if(pBaseAddr)
 		{
-			memset(pBaseAddr, 0x00, image_width*image_height*2);
+			memset(pBaseAddr, 0x00, pmap_fb.size);
  			iounmap(pBaseAddr);
+
+			pRDMA->nBASE0 = pmap_fb.base;
 		}
 
-		printk("%s paddr=0x%08x laddr=0x%08x\n", __func__, pRDMA->nBASE0, pBaseAddr);
+		printk("%s paddr=0x%08x laddr=0x%08x\n", __func__, pmap_fb.base, pBaseAddr);
 	}
-	#endif
 
 	output_width = LCDCTimimgParams[video.resolution].lpc + 1;
 	output_height = LCDCTimimgParams[video.resolution].flc + 1;
@@ -2148,6 +2151,8 @@ int __init tcc_output_starter_init(void)
 
 	tcc_output_starter_class = class_create(THIS_MODULE, DEVICE_NAME);
 	device_create(tcc_output_starter_class, NULL, MKDEV(MAJOR_ID, MINOR_ID), NULL, DEVICE_NAME);
+
+	pmap_get_info("fb_video", &pmap_fb);
 
 	#if defined(CONFIG_MACH_TCC8920ST)
 		//gpio_set_value(TCC_GPG(4), 0);

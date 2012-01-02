@@ -71,29 +71,24 @@ static int tcc_spk_func;
 
 static void tcc_ext_control(struct snd_soc_codec *codec)
 {
-	int spk = 0, mic = 0, line = 0, hp = 0, hs = 0;
+    int spk = 0, mic = 0, line = 0, hp = 0, hs = 0;
     struct snd_soc_dapm_context *dapm = &codec->dapm;
 
 	/* set up jack connection */
 	switch (tcc_jack_func) {
-    	case TCC_HP:
-    		hp = 1;
-    		snd_soc_dapm_disable_pin(dapm,    "Ext Spk");
-    		snd_soc_dapm_disable_pin(dapm, "Mic Jack");
-    		snd_soc_dapm_disable_pin(dapm, "Line Jack");
-    		snd_soc_dapm_enable_pin(dapm, "Headphone Jack");
-    		snd_soc_dapm_disable_pin(dapm, "Headset Jack");
-    		break;
-
-    	case TCC_HEADSET:
-    		hs = 1;
-    		mic = 1;
-    		snd_soc_dapm_disable_pin(dapm,    "Ext Spk");
-    		snd_soc_dapm_enable_pin(dapm, "Mic Jack");
-    		snd_soc_dapm_disable_pin(dapm, "Line Jack");
-    		snd_soc_dapm_disable_pin(dapm, "Headphone Jack");
-    		snd_soc_dapm_enable_pin(dapm, "Headset Jack");		
-    		break;
+	case TCC_HP:
+		hp = 1;
+		snd_soc_dapm_disable_pin(dapm,    "Ext Spk");
+		snd_soc_dapm_enable_pin(dapm, "Headphone Jack");
+		snd_soc_dapm_disable_pin(dapm, "Headset Jack");
+		break;
+	case TCC_HEADSET:
+		hs = 1;
+		mic = 1;
+		snd_soc_dapm_disable_pin(dapm,    "Ext Spk");
+		snd_soc_dapm_disable_pin(dapm, "Headphone Jack");
+		snd_soc_dapm_enable_pin(dapm, "Headset Jack");		
+		break;
 	}
 
 	if (tcc_spk_func == TCC_SPK_ON)
@@ -102,7 +97,7 @@ static void tcc_ext_control(struct snd_soc_codec *codec)
 		snd_soc_dapm_enable_pin(dapm, "Ext Spk");		
 	}
 
-	/* set the enpoints to their new connetion states */
+
 	snd_soc_dapm_enable_pin(dapm, "Headphone Jack");
 	snd_soc_dapm_enable_pin(dapm, "Headphone Jack");
 
@@ -279,29 +274,25 @@ static const struct snd_kcontrol_new wm8524_tcc_controls[] = {
  */
 static int tcc_wm8524_init(struct snd_soc_pcm_runtime *rtd)
 {
-	int ret;
-	struct snd_soc_codec *codec = rtd->codec;
-	struct snd_soc_dapm_context *dapm = &codec->dapm;
+    int ret;
+    struct snd_soc_codec *codec = rtd->codec;
+    struct snd_soc_dapm_context *dapm = &codec->dapm;
 
-    //alsa_dbg("%s() in...\n", __func__);
+    /* Add tcc specific controls */
+    ret = snd_soc_add_controls(codec, wm8524_tcc_controls,
+                            ARRAY_SIZE(wm8524_tcc_controls));
+    if (ret)
+        return ret;
 
-    snd_soc_dapm_enable_pin(dapm, "MICIN");
+    /* Add tcc specific widgets */
+    snd_soc_dapm_new_controls(dapm, wm8524_dapm_widgets,
+                ARRAY_SIZE(wm8524_dapm_widgets));
 
-	/* Add tcc specific controls */
-	ret = snd_soc_add_controls(codec, wm8524_tcc_controls,
-				ARRAY_SIZE(wm8524_tcc_controls));
-	if (ret)
-		return ret;
+    /* Set up Telechips specific audio path audio_map */
+    snd_soc_dapm_add_routes(dapm, audio_map, ARRAY_SIZE(audio_map));
 
-	/* Add tcc specific widgets */
-	snd_soc_dapm_new_controls(dapm, wm8524_dapm_widgets,
-				  ARRAY_SIZE(wm8524_dapm_widgets));
-
-	/* Set up Telechips specific audio path audio_map */
-	snd_soc_dapm_add_routes(dapm, audio_map, ARRAY_SIZE(audio_map));
-
-	snd_soc_dapm_sync(dapm);
-	return 0;
+    snd_soc_dapm_sync(dapm);
+    return 0;
 }
 
 #if !defined(CONFIG_SND_TCC_DAI2SPDIF)
@@ -341,10 +332,10 @@ static struct snd_soc_dai_link tcc_dai[] = {
 
 /* tcc audio machine driver */
 static struct snd_soc_card tcc_soc_card = {
-	.driver_name      = "TCC Audio",
-    .long_name = "Telechips Board",
-	.dai_link  = tcc_dai,
-	.num_links = ARRAY_SIZE(tcc_dai),
+    .driver_name 	= "TCC Audio",
+    .long_name		= "Telechips Board",
+    .dai_link		= tcc_dai,
+    .num_links		= ARRAY_SIZE(tcc_dai),
 };
 
 static struct platform_device *tcc_snd_device;
@@ -354,7 +345,7 @@ static int __init tcc_init_wm8524(void)
 	volatile PGPIO pGpio = (volatile PGPIO)tcc_p2v(HwGPIO_BASE);
 	int ret;
 
-    if( !(machine_is_tcc8800st() || machine_is_tcc8920st()) ) {
+    if( !(machine_is_tcc8800st() || machine_is_tcc9300st() || machine_is_tcc8920st()) ) {
         alsa_dbg("\n\n\n\n%s() do not execution....\n\n", __func__);
         return 0;
     }
@@ -429,5 +420,5 @@ module_exit(tcc_exit_wm8524);
 
 /* Module information */
 MODULE_AUTHOR("linux <linux@telechips.com>");
-MODULE_DESCRIPTION("ALSA SoC TCCxx Board (WM8524)");
+MODULE_DESCRIPTION("ALSA SoC TCCxx Board(WM8524)");
 MODULE_LICENSE("GPL");
