@@ -726,7 +726,7 @@ static void change_clock(void)
 
 	// MRS1
 	BITCSET(denali_ctl(28), 0x0000FFFF, CKC_CHANGE_ARG(MR1));
-	BITCSET(denali_ctl(30), 0xFFFF0000, CKC_CHANGE_ARG(MR1));
+	BITCSET(denali_ctl(30), 0xFFFF0000, CKC_CHANGE_ARG(MR1)<<16);
 
 	// MRS2
 	BITCSET(denali_ctl(28), 0xFFFF0000, CKC_CHANGE_ARG(MR2)<<16);
@@ -738,13 +738,13 @@ static void change_clock(void)
 	BITCLR(denali_phy(0x0C), 0x1<<22); //ctrl_cmosrcv[22] = 0x0
 	BITCLR(denali_phy(0x0C), 0x001F0000); //ctrl_pd[20:16] = 0x0
 	BITCLR(denali_phy(0x20), 0x000000FF); //ctrl_pulld_dq[7:4] = 0x0, ctrl_pulld_dqs[3:0] = 0x0
-	while(((PPMU)tcc_p2v(HwPMU_BASE))->PWRDN_XIN.nREG&(1<<8)){
-		BITCLR(((PPMU)tcc_p2v(HwPMU_BASE))->PWRDN_XIN.nREG, 1<<8); //SSTL_RTO : SSTL I/O retention mode =0
+	while(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG&(1<<8)){
+		BITCLR(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG, 1<<8); //SSTL_RTO : SSTL I/O retention mode =0
 	}
 	*(volatile unsigned long *)addr_mem(0x810004) &= ~(1<<2); //PHY=0
 	*(volatile unsigned long *)addr_mem(0x810004) |= (1<<2); //PHY=1
-	while(!(((PPMU)tcc_p2v(HwPMU_BASE))->PWRDN_XIN.nREG&(1<<8))){
-		BITSET(((PPMU)tcc_p2v(HwPMU_BASE))->PWRDN_XIN.nREG, 1<<8); //SSTL_RTO : SSTL I/O retention mode disable=1
+	while(!(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG&(1<<8))){
+		BITSET(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG, 1<<8); //SSTL_RTO : SSTL I/O retention mode disable=1
 	}
 	BITCLR(denali_ctl(96), 0x3<<8); //DRAM_CLK_DISABLE[9:8] = [CS1, CS0] = 0x0
 	BITSET(denali_ctl(0),0x1); //START[0] = 1
@@ -1004,9 +1004,6 @@ FUNCTION
 void tcc_ddr_set_clock(unsigned int freq)
 {
 	unsigned int   mem_freq;
-
-	if (machine_is_tcc8920() && (system_rev == 0x1005))
-		return;
 
 	mem_freq = get_membus_ckc(freq*10);
 	get_ddr_param(mem_freq);

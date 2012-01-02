@@ -983,14 +983,18 @@ enum
  DDR3 Configuation
 ---------------------------------------------------------------------------*/
 #define DDR3_PINMAP_TYPE                 0
+#if defined(CONFIG_TCC_MEM_1024MB)
+#define DDR3_LOGICAL_CHIP_NUM            2
+#else
 #define DDR3_LOGICAL_CHIP_NUM            1
+#endif
 #define DDR3_MAX_SPEED           DDR3_1333
 #define DDR3_CL                          9
 #define DDR3_AL                AL_DISABLED
 #define DDR3_BURST_LEN                BL_8
 #define DDR3_READ_BURST_TYPE RBT_SEQUENTIAL
 #define DDR3_EA_BIT_SIZE        SIZE_2GBIT
-#define DDR3_TOTAL_MB_SIZE             512
+#define DDR3_TOTAL_MB_SIZE             (512*DDR3_LOGICAL_CHIP_NUM)
 #define DDR3_ROWBITS                    14
 #define DDR3_COLBITS                    10
 #define DDR3_BANK_NUM                    8

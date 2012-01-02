@@ -199,23 +199,18 @@ choice
   default DDR3_K4B1G1646E_HCH9
 
 config DDR3_K4B2G1646C_HCK0
-  depends on TCC_MEM_512MB
   bool "Samsung K4B2G1646C-HCK0"
 
 config DDR3_K4B1G1646E_HCH9
-  depends on TCC_MEM_256MB
   bool "Samsung K4B1G1646E-HCH9"
 
 config DDR3_H5TQ2G63BFR_H9C
-  depends on TCC_MEM_512MB
   bool "Hynix DDR3_H5TQ2G63BFR-H9C"
 
 config DDR3_H5TQ1G83BFR_H9C
-  depends on TCC_MEM_512MB
   bool "Hynix DDR3_H5TQ1G83BFR_H9C"
 
 config DDR3_H5TQ2G83BFR_H9C
-  depends on TCC_MEM_1024MB || TCC_MEM_512MB
   bool "Hynix DDR3_H5TQ2G83BFR_H9C"
 endchoice
 
