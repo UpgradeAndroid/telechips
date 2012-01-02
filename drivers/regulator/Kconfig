@@ -96,6 +96,11 @@ config REGULATOR_ACT8810
 	help
 	  This driver supports the voltage regulators.
 
+config REGULATOR_RN5T614
+	tristate "RICOH RN5T614 power management system device"
+	depends on I2C
+	help
+	  This driver supports the voltage regulators.
 config REGULATOR_MAX8649
 	tristate "Maxim 8649 voltage regulator"
 	depends on I2C

@@ -22,6 +22,7 @@
 #include <linux/akm8975.h>
 #include <linux/spi/spi.h>
 #include <linux/regulator/axp192.h>
+#include <linux/regulator/rn5t614.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
 #include <asm/mach/map.h>
@@ -225,6 +226,71 @@ static struct axp192_platform_data axp192_info = {
 };
 #endif
 
+#if defined(CONFIG_REGULATOR_RN5T614)
+static struct regulator_consumer_supply rn5t614_consumer_a = {
+	.supply = "vdd_coreA",
+};
+
+static struct regulator_init_data rn5t614_dcdc1_info = {
+	.constraints = {
+		.name = "vdd_coreA range",
+		.min_uV =  950000,
+		.max_uV = 1500000,
+		.always_on = 1,
+		.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE,
+	},
+	.num_consumer_supplies = 1,
+	.consumer_supplies     = &rn5t614_consumer_a,
+};
+
+static struct regulator_consumer_supply rn5t614_consumer_hdmi_osc = {
+	.supply = "vdd_hdmi_osc",
+};
+
+static struct regulator_init_data rn5t614_ldo7_info = {
+	.constraints = {
+		.name = "vdd_hdmi_osc",
+		.min_uV = 3300000,
+		.max_uV = 3300000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS,
+	},
+	.num_consumer_supplies = 1,
+	.consumer_supplies     = &rn5t614_consumer_hdmi_osc,
+};
+
+static struct rn5t614_subdev_data rn5t614_subdev[] = {
+	{
+		.name = "vdd_coreA",
+		.id   = RN5T614_ID_DCDC1,
+		.platform_data = &rn5t614_dcdc1_info,
+	},
+	{
+		.name = "vdd_hdmi_osc",
+		.id   = RN5T614_ID_LDO7,
+		.platform_data = &rn5t614_ldo7_info,
+	}
+};
+
+static int rn5t614_port_init(int irq_num)
+{
+	if (irq_num) {
+		tcc_gpio_config(TCC_GPF(24), GPIO_FN(0)|GPIO_PULL_DISABLE);
+		tcc_gpio_config_ext_intr(irq_num, EXTINT_GPIOF_24);
+
+		gpio_request(TCC_GPF(24), "PMIC_IRQ");
+		gpio_direction_input(TCC_GPF(24));
+	}
+
+	return 0;
+}
+
+static struct rn5t614_platform_data rn5t614_info = {
+	.num_subdevs = 2,
+	.subdevs     = rn5t614_subdev,
+	.init_port   = rn5t614_port_init,
+};
+#endif
+
 #if defined(CONFIG_FB_TCC_COMPONENT)
 static struct cs4954_i2c_platform_data  cs4954_i2c_data = {
 };
@@ -276,6 +342,14 @@ static struct i2c_board_info __initdata i2c_devices1[] = {
 		I2C_BOARD_INFO("axp192", 0x34),
 		.irq           = PMIC_IRQ,
 		.platform_data = &axp192_info,
+	},
+	#endif
+
+	#if defined(CONFIG_REGULATOR_RN5T614)
+	{
+		I2C_BOARD_INFO("rn5t614", 0x32),
+		.irq           = PMIC_IRQ,
+		.platform_data = &rn5t614_info,
 	},
 	#endif
 
