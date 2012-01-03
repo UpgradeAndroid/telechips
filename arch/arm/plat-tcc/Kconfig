@@ -4,8 +4,11 @@ choice
 	prompt "TCC Processor Family"
 config ARCH_TCC88XX
 	bool "TCC88xx"
+	select AEABI
 	select ARCH_HAS_CPUFREQ
 	select CPU_V7
+	select VFP
+	select NEON
 	select HAVE_CLK
 	select ARM_L1_CACHE_SHIFT_6
 	select GENERIC_GPIO
@@ -15,8 +18,11 @@ config ARCH_TCC88XX
 
 config ARCH_TCC892X
 	bool "TCC892x"
+	select AEABI
 	select ARCH_HAS_CPUFREQ
 	select CPU_V7
+	select VFP
+	select NEON
 	select HAVE_CLK
 	select GENERIC_GPIO
 	select ARCH_REQUIRE_GPIOLIB
