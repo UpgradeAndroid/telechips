@@ -1,5 +1,5 @@
-#ifndef _VIQE_H_
-#define	_VIQE_H_
+#ifndef _VIOC_VIQE_H_
+#define	_VIOC_VIQE_H_
 
 #include <mach/reg_physical.h>
 
@@ -13,8 +13,9 @@
 typedef enum
 {
 	VIOC_VIQE_DEINTL_MODE_BYPASS = 0,
-	VIOC_VIQE_DEINTL_MODE_SP,
-	VIOC_VIQE_DEINTL_MODE_TM
+	VIOC_VIQE_DEINTL_MODE_2D,
+	VIOC_VIQE_DEINTL_MODE_3D, 
+	VIOC_VIQE_DEINTL_S
 }VIOC_VIQE_DEINTL_MODE;
 
 typedef enum
@@ -35,14 +36,12 @@ extern void VIOC_VIQE_SetControlRegister(VIQE *pVIQE, unsigned int width, unsign
 
 extern void VIOC_VIQE_SetDeintlBase(VIQE *pVIQE, unsigned int frmnum, unsigned int base0, unsigned int base1, unsigned int base2, unsigned int base3);
 extern void VIOC_VIQE_SetDeintlSize(VIQE *pVIQE, unsigned int width, unsigned int height);
-extern void VIOC_VIQE_SetDeintlMisc(VIQE *pVIQE, unsigned int uvintpl, unsigned int cfgupd, unsigned int h2h, unsigned int top_size_dont_use);
+extern void VIOC_VIQE_SetDeintlMisc(VIQE *pVIQE, unsigned int uvintpl, unsigned int cfgupd, unsigned int dma_enable, unsigned int h2h, unsigned int top_size_dont_use);
 extern void VIOC_VIQE_SetDeintlControl(VIQE *pVIQE, unsigned int fmt, unsigned int eof_control_ready, unsigned int dec_divisor, unsigned int ac_k0_limit, unsigned int ac_k1_limit, unsigned int ac_k2_limit);
-extern void VIOC_VIQE_InitDeintlCoreBypass(VIQE *pVIQE);
-extern void VIOC_VIQE_InitDeintlCoreSpatial(VIQE *pVIQE);
-extern void VIOC_VIQE_InitDeintlCoreNormal(VIQE *pVIQE);
+extern void VIOC_VIQE_SetDeintlMode(VIQE *pVIQE, VIOC_VIQE_DEINTL_MODE mode);
+extern void VIOC_VIQE_SetDeintlRegion(VIQE *pVIQE, int region_enable, int region_idx_x_start, int region_idx_x_end, int region_idx_y_start, int region_idx_y_end);
 extern void VIOC_VIQE_SetDeintlCore(VIQE *pVIQE, unsigned int width, unsigned int height, VIOC_VIQE_FMT_TYPE fmt, unsigned int bypass, unsigned int top_size_dont_use);
-extern void VIOC_VIQE_SetDeintlRegister(VIQE *pVIQE, unsigned int fmt, unsigned int width, unsigned int height, unsigned int bypass, unsigned int base0, unsigned int base1, unsigned int base2, unsigned int base3);
-
+extern void VIOC_VIQE_SetDeintlRegister(VIQE *pVIQE, unsigned int fmt, unsigned int top_size_dont_use, unsigned int width, unsigned int height, VIOC_VIQE_DEINTL_MODE mode, unsigned int base0, unsigned int base1, unsigned int base2, unsigned int base3);
 extern void VIOC_VIQE_SetDenoiseBase(VIQE *pVIQE, unsigned int  frmnum, unsigned int  base0, unsigned int  base1, unsigned int  offs0, unsigned int  offs1);
 extern void VIOC_VIQE_SetDenoiseSize(VIQE *pVIQE, unsigned int  width, unsigned int  height);
 extern void VIOC_VIQE_SetDenoiseMisc(VIQE *pVIQE, unsigned int  uvintpl, unsigned int  cfgupd, unsigned int  h2h, unsigned int  top_size_dont_use);

@@ -55,24 +55,6 @@
 *
 ******************************************************************************/
 
-typedef struct _tcc_viqe_t
-{
-	int lcdCtrlNo;
-	int scalerCh;
-	int onTheFly;
-	unsigned int srcWidth;
-	unsigned int srcHeight;
-	unsigned int crop_top, crop_bottom, crop_left, crop_right;
-	int deinterlaceM2M;
-	int renderCnt;
-	int OddFirst;
-	int DI_use;
-
-	unsigned int address[6];
-	unsigned int dstAddr;
-
-} tcc_viqe_t;
-
 int g_dwWidth;
 int g_dwHeight;
 viqe_proregion_t	g_proRegion;
@@ -340,11 +322,11 @@ int tcc_viqe_ctrl(unsigned int cmd, void *arg)
 	return ret;
 }
 
-static int tcc_viqe_initialize_wrapper(tcc_viqe_t *arg)
+static int tcc_viqe_initialize_wrapper(VIQE_DI_TYPE *arg)
 {
-	tcc_viqe_t viqe_arg;
+	VIQE_DI_TYPE viqe_arg;
 	
-	if(copy_from_user(&viqe_arg, arg, sizeof(tcc_viqe_t)))
+	if(copy_from_user(&viqe_arg, arg, sizeof(VIQE_DI_TYPE)))
 		return -EINVAL;
 
 	printk("[VIQE Initiaize] LCDC %d, Scaler %d, OnTheFly %d, W:%d, H:%d\n",
@@ -356,11 +338,11 @@ static int tcc_viqe_initialize_wrapper(tcc_viqe_t *arg)
 	return 0;
 }
 
-static int tcc_viqe_excute_wrapper(tcc_viqe_t *arg)
+static int tcc_viqe_excute_wrapper(VIQE_DI_TYPE *arg)
 {
-	tcc_viqe_t viqe_arg;
+	VIQE_DI_TYPE viqe_arg;
 	
-	if(copy_from_user(&viqe_arg, arg, sizeof(tcc_viqe_t)))
+	if(copy_from_user(&viqe_arg, arg, sizeof(VIQE_DI_TYPE)))
 		return -EINVAL;
 
 	dprintk("[VIQE_EXCUTE]scalerCH %d, Address %x %x %x %x %x %x, srcWidth %d, srcHeight %d\nlcdcCH %d, dstAddr %x, M2MMode %d, OddFirst %d, DI %d\n", 
@@ -374,11 +356,11 @@ static int tcc_viqe_excute_wrapper(tcc_viqe_t *arg)
 	return 0;
 }
 
-static int tcc_viqe_deinitialize_wrapper(tcc_viqe_t *arg)
+static int tcc_viqe_deinitialize_wrapper(VIQE_DI_TYPE *arg)
 {
-	tcc_viqe_t viqe_arg;
+	VIQE_DI_TYPE viqe_arg;
 	
-	if(copy_from_user(&viqe_arg, arg, sizeof(tcc_viqe_t)))
+	if(copy_from_user(&viqe_arg, arg, sizeof(VIQE_DI_TYPE)))
 		return -EINVAL;
 
 	TCC_DeInitializeVIQE(viqe_arg.lcdCtrlNo, viqe_arg.scalerCh, viqe_arg.DI_use);
@@ -394,15 +376,15 @@ static long tcc_viqe_ioctl(struct file *filp, unsigned int cmd, unsigned long ar
 
 	switch (cmd) {
 		case IOCTL_VIQE_INITIALIZE:
-			tcc_viqe_initialize_wrapper((tcc_viqe_t *)arg);
+			tcc_viqe_initialize_wrapper((VIQE_DI_TYPE *)arg);
 			break;
 
 		case IOCTL_VIQE_EXCUTE:
-			tcc_viqe_excute_wrapper((tcc_viqe_t *)arg);
+			tcc_viqe_excute_wrapper((VIQE_DI_TYPE *)arg);
 			break;
 
 		case IOCTL_VIQE_DEINITIALIZE:
-			tcc_viqe_deinitialize_wrapper((tcc_viqe_t *)arg);
+			tcc_viqe_deinitialize_wrapper((VIQE_DI_TYPE *)arg);
 			break;
 
 		default:

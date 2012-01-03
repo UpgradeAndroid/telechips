@@ -191,7 +191,7 @@ void VIOC_VIQE_SetDeintlSize(VIQE *pVIQE, unsigned int width, unsigned int heigh
 	BITCSET(pVIQE->cDEINTL_DMA.nDEINTL_SIZE.nREG, 0x07FF07FF, ((height>>1) << 16)|(width << 0));
 }
 
-void VIOC_VIQE_SetDeintlMisc(VIQE *pVIQE, unsigned int uvintpl, unsigned int cfgupd, unsigned int h2h, unsigned int top_size_dont_use)
+void VIOC_VIQE_SetDeintlMisc(VIQE *pVIQE, unsigned int uvintpl, unsigned int cfgupd, unsigned int dma_enable, unsigned int h2h, unsigned int top_size_dont_use)
 {
 	dprintk(KERN_INFO "%s\n", __FUNCTION__);
 	/*
@@ -200,9 +200,10 @@ void VIOC_VIQE_SetDeintlMisc(VIQE *pVIQE, unsigned int uvintpl, unsigned int cfg
 	pVIQE->cDEINTL_DMA.nDEINTL_CTRL.bREG.h2h				= h2h;
 	pVIQE->cDEINTL_DMA.nDEINTL_CTRL.bREG.top_size_dont_use	= top_size_dont_use;
 	*/
-	BITCSET(pVIQE->cDEINTL_DMA.nDEINTL_CTRL.nREG, 0xFF020005, 
+	BITCSET(pVIQE->cDEINTL_DMA.nDEINTL_CTRL.nREG, 0xFF030003, 
 								(h2h << 24) 
 								|(cfgupd << 17) 
+								|(dma_enable << 16) 			//DI DMA enable
 								|(uvintpl << 2) 
 								|(top_size_dont_use << 0));
 }
@@ -323,7 +324,7 @@ void VIOC_VIQE_InitDeintlCoreSpatial(VIQE *pVIQE)
 	BITCSET(pVIQE->cDEINTL.nPD_SAW, 0xFFFFFFFF, 0x0008050a);
 }
 
-void VIOC_VIQE_InitDeintlCoreNormal(VIQE *pVIQE)
+void VIOC_VIQE_InitDeintlCoreTemporal(VIQE *pVIQE)
 {	/* Deinterlacing By Using 4-Field Reference Frame */
 	dprintk(KERN_INFO "%s\n", __FUNCTION__);
 	/*	
@@ -371,33 +372,30 @@ void VIOC_VIQE_SetDeintlMode(VIQE *pVIQE, VIOC_VIQE_DEINTL_MODE mode)
 	
 	if(mode == VIOC_VIQE_DEINTL_MODE_BYPASS)
 	{
-	/*
-		pVIQE->cDEINTL.nDI_CTRL 		=  0x02010a31;			//0x280  
-		pVIQE->cDEINTL.nDI_ENGINE1 	=  0x7f32040f;			//0x288  
-		pVIQE->cDEINTL.nPD_JUDDER 	= 0x6f40881e;			//0x2A0  
-	*/
 		BITCSET(pVIQE->cDEINTL.nDI_CTRL , 0xFFFFFFFF, 0x02010a31);
 		BITCSET(pVIQE->cDEINTL.nDI_ENGINE1, 0xFFFFFFFF, 0x7f32040f);
 		BITCSET(pVIQE->cDEINTL.nPD_JUDDER, 0xFFFFFFFF, 0x6f40881e);
+		
+		BITCSET(pVIQE->cDEINTL.nDI_CTRL, 0x02000000, (1<<29));						//bypass
+		BITCSET(pVIQE->cDEINTL_DMA.nDEINTL_CTRL.nREG, (0x1 << 16), (0 << 16)); 		//DI DMA enable
 	}
-	else if(mode == VIOC_VIQE_DEINTL_MODE_SP)
+	else if(mode == VIOC_VIQE_DEINTL_MODE_2D)
 	{
-	/*
-		pVIQE->cDEINTL.nDI_CTRL 		=  0x00030a31;			//0x280  
-		pVIQE->cDEINTL.nDI_ENGINE1 	=  0x2812050f;			//0x288  
-	*/
 		BITCSET(pVIQE->cDEINTL.nDI_CTRL , 0xFFFFFFFF, 0x00030a31);
 		BITCSET(pVIQE->cDEINTL.nDI_ENGINE1, 0xFFFFFFFF, 0x2812050f);
+
+		BITCSET(pVIQE->cDEINTL.nDI_CTRL, 0x02000000, (0<<29));						//bypass
+		BITCSET(pVIQE->cDEINTL_DMA.nDEINTL_CTRL.nREG, (0x1 << 16), (0 << 16)); 		//DI DMA enable
 	}
-	else					//Temporal Mode - using 4-field frames.
+	else if(mode == VIOC_VIQE_DEINTL_MODE_3D)	//Temporal Mode - using 4-field frames.
 	{
-	/*
-		pVIQE->cDEINTL.nDI_CTRL 		=  0x00010a31;			//0x280  
-		pVIQE->cDEINTL.nDI_ENGINE1 	=  0x7f32050f;			//0x288  
-	*/
 		BITCSET(pVIQE->cDEINTL.nDI_CTRL , 0xFFFFFFFF, 0x00010a31);
 		BITCSET(pVIQE->cDEINTL.nDI_ENGINE1, 0xFFFFFFFF, 0x7f32050f);
+
+		BITCSET(pVIQE->cDEINTL.nDI_CTRL, 0x02000000, (0<<29));						//bypass
+		BITCSET(pVIQE->cDEINTL_DMA.nDEINTL_CTRL.nREG, (0x1 << 16), (1 << 16)); 		//DI DMA enable
 	}
+	
 }	
 
 void VIOC_VIQE_SetDeintlRegion(VIQE *pVIQE, int region_enable, int region_idx_x_start, int region_idx_x_end, int region_idx_y_start, int region_idx_y_end)
@@ -435,25 +433,32 @@ void VIOC_VIQE_SetDeintlCore(VIQE *pVIQE, unsigned int width, unsigned int heigh
 	BITCSET(pVIQE->cDEINTL.nDI_FMT, 0x00010001, (top_size_dont_use << 16) | (fmt << 0));	//0x2E8
 }
 
-void VIOC_VIQE_SetDeintlRegister(VIQE *pVIQE, unsigned int fmt, unsigned int width, unsigned int height, unsigned int bypass, unsigned int base0, unsigned int base1, unsigned int base2, unsigned int base3)
+void VIOC_VIQE_SetDeintlRegister(VIQE *pVIQE, unsigned int fmt, unsigned int top_size_dont_use, unsigned int width, unsigned int height, VIOC_VIQE_DEINTL_MODE mode, unsigned int base0, unsigned int base1, unsigned int base2, unsigned int base3)
 {
-	unsigned int top_size_dont_use = OFF;
+	int bypass =0;
+	int dma_enable =0;
 	dprintk(KERN_INFO "%s\n", __FUNCTION__);
 	
-	if(bypass == ON)
+	if(mode == VIOC_VIQE_DEINTL_MODE_BYPASS)
 	{
+		bypass =1;
 		VIOC_VIQE_InitDeintlCoreBypass(pVIQE);
 	}	
-	else
+	else if(mode == VIOC_VIQE_DEINTL_MODE_2D)
 	{
 		VIOC_VIQE_InitDeintlCoreSpatial(pVIQE);
-	}	
+	}
+	else			//VIOC_VIQE_DEINTL_MODE_3D
+	{
+		dma_enable =1;
+		VIOC_VIQE_InitDeintlCoreTemporal(pVIQE);
+	}
 
 	VIOC_VIQE_SetDeintlBase(pVIQE, 0, base0, base1, base2, base3);
 	VIOC_VIQE_SetDeintlSize(pVIQE, width, height);
-	VIOC_VIQE_SetDeintlMisc(pVIQE, OFF, ON, 0x16, top_size_dont_use);					/* All of variables are the recommended value */
+	VIOC_VIQE_SetDeintlMisc(pVIQE, OFF, ON, dma_enable, 0x16, OFF);					/* All of variables are the recommended value */
 	VIOC_VIQE_SetDeintlControl(pVIQE, fmt, ON, 0x3, 0x31, 0x2a, 0x23);	/* All of variables are the recommended value */
-	VIOC_VIQE_SetDeintlCore(pVIQE, width, height, fmt, bypass, top_size_dont_use);
+	VIOC_VIQE_SetDeintlCore(pVIQE, width, height, fmt, bypass, OFF);
 }
 
 /******************************* DN Control *******************************/

@@ -334,6 +334,11 @@ void VIOC_RDMA_SetTestConfig(VIOC_RDMA * pRDMA)
 {
 }
 
+void VIOC_RDMA_SetImageBfield(VIOC_RDMA * pRDMA, unsigned int bfield)
+{
+	BITCSET(pRDMA->uCTRL.nREG, 1<<29, bfield << 29);
+}
+
 void VIOC_RDMA_SetImageIntl(VIOC_RDMA * pRDMA, unsigned int intl_en)
 {
 	//pRDMA->uCTRL.bREG.INTL = intl_en;
