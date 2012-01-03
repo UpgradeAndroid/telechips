@@ -730,7 +730,14 @@ static void shutdown(void)
 	#if defined(CONFIG_MACH_M805_892X)
 	BITCLR(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
 	#else
-	BITCLR(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
+	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0)
+	{
+		BITCLR(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
+	}
+	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 1)
+	{
+		BITCLR(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<4); //GPIO B 4
+	}
 	#endif
 
 // -------------------------------------------------------------------------
@@ -881,7 +888,14 @@ static void wakeup(void)
 	#if defined(CONFIG_MACH_M805_892X)
 	BITSET(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
 	#else
-	BITSET(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
+	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0)
+	{
+		BITSET(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
+	}
+	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 1)
+	{
+		BITSET(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<4); //GPIO B 4
+	}
 	#endif
 
 // -------------------------------------------------------------------------
@@ -1199,7 +1213,14 @@ static void sleep(void)
 	#if defined(CONFIG_MACH_M805_892X)
 	BITCLR(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
 	#else
-	BITCLR(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
+	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0)
+	{
+		BITCLR(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
+	}
+	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 1)
+	{
+		BITCLR(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<4); //GPIO B 4
+	}
 	#endif
 
 // -------------------------------------------------------------------------
@@ -1323,7 +1344,14 @@ static void sleep(void)
 	#if defined(CONFIG_MACH_M805_892X)
 	BITSET(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
 	#else
-	BITSET(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
+	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0)
+	{
+		BITSET(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
+	}
+	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 1)
+	{
+		BITSET(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<4); //GPIO B 4
+	}
 	#endif
 
 // -------------------------------------------------------------------------
