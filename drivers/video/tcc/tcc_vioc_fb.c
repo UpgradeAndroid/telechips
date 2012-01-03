@@ -427,6 +427,24 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 			}
 			break;
 
+		case TCC_LCDC_SET_OUTPUT_RESIZE_MODE:
+			{
+				struct tccfb_info *fbi =(struct tccfb_info *) info->par;
+				int mode;
+
+				if(copy_from_user((void *)&mode, (const void *)arg, sizeof(int)))
+					return -EFAULT;
+
+				//printk("%s : TCC_LCDC_SET_OUTPUT_RESIZE_MODE, mode=%d\n", __func__, mode);
+
+				TCC_OUTPUT_SetOutputResizeMode(mode);
+
+				#ifndef CONFIG_TCC_OUTPUT_AUTO_DETECTION
+					//TCC_OUTPUT_FB_Update(fbi->fb->var.xres, fbi->fb->var.yres, fbi->fb->var.bits_per_pixel, Output_BaseAddr, Output_SelectMode);
+					//TCC_OUTPUT_FB_UpdateSync(Output_SelectMode);
+				#endif
+			}
+			break;
 
 		case TCC_LCDC_HDMI_SET_SIZE:
 			{

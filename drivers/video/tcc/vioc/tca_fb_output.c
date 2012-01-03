@@ -515,11 +515,19 @@ char TCC_FB_G2D_FmtConvert(unsigned int width, unsigned int height, unsigned int
 	return 1;
 }
 
+int TCC_OUTPUT_SetOutputResizeMode(int mode)
+{
+	printk("%s : mode = %d\n", __func__, mode);
+	
+	uiOutputResizeMode = mode;
+
+	return 1;
+}
 
 char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int bits_per_pixel, unsigned int addr, unsigned int type)
 {
 	unsigned int regl = 0, g2d_rotate_need = 0, g2d_format_need = 0, scaler_need= 0, m2m_onthefly_use = 0, interlace_output = 0;
-	unsigned int lcd_width = 0, lcd_height = 0;
+	unsigned int lcd_width = 0, lcd_height = 0, lcd_h_pos = 0, lcd_w_pos = 0;
 	unsigned int img_width = 0, img_height = 0, ifmt = 0;
 	unsigned int  chromaR = 0, chromaG = 0, chromaB = 0;
 	unsigned int  chroma_en = 0, alpha_blending_en = 0, alpha_type = 0;
@@ -552,9 +560,8 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 	if(width < height)
 		g2d_rotate_need = 1;
 
-	if(lcd_width != width || lcd_height != height)
+	if(lcd_width != width || lcd_height != height || uiOutputResizeMode)
 		scaler_need = 1;
-
 
 	if(bits_per_pixel == 32 )	{
 		chroma_en = 0;
@@ -622,6 +629,20 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 		FBimg_buf_addr = taddr;
 	}
 
+	if(machine_is_tcc8920st())
+	{
+		lcd_width -= uiOutputResizeMode << 4;
+		lcd_height -= uiOutputResizeMode << 3;
+
+        lcd_w_pos = uiOutputResizeMode << 3;
+		if( interlace_output )
+			lcd_h_pos = uiOutputResizeMode << 1;
+		else
+			lcd_h_pos = uiOutputResizeMode << 2;
+
+		VIOC_WMIX_SetPosition(pDISP_OUTPUT[type].pVIOC_WMIXBase, 0, lcd_w_pos, lcd_h_pos);
+	}
+			
 #ifndef VIOC_SCALER_PLUG_IN
 	if(scaler_need)
 	{
