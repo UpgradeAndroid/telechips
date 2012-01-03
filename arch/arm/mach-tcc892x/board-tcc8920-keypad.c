@@ -68,6 +68,10 @@ static unsigned int tcc8920_col_gpios[] = { TCC_GPF(30), TCC_GPF(28), TCC_GPF(16
 static unsigned int tcc8920_row_gpios[] = { TCC_GPF(15), TCC_GPB(7), TCC_GPG(16) };
 #endif
 
+//Bruce, for system_rev 0x1005
+static unsigned int tcc8920_2cs_col_gpios[] = { TCC_GPB(24), TCC_GPB(25), TCC_GPB(26) };
+static unsigned int tcc8920_2cs_row_gpios[] = { TCC_GPB(27), TCC_GPB(29), TCC_GPE(30) };
+
 #define KEYMAP_INDEX(col, row) ((col)*ARRAY_SIZE(tcc8920_row_gpios) + (row))
 
 static const unsigned short tcc8920_keymap[] = {
@@ -140,6 +144,12 @@ static int __init tcc8920_keypad_init(void)
 {
 	if (!machine_is_tcc8920())
 		return 0;
+
+	if(system_rev == 0x1005)
+	{
+		tcc8921_keymap_info.input_gpios = tcc8920_2cs_row_gpios;
+		tcc8921_keymap_info.output_gpios = tcc8920_2cs_col_gpios;
+	}
 
 	platform_device_register(&tcc8920_matrix_key_device);
 	//platform_device_register(&tcc8920_gpio_key_device);
