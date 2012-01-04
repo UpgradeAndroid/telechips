@@ -339,7 +339,7 @@ static void block_allocator_release(void * ctx, ump_dd_mem * handle)
 		if(temp3 + 4 == temp4)
 		{
 			allocator->first_free = &allocator->all_blocks[i];
-			DBG_MSG(2, ("test %d temp3:0x%08x, temp4:0x%08x\n",i, temp3, temp4));
+			DBG_MSG(5, ("test %d temp3:0x%08x, temp4:0x%08x\n",i, temp3, temp4));
 			break;
 		}
 	}

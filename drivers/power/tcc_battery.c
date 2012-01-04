@@ -241,6 +241,20 @@ const tcc_batt_vol m801_88_battery_levels[] = {
         { 3043, 3180,  15},     // 3.55v ~ 3.7v
         { 500,  3042,  0},     // 3.4v ~ 3.55v
 };
+#elif defined(CONFIG_REGULATOR_RN5T614)
+extern int rn5t614_battery_voltage(void);
+extern int rn5t614_acin_detect(void);
+
+const tcc_batt_vol m801_88_battery_levels[] = {
+        { 3707, 4095,  100},    // 4.2v ~ 
+        { 3613, 3706,  90},     // 4.1v ~ 4.2v
+        { 3522, 3612,  75},     // 4.0v ~ 4.1v
+        { 3425, 3521,  60},     // 3.9v ~ 4.0v
+        { 3330, 3424,  45},     // 3.8v ~ 3.9v
+        { 3181, 3329,  30},     // 3.7v ~ 3.8v
+        { 3043, 3180,  15},     // 3.55v ~ 3.7v
+        { 500,  3042,  0},     // 3.4v ~ 3.55v
+};
 #else
 const tcc_batt_vol m801_88_battery_levels[] = {
     // low, high, persent
@@ -331,6 +345,8 @@ static unsigned long tcc_read_adc(void)
 
 #if defined(CONFIG_REGULATOR_AXP192)
 			adcValue = axp192_battery_voltage();
+#elif defined(CONFIG_REGULATOR_RN5T614)
+			adcValue = rn5t614_battery_voltage();
 #else
 			adcValue = tcc_adc_start(client, adc_channel, 0);
 #endif
@@ -340,6 +356,8 @@ static unsigned long tcc_read_adc(void)
 		if( adcValue < EMPTLIMIT) {
 #if defined(CONFIG_REGULATOR_AXP192)
                         adcValue = axp192_battery_voltage();
+#elif defined(CONFIG_REGULATOR_RN5T614)
+                        adcValue = rn5t614_battery_voltage();
 #else
                         adcValue = tcc_adc_start(client, adc_channel, 0);
 #endif
@@ -799,6 +817,8 @@ void tcc_ac_charger_detect_process(void)
 		struct tcc_adc_client *client = tcc_batt_info.client;
 #if defined(CONFIG_REGULATOR_AXP192)
 		if(axp192_acin_detect())
+#elif defined(CONFIG_REGULATOR_RN5T614)
+		if(rn5t614_acin_detect())
 #else
 		if(tcc_adc_start(client, ac_channel, 0) > 1500) 
 #endif
@@ -1172,6 +1192,8 @@ static int tcc_battery_probe(struct platform_device *pdev)
 		printk("dc input value = %d\n", tcc_adc_start(client, 4, 0));
 #if defined(CONFIG_REGULATOR_AXP192)
 		if(axp192_acin_detect())
+#elif defined(CONFIG_REGULATOR_RN5T614)
+		if(rn5t614_acin_detect())
 #else		
 		if(tcc_adc_start(client, ac_channel, 0) > 1500)	
 #endif

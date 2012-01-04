@@ -209,11 +209,23 @@ static struct axp192_subdev_data axp192_subdev[] = {
 
 static int axp192_irq_init(void)
 {
-    tcc_gpio_config(TCC_GPE(31), GPIO_FN(0)|GPIO_PULL_DISABLE);  // GPIOE[31]: input mode, disable pull-up/down
-	tcc_gpio_config_ext_intr(PMIC_IRQ, EXTINT_GPIOE_31);
+	if(system_rev == 0x1005)
+	{
+		tcc_gpio_config(TCC_GPE(29), GPIO_FN(0)|GPIO_PULL_DISABLE);  // GPIOE[31]: input mode, disable pull-up/down
+		tcc_gpio_config_ext_intr(PMIC_IRQ, EXTINT_GPIOE_29);
 
-	gpio_request(TCC_GPE(31), "PMIC_IRQ");
-    gpio_direction_input(TCC_GPE(31));
+		gpio_request(TCC_GPE(29), "PMIC_IRQ");
+		gpio_direction_input(TCC_GPE(29));
+	}
+	else
+	{
+		tcc_gpio_config(TCC_GPE(31), GPIO_FN(0)|GPIO_PULL_DISABLE);  // GPIOE[31]: input mode, disable pull-up/down
+		tcc_gpio_config_ext_intr(PMIC_IRQ, EXTINT_GPIOE_31);
+
+		gpio_request(TCC_GPE(31), "PMIC_IRQ");
+		gpio_direction_input(TCC_GPE(31));
+	}
+
 
 	return 0;
 }
@@ -676,9 +688,18 @@ static void __init tcc8920_init_machine(void)
 
 #if defined(CONFIG_SENSORS_AK8975)
     /* Input mode */
-    tcc_gpio_config(TCC_GPE(29), GPIO_FN(0)|GPIO_PULL_DISABLE);  // GPIOE[29]: input mode, disable pull-up/down
-    gpio_direction_input(TCC_GPE(29));
-    tcc_gpio_config_ext_intr(INT_EI1, EXTINT_GPIOE_29);
+	if(system_rev == 0x1005)
+	{
+	    tcc_gpio_config(TCC_GPG(16), GPIO_FN(0)|GPIO_PULL_DISABLE);  // GPIOE[29]: input mode, disable pull-up/down
+	    gpio_direction_input(TCC_GPG(16));
+	    tcc_gpio_config_ext_intr(INT_EI1, EXTINT_GPIOG_16);
+	}
+	else
+	{
+	    tcc_gpio_config(TCC_GPE(29), GPIO_FN(0)|GPIO_PULL_DISABLE);  // GPIOE[29]: input mode, disable pull-up/down
+	    gpio_direction_input(TCC_GPE(29));
+	    tcc_gpio_config_ext_intr(INT_EI1, EXTINT_GPIOE_29);
+	}
 #endif
 
 	i2c_register_board_info(0, i2c_devices1, ARRAY_SIZE(i2c_devices1));

@@ -109,7 +109,7 @@ config TCC_VIDEO_DISPLAY_BY_VSYNC_INT
 
 config TCC_VIDEO_DISPLAY_DEINTERLACE_MODE
     bool "Support Interlaced Video"
-	depends on TCC_VIDEO_DISPLAY_BY_VSYNC_INT
+	depends on FB && (ARCH_TCC93XX || ARCH_TCC88XX || ARCH_TCC892X)
 	default y
 	help
 	  It makes the interlaced video can be displayed smoothly.

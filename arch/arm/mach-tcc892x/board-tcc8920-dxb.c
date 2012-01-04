@@ -28,6 +28,18 @@
 #include <mach/tcc_dxb_ctrl.h>
 #include "board-tcc8920.h"
 
+static int gGPIO_DXB0_SCLK = GPIO_DXB0_SCLK;
+static int gGPIO_DXB0_SFRM = GPIO_DXB0_SFRM;
+static int gGPIO_DXB0_SDI = GPIO_DXB0_SDI;
+static int gGPIO_DXB0_SDO = GPIO_DXB0_SDO;
+static int gGPIO_DXB0_RST = GPIO_DXB0_RST;
+static int gGPIO_DXB1_SCLK = GPIO_DXB1_SCLK;
+static int gGPIO_DXB1_SFRM = GPIO_DXB1_SFRM;
+static int gGPIO_DXB1_SDI = GPIO_DXB1_SDI;
+static int gGPIO_DXB1_SDO = GPIO_DXB1_SDO;
+static int gGPIO_DXB1_RST = GPIO_DXB1_RST;
+
+
 static unsigned int guiBoardType = BOARD_TDMB_TCC3150;
 
 static void tcc_dxb_ctrl_power_off(int deviceIdx)
@@ -42,13 +54,13 @@ static void tcc_dxb_ctrl_power_off(int deviceIdx)
 				tcc_gpio_config(GPIO_DXB1_PD,  GPIO_FN(0));
 				gpio_request(GPIO_DXB1_PD, NULL);
 				gpio_direction_output(GPIO_DXB1_PD, 0);
-				gpio_set_value(GPIO_DXB1_RST, 0);
+				gpio_set_value(gGPIO_DXB1_RST, 0);
 				break;
 			case 1:
 				tcc_gpio_config(GPIO_DXB2_PD,  GPIO_FN(0));
 				gpio_request(GPIO_DXB2_PD, NULL);
 				gpio_direction_output(GPIO_DXB2_PD, 0);
-				gpio_set_value(GPIO_DXB0_RST, 0);
+				gpio_set_value(gGPIO_DXB0_RST, 0);
 				break;
 			default:
 				break;
@@ -59,7 +71,7 @@ static void tcc_dxb_ctrl_power_off(int deviceIdx)
 			tcc_gpio_config(GPIO_DXB1_PD,  GPIO_FN(0));
 			gpio_request(GPIO_DXB1_PD, NULL);
 			gpio_direction_output(GPIO_DXB1_PD, 0);
-			gpio_set_value(GPIO_DXB1_RST, 0);
+			gpio_set_value(gGPIO_DXB1_RST, 0);
 		}
 		else if(guiBoardType == BOARD_TDMB_TCC3150)
 		{
@@ -67,7 +79,7 @@ static void tcc_dxb_ctrl_power_off(int deviceIdx)
 			{
 			case 0:
 				gpio_set_value(GPIO_DXB1_PD, 0);
-				gpio_set_value(GPIO_DXB0_RST, 0);
+				gpio_set_value(gGPIO_DXB0_RST, 0);
 				break;
 			default:
 				break;
@@ -78,7 +90,7 @@ static void tcc_dxb_ctrl_power_off(int deviceIdx)
 			switch (deviceIdx)
 			{
 			case 0:
-				gpio_set_value(GPIO_DXB0_RST, 0);
+				gpio_set_value(gGPIO_DXB0_RST, 0);
 				break;
 			default:
 				break;
@@ -87,12 +99,12 @@ static void tcc_dxb_ctrl_power_off(int deviceIdx)
 		else if (guiBoardType == BOARD_ISDBT_DIB10096)
 		{
 			//GPIO_E[7] = PWDN#
-			tcc_gpio_config(GPIO_DXB0_SDO, GPIO_FN(0));
-			gpio_direction_output(GPIO_DXB0_SDO, 0);
+			tcc_gpio_config(gGPIO_DXB0_SDO, GPIO_FN(0));
+			gpio_direction_output(gGPIO_DXB0_SDO, 0);
 
 			//GPIO_E[4] = RST#
-			tcc_gpio_config(GPIO_DXB0_RST, GPIO_FN(0));
-			gpio_direction_output(GPIO_DXB0_RST, 0);
+			tcc_gpio_config(gGPIO_DXB0_RST, GPIO_FN(0));
+			gpio_direction_output(gGPIO_DXB0_RST, 0);
 		}
 
 		/* GPIO_EXPAND DXB_ON Power-off */
@@ -121,11 +133,11 @@ static void tcc_dxb_ctrl_power_on(int deviceIdx)
 			switch (deviceIdx)
 			{
 			case 0:
-				tcc_gpio_config(GPIO_DXB0_RST,  GPIO_FN(0));
-				gpio_request(GPIO_DXB0_RST, NULL);
-				gpio_direction_output(GPIO_DXB0_RST, 0);
+				tcc_gpio_config(gGPIO_DXB0_RST,  GPIO_FN(0));
+				gpio_request(gGPIO_DXB0_RST, NULL);
+				gpio_direction_output(gGPIO_DXB0_RST, 0);
 				msleep(10);
-				gpio_set_value(GPIO_DXB0_RST, 1);
+				gpio_set_value(gGPIO_DXB0_RST, 1);
 				break;
 			default:
 				break;
@@ -137,38 +149,38 @@ static void tcc_dxb_ctrl_power_on(int deviceIdx)
 			{
 			case 0:
 				tcc_gpio_config(GPIO_DXB1_PD, GPIO_FN(0));
-				tcc_gpio_config(GPIO_DXB1_RST, GPIO_FN(0));
+				tcc_gpio_config(gGPIO_DXB1_RST, GPIO_FN(0));
 
 				gpio_request(GPIO_DXB1_PD, NULL);
 				gpio_direction_output(GPIO_DXB1_PD, 0);
-				gpio_set_value(GPIO_DXB1_RST, 0);
+				gpio_set_value(gGPIO_DXB1_RST, 0);
 				gpio_set_value(GPIO_DXB1_PD, 0);
 				msleep (20);
 				gpio_set_value(GPIO_DXB1_PD, 1);
 				msleep (20);
 
-				gpio_request(GPIO_DXB1_RST, NULL);
-				gpio_direction_output(GPIO_DXB1_RST, 0);
+				gpio_request(gGPIO_DXB1_RST, NULL);
+				gpio_direction_output(gGPIO_DXB1_RST, 0);
 				msleep (20);
-				gpio_set_value(GPIO_DXB1_RST, 1);
+				gpio_set_value(gGPIO_DXB1_RST, 1);
 				break;
 			case 1:
 				tcc_gpio_config(GPIO_DXB2_PD,  GPIO_FN(0));
-				tcc_gpio_config(GPIO_DXB0_RST,  GPIO_FN(0));
+				tcc_gpio_config(gGPIO_DXB0_RST,  GPIO_FN(0));
 	
 				gpio_request(GPIO_DXB2_PD, NULL);
 				gpio_direction_output(GPIO_DXB2_PD, 0);
 	
-				gpio_set_value(GPIO_DXB0_RST, 0);
+				gpio_set_value(gGPIO_DXB0_RST, 0);
 				gpio_set_value(GPIO_DXB2_PD, 0);
 				msleep (20);
 				gpio_set_value(GPIO_DXB2_PD, 1);
 				msleep (20);
 	
-				gpio_request(GPIO_DXB0_RST, NULL);
-				gpio_direction_output(GPIO_DXB0_RST, 0);
+				gpio_request(gGPIO_DXB0_RST, NULL);
+				gpio_direction_output(gGPIO_DXB0_RST, 0);
 				msleep (20);
-				gpio_set_value(GPIO_DXB0_RST, 1);
+				gpio_set_value(gGPIO_DXB0_RST, 1);
 				break;
 			default:
 				break;
@@ -177,26 +189,26 @@ static void tcc_dxb_ctrl_power_on(int deviceIdx)
 		else if(guiBoardType == BOARD_DVBT_DIB9090)
 		{
 			tcc_gpio_config(GPIO_DXB1_PD, GPIO_FN(0));
-			tcc_gpio_config(GPIO_DXB1_RST, GPIO_FN(0));
+			tcc_gpio_config(gGPIO_DXB1_RST, GPIO_FN(0));
 
 			gpio_request(GPIO_DXB1_PD, NULL);
 			gpio_direction_output(GPIO_DXB1_PD, 0);
-			gpio_set_value(GPIO_DXB1_RST, 0);
+			gpio_set_value(gGPIO_DXB1_RST, 0);
 			gpio_set_value(GPIO_DXB1_PD, 0);
 			msleep (20);
 			gpio_set_value(GPIO_DXB1_PD, 1);
 			msleep (20);
 
-			gpio_request(GPIO_DXB1_RST, NULL);
-			gpio_direction_output(GPIO_DXB1_RST, 0);
+			gpio_request(gGPIO_DXB1_RST, NULL);
+			gpio_direction_output(gGPIO_DXB1_RST, 0);
 			msleep (20);
-			gpio_set_value(GPIO_DXB1_RST, 1);
+			gpio_set_value(gGPIO_DXB1_RST, 1);
 
 			/* RF Control */
-			tcc_gpio_config(GPIO_DXB0_SDO,  GPIO_FN(0));
-			gpio_request(GPIO_DXB0_SDO, NULL);
-			gpio_direction_output(GPIO_DXB0_SDO, 0);
-			gpio_set_value(GPIO_DXB0_SDO, 1);
+			tcc_gpio_config(gGPIO_DXB0_SDO,  GPIO_FN(0));
+			gpio_request(gGPIO_DXB0_SDO, NULL);
+			gpio_direction_output(gGPIO_DXB0_SDO, 0);
+			gpio_set_value(gGPIO_DXB0_SDO, 1);
 		}
 		else if(guiBoardType == BOARD_TDMB_TCC3150)
 		{
@@ -214,14 +226,14 @@ static void tcc_dxb_ctrl_power_on(int deviceIdx)
 			//DXB1_PD (LDO_EN) is already set
 
 			//GPIO_E[7] = PWDN#
-			tcc_gpio_config(GPIO_DXB0_SDO, GPIO_FN(0)|GPIO_PULL_DISABLE);
-			gpio_direction_output(GPIO_DXB0_SDO, 1);
+			tcc_gpio_config(gGPIO_DXB0_SDO, GPIO_FN(0)|GPIO_PULL_DISABLE);
+			gpio_direction_output(gGPIO_DXB0_SDO, 1);
 
 			//GPIO_E[4] = RST#
-			tcc_gpio_config(GPIO_DXB0_RST, GPIO_FN(0));
-			gpio_direction_output(GPIO_DXB0_RST, 0);
+			tcc_gpio_config(gGPIO_DXB0_RST, GPIO_FN(0));
+			gpio_direction_output(gGPIO_DXB0_RST, 0);
 			msleep(20);
-			gpio_set_value (GPIO_DXB0_RST, 1);
+			gpio_set_value (gGPIO_DXB0_RST, 1);
 		}
 	}
 }
@@ -235,18 +247,18 @@ static void tcc_dxb_ctrl_power_reset(int deviceIdx)
 			switch(deviceIdx)
 			{
 			case 0:
-				tcc_gpio_config(GPIO_DXB0_RST, GPIO_FN(0));
-				gpio_request(GPIO_DXB0_RST, NULL);
-				gpio_direction_output(GPIO_DXB0_RST, 0);
+				tcc_gpio_config(gGPIO_DXB0_RST, GPIO_FN(0));
+				gpio_request(gGPIO_DXB0_RST, NULL);
+				gpio_direction_output(gGPIO_DXB0_RST, 0);
 				msleep (20);
-				gpio_set_value(GPIO_DXB0_RST, 1);
+				gpio_set_value(gGPIO_DXB0_RST, 1);
 				break;
 			case 1:
-				tcc_gpio_config(GPIO_DXB1_RST, GPIO_FN(0));
-				gpio_request(GPIO_DXB1_RST, NULL);
-				gpio_direction_output(GPIO_DXB1_RST, 0);
+				tcc_gpio_config(gGPIO_DXB1_RST, GPIO_FN(0));
+				gpio_request(gGPIO_DXB1_RST, NULL);
+				gpio_direction_output(gGPIO_DXB1_RST, 0);
 				msleep (20);
-				gpio_set_value(GPIO_DXB1_RST, 1);
+				gpio_set_value(gGPIO_DXB1_RST, 1);
 				break;
 			default:
 				break;
@@ -254,11 +266,11 @@ static void tcc_dxb_ctrl_power_reset(int deviceIdx)
 		}
 		else if(guiBoardType == BOARD_DVBT_DIB9090)
         {
-           	tcc_gpio_config(GPIO_DXB0_RST, GPIO_FN(0));
-			gpio_request(GPIO_DXB0_RST, NULL);
-			gpio_direction_output(GPIO_DXB0_RST, 0);
+           	tcc_gpio_config(gGPIO_DXB0_RST, GPIO_FN(0));
+			gpio_request(gGPIO_DXB0_RST, NULL);
+			gpio_direction_output(gGPIO_DXB0_RST, 0);
 			msleep (100);
-			gpio_set_value(GPIO_DXB0_RST, 1);
+			gpio_set_value(gGPIO_DXB0_RST, 1);
 			msleep (100);
         }
 		else if(guiBoardType == BOARD_TDMB_TCC3150)	
@@ -266,9 +278,9 @@ static void tcc_dxb_ctrl_power_reset(int deviceIdx)
 			switch(deviceIdx)
 			{
 			case 0:
-				gpio_set_value(GPIO_DXB0_RST, 0);
+				gpio_set_value(gGPIO_DXB0_RST, 0);
 				msleep(100);		
-				gpio_set_value(GPIO_DXB0_RST, 1);
+				gpio_set_value(gGPIO_DXB0_RST, 1);
 				msleep(100);		
 				break;
 			default:
@@ -280,11 +292,11 @@ static void tcc_dxb_ctrl_power_reset(int deviceIdx)
 			switch (deviceIdx)
 			{
 			case 0:
-				tcc_gpio_config(GPIO_DXB0_RST, GPIO_FN(0));
-				gpio_request(GPIO_DXB0_RST, NULL);
-				gpio_direction_output(GPIO_DXB0_RST, 0);
+				tcc_gpio_config(gGPIO_DXB0_RST, GPIO_FN(0));
+				gpio_request(gGPIO_DXB0_RST, NULL);
+				gpio_direction_output(gGPIO_DXB0_RST, 0);
 				msleep(10);
-				gpio_set_value(GPIO_DXB0_RST, 1);
+				gpio_set_value(gGPIO_DXB0_RST, 1);
 				break;
 			default:
 				break;
@@ -306,9 +318,9 @@ static void tcc_dxb_ctrl_set_board(unsigned int uiboardtype)
 		gpio_request(GPIO_DXB1_PD, NULL);
 		gpio_direction_output(GPIO_DXB1_PD, 0);
 
-		tcc_gpio_config(GPIO_DXB0_RST,	GPIO_FN(0));
-		gpio_request(GPIO_DXB0_RST, NULL);
-		gpio_direction_output(GPIO_DXB0_RST, 0);
+		tcc_gpio_config(gGPIO_DXB0_RST,	GPIO_FN(0));
+		gpio_request(gGPIO_DXB0_RST, NULL);
+		gpio_direction_output(gGPIO_DXB0_RST, 0);
 	}
 }
 
@@ -329,21 +341,34 @@ static void tcc_dxb_init(void)
 	if(machine_is_tcc8920())
 	{
 		/*PULL_UP is disabled to save current.*/
-		
+        if(system_rev == 0x1005)
+        {
+            gGPIO_DXB0_SCLK = GPIO_DXB0_SCLK_REV1005;
+            gGPIO_DXB0_SFRM = GPIO_DXB0_SFRM_REV1005;
+            gGPIO_DXB0_SDI = GPIO_DXB0_SDI_REV1005;
+            gGPIO_DXB0_SDO = GPIO_DXB0_SDO_REV1005;
+            gGPIO_DXB0_RST = GPIO_DXB0_RST_REV1005;
+            gGPIO_DXB1_SCLK = GPIO_DXB1_SCLK_REV1005;
+            gGPIO_DXB1_SFRM = GPIO_DXB1_SFRM_REV1005;
+            gGPIO_DXB1_SDI = GPIO_DXB1_SDI_REV1005;
+            gGPIO_DXB1_SDO = GPIO_DXB1_SDO_REV1005;
+            gGPIO_DXB1_RST = GPIO_DXB1_RST_REV1005;
+        }        
+
 		//TCC_GPE(2)
-		tcc_gpio_config(GPIO_DXB0_SFRM, GPIO_FN(0)|GPIO_PULL_DISABLE);
-		gpio_request(GPIO_DXB0_SFRM, NULL);
-		gpio_direction_output(GPIO_DXB0_SFRM, 0);
+		tcc_gpio_config(gGPIO_DXB0_SFRM, GPIO_FN(0)|GPIO_PULL_DISABLE);
+		gpio_request(gGPIO_DXB0_SFRM, NULL);
+		gpio_direction_output(gGPIO_DXB0_SFRM, 0);
 	
 		//TCC_GPE(3)
-		tcc_gpio_config(GPIO_DXB0_SCLK, GPIO_FN(0)|GPIO_PULL_DISABLE);
-		gpio_request(GPIO_DXB0_SCLK, NULL);
-		gpio_direction_output(GPIO_DXB0_SCLK, 0);
+		tcc_gpio_config(gGPIO_DXB0_SCLK, GPIO_FN(0)|GPIO_PULL_DISABLE);
+		gpio_request(gGPIO_DXB0_SCLK, NULL);
+		gpio_direction_output(gGPIO_DXB0_SCLK, 0);
 	
 		//TCC_GPE(4)
-		tcc_gpio_config(GPIO_DXB0_RST, GPIO_FN(0)|GPIO_PULL_DISABLE);
-		gpio_request(GPIO_DXB0_RST, NULL);
-		gpio_direction_output(GPIO_DXB0_RST, 0);
+		tcc_gpio_config(gGPIO_DXB0_RST, GPIO_FN(0)|GPIO_PULL_DISABLE);
+		gpio_request(gGPIO_DXB0_RST, NULL);
+		gpio_direction_output(gGPIO_DXB0_RST, 0);
 	
 		//TCC_GPE(5)
 		tcc_gpio_config(INT_DXB0_IRQ, GPIO_FN(0)|GPIO_PULL_DISABLE);
@@ -351,39 +376,39 @@ static void tcc_dxb_init(void)
 		gpio_direction_output(INT_DXB0_IRQ, 0);
 	
 		//TCC_GPE(6)
-		tcc_gpio_config(GPIO_DXB0_SDI, GPIO_FN(0)|GPIO_PULL_DISABLE);
-		gpio_request(GPIO_DXB0_SDI, NULL);
-		gpio_direction_output(GPIO_DXB0_SDI, 0);
+		tcc_gpio_config(gGPIO_DXB0_SDI, GPIO_FN(0)|GPIO_PULL_DISABLE);
+		gpio_request(gGPIO_DXB0_SDI, NULL);
+		gpio_direction_output(gGPIO_DXB0_SDI, 0);
 	
 		//TCC_GPE(7)
-		tcc_gpio_config(GPIO_DXB0_SDO, GPIO_FN(0)|GPIO_PULL_DISABLE);
-		gpio_request(GPIO_DXB0_SDO, NULL);
-		gpio_direction_output(GPIO_DXB0_SDO, 0);
+		tcc_gpio_config(gGPIO_DXB0_SDO, GPIO_FN(0)|GPIO_PULL_DISABLE);
+		gpio_request(gGPIO_DXB0_SDO, NULL);
+		gpio_direction_output(gGPIO_DXB0_SDO, 0);
 	
 		//TCC_GPD(5)
-		tcc_gpio_config(GPIO_DXB1_SFRM, GPIO_FN(0)|GPIO_PULL_DISABLE);
-		gpio_request(GPIO_DXB1_SFRM, NULL);
-		gpio_direction_output(GPIO_DXB1_SFRM, 0);
+		tcc_gpio_config(gGPIO_DXB1_SFRM, GPIO_FN(0)|GPIO_PULL_DISABLE);
+		gpio_request(gGPIO_DXB1_SFRM, NULL);
+		gpio_direction_output(gGPIO_DXB1_SFRM, 0);
 	
 		//TCC_GPD(6)
-		tcc_gpio_config(GPIO_DXB1_SCLK, GPIO_FN(0)|GPIO_PULL_DISABLE);
-		gpio_request(GPIO_DXB1_SCLK, NULL);
-		gpio_direction_output(GPIO_DXB1_SCLK, 0);
+		tcc_gpio_config(gGPIO_DXB1_SCLK, GPIO_FN(0)|GPIO_PULL_DISABLE);
+		gpio_request(gGPIO_DXB1_SCLK, NULL);
+		gpio_direction_output(gGPIO_DXB1_SCLK, 0);
 	
 		//TCC_GPD(7)
-		tcc_gpio_config(GPIO_DXB1_SDI, GPIO_FN(0)|GPIO_PULL_DISABLE);
-		gpio_request(GPIO_DXB1_SDI, NULL);
-		gpio_direction_output(GPIO_DXB1_SDI, 0);
+		tcc_gpio_config(gGPIO_DXB1_SDI, GPIO_FN(0)|GPIO_PULL_DISABLE);
+		gpio_request(gGPIO_DXB1_SDI, NULL);
+		gpio_direction_output(gGPIO_DXB1_SDI, 0);
 	
 		//TCC_GPD(8)
-		tcc_gpio_config(GPIO_DXB1_SDO, GPIO_FN(0)|GPIO_PULL_DISABLE);
-		gpio_request(GPIO_DXB1_SDO, NULL);
-		gpio_direction_output(GPIO_DXB1_SDO, 0);
+		tcc_gpio_config(gGPIO_DXB1_SDO, GPIO_FN(0)|GPIO_PULL_DISABLE);
+		gpio_request(gGPIO_DXB1_SDO, NULL);
+		gpio_direction_output(gGPIO_DXB1_SDO, 0);
 	
 		//TCC_GPD(9)
-		tcc_gpio_config(GPIO_DXB1_RST, GPIO_FN(0)|GPIO_PULL_DISABLE);
-		gpio_request(GPIO_DXB1_RST, NULL);
-		gpio_direction_output(GPIO_DXB1_RST, 0);
+		tcc_gpio_config(gGPIO_DXB1_RST, GPIO_FN(0)|GPIO_PULL_DISABLE);
+		gpio_request(gGPIO_DXB1_RST, NULL);
+		gpio_direction_output(gGPIO_DXB1_RST, 0);
 	
 		//TCC_GPD(10)
 		tcc_gpio_config(INT_DXB1_IRQ, GPIO_FN(0)|GPIO_PULL_DISABLE);

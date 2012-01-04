@@ -730,7 +730,14 @@ static void shutdown(void)
 	#if defined(CONFIG_MACH_M805_892X)
 	BITCLR(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
 	#else
-	BITCLR(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
+	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0)
+	{
+		BITCLR(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
+	}
+	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 1)
+	{
+		BITCLR(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<4); //GPIO B 4
+	}
 	#endif
 
 // -------------------------------------------------------------------------
@@ -810,10 +817,20 @@ static void shutdown(void)
 	//set wake-up source
 	((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D14 = 1; //power key
 #else
-	//set wake-up polarity
-	((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_G16 = 1; //power key - Active Low
-	//set wake-up source
-	((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_G16 = 1; //power key
+	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0)
+	{
+		//set wake-up polarity
+		((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_G16 = 1; //power key - Active Low
+		//set wake-up source
+		((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_G16 = 1; //power key
+	}
+	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 1)
+	{
+		//set wake-up polarity
+		((PPMU)HwPMU_BASE)->PMU_WKPOL1.bREG.GPIO_E30 = 1; //power key - Active Low
+		//set wake-up source
+		((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E30 = 1; //power key
+	}
 #endif
 
 	/* RTC Alarm Wake Up */
@@ -871,7 +888,14 @@ static void wakeup(void)
 	#if defined(CONFIG_MACH_M805_892X)
 	BITSET(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
 	#else
-	BITSET(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
+	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0)
+	{
+		BITSET(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
+	}
+	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 1)
+	{
+		BITSET(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<4); //GPIO B 4
+	}
 	#endif
 
 // -------------------------------------------------------------------------
@@ -1189,7 +1213,14 @@ static void sleep(void)
 	#if defined(CONFIG_MACH_M805_892X)
 	BITCLR(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
 	#else
-	BITCLR(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
+	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0)
+	{
+		BITCLR(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
+	}
+	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 1)
+	{
+		BITCLR(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<4); //GPIO B 4
+	}
 	#endif
 
 // -------------------------------------------------------------------------
@@ -1263,10 +1294,20 @@ static void sleep(void)
 	//set wake-up source
 	((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D14 = 1; //power key
 #else
-	//set wake-up polarity
-	((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_G16 = 1; //power key - Active Low
-	//set wake-up source
-	((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_G16 = 1; //power key
+	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0)
+	{
+		//set wake-up polarity
+		((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_G16 = 1; //power key - Active Low
+		//set wake-up source
+		((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_G16 = 1; //power key
+	}
+	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 1)
+	{
+		//set wake-up polarity
+		((PPMU)HwPMU_BASE)->PMU_WKPOL1.bREG.GPIO_E30 = 1; //power key - Active Low
+		//set wake-up source
+		((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E30 = 1; //power key
+	}
 #endif
 
 	/* RTC Alarm Wake Up */
@@ -1303,7 +1344,14 @@ static void sleep(void)
 	#if defined(CONFIG_MACH_M805_892X)
 	BITSET(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
 	#else
-	BITSET(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
+	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0)
+	{
+		BITSET(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
+	}
+	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 1)
+	{
+		BITSET(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<4); //GPIO B 4
+	}
 	#endif
 
 // -------------------------------------------------------------------------
@@ -1612,6 +1660,13 @@ static int tcc_pm_enter(suspend_state_t state)
 // disable interrupt
 	local_irq_save(flags);
 	local_irq_disable();
+
+// -------------------------------------------------------------------------
+// set board information
+	if(system_rev == 0x1005)
+		*(volatile unsigned long *)SRAM_STACK_ADDR = 1;
+	else
+		*(volatile unsigned long *)SRAM_STACK_ADDR = 0;
 
 // -------------------------------------------------------------------------
 // enter shutdown mode
