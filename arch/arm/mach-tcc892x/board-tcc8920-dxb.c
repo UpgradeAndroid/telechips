@@ -38,6 +38,7 @@ static int gGPIO_DXB1_SFRM = GPIO_DXB1_SFRM;
 static int gGPIO_DXB1_SDI = GPIO_DXB1_SDI;
 static int gGPIO_DXB1_SDO = GPIO_DXB1_SDO;
 static int gGPIO_DXB1_RST = GPIO_DXB1_RST;
+static int gINT_DXB1_IRQ = INT_DXB1_IRQ;
 
 
 static unsigned int guiBoardType = BOARD_TDMB_TCC3150;
@@ -353,6 +354,7 @@ static void tcc_dxb_init(void)
             gGPIO_DXB1_SDI = GPIO_DXB1_SDI_REV1005;
             gGPIO_DXB1_SDO = GPIO_DXB1_SDO_REV1005;
             gGPIO_DXB1_RST = GPIO_DXB1_RST_REV1005;
+			gINT_DXB1_IRQ = INT_DXB1_IRQ_REV1005;
         }        
 
 		//TCC_GPE(2)
@@ -411,9 +413,9 @@ static void tcc_dxb_init(void)
 		gpio_direction_output(gGPIO_DXB1_RST, 0);
 	
 		//TCC_GPD(10)
-		tcc_gpio_config(INT_DXB1_IRQ, GPIO_FN(0)|GPIO_PULL_DISABLE);
-		gpio_request(INT_DXB1_IRQ, NULL);
-		gpio_direction_output(INT_DXB1_IRQ, 0);
+		tcc_gpio_config(gINT_DXB1_IRQ, GPIO_FN(0)|GPIO_PULL_DISABLE);
+		gpio_request(gINT_DXB1_IRQ, NULL);
+		gpio_direction_output(gINT_DXB1_IRQ, 0);
 	
 		//smart Card Interface for CAS
 		tcc_gpio_config(TCC_GPD(13), GPIO_FN(0)|GPIO_PULL_DISABLE);
