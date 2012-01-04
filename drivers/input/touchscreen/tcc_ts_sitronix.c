@@ -605,7 +605,10 @@ static void sitronix_ts_port_init(void)
 	}
 #elif defined(CONFIG_ARCH_TCC892X)
 	if (machine_is_tcc8920()) {
-		gp_penirq = TCC_GPG(18);
+		if(system_rev == 0x1005)
+			gp_penirq = TCC_GPB(11);
+		else
+			gp_penirq = TCC_GPG(18);
 	}
 #endif
 
@@ -628,7 +631,10 @@ static void sitronix_ts_port_init(void)
 	}
 #elif defined(CONFIG_ARCH_TCC892X)
 	if (machine_is_tcc8920()) {
-		tcc_gpio_config_ext_intr(INT_EI2, EXTINT_GPIOG_18);
+		if(system_rev == 0x1005)
+			tcc_gpio_config_ext_intr(INT_EI2, EXTINT_GPIOB_11);
+		else
+			tcc_gpio_config_ext_intr(INT_EI2, EXTINT_GPIOG_18);
 	}
 #endif
 }
