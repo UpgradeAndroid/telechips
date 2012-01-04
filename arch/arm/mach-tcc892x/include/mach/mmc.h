@@ -59,10 +59,10 @@ struct mmc_port_config {
 	int data7;
 	int clk;
 	int cmd;
-	int cd;
 	int func;
 	int width;
 
+	int cd;
 	int pwr;
 };
 

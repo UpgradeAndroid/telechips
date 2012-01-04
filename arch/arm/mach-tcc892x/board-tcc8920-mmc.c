@@ -40,29 +40,33 @@ typedef enum {
 
 
 #if defined(CONFIG_MMC_TCC_SD30_TEST)	// [0] : SD3.0,   [1] : WiFi
+#define TCC_MMC_SDIO_WIFI_USED
+
 typedef enum {
 	TCC_MMC_TYPE_SD3_0,
 	TCC_MMC_TYPE_WIFI,
 	TCC_MMC_TYPE_MAX
 } tcc_mmc_type;
 
+static int TCC_MMC_SD30_ON = TCC_GPC(29);
+
 static struct mmc_port_config mmc_ports[] = {
 	[TCC_MMC_TYPE_SD3_0] = {
-		.data0	= TCC_GPD(18),
-		.data1	= TCC_GPD(17),
-		.data2	= TCC_GPD(16),
-		.data3	= TCC_GPD(15),
+		.data0	= TCC_GPC(2),
+		.data1	= TCC_GPC(3),
+		.data2	= TCC_GPC(4),
+		.data3	= TCC_GPC(5),
 		.data4	= TCC_MMC_PORT_NULL,
 		.data5	= TCC_MMC_PORT_NULL,
 		.data6	= TCC_MMC_PORT_NULL,
 		.data7	= TCC_MMC_PORT_NULL,
-		.cmd	= TCC_GPD(19),
-		.clk	= TCC_GPD(20),
-		.cd = TCC_GPF(9),
-		.func = GPIO_FN(2),
-		.width = TCC_MMC_BUS_WIDTH_4,
+		.cmd	= TCC_GPC(1),
+		.clk	= TCC_GPC(0),
+		.func	= GPIO_FN(3),
+		.width	= TCC_MMC_BUS_WIDTH_4,
 
-		.pwr = GPIO_SD2_ON,
+		.cd	= TCC_GPC(27),
+		.pwr	= TCC_GPC(10),	//High:3.3V, Low:1.8V
 	},
 	[TCC_MMC_TYPE_WIFI] = {
 		.data0	= TCC_GPB(20),
@@ -75,11 +79,11 @@ static struct mmc_port_config mmc_ports[] = {
 		.data7	= TCC_MMC_PORT_NULL,
 		.cmd	= TCC_GPB(19),
 		.clk	= TCC_GPB(28),
-		.cd = TCC_GPD(14),
-		.func = GPIO_FN(3),
-		.width = TCC_MMC_BUS_WIDTH_4,
+		.func	= GPIO_FN(3),
+		.width	= TCC_MMC_BUS_WIDTH_4,
 
-		.pwr = GPIO_SD1_ON,
+		.cd	= TCC_GPB(13),
+		.pwr	= GPIO_SD1_ON,
 	},
 };
 
@@ -104,11 +108,11 @@ static struct mmc_port_config mmc_ports[] = {
 		.data7	= TCC_GPD(11),
 		.cmd	= TCC_GPD(19),
 		.clk	= TCC_GPD(20),
-		.cd = TCC_MMC_PORT_NULL,	//TCC_GPE(26),
-		.func = GPIO_FN(2),
-		.width = TCC_MMC_BUS_WIDTH_8,
+		.func	= GPIO_FN(2),
+		.width	= TCC_MMC_BUS_WIDTH_8,
 
-		.pwr = GPIO_SD0_ON,
+		.cd	= TCC_MMC_PORT_NULL,	//TCC_GPE(26),
+		.pwr	= GPIO_SD0_ON,
 	},
 	[TCC_MMC_TYPE_SD] = {
 		.data0	= TCC_GPF(26),
@@ -121,15 +125,17 @@ static struct mmc_port_config mmc_ports[] = {
 		.data7	= TCC_MMC_PORT_NULL,
 		.cmd	= TCC_GPF(27),
 		.clk	= TCC_GPF(28),
-		.cd = TCC_GPE(28),
-		.func = GPIO_FN(3),
-		.width = TCC_MMC_BUS_WIDTH_4,
+		.func	= GPIO_FN(3),
+		.width	= TCC_MMC_BUS_WIDTH_4,
 
-		.pwr = TCC_MMC_PORT_NULL,
+		.cd	= TCC_GPE(28),
+		.pwr	= TCC_MMC_PORT_NULL,
 	},
 };
 
 #else	//#if defined(CONFIG_MACH_TCC8925)
+
+#define TCC_MMC_SDIO_WIFI_USED
 
 typedef enum {
 #if defined(CONFIG_MMC_TCC_SDHC2)
@@ -143,39 +149,39 @@ typedef enum {
 static struct mmc_port_config mmc_ports[] = {
 #if defined(CONFIG_MMC_TCC_SDHC2)
 	[TCC_MMC_TYPE_EMMC] = {
+		.data0	= TCC_GPD(18),
+		.data1	= TCC_GPD(17),
+		.data2	= TCC_GPD(16),
+		.data3	= TCC_GPD(15),
+		.data4	= TCC_GPD(14),
+		.data5	= TCC_GPD(13),
+		.data6	= TCC_GPD(12),
+		.data7	= TCC_GPD(11),
+		.cmd	= TCC_GPD(19),
+		.clk	= TCC_GPD(20),
+		.func	= GPIO_FN(2),
+		.width	= TCC_MMC_BUS_WIDTH_8,
+
+		.cd	= TCC_MMC_PORT_NULL,	//TCC_GPB(14),
+		.pwr	= GPIO_SD0_ON,
+	},
+#endif
+	[TCC_MMC_TYPE_SD] = {
 		.data0	= TCC_GPF(19),
 		.data1	= TCC_GPF(20),
 		.data2	= TCC_GPF(21),
 		.data3	= TCC_GPF(22),
-		.data4	= TCC_GPF(23),
-		.data5	= TCC_GPF(24),
-		.data6	= TCC_GPF(25),
-		.data7	= TCC_GPF(26),
-		.cmd	= TCC_GPF(18),
-		.clk	= TCC_GPF(17),
-		.cd = TCC_MMC_PORT_NULL,	//TCC_GPD(12),
-		.func = GPIO_FN(2),
-		.width = TCC_MMC_BUS_WIDTH_8,
-
-		.pwr = GPIO_SD0_ON,
-	},
-#endif
-	[TCC_MMC_TYPE_SD] = {
-		.data0	= TCC_GPB(2),
-		.data1	= TCC_GPB(3),
-		.data2	= TCC_GPB(4),
-		.data3	= TCC_GPB(5),
 		.data4	= TCC_MMC_PORT_NULL,
 		.data5	= TCC_MMC_PORT_NULL,
 		.data6	= TCC_MMC_PORT_NULL,
 		.data7	= TCC_MMC_PORT_NULL,
-		.cmd	= TCC_GPB(1),
-		.clk	= TCC_GPB(0),
-		.cd = TCC_GPD(13),
-		.func = GPIO_FN(3),
-		.width = TCC_MMC_BUS_WIDTH_4,
+		.cmd	= TCC_GPF(18),
+		.clk	= TCC_GPF(17),
+		.func	= GPIO_FN(2),
+		.width	= TCC_MMC_BUS_WIDTH_4,
 
-		.pwr = GPIO_SD2_ON,
+		.cd	= TCC_GPB(12),
+		.pwr	= TCC_MMC_PORT_NULL,
 	},
 	[TCC_MMC_TYPE_WIFI] = {
 		.data0	= TCC_GPB(20),
@@ -188,10 +194,11 @@ static struct mmc_port_config mmc_ports[] = {
 		.data7	= TCC_MMC_PORT_NULL,
 		.cmd	= TCC_GPB(19),
 		.clk	= TCC_GPB(28),
-		.cd = TCC_GPD(14),
-		.func = GPIO_FN(3),
-		.width = TCC_MMC_BUS_WIDTH_4,
-		.pwr = GPIO_SD1_ON,
+		.func	= GPIO_FN(3),
+		.width	= TCC_MMC_BUS_WIDTH_4,
+
+		.cd	= TCC_GPB(13),
+		.pwr	= GPIO_SD1_ON,
 	},
 };
 #endif	//#if defined(CONFIG_MACH_TCC8925)
@@ -205,7 +212,7 @@ int tcc8920_mmc_init(struct device *dev, int id)
 	if(mmc_ports[id].pwr != TCC_MMC_PORT_NULL)
 		gpio_request(mmc_ports[id].pwr, "sd_power");
 
-	#if defined(TCC_MMC_TYPE_WIFI)
+	#if defined(TCC_MMC_SDIO_WIFI_USED)
 	if(id == TCC_MMC_TYPE_WIFI)
 	{
 		gpio_request(GPIO_SD1_ON, "wifi_pre_power");
@@ -262,7 +269,7 @@ int tcc8920_mmc_card_detect(struct device *dev, int id)
 
 int tcc8920_mmc_suspend(struct device *dev, int id)
 {
-	#if defined(TCC_MMC_TYPE_WIFI)
+	#if defined(TCC_MMC_SDIO_WIFI_USED)
 	if(id == TCC_MMC_TYPE_WIFI) {
 		gpio_direction_output(GPIO_SD1_ON, 0);
 	}
@@ -273,7 +280,7 @@ int tcc8920_mmc_suspend(struct device *dev, int id)
 
 int tcc8920_mmc_resume(struct device *dev, int id)
 {
-	#if defined(TCC_MMC_TYPE_WIFI)
+	#if defined(TCC_MMC_SDIO_WIFI_USED)
 	if (id == TCC_MMC_TYPE_WIFI) {
 		gpio_direction_output(GPIO_SD1_ON, 1);
 	}
@@ -320,13 +327,13 @@ int tcc8920_mmc_cd_int_config(struct device *dev, int id, unsigned int cd_irq)
 }
 
 
-#if defined(CONFIG_MMC_TCC_SD30_TEST)		// [0]:SD3.0,   [1]:WiFi
-struct tcc_mmc_platform_data tcc8920_mmc_platform_data[] = {
+#if defined(CONFIG_MMC_TCC_SD30_TEST)
+struct tcc_mmc_platform_data tcc8920_mmc_platform_data[] = {		// [0]:SD3.0,   [1]:WiFi
 	[TCC_MMC_TYPE_SD3_0] = {
-		.slot	= 4,
+		.slot	= 0,
 		.caps	= MMC_CAP_SDIO_IRQ | MMC_CAP_4_BIT_DATA
 			/* MMC_CAP_8_BIT_DATA */
-			| MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED,		// SD2 Slot is used CPU Board
+			| MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED,		// used on CPU Board
 		.f_min	= 100000,
 		.f_max	= 48000000,	/* support highspeed mode */
 		.ocr_mask = MMC_VDD_32_33 | MMC_VDD_33_34,
@@ -338,9 +345,9 @@ struct tcc_mmc_platform_data tcc8920_mmc_platform_data[] = {
 		.set_power = tcc8920_mmc_set_power,
 		.set_bus_width = tcc8920_mmc_set_bus_width,
 
-		.cd_int_num = -1,
-		//.cd_irq_num = INT_EI4,
-		.cd_ext_irq = -1,
+		.cd_int_num = HwINT0_EI4,
+		.cd_irq_num = INT_EI4,
+		.cd_ext_irq = EXTINT_GPIOC_27,
 		.peri_name = PERI_SDMMC0,
 		.io_name = RB_SDMMC0CONTROLLER,
 		.pic = HwINT1_SD0,
@@ -370,10 +377,10 @@ struct tcc_mmc_platform_data tcc8920_mmc_platform_data[] = {
 	},
 };
 
-#else	//#if defined(CONFIG_MMC_TCC_SD30_TEST)		// [0]:SD3.0,   [1]:WiFi
+#else	//#if defined(CONFIG_MMC_TCC_SD30_TEST)
 
-#if defined(CONFIG_MACH_TCC8925)	// [0] : eMMC,   [1] : SD
-struct tcc_mmc_platform_data tcc8920_mmc_platform_data[] = {
+#if defined(CONFIG_MACH_TCC8925)
+struct tcc_mmc_platform_data tcc8920_mmc_platform_data[] = {	// [0] : eMMC,   [1] : SD
 	[TCC_MMC_TYPE_EMMC] = {
 		.slot	= 4,
 		.caps	= MMC_CAP_SDIO_IRQ | MMC_CAP_4_BIT_DATA
@@ -425,9 +432,9 @@ struct tcc_mmc_platform_data tcc8920_mmc_platform_data[] = {
 #else	//#if defined(CONFIG_MACH_TCC8925)
 
 struct tcc_mmc_platform_data tcc8920_mmc_platform_data[] = {
-	#if defined(CONFIG_MMC_TCC_SDHC2)		// [0]:eMMC,   [1]:SD,   [2]:WiFi,   [3]:X
+	#if defined(CONFIG_MMC_TCC_SDHC2)		// [0]:eMMC,   [1]:SD,   [2]:WiFi
 	[TCC_MMC_TYPE_EMMC] = {
-		.slot	= 5,
+		.slot	= 4,
 		.caps	= MMC_CAP_SDIO_IRQ | MMC_CAP_4_BIT_DATA
 			| MMC_CAP_8_BIT_DATA
 			/*| MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED*/,		// SD0 Slot
@@ -445,16 +452,16 @@ struct tcc_mmc_platform_data tcc8920_mmc_platform_data[] = {
 		.cd_int_num = -1,
 		//.cd_irq_num = INT_EI5,
 		.cd_ext_irq = -1,
-		.peri_name = PERI_SDMMC1,
-		.io_name = RB_SDMMC1CONTROLLER,
-		.pic = HwINT1_SD1,
+		.peri_name = PERI_SDMMC0,
+		.io_name = RB_SDMMC0CONTROLLER,
+		.pic = HwINT1_SD0,
 	},
 	#endif
 	[TCC_MMC_TYPE_SD] = {
-		.slot	= 2,
+		.slot	= 5,
 		.caps	= MMC_CAP_SDIO_IRQ | MMC_CAP_4_BIT_DATA
 			/* MMC_CAP_8_BIT_DATA */
-			/*| MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED*/,
+			| MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED,
 		.f_min	= 100000,
 		.f_max	= 48000000,	/* support highspeed mode */
 		.ocr_mask = MMC_VDD_32_33 | MMC_VDD_33_34,
@@ -468,10 +475,10 @@ struct tcc_mmc_platform_data tcc8920_mmc_platform_data[] = {
 
 		.cd_int_num = HwINT0_EI4,
 		.cd_irq_num = INT_EI4,
-		.cd_ext_irq = EXTINT_GPIOD_13,
-		.peri_name = PERI_SDMMC2,
-		.io_name = RB_SDMMC2CONTROLLER,
-		.pic = HwINT1_SD2,
+		.cd_ext_irq = EXTINT_GPIOB_12,
+		.peri_name = PERI_SDMMC1,
+		.io_name = RB_SDMMC1CONTROLLER,
+		.pic = HwINT1_SD1,
 	},
 	[TCC_MMC_TYPE_WIFI] = {
 		.slot	= 3,
@@ -491,7 +498,7 @@ struct tcc_mmc_platform_data tcc8920_mmc_platform_data[] = {
 
 		.cd_int_num = HwINT0_EI5,
 		.cd_irq_num = INT_EI5,
-		.cd_ext_irq = EXTINT_GPIOD_14,
+		.cd_ext_irq = EXTINT_GPIOB_13,
 		.peri_name = PERI_SDMMC3,
 		.io_name = RB_SDMMC3CONTROLLER,
 		.pic = HwINT1_SD3,
@@ -525,21 +532,28 @@ struct tcc_mmc_platform_data tcc8920_mmc_platform_data[] = {
 
 static void tcc8920_mmc_port_setup(void)
 {
-	if(system_rev == 0x1005)		// for TCC8920 EVM Board
+	// 0x1000 : TCC8920_D2_08X4_SV01 - DDR2 512MB(32Bit)
+	// 0x1001 : TCC8920_D2_08X4_SV01 - DDR2 1024MB(32Bit)
+	// 0x1002 : TCC8920_D3_08X4_SV01 - DDR3 512MB(32Bit)
+	// 0x1003 : TCC8920_D3_08X4_SV01 - DDR3 1024MB(32Bit)
+	// 0x1004 : TCC8920_D3_08X4_SV01 - DDR3 512MB(16Bit)
+	// 0x1005 : TCC8920_D3_16X4_2CS_SV01 - DDR3 1024MB (32Bit)
+	if(system_rev < 0x1005)		// for TCC8920 EVM Board
 	{
 		// for SD3.0 Test
 		#if defined(CONFIG_MMC_TCC_SD30_TEST)
-		mmc_ports[TCC_MMC_TYPE_SD3_0].data0 = TCC_GPC(2);
-		mmc_ports[TCC_MMC_TYPE_SD3_0].data1 = TCC_GPC(3);
-		mmc_ports[TCC_MMC_TYPE_SD3_0].data2 = TCC_GPC(4);
-		mmc_ports[TCC_MMC_TYPE_SD3_0].data3 = TCC_GPC(5);
-		mmc_ports[TCC_MMC_TYPE_SD3_0].cmd = TCC_GPC(1);
-		mmc_ports[TCC_MMC_TYPE_SD3_0].clk = TCC_GPC(0);
-		mmc_ports[TCC_MMC_TYPE_SD3_0].cd = TCC_GPC(27);
-		mmc_ports[TCC_MMC_TYPE_SD3_0].func = GPIO_FN(3);
+		mmc_ports[TCC_MMC_TYPE_SD3_0].data0 = TCC_GPD(18);
+		mmc_ports[TCC_MMC_TYPE_SD3_0].data1 = TCC_GPD(17);
+		mmc_ports[TCC_MMC_TYPE_SD3_0].data2 = TCC_GPD(16);
+		mmc_ports[TCC_MMC_TYPE_SD3_0].data3 = TCC_GPD(15);
+		mmc_ports[TCC_MMC_TYPE_SD3_0].cmd = TCC_GPD(19);
+		mmc_ports[TCC_MMC_TYPE_SD3_0].clk = TCC_GPD(20);
+		mmc_ports[TCC_MMC_TYPE_SD3_0].func = GPIO_FN(2);
+		mmc_ports[TCC_MMC_TYPE_SD3_0].cd = TCC_GPF(9);
 
-		tcc8920_mmc_platform_data[TCC_MMC_TYPE_SD].slot	= 0;
+		tcc8920_mmc_platform_data[TCC_MMC_TYPE_SD].slot	= 4;
 		//tcc8920_mmc_platform_data[TCC_MMC_TYPE_SD].caps	|= (MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED);
+		tcc8920_mmc_platform_data[TCC_MMC_TYPE_SD].cd_ext_irq = EXTINT_GPIOF_09;
 		tcc8920_mmc_platform_data[TCC_MMC_TYPE_SD].peri_name = PERI_SDMMC0;
 		tcc8920_mmc_platform_data[TCC_MMC_TYPE_SD].io_name = RB_SDMMC0CONTROLLER;
 		tcc8920_mmc_platform_data[TCC_MMC_TYPE_SD].pic = HwINT1_SD0;
@@ -548,65 +562,51 @@ static void tcc8920_mmc_port_setup(void)
 
 		// for eMMC
 		#if defined(CONFIG_MMC_TCC_SDHC2)
-		mmc_ports[TCC_MMC_TYPE_EMMC].data0 = TCC_GPD(18);
-		mmc_ports[TCC_MMC_TYPE_EMMC].data1 = TCC_GPD(17);
-		mmc_ports[TCC_MMC_TYPE_EMMC].data2 = TCC_GPD(16);
-		mmc_ports[TCC_MMC_TYPE_EMMC].data3 = TCC_GPD(15);
-		mmc_ports[TCC_MMC_TYPE_EMMC].data4 = TCC_GPD(14);
-		mmc_ports[TCC_MMC_TYPE_EMMC].data5 = TCC_GPD(13);
-		mmc_ports[TCC_MMC_TYPE_EMMC].data6 = TCC_GPD(12);
-		mmc_ports[TCC_MMC_TYPE_EMMC].data7 = TCC_GPD(11);
-		mmc_ports[TCC_MMC_TYPE_EMMC].cmd = TCC_GPD(19);
-		mmc_ports[TCC_MMC_TYPE_EMMC].clk = TCC_GPD(20);
-		//mmc_ports[TCC_MMC_TYPE_EMMC].cd = TCC_MMC_PORT_NULL,	//TCC_GPB(14);
-		mmc_ports[TCC_MMC_TYPE_EMMC].func = GPIO_FN(2);
+		mmc_ports[TCC_MMC_TYPE_EMMC].data0 = TCC_GPF(19);
+		mmc_ports[TCC_MMC_TYPE_EMMC].data1 = TCC_GPF(20);
+		mmc_ports[TCC_MMC_TYPE_EMMC].data2 = TCC_GPF(21);
+		mmc_ports[TCC_MMC_TYPE_EMMC].data3 = TCC_GPF(22);
+		mmc_ports[TCC_MMC_TYPE_EMMC].data4 = TCC_GPF(23);
+		mmc_ports[TCC_MMC_TYPE_EMMC].data5 = TCC_GPF(24);
+		mmc_ports[TCC_MMC_TYPE_EMMC].data6 = TCC_GPF(25);
+		mmc_ports[TCC_MMC_TYPE_EMMC].data7 = TCC_GPF(26);
+		mmc_ports[TCC_MMC_TYPE_EMMC].cmd = TCC_GPF(18);
+		mmc_ports[TCC_MMC_TYPE_EMMC].clk = TCC_GPF(17);
+		//mmc_ports[TCC_MMC_TYPE_EMMC].cd = TCC_MMC_PORT_NULL,	//TCC_GPD(12);
+		//mmc_ports[TCC_MMC_TYPE_EMMC].func = GPIO_FN(2);
 
-		tcc8920_mmc_platform_data[TCC_MMC_TYPE_EMMC].slot = 4;
+		tcc8920_mmc_platform_data[TCC_MMC_TYPE_EMMC].slot = 5;
 		//tcc8920_mmc_platform_data[TCC_MMC_TYPE_EMMC].caps |= (MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED);
-		tcc8920_mmc_platform_data[TCC_MMC_TYPE_EMMC].peri_name = PERI_SDMMC0;
-		tcc8920_mmc_platform_data[TCC_MMC_TYPE_EMMC].io_name = RB_SDMMC0CONTROLLER;
-		tcc8920_mmc_platform_data[TCC_MMC_TYPE_EMMC].pic = HwINT1_SD0;
+		tcc8920_mmc_platform_data[TCC_MMC_TYPE_EMMC].peri_name = PERI_SDMMC1;
+		tcc8920_mmc_platform_data[TCC_MMC_TYPE_EMMC].io_name = RB_SDMMC1CONTROLLER;
+		tcc8920_mmc_platform_data[TCC_MMC_TYPE_EMMC].pic = HwINT1_SD1;
 		#endif
 
 		// for SDHC
-		mmc_ports[TCC_MMC_TYPE_SD].data0 = TCC_GPF(19);
-		mmc_ports[TCC_MMC_TYPE_SD].data1 = TCC_GPF(20);
-		mmc_ports[TCC_MMC_TYPE_SD].data2 = TCC_GPF(21);
-		mmc_ports[TCC_MMC_TYPE_SD].data3 = TCC_GPF(22);
-		mmc_ports[TCC_MMC_TYPE_SD].cmd = TCC_GPF(18);
-		mmc_ports[TCC_MMC_TYPE_SD].clk = TCC_GPF(17);
-		mmc_ports[TCC_MMC_TYPE_SD].cd = TCC_GPB(12);
-		mmc_ports[TCC_MMC_TYPE_SD].func = GPIO_FN(2);
+		mmc_ports[TCC_MMC_TYPE_SD].data0 = TCC_GPB(2);
+		mmc_ports[TCC_MMC_TYPE_SD].data1 = TCC_GPB(3);
+		mmc_ports[TCC_MMC_TYPE_SD].data2 = TCC_GPB(4);
+		mmc_ports[TCC_MMC_TYPE_SD].data3 = TCC_GPB(5);
+		mmc_ports[TCC_MMC_TYPE_SD].cmd = TCC_GPB(1);
+		mmc_ports[TCC_MMC_TYPE_SD].clk = TCC_GPB(0);
+		mmc_ports[TCC_MMC_TYPE_SD].cd = TCC_GPD(13);
+		mmc_ports[TCC_MMC_TYPE_SD].func = GPIO_FN(3);
 
-		tcc8920_mmc_platform_data[TCC_MMC_TYPE_SD].slot = 5;
-		tcc8920_mmc_platform_data[TCC_MMC_TYPE_SD].caps |= (MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED);
-		tcc8920_mmc_platform_data[TCC_MMC_TYPE_SD].cd_ext_irq = EXTINT_GPIOB_12;
-		tcc8920_mmc_platform_data[TCC_MMC_TYPE_SD].peri_name = PERI_SDMMC1;
-		tcc8920_mmc_platform_data[TCC_MMC_TYPE_SD].io_name = RB_SDMMC1CONTROLLER;
-		tcc8920_mmc_platform_data[TCC_MMC_TYPE_SD].pic = HwINT1_SD1;
+		tcc8920_mmc_platform_data[TCC_MMC_TYPE_SD].slot = 2;
+		tcc8920_mmc_platform_data[TCC_MMC_TYPE_SD].caps &= ~(MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED);
+		tcc8920_mmc_platform_data[TCC_MMC_TYPE_SD].cd_ext_irq = EXTINT_GPIOD_13;
+		tcc8920_mmc_platform_data[TCC_MMC_TYPE_SD].peri_name = PERI_SDMMC2;
+		tcc8920_mmc_platform_data[TCC_MMC_TYPE_SD].io_name = RB_SDMMC2CONTROLLER;
+		tcc8920_mmc_platform_data[TCC_MMC_TYPE_SD].pic = HwINT1_SD2;
 		#endif
 
-		#if defined(TCC_MMC_TYPE_WIFI)
 		// for WiFi
-		mmc_ports[TCC_MMC_TYPE_WIFI].data0 = TCC_GPB(20);
-		mmc_ports[TCC_MMC_TYPE_WIFI].data1 = TCC_GPB(21);
-		mmc_ports[TCC_MMC_TYPE_WIFI].data2 = TCC_GPB(22);
-		mmc_ports[TCC_MMC_TYPE_WIFI].data3 = TCC_GPB(23);
-		mmc_ports[TCC_MMC_TYPE_WIFI].cmd = TCC_GPB(19);
-		mmc_ports[TCC_MMC_TYPE_WIFI].clk = TCC_GPB(28);
-		mmc_ports[TCC_MMC_TYPE_WIFI].cd = TCC_GPB(13);
-		mmc_ports[TCC_MMC_TYPE_WIFI].func = GPIO_FN(3);
+		#if defined(TCC_MMC_SDIO_WIFI_USED)
+		mmc_ports[TCC_MMC_TYPE_WIFI].cd = TCC_GPD(14);
 
-		tcc8920_mmc_platform_data[TCC_MMC_TYPE_WIFI].slot	= 3;
-		//tcc8920_mmc_platform_data[TCC_MMC_TYPE_WIFI].caps	|= (MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED);
-		tcc8920_mmc_platform_data[TCC_MMC_TYPE_WIFI].cd_ext_irq = EXTINT_GPIOB_13;
-		tcc8920_mmc_platform_data[TCC_MMC_TYPE_WIFI].peri_name = PERI_SDMMC3;
-		tcc8920_mmc_platform_data[TCC_MMC_TYPE_WIFI].io_name = RB_SDMMC3CONTROLLER;
-		tcc8920_mmc_platform_data[TCC_MMC_TYPE_WIFI].pic = HwINT1_SD3;
+		tcc8920_mmc_platform_data[TCC_MMC_TYPE_WIFI].cd_ext_irq = EXTINT_GPIOD_14;
 		#endif
 	}
-
-	tcc_init_sdhc_devices();
 }
 
 static int __init tcc8920_init_mmc(void)
@@ -617,6 +617,7 @@ static int __init tcc8920_init_mmc(void)
 	printk("%s\n",__func__);
 
 	tcc8920_mmc_port_setup();
+	tcc_init_sdhc_devices();
 
 #if defined(CONFIG_MMC_TCC_SDHC)
 #if defined(CONFIG_MMC_TCC_SDHC0)

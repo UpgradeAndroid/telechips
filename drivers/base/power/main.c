@@ -31,7 +31,7 @@
 
 #include "../base.h"
 #include "power.h"
-
+#include "../../../kernel/power/power.h"
 /*
  * The entries in the dpm_list list are in a depth first order, simply
  * because children are guaranteed to be discovered after parents, and
@@ -648,7 +648,10 @@ void dpm_resume(pm_message_t state)
 
 			mutex_unlock(&dpm_list_mtx);
 
+			suspend_test_start_dev(TEST_SUSPEND_TIME_LEVEL1);
 			error = device_resume(dev, state, false);
+			suspend_test_finish_dev(dev, TEST_SUSPEND_TIME_LEVEL1, "device_resume");
+
 			if (error)
 				pm_dev_err(dev, state, "", error);
 

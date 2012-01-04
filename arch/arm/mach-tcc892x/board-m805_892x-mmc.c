@@ -57,11 +57,11 @@ static struct mmc_port_config mmc_ports[] = {
 		.data7	= TCC_MMC_PORT_NULL,
 		.cmd	= TCC_GPC(1),
 		.clk	= TCC_GPC(0),
-		.cd = TCC_GPD(17),
-		.func = GPIO_FN(3),
-		.width = TCC_MMC_BUS_WIDTH_4,
+		.func	= GPIO_FN(3),
+		.width	= TCC_MMC_BUS_WIDTH_4,
 
-		.pwr = TCC_MMC_PORT_NULL,
+		.cd	= TCC_GPD(17),
+		.pwr	= TCC_MMC_PORT_NULL,
 	},
 };
 
