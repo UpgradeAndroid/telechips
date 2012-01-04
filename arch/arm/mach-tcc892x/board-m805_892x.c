@@ -227,20 +227,20 @@ static struct axp192_platform_data axp192_info = {
 #endif
 
 #if defined(CONFIG_REGULATOR_RN5T614)
-static struct regulator_consumer_supply rn5t614_consumer_a = {
-	.supply = "vdd_coreA",
+static struct regulator_consumer_supply rn5t614_consumer = {
+	.supply = "vdd_core",
 };
 
 static struct regulator_init_data rn5t614_dcdc1_info = {
 	.constraints = {
-		.name = "vdd_coreA range",
+		.name = "vdd_core range",
 		.min_uV =  950000,
 		.max_uV = 1500000,
 		.always_on = 1,
 		.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE,
 	},
 	.num_consumer_supplies = 1,
-	.consumer_supplies     = &rn5t614_consumer_a,
+	.consumer_supplies     = &rn5t614_consumer,
 };
 
 static struct regulator_consumer_supply rn5t614_consumer_hdmi_osc = {
@@ -260,7 +260,7 @@ static struct regulator_init_data rn5t614_ldo7_info = {
 
 static struct rn5t614_subdev_data rn5t614_subdev[] = {
 	{
-		.name = "vdd_coreA",
+		.name = "vdd_core",
 		.id   = RN5T614_ID_DCDC1,
 		.platform_data = &rn5t614_dcdc1_info,
 	},
