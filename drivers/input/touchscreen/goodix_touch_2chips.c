@@ -1186,13 +1186,20 @@ static void initial_irq(void)
 
 #ifdef CONFIG_MACH_TCC8920
 
-
-	      gpio_request(TCC_GPG(18), "tsc_int");
+	if(system_rev == 0x1005)
+	{
+		gpio_request(TCC_GPB(11), "tsc_int");
+		tcc_gpio_config(TCC_GPB(11), GPIO_FN(0));
+		gpio_direction_input(TCC_GPB(11));
+		tcc_gpio_config_ext_intr(INT_EI2, EXTINT_GPIOB_11);
+	}
+	else
+	{
+		gpio_request(TCC_GPG(18), "tsc_int");
 		tcc_gpio_config(TCC_GPG(18), GPIO_FN(0));
 		gpio_direction_input(TCC_GPG(18));
-
 		tcc_gpio_config_ext_intr(INT_EI2, EXTINT_GPIOG_18);
-
+	}
  #endif
 
 #endif

@@ -95,12 +95,24 @@ void TDD_CIF_Initialize()
 		BITCSET(pGPIO_F->GPFN0.nREG, 0xFFFFFFFF, 0x11111111);  
 		BITCSET(pGPIO_F->GPFN1.nREG, 0x0000FFFF, 0x0000B111);	
 	#else
-		// Change to Functional GPIO that GPIO_D
-		BITCSET(pGPIO_F->GPFN0.nREG, 0xFFFFFFFF, 0x11111111);  
-		BITCSET(pGPIO_F->GPFN1.nREG, 0x0000FFFF, 0x0001B111);
+		if(system_rev == 0x1005){
+			BITCSET(pGPIO_F->GPEN.nREG, 0x4100FFFF, 0x4100FFFF);
+			
+			// Change to Functional GPIO that GPIO_D
+			BITCSET(pGPIO_F->GPFN0.nREG, 0xFFFFFFFF, 0x11111111);  
+			BITCSET(pGPIO_F->GPFN1.nREG, 0xFFFFFFFF, 0x0001B111);
 
-		BITCSET(pGPIO_C->GPFN3.nREG, 0x00F00000, 0x00000000); // Temporary, C29 to GPIO (FL_EN), 5M PWDN
-		BITCSET(pGPIO_D->GPFN2.nREG, 0x0000000F, 0x00000000); // Temporary, D16 to GPIO (STDBY), 1.3M PWDN
+			BITCSET(pGPIO_F->GPFN3.nREG, 0x0F00000F, 0x00000000);	// FL_EN(30), Power(24)
+			printk("0x1005 tcc892x port configuration!!\n");
+		}
+		else{
+			// Change to Functional GPIO that GPIO_D
+			BITCSET(pGPIO_F->GPFN0.nREG, 0xFFFFFFFF, 0x11111111);  
+			BITCSET(pGPIO_F->GPFN1.nREG, 0x0000FFFF, 0x0001B111);
+
+			BITCSET(pGPIO_C->GPFN3.nREG, 0x00F00000, 0x00000000); // Temporary, C29 to GPIO (FL_EN), 5M PWDN
+			BITCSET(pGPIO_D->GPFN2.nREG, 0x0000000F, 0x00000000); // Temporary, D16 to GPIO (STDBY), 1.3M PWDN
+		}
 		
 	#endif
 		// Change to Driving Strength that GPIO_D
