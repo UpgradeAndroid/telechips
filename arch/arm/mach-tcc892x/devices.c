@@ -676,7 +676,7 @@ static struct resource spi0_resources[] = {
 #elif   defined(CONFIG_MACH_M805_892X)	
   		.start	= 13,/* Port13 GPIO_E[28:31] */
 		.end	= 13,
-#else        
+#else
 		.start	= 4,/* Port4 GPIO_D[17:20] */
 		.end	= 4,
 #endif		
@@ -776,7 +776,7 @@ static struct resource tsif_resources[] = {
 #elif   defined(CONFIG_MACH_M805_892X)		
    		.start	= 10,/* Port10 GPIO_C[10:13] */
 		.end	= 10,
-#else        
+#else
    		.start	= 6,/* Port6 GPIO_B[11:14] */
 		.end	= 6,
 #endif        
@@ -873,6 +873,25 @@ static int __init tcc892x_init_devices(void)
 	tcc_add_pmem_devices();
     tcc_init_audio();
 
+#if defined(CONFIG_SPI_TCCXXXX_MASTER) || defined(CONFIG_SPI_TCCXXXX_MASTER_MODULE)
+    #if   defined(CONFIG_MACH_TCC8920)		        
+    if(system_rev == 0x1005)
+    {
+        spi0_resources[2].start = 17; /* Port17 GPIO_G[0:3] */
+        spi0_resources[2].end = 17;
+    }
+    #endif
+#endif    
+
+#if defined(CONFIG_SPI_TCCXXXX_TSIF_SLAVE) || defined(CONFIG_SPI_TCCXXXX_TSIF_SLAVE_MODULE)
+    #if   defined(CONFIG_MACH_TCC8920)		        
+    if(system_rev == 0x1005)
+    {
+        tsif_resources[2].start = 5; /* Port5 GPIO_B[0:3] */
+        tsif_resources[2].end = 5;
+    }
+    #endif
+#endif    
 	return 0;
 }
 arch_initcall(tcc892x_init_devices);

@@ -221,6 +221,14 @@ static int tca_spi_set_port(struct tca_spi_handle *h)
 		    tcc_gpio_config(TCC_GPD(20), GPIO_FN(6));
 			break;
 		}
+		case 5:
+		{
+		    tcc_gpio_config(TCC_GPB(0), GPIO_FN(9));
+		    tcc_gpio_config(TCC_GPB(1), GPIO_FN(9));
+		    tcc_gpio_config(TCC_GPB(2), GPIO_FN(9));
+		    tcc_gpio_config(TCC_GPB(3), GPIO_FN(9));
+			break;
+		}
 		case 6:
 		{
 		    tcc_gpio_config(TCC_GPB(11), GPIO_FN(9));
@@ -245,6 +253,14 @@ static int tca_spi_set_port(struct tca_spi_handle *h)
 		    tcc_gpio_config(TCC_GPE(31), GPIO_FN(4));
 			break;
 		}
+		case 17:
+		{
+		    tcc_gpio_config(TCC_GPG(0), GPIO_FN(2));
+		    tcc_gpio_config(TCC_GPG(1), GPIO_FN(2));
+		    tcc_gpio_config(TCC_GPG(2), GPIO_FN(2));
+		    tcc_gpio_config(TCC_GPG(3), GPIO_FN(2));
+			break;
+		}
 		default:
 		{
 			ret = -1;
@@ -265,6 +281,14 @@ static int tca_spi_clear_port(struct tca_spi_handle *h)
 		    tcc_gpio_config(TCC_GPD(18), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);
 		    tcc_gpio_config(TCC_GPD(19), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);
 		    tcc_gpio_config(TCC_GPD(20), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);
+			break;
+		}
+		case 5:
+		{
+		    tcc_gpio_config(TCC_GPB(0), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);
+		    tcc_gpio_config(TCC_GPB(1), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);
+		    tcc_gpio_config(TCC_GPB(2), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);
+		    tcc_gpio_config(TCC_GPB(3), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);
 			break;
 		}
 		case 6:
@@ -289,6 +313,14 @@ static int tca_spi_clear_port(struct tca_spi_handle *h)
 		    tcc_gpio_config(TCC_GPE(29), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);
 		    tcc_gpio_config(TCC_GPE(30), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);
 		    tcc_gpio_config(TCC_GPE(31), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);
+			break;
+		}
+		case 17:
+		{
+		    tcc_gpio_config(TCC_GPG(0), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);
+		    tcc_gpio_config(TCC_GPG(1), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);
+		    tcc_gpio_config(TCC_GPG(2), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);
+		    tcc_gpio_config(TCC_GPG(3), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);
 			break;
 		}
 		default:
