@@ -64,7 +64,7 @@ extern struct platform_device tcc_gmac_device;
 
 extern struct platform_device tcc8800_spi0_device;
 extern struct platform_device tcc_tsif_device;
-extern struct platform_device tcc_tsif_module_device;
+extern struct platform_device tcc_tsif_ex_device;
 
 #if defined(CONFIG_TCC_ECID_SUPPORT)
 extern struct platform_device tcc_cpu_id_device;

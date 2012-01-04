@@ -1,5 +1,5 @@
 /****************************************************************************
- *   FileName    : tcc_tsif_module_hwset.h
+ *   FileName    : tcc_tsif_hwset.h
  *   Description : 
  ****************************************************************************
  *
@@ -91,11 +91,11 @@ struct tea_dma_buf {
     int buf_size; // total size of DMA
 };
 
-typedef struct tcc_tsif_module_handle tcc_tsif_module_handle_t;
+typedef struct tcc_tsif_handle tcc_tsif_handle_t;
 typedef int (*dma_alloc_f)(struct tea_dma_buf *tdma, unsigned int size);
 typedef void (*dma_free_f)(struct tea_dma_buf *tdma);
 
-struct tcc_tsif_module_handle {
+struct tcc_tsif_handle {
     volatile struct tcc_tsif_regs *regs;
     struct tea_dma_buf rx_dma;
 	//int flag;
@@ -107,11 +107,11 @@ struct tcc_tsif_module_handle {
 	//int is_slave;
 	int gpio_port;
 
-    int (*dma_stop)(struct tcc_tsif_module_handle *h);
-    int (*dma_start)(struct tcc_tsif_module_handle *h);
-    void (*clear_fifo_packet)(struct tcc_tsif_module_handle *h);
-	void (*tsif_set)(struct tcc_tsif_module_handle *h);
-	void (*tsif_isr)(struct tcc_tsif_module_handle *h);
+    int (*dma_stop)(struct tcc_tsif_handle *h);
+    int (*dma_start)(struct tcc_tsif_handle *h);
+    void (*clear_fifo_packet)(struct tcc_tsif_handle *h);
+	void (*tsif_set)(struct tcc_tsif_handle *h);
+	void (*tsif_isr)(struct tcc_tsif_handle *h);
 	
     dma_alloc_f tea_dma_alloc; // tea function.
     dma_free_f tea_dma_free; // tea function.
@@ -143,8 +143,8 @@ struct tcc_tsif_module_handle {
 	unsigned int dma_phy_size;
 };
 
-extern int tca_tsif_module_init(struct tcc_tsif_module_handle *h, volatile struct tcc_tsif_regs *regs, 
+extern int tca_tsif_init(struct tcc_tsif_handle *h, volatile struct tcc_tsif_regs *regs, 
 		dma_alloc_f tea_dma_alloc, dma_free_f tea_dma_free, int dma_size, int tsif_ch, int dma_controller, int dma_ch, int port);
-extern void tca_tsif_module_clean(struct tcc_tsif_module_handle *h);
+extern void tca_tsif_clean(struct tcc_tsif_handle *h);
 
 #endif /*__TCC_TSIF_MODULE_HWSET_H__*/

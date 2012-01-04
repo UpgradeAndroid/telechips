@@ -1,5 +1,5 @@
 /****************************************************************************
- *   FileName    :  tcc_tsif_module_hwset.c
+ *   FileName    :  tcc_tsif_hwset.c
  *   Description : 
  ****************************************************************************
  *
@@ -16,9 +16,9 @@
 #include <mach/tca_tsif.h>
 
 //#define DEBUG_INFO
-static void tcc_tsif_module_hw_init(struct tcc_tsif_module_handle *h);
+static void tcc_tsif_hw_init(struct tcc_tsif_handle *h);
 
-static void tcc_tsif_module_clearfifopacket(struct tcc_tsif_module_handle *h)
+static void tcc_tsif_clearfifopacket(struct tcc_tsif_handle *h)
 {
 	BITSET(h->regs->TSCR, Hw7);		//set to Hw7 : empties RX Fifo
 
@@ -30,7 +30,7 @@ static void tcc_tsif_module_clearfifopacket(struct tcc_tsif_module_handle *h)
 #endif 
 }
 
-static int tca_tsif_module_set_port(struct tcc_tsif_module_handle *h)
+static int tca_tsif_set_port(struct tcc_tsif_handle *h)
 {
 	volatile PGPIO gpio_regs = (volatile PGPIO)tcc_p2v(HwGPIO_BASE);
     volatile unsigned long* TSIFPORT = (volatile unsigned long *)tcc_p2v(HwTSIF_PORTSEL_BASE);
@@ -74,7 +74,7 @@ static int tca_tsif_module_set_port(struct tcc_tsif_module_handle *h)
 		return ret;
 }
 
-static void tcc_tsif_module_release_port(struct tcc_tsif_module_handle *h)
+static void tcc_tsif_release_port(struct tcc_tsif_handle *h)
 {
 	volatile PGPIO gpio_regs = (volatile PGPIO)tcc_p2v(HwGPIO_BASE);
     volatile unsigned long* TSIFPORT = (volatile unsigned long *)tcc_p2v(HwTSIF_PORTSEL_BASE);
@@ -120,11 +120,11 @@ static void tcc_tsif_module_release_port(struct tcc_tsif_module_handle *h)
 }
 
 
-static void tcc_tsif_module_set(struct tcc_tsif_module_handle *h)
+static void tcc_tsif_set(struct tcc_tsif_handle *h)
 {
 //20110526 koo : android tcc880x kernel에서는 module init 후에 tsif & gpsb1을 swret state 및 clk disable 상태로 만들기 때문에 module init 시의 tsif & dma reg 설정 value가 
 //				reset 되기 때문에 start 시 다시 설정.
-	tcc_tsif_module_hw_init(h);
+	tcc_tsif_hw_init(h);
 
 #ifdef GDMA
 #if !defined(CONFIG_iTV_FE_TUNER_MODULE_XC5000) && !defined(CONFIG_iTV_FE_TUNER_MODULE_FQD1136)
@@ -180,7 +180,7 @@ static void tcc_tsif_module_set(struct tcc_tsif_module_handle *h)
 }
 
 #ifdef GDMA
-static void tcc_tsif_module_isr(struct tcc_tsif_module_handle *h)
+static void tcc_tsif_isr(struct tcc_tsif_handle *h)
 {
 	volatile PGDMACTRL dma_regs;
 	
@@ -216,7 +216,7 @@ static void tcc_tsif_module_isr(struct tcc_tsif_module_handle *h)
 	h->dma_intr_cnt++;
 }
 
-static void tcc_tsif_module_dma_init(struct tcc_tsif_module_handle *h)
+static void tcc_tsif_dma_init(struct tcc_tsif_handle *h)
 {
 	volatile PGDMACTRL dma_regs;
 	unsigned int mask_addr;
@@ -315,7 +315,7 @@ static void tcc_tsif_module_dma_init(struct tcc_tsif_module_handle *h)
 	}
 }
 
-static int tcc_tsif_module_dmastart(struct tcc_tsif_module_handle *h)
+static int tcc_tsif_dmastart(struct tcc_tsif_handle *h)
 {
 	volatile PGDMACTRL dma_regs;
 
@@ -335,7 +335,7 @@ static int tcc_tsif_module_dmastart(struct tcc_tsif_module_handle *h)
 	h->dma_recv_size	= 0;
 	h->dma_intr_cnt		= 0;
 
-	tcc_tsif_module_dma_init(h);
+	tcc_tsif_dma_init(h);
 
 	if(h->dma_ch == 0)	 	BITSET(dma_regs->CHCTRL0, 	Hw0);	//dma enable
 	else if(h->dma_ch == 1)	BITSET(dma_regs->CHCTRL1, 	Hw0);	//dma enable
@@ -350,7 +350,7 @@ static int tcc_tsif_module_dmastart(struct tcc_tsif_module_handle *h)
 	return 0;
 }
 
-static int tcc_tsif_module_dmastop(struct tcc_tsif_module_handle *h)
+static int tcc_tsif_dmastop(struct tcc_tsif_handle *h)
 {
 	volatile PGDMACTRL dma_regs;
 
@@ -374,14 +374,14 @@ static int tcc_tsif_module_dmastop(struct tcc_tsif_module_handle *h)
 	return 0;
 }
 
-static void tcc_tsif_module_dma_deinit(struct tcc_tsif_module_handle *h)
+static void tcc_tsif_dma_deinit(struct tcc_tsif_handle *h)
 {
 	volatile PGDMACTRL dma_regs;
 
 	dma_regs = (volatile PGDMACTRL)tcc_p2v(HwGDMA0_BASE);
 }
 #else //GDMA
-static void tcc_tsif_module_isr(struct tcc_tsif_module_handle *h)
+static void tcc_tsif_isr(struct tcc_tsif_handle *h)
 {
 	volatile PGPSB dma_regs;
 	unsigned long dma_done_reg = 0;
@@ -400,7 +400,7 @@ static void tcc_tsif_module_isr(struct tcc_tsif_module_handle *h)
 	return;
 }
 
-static void tcc_tsif_module_dma_init(struct tcc_tsif_module_handle *h)
+static void tcc_tsif_dma_init(struct tcc_tsif_handle *h)
 {
 	volatile PGPSB dma_regs;
 	
@@ -418,7 +418,7 @@ static void tcc_tsif_module_dma_init(struct tcc_tsif_module_handle *h)
 	BITCLR(dma_regs->DMACTR, Hw28); //0:little endian, 1:Big endian
 }
 
-static int tcc_tsif_module_dmastart(struct tcc_tsif_module_handle *h)
+static int tcc_tsif_dmastart(struct tcc_tsif_handle *h)
 {
 	volatile PGPSB dma_regs;
 	unsigned int packet_cnt = (h->dma_total_packet_cnt & 0x1FFF) -1;
@@ -461,7 +461,7 @@ static int tcc_tsif_module_dmastart(struct tcc_tsif_module_handle *h)
 	return 0;
 }
 
-static int tcc_tsif_module_dmastop(struct tcc_tsif_module_handle *h)
+static int tcc_tsif_dmastop(struct tcc_tsif_handle *h)
 {
 	volatile PGPSB dma_regs;
 	
@@ -479,17 +479,17 @@ static int tcc_tsif_module_dmastop(struct tcc_tsif_module_handle *h)
 	return 0;
 }
 
-static void tcc_tsif_module_dma_deinit(struct tcc_tsif_module_handle *h)
+static void tcc_tsif_dma_deinit(struct tcc_tsif_handle *h)
 {
 }
 #endif //GDMA
 
-static void tcc_tsif_module_hw_init(struct tcc_tsif_module_handle *h)
+static void tcc_tsif_hw_init(struct tcc_tsif_handle *h)
 {
 	unsigned int reg_val;
 	int i;
 
-	tca_tsif_module_set_port(h);
+	tca_tsif_set_port(h);
 
 	if(TSIF_BYTE_SIZE == 4)			reg_val = Hw17 | Hw9 | Hw8 | Hw7;
 	else if(TSIF_BYTE_SIZE == 2)	reg_val = Hw17 | Hw8 | Hw7;
@@ -508,21 +508,21 @@ static void tcc_tsif_module_hw_init(struct tcc_tsif_module_handle *h)
 		BITCLR(h->regs->TSPID[i], 	(Hw32-Hw0));
 	}
 
-	tcc_tsif_module_dma_init(h);
+	tcc_tsif_dma_init(h);
 	
 #ifdef DEBUG_INFO
 	printk("%s\n", __func__);
 #endif
 }
 
-static void tcc_tsif_module_hw_deinit(struct tcc_tsif_module_handle *h)
+static void tcc_tsif_hw_deinit(struct tcc_tsif_handle *h)
 {
-	tcc_tsif_module_release_port(h);
+	tcc_tsif_release_port(h);
 
 	BITCLR(h->regs->TSCR, 	(Hw32-Hw0));
 	BITCLR(h->regs->TSIC,	(Hw32-Hw0));
 
-	tcc_tsif_module_dma_deinit(h);
+	tcc_tsif_dma_deinit(h);
 
 #ifdef DEBUG_INFO
 	printk("%s\n", __func__);
@@ -535,7 +535,7 @@ static void tcc_tsif_module_hw_deinit(struct tcc_tsif_module_handle *h)
  * ret == 0: success
  * ret > 0 or ret < 0: fail
  ******************************/
-int tca_tsif_module_init(struct tcc_tsif_module_handle *h,
+int tca_tsif_init(struct tcc_tsif_handle *h,
 					volatile struct tcc_tsif_regs *regs,
 					dma_alloc_f tea_dma_alloc,
 					dma_free_f tea_dma_free,
@@ -560,11 +560,11 @@ int tca_tsif_module_init(struct tcc_tsif_module_handle *h,
 #endif //GDMA
 		h->gpio_port 		= port;
 
-		h->dma_stop 		= tcc_tsif_module_dmastop;
-		h->dma_start 		= tcc_tsif_module_dmastart;
-		h->clear_fifo_packet= tcc_tsif_module_clearfifopacket;
-		h->tsif_set			= tcc_tsif_module_set;
-		h->tsif_isr			= tcc_tsif_module_isr;
+		h->dma_stop 		= tcc_tsif_dmastop;
+		h->dma_start 		= tcc_tsif_dmastart;
+		h->clear_fifo_packet= tcc_tsif_clearfifopacket;
+		h->tsif_set			= tcc_tsif_set;
+		h->tsif_isr			= tcc_tsif_isr;
 
 		h->tea_dma_alloc 	= tea_dma_alloc;
 		h->tea_dma_free 	= tea_dma_free;
@@ -579,28 +579,28 @@ int tca_tsif_module_init(struct tcc_tsif_module_handle *h,
 			ret = 0;
 		}
 
-		tcc_tsif_module_hw_init(h);
+		tcc_tsif_hw_init(h);
 		
 		if(ret)
-			tca_tsif_module_clean(h);
+			tca_tsif_clean(h);
 	}
 
 	return ret;
 }
 
-void tca_tsif_module_clean(struct tcc_tsif_module_handle *h)
+void tca_tsif_clean(struct tcc_tsif_handle *h)
 {
 	if(h) {
 		if(h->tea_dma_free) {
 			h->tea_dma_free(&(h->rx_dma));
 		}
 
-		tcc_tsif_module_hw_deinit(h);
+		tcc_tsif_hw_deinit(h);
 	}
 }
 
 
-EXPORT_SYMBOL(tca_tsif_module_init);
-EXPORT_SYMBOL(tca_tsif_module_clean);
+EXPORT_SYMBOL(tca_tsif_init);
+EXPORT_SYMBOL(tca_tsif_clean);
 
 
