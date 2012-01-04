@@ -245,11 +245,17 @@ extern "C" {
 #define HwTSIF0_BASE                            (0x76800000)
 #define HwTSIF1_BASE                            (0x76810000)
 #define HwTSIF2_BASE                            (0x76820000)
-#define HwTSIF_PORTCFG_BASE                     (0x76830000)
+#define HwTSIF_TSCHS_BASE                     (0x76830000)
+#define HwTSIF_IRQSTS_BASE                     (0x7683000C)
 #define HwTSIF_DMA0_BASE                        (0x76840000)
 #define HwTSIF_DMA1_BASE                        (0x76850000)
 #define HwTSIF_DMA2_BASE                        (0x76860000)
 #define HwTSIF_PID_BASE                         (0x76870000)
+
+#define	HwTSIF_PIDT(X)				(HwTSIF_PID_BASE+(X)*4)	// R/W, PID Table Register
+#define	HwTSIF_PIDT_CH2				Hw31											// Channel 2 enable
+#define	HwTSIF_PIDT_CH1				Hw30											// Channel 1 enable
+#define	HwTSIF_PIDT_CH0				Hw29											// Channel 0 enable
 
 
 /*******************************************************************************
