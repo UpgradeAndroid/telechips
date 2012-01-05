@@ -1130,7 +1130,7 @@ tccxxx_grp_init(void)
 
 	grp_class = class_create(THIS_MODULE, DEVICE_NAME);
 	device_create(grp_class,NULL,MKDEV(MAJOR_ID, MINOR_ID), NULL, DEVICE_NAME);
-	if ((ret = request_irq(INT_G2D, tccxxx_grp_handler, IRQF_DISABLED, "grp", &g2d_struct))< 0) 	{
+	if ((ret = request_irq(INT_G2D, tccxxx_grp_handler, IRQF_SHARED, "grp", &g2d_struct))< 0) 	{
 		dprintk("FAILED to aquire irq\n");
 		return -EFAULT;
 	}
