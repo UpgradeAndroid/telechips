@@ -103,7 +103,7 @@ static int at070tn93_set_backlight_level(struct lcd_panel *panel, int level)
 
 	struct lcd_platform_data *pdata = panel->dev->platform_data;
 
-	printk("%s : %d\n", __func__, level);
+	//printk("%s : %d\n", __func__, level);
 	
 	mutex_lock(&panel_lock);
 	lcd_bl_level = level;
