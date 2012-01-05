@@ -276,7 +276,7 @@ static void cif_data_init(void *priv)
 	data->cif_cfg.zoom_step			= 0;
 	
 	data->cif_cfg.base_buf			= hardware_data.cif_buf.addr;
-	data->cif_cfg.pp_num			= 0;//TCC_CAMERA_MAX_BUFNBRS;
+	data->cif_cfg.pp_num			= 0; // TCC_CAMERA_MAX_BUFNBRS;
 
 	data->cif_cfg.fmt				= tcc_sensor_info.format;
 	
@@ -320,7 +320,7 @@ static void cif_data_init(void *priv)
 	data->cif_cfg.base_buf			= hardware_data.cif_buf.addr;
 	#endif
 
-	data->cif_cfg.pp_num			= 0;//TCC_CAMERA_MAX_BUFNBRS;
+	data->cif_cfg.pp_num			= 0; // TCC_CAMERA_MAX_BUFNBRS;
 #if defined(CONFIG_VIDEO_ATV_SENSOR_TVP5150) || defined(CONFIG_VIDEO_ATV_SENSOR_RDA5888)
 	data->cif_cfg.fmt				= M420_EVEN;
 #else
@@ -1594,8 +1594,13 @@ int tccxxx_vioc_vin_main(VIOC_VIN *pVIN)
 	if(data->cif_cfg.oper_mode == OPER_CAPTURE)
 	{
 		#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
+		if(data->cif_cfg.main_set.target_x >= tcc_sensor_info.cam_capchg_width) {
 			width 	= tcc_sensor_info.capture_w;
 			height 	= tcc_sensor_info.capture_h;
+		} else {
+			width 	= tcc_sensor_info.preview_w;
+			height 	= tcc_sensor_info.preview_h;
+		}
 		#else
 			width 	= CAP_W;
 			height 	= CAP_H;
