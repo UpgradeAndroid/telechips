@@ -38,6 +38,14 @@ typedef enum {
 #define HwINT1_SD2	 				Hw1 					// R/W, SD/MMC 2 Interrupt enable
 #define HwINT1_SD3		 			Hw0 					// R/W, SD/MMC 3 Interrupt enable
 
+#if defined(CONFIG_TCC8923_0XA)
+#define TFCD_EXT_INT		EXTINT_GPIOE_13
+#define TFCD_GPIO_PORT		TCC_GPE(13)
+#else
+#define TFCD_EXT_INT		EXTINT_GPIOD_17
+#define TFCD_GPIO_PORT		TCC_GPD(17)
+#endif
+
 
 typedef enum {
 	TCC_MMC_TYPE_SD,
@@ -47,21 +55,20 @@ typedef enum {
 
 static struct mmc_port_config mmc_ports[] = {
 	[TCC_MMC_TYPE_SD] = {
-		.data0	= TCC_GPC(2),
-		.data1	= TCC_GPC(3),
-		.data2	= TCC_GPC(4),
-		.data3	= TCC_GPC(5),
-		.data4	= TCC_MMC_PORT_NULL,
-		.data5	= TCC_MMC_PORT_NULL,
-		.data6	= TCC_MMC_PORT_NULL,
-		.data7	= TCC_MMC_PORT_NULL,
-		.cmd	= TCC_GPC(1),
-		.clk	= TCC_GPC(0),
-		.func	= GPIO_FN(3),
-		.width	= TCC_MMC_BUS_WIDTH_4,
-
-		.cd	= TCC_GPD(17),
-		.pwr	= TCC_MMC_PORT_NULL,
+		.data0  = TCC_GPC(2),
+		.data1  = TCC_GPC(3),
+		.data2  = TCC_GPC(4),
+		.data3  = TCC_GPC(5),
+		.data4  = TCC_MMC_PORT_NULL,
+		.data5  = TCC_MMC_PORT_NULL,
+		.data6  = TCC_MMC_PORT_NULL,
+		.data7  = TCC_MMC_PORT_NULL,
+		.cmd    = TCC_GPC(1),
+		.clk    = TCC_GPC(0),
+		.func   = GPIO_FN(3),
+		.width  = TCC_MMC_BUS_WIDTH_4,
+		.cd     = TFCD_GPIO_PORT,
+		.pwr    = TCC_MMC_PORT_NULL,
 	},
 };
 
@@ -177,7 +184,7 @@ struct tcc_mmc_platform_data tcc8920_mmc_platform_data[] = {
 
 		.cd_int_num = HwINT0_EI4,
 		.cd_irq_num = INT_EI4,
-		.cd_ext_irq = EXTINT_GPIOD_17,
+		.cd_ext_irq = TFCD_EXT_INT,
 		.peri_name = PERI_SDMMC0,
 		.io_name = RB_SDMMC0CONTROLLER,
 		.pic = HwINT1_SD0,

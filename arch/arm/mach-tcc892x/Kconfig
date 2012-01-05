@@ -17,11 +17,11 @@ config MACH_TCC8923
 	  Support for the TCC8923 evaluation board. Say Y here if you
 	  have such a device.
 
-config MACH_TCC8924
-	bool "TCC8924 evaluation board"
+config MACH_TCC8925
+	bool "TCC8925 evaluation board"
 	depends on ARCH_TCC892X
 	help
-	  Support for the TCC8924 evaluation board. Say Y here if you
+	  Support for the TCC8925 evaluation board. Say Y here if you
 	  have such a device.
 
 config MACH_TCC8920ST
@@ -38,6 +38,12 @@ config MACH_M805_892X
 	  Support for the TCC892X evaluation board. Say Y here if you
 	  have such a device.
 
+config TCC8923_0XA
+	bool "TCC8923_0XA Chipset"
+	depends on MACH_M805_892X
+	help
+	  Support for the TCC8923-0XA revision chipset.
+	  
 config CPU_HIGHSPEED
     bool "CPU high-speed clock"
     depends on ARCH_TCC892X
