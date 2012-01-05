@@ -145,29 +145,28 @@ static void sdram_init(void)
 //--------------------------------------------------------------------------
 // Timing Parameter
 
-	if(DDR3_CLK < 400)
-		nCL = DDR3_CL*400*2/DDR3_MAX_SPEED;
-	else
-		nCL = DDR3_CL*DDR3_CLK*2/DDR3_MAX_SPEED;
-	if(DDR3_CL*DDR3_CLK%DDR3_MAX_SPEED != 0)
-		nCL++;
-
-	if(tCK >= 2500 /* 2.5 ns */)
+	if(tCK >= 2500){ /* 2.5ns, 400MHz */
+		nCL = 6;
 		nCWL = 5;
-	else if(tCK >= 1875 /* 1.875 ns */)
+	}else if(tCK >= 1875){ // 1.875ns, 533..MHz
+		nCL = 8;
 		nCWL = 6;
-	else if(tCK >= 1500 /* 1.5 ns */)
+	}else if(tCK >= 1500){ // 1.5 ns, 666..MHz
+		if(DDR3_MAX_SPEED < DDR3_1600)
+			nCL = 9;
+		else
+			nCL = 10;
 		nCWL = 7;
-	else if(tCK >= 1250 /* 1.25 ns */)
+	}else if(tCK >= 1250){ // 1.25 ns, 800MHz
+		nCL = 11;
 		nCWL = 8;
-	else if(tCK >= 1070 /* 1.07 ns */)
+	}else if(tCK >= 1070){ // 1.07 ns, 933..MHz
+		nCL = 13;
 		nCWL = 9;
-	else if(tCK >= 935 /* 0.935 ns */)
+	}else if(tCK >= 935){ // 0.935 ns, 1066..MHz
+		nCL = 14;
 		nCWL = 10;
-	else if(tCK >= 833 /* 0.833 ns */)
-		nCWL = 11;
-	else if(tCK >= 750 /* 0.75 ns */)
-		nCWL = 12;
+	}
 
 	denali_ctl(0) = 0x20410600; //DRAM_CLASS[11:8] = 6:DDR3, 4:DDR2
 	denali_ctl(2) = 0x00000004; //TINIT[23:0] = 0x4

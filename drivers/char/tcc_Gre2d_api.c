@@ -538,9 +538,12 @@ unsigned char gre2d_2ch_dma_main_func(G2d_2CH_FUNC gre2d_value)
 
     src_ctrl.src2_arith = AR_NOOP;
     src_ctrl.src2_chroma_en = 0;
-    src_ctrl.src_sel_2 = FCH1_CH;
+    src_ctrl.src_sel_2 = FCH2_CH;
     src_ctrl.src2_y2r.src_y2r = 0;
     src_ctrl.src2_y2r.src_y2r_type = 0;
+#if defined(CONFIG_ARCH_TCC892X)
+    src_ctrl.src_sel_3 = FCH3_CH;
+#endif//
 
     Gre2d_src_ctrl(src_ctrl);
 
@@ -560,6 +563,9 @@ unsigned char gre2d_2ch_dma_main_func(G2d_2CH_FUNC gre2d_value)
 	Gre2d_operator_ctrl(OP_1, gG2D_ACON1,gG2D_ACON0,
 							gG2D_CCON1,gG2D_CCON0,gG2D_ATUNE, 
 							CHROMA_OP1_NOOP,GE_ROP_SRC_COPY);
+	Gre2d_operator_ctrl(OP_2, gG2D_ACON1,gG2D_ACON0,
+							gG2D_CCON1, gG2D_CCON0,gG2D_ATUNE, 
+							CHROMA_OP1_NOOP,GE_ROP_SRC_COPY);	
 	#else
 	Gre2d_operator_ctrl(gG2D_ASEL1, CHROMA_OP1_NOOP, GE_ROP_SRC_COPY, gG2D_ASEL0,  gre2d_value.csel0, gre2d_value.op_mode0);
 		
@@ -658,16 +664,18 @@ unsigned char gre2d_1ch_dma_main_func(G2d_1CH_FUNC gre2d_value)
   
     src_ctrl.src1_arith = AR_NOOP;
     src_ctrl.src1_chroma_en = 0;
-    src_ctrl.src_sel_1 = FCH0_CH;
+    src_ctrl.src_sel_1 = FCH1_CH;
     src_ctrl.src1_y2r.src_y2r = 0;
     src_ctrl.src1_y2r.src_y2r_type = 0;
 
     src_ctrl.src2_arith = AR_NOOP;
     src_ctrl.src2_chroma_en = 0;
-    src_ctrl.src_sel_2 = FCH0_CH;
+    src_ctrl.src_sel_2 = FCH2_CH;
     src_ctrl.src2_y2r.src_y2r = 0;
     src_ctrl.src2_y2r.src_y2r_type = 0;
-
+#if defined(CONFIG_ARCH_TCC892X)
+    src_ctrl.src_sel_3 = FCH3_CH;
+#endif//
     Gre2d_src_ctrl(src_ctrl);
 
 
@@ -680,11 +688,18 @@ unsigned char gre2d_1ch_dma_main_func(G2d_1CH_FUNC gre2d_value)
 	
 	
 	#if defined(CONFIG_ARCH_TCC892X)
+	// operator 1 pattern setting
+	Gre2d_operator_set(OP_2, 0, 0, 0, 0);
+#endif//
+	#if defined(CONFIG_ARCH_TCC892X)
 	Gre2d_operator_ctrl(OP_0, gG2D_ACON1,gG2D_ACON0,
 							gG2D_CCON1,gG2D_CCON0,gG2D_ATUNE, 
 							CHROMA_OP0_NOOP, GE_ROP_SRC_COPY);
 
 	Gre2d_operator_ctrl(OP_1, gG2D_ACON1,gG2D_ACON0,
+							gG2D_CCON1,gG2D_CCON0,gG2D_ATUNE, 
+							CHROMA_OP1_NOOP,GE_ROP_SRC_COPY);
+	Gre2d_operator_ctrl(OP_2, gG2D_ACON1,gG2D_ACON0,
 							gG2D_CCON1,gG2D_CCON0,gG2D_ATUNE, 
 							CHROMA_OP1_NOOP,GE_ROP_SRC_COPY);
 

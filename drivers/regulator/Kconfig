@@ -101,6 +101,14 @@ config REGULATOR_RN5T614
 	depends on I2C
 	help
 	  This driver supports the voltage regulators.
+
+config TCC_CORE_VOLTAGE_OFFSET
+	int "TCC Core Voltage Offset"
+	default 0
+	depends on (REGULATOR_AXP192 || REGULATOR_ACT8810 || REGULATOR_RN5T614)
+	----help---
+	    Core voltage offset value.  unit(mA)
+
 config REGULATOR_MAX8649
 	tristate "Maxim 8649 voltage regulator"
 	depends on I2C
