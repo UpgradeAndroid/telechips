@@ -31,6 +31,8 @@
 #include <linux/init.h>
 #include <linux/dma-mapping.h>
 #include <linux/interrupt.h>
+#include <linux/irq.h>
+
 #include <linux/workqueue.h>
 #include <linux/wait.h>
 #include <linux/platform_device.h>
@@ -1034,13 +1036,20 @@ int tccxxx_grp_release(struct inode *inode, struct file *file)
 
 	mutex_lock(&g2d_struct.io_mutex);
 	g2d_struct.dev_opened--;
-	clk_disable(overlay_clk);
 
-#if defined(CONFIG_CPU_FREQ)
+
+
 	if(g2d_struct.dev_opened == 0)
+	{
+		#if defined(CONFIG_CPU_FREQ)
 		tcc_cpufreq_set_limit_table(&gtOverlayClockLimitTable, TCC_FREQ_LIMIT_G2D, 0);
 #endif//
 
+		#if defined(CONFIG_ARCH_TCC892X)
+		disable_irq(INT_G2D);
+		#endif//
+	}
+	clk_disable(overlay_clk);
 	mutex_unlock(&g2d_struct.io_mutex);
 
 	
@@ -1057,11 +1066,17 @@ int tccxxx_grp_open(struct inode *inode, struct file *file)
 	g2d_struct.dev_opened++;
 	file->private_data = (void *)&g2d_struct;
 
-#if defined(CONFIG_CPU_FREQ)
-	if(g2d_struct.dev_opened == 1)
-		tcc_cpufreq_set_limit_table(&gtOverlayClockLimitTable, TCC_FREQ_LIMIT_G2D, 1);
-#endif//
 
+	if(g2d_struct.dev_opened == 1)
+	{
+		#if defined(CONFIG_CPU_FREQ)
+		tcc_cpufreq_set_limit_table(&gtOverlayClockLimitTable, TCC_FREQ_LIMIT_G2D, 1);
+		#endif//
+
+		#if defined(CONFIG_ARCH_TCC892X)
+		enable_irq(INT_G2D);
+		#endif//
+	}
 	clk_enable(overlay_clk);
 
 	mutex_unlock(&g2d_struct.io_mutex);
@@ -1119,6 +1134,10 @@ tccxxx_grp_init(void)
 		dprintk("FAILED to aquire irq\n");
 		return -EFAULT;
 	}
+
+	#if defined(CONFIG_ARCH_TCC892X)
+	disable_irq(INT_G2D);
+	#endif//	
 
 	spin_lock_init(&(g2d_struct.g2d_spin_lock));
 	mutex_init(&g2d_struct.io_mutex);

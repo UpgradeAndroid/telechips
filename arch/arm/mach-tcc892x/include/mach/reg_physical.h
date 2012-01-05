@@ -399,6 +399,7 @@ GPSB Controller Register Define
 #define Hw2D_SACTRL_S2_CHROMAEN         (Hw18)
 #define Hw2D_SACTRL_S1_CHROMAEN         (Hw17)
 #define Hw2D_SACTRL_S0_CHROMAEN         (Hw16)
+#define Hw2D_SFCTRL_S3_SEL			(Hw6+Hw7)
 #define Hw2D_SFCTRL_S2_SEL              (Hw5+Hw4)
 #define Hw2D_SFCTRL_S1_SEL              (Hw3+Hw2)
 #define Hw2D_SFCTRL_S0_SEL              (Hw1+Hw0)
