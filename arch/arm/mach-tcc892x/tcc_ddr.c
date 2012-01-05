@@ -277,29 +277,28 @@ static void get_ddr_param(unsigned int mem_freq)
 
 	tck = (1000000/mem_freq);
 
-	if(mem_freq < 400)
-		nCL = DDR3_CL*400*2/DDR3_MAX_SPEED;
-	else
-		nCL = DDR3_CL*mem_freq*2/DDR3_MAX_SPEED;
-	if(DDR3_CL*mem_freq%DDR3_MAX_SPEED != 0)
-		nCL++;
-
-	if(tck >= 2500 /* 2.5 ns */)
+	if(tck >= 2500){ /* 2.5ns, 400MHz */
+		nCL = 6;
 		nCWL = 5;
-	else if(tck >= 1875 /* 1.875 ns */)
+	}else if(tck >= 1875){ // 1.875ns, 533..MHz
+		nCL = 8;
 		nCWL = 6;
-	else if(tck >= 1500 /* 1.5 ns */)
+	}else if(tck >= 1500){ // 1.5 ns, 666..MHz
+		if(DDR3_MAX_SPEED < DDR3_1600)
+			nCL = 9;
+		else
+			nCL = 10;
 		nCWL = 7;
-	else if(tck >= 1250 /* 1.25 ns */)
+	}else if(tck >= 1250){ // 1.25 ns, 800MHz
+		nCL = 11;
 		nCWL = 8;
-	else if(tck >= 1070 /* 1.07 ns */)
+	}else if(tck >= 1070){ // 1.07 ns, 933..MHz
+		nCL = 13;
 		nCWL = 9;
-	else if(tck >= 935 /* 0.935 ns */)
+	}else if(tck >= 935){ // 0.935 ns, 1066..MHz
+		nCL = 14;
 		nCWL = 10;
-	else if(tck >= 833 /* 0.833 ns */)
-		nCWL = 11;
-	else if(tck >= 750 /* 0.75 ns */)
-		nCWL = 12;
+	}
 
 	CKC_CHANGE_ARG(DENALI_CTL_3) = get_cycle(tck, 20000, 1); //TRST_PWRON = 200us, 7 //Bruce_temp.. ns ?
 	CKC_CHANGE_ARG(DENALI_CTL_4) = get_cycle(tck, 50000, 1); //CKE_INACTIVE = 500us, 10 //Bruce_temp.. ns ?
@@ -394,6 +393,7 @@ static void get_ddr_param(unsigned int mem_freq)
 
 	CKC_CHANGE_ARG(MR2) = tmp;
 
+//	printk("mem_freq=%dMhz, nCL=%d, nCWL=%d\n", mem_freq, nCL, nCWL);
 //	printk("T_REFI:0x%x, T_RFC:0x%x, T_RRD:0x%x, T_RP:0x%x, T_RCD:0x%x\n",CKC_CHANGE_ARG(T_REFI),CKC_CHANGE_ARG(T_RFC),CKC_CHANGE_ARG(T_RRD),CKC_CHANGE_ARG(T_RP),CKC_CHANGE_ARG(T_RCD));
 //	printk("T_RC:0x%x, T_RAS:0x%x, T_WTR:0x%x, T_WR:0x%x, T_RTP:0x%x\n",CKC_CHANGE_ARG(T_RC),CKC_CHANGE_ARG(T_RAS),CKC_CHANGE_ARG(T_WTR),CKC_CHANGE_ARG(T_WR),CKC_CHANGE_ARG(T_RTP));
 //	printk("CL:0x%x, WL:0x%x, RL:0x%x\n",CKC_CHANGE_ARG(CL),CKC_CHANGE_ARG(WL),CKC_CHANGE_ARG(RL));
