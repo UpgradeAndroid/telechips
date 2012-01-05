@@ -5,7 +5,6 @@
 
 // CHANNEL SETTING 
 typedef enum{
-        CH_NONE,
         FCH0_CH,
         FCH1_CH,
         FCH2_CH,
