@@ -39,12 +39,20 @@ void tca_i2c_setgpio(int core, int ch)
 				BITCSET(((PI2CPORTCFG)io_p2v(HwI2C_PORTCFG_BASE))->PCFG0.nREG, 0x000000FF, 26);
 				tcc_gpio_config(TCC_GPG(18), GPIO_FN4|GPIO_OUTPUT|GPIO_LOW);
 				tcc_gpio_config(TCC_GPG(19), GPIO_FN4|GPIO_OUTPUT|GPIO_LOW);
-			#elif defined(CONFIG_MACH_M805_892X)	
-				//I2C[23] - GPIOG[6][7]		
+			#elif defined(CONFIG_MACH_M805_892X)
+				#if defined(CONFIG_TCC8923_0XA)
+				//I2C[22] - GPIOG[2][3]
+				//i2c_portcfg->PCFG0.bREG.MASTER0 = 22;
+				BITCSET(((PI2CPORTCFG)io_p2v(HwI2C_PORTCFG_BASE))->PCFG0.nREG, 0x000000FF, 22);
+				tcc_gpio_config(TCC_GPG(2), GPIO_FN4|GPIO_OUTPUT|GPIO_LOW);
+				tcc_gpio_config(TCC_GPG(3), GPIO_FN4|GPIO_OUTPUT|GPIO_LOW);
+				#else
+				//I2C[23] - GPIOG[6][7]
 				//i2c_portcfg->PCFG0.bREG.MASTER0 = 23;
 				BITCSET(((PI2CPORTCFG)io_p2v(HwI2C_PORTCFG_BASE))->PCFG0.nREG, 0x000000FF, 23);
 				tcc_gpio_config(TCC_GPG(6), GPIO_FN4|GPIO_OUTPUT|GPIO_LOW);
 				tcc_gpio_config(TCC_GPG(7), GPIO_FN4|GPIO_OUTPUT|GPIO_LOW);
+				#endif
 			#else
 				//I2C[8] - GPIOB[9][10]
 				//i2c_portcfg->PCFG0.bREG.MASTER0 = 8;
@@ -55,11 +63,19 @@ void tca_i2c_setgpio(int core, int ch)
 			break;
 		case 1:
 			#if defined(CONFIG_MACH_M805_892X)
-			//I2C[24] - GPIOG[10][11]
-			//i2c_portcfg->PCFG0.bREG.MASTER1 = 24;
-			BITCSET(((PI2CPORTCFG)io_p2v(HwI2C_PORTCFG_BASE))->PCFG0.nREG, 0x0000FF00, 24<<8);
-			tcc_gpio_config(TCC_GPG(10), GPIO_FN4|GPIO_OUTPUT|GPIO_LOW);
-			tcc_gpio_config(TCC_GPG(11), GPIO_FN4|GPIO_OUTPUT|GPIO_LOW);
+				#if defined(CONFIG_TCC8923_0XA)
+				//I2C[21] - GPIOF[27][28]
+				//i2c_portcfg->PCFG0.bREG.MASTER1 = 21;
+				BITCSET(((PI2CPORTCFG)io_p2v(HwI2C_PORTCFG_BASE))->PCFG0.nREG, 0x0000FF00, 21<<8);
+				tcc_gpio_config(TCC_GPF(27), GPIO_FN4|GPIO_OUTPUT|GPIO_LOW);
+				tcc_gpio_config(TCC_GPF(28), GPIO_FN4|GPIO_OUTPUT|GPIO_LOW);
+				#else
+				//I2C[24] - GPIOG[10][11]
+				//i2c_portcfg->PCFG0.bREG.MASTER1 = 24;
+				BITCSET(((PI2CPORTCFG)io_p2v(HwI2C_PORTCFG_BASE))->PCFG0.nREG, 0x0000FF00, 24<<8);
+				tcc_gpio_config(TCC_GPG(10), GPIO_FN4|GPIO_OUTPUT|GPIO_LOW);
+				tcc_gpio_config(TCC_GPG(11), GPIO_FN4|GPIO_OUTPUT|GPIO_LOW);
+				#endif
 			#else
 			if(system_rev == 0x1005)
 			{

@@ -78,8 +78,13 @@ static void spk_mute(void)
 	if(machine_is_m801_88())
 		gpio_set_value(TCC_GPG(6), 0);
 #elif defined(CONFIG_ARCH_TCC892X)
-	if(machine_is_m805_892x())
+	if(machine_is_m805_892x()) {
+		#if defined(CONFIG_TCC8923_0XA)
+		gpio_set_value(TCC_GPG(11), 0);
+		#else
 		gpio_set_value(TCC_GPF(27), 0);
+		#endif
+	}
 #endif
 
 }
@@ -90,8 +95,13 @@ static void spk_un_mute(void)
 	if(machine_is_m801_88())
 		gpio_set_value(TCC_GPG(6), 1);
 #elif defined(CONFIG_ARCH_TCC892X)
-	if(machine_is_m805_892x())
+	if(machine_is_m805_892x()) {
+		#if defined(CONFIG_TCC8923_0XA)
+		gpio_set_value(TCC_GPG(11), 1);
+		#else
 		gpio_set_value(TCC_GPF(27), 1);
+		#endif
+	}
 #endif
 }
 
@@ -519,13 +529,20 @@ static int __init tcc_init_es8388(void)
 
 	/* h/w mute control */
 	if(machine_is_m805_892x()) {
+		#if defined(CONFIG_TCC8923_0XA)
+		tcc_gpio_config(TCC_GPG(11), GPIO_FN(0));
+		gpio_request(TCC_GPG(11), "SPK_MUTE_CTL");
+		gpio_direction_output(TCC_GPG(11), 0);	 // Speaker mute
+		#else
 		tcc_gpio_config(TCC_GPF(27), GPIO_FN(0));
-		tcc_gpio_config(TCC_GPG(5), GPIO_FN(0));
 		gpio_request(TCC_GPF(27), "SPK_MUTE_CTL");
-		gpio_request(TCC_GPG(5), "HP_MUTE_CTL");
-		
 		gpio_direction_output(TCC_GPF(27), 0);	 // Speaker mute
+		#endif
+
+		tcc_gpio_config(TCC_GPG(5), GPIO_FN(0));
+		gpio_request(TCC_GPG(5), "HP_MUTE_CTL");
 		gpio_direction_output(TCC_GPG(5), 1);	 // HeadPhone mute
+
 		tcc_hp_hw_mute(false);
 		tcc_spk_hw_mute(false);
 
