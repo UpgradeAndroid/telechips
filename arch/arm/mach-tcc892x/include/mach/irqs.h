@@ -217,12 +217,20 @@
 #define INT_VIOC_SC3            (61 + INT_VIOC_BASE)
 #define INT_VIOC_NUM		    INT_VIOC_SC3
 
+/*
+ * TSIF-IRQ numbers
+ */
+#define INT_TSIF_BASE		(INT_VIOC_NUM + 1)
+#define INT_TSIF_DMA0		(0 + INT_TSIF_BASE)
+#define INT_TSIF_DMA1		(1 + INT_TSIF_BASE)
+#define INT_TSIF_DMA2		(2 + INT_TSIF_BASE)
+#define INT_TSIF_NUM		INT_TSIF_DMA2
 
 /*
  * NR_IRQ:
  */
 #if 1
-#define NR_IRQS         (INT_VIOC_NUM + 1)
+#define NR_IRQS         (INT_TSIF_NUM + 1)
 #else
 #define NR_IRQS ((INT_NUM + 1)					\
 		 + (INT_UART_NUM - INT_UT_BASE + 1)		\

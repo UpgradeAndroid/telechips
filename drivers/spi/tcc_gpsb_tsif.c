@@ -36,7 +36,7 @@
 
 #include <mach/bsp.h>
 #include <mach/gpio.h>
-#include <linux/spi/tcc_tsif.h>
+#include <linux/spi/tcc_gpsb_tsif.h>
 #include <mach/tca_spi.h>
 #include "tsdemux/TSDEMUX_sys.h"
 static int tcc_tsif_init(void);

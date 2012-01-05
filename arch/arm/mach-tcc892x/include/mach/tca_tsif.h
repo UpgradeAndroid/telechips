@@ -1,5 +1,5 @@
 /****************************************************************************
- *   FileName    : tcc_tsif_module_hwset.h
+ *   FileName    : tcc_tsif_hwset.h
  *   Description : 
  ****************************************************************************
  *
@@ -14,34 +14,31 @@
 #include <mach/memory.h>
 #include <mach/irqs.h>
 
-//20110321 koo : GDMA가 not defined 상태면 gpsb-dma using으로 변경 됨. 
-//#define GDMA
+//20111212 koo : GDMA가 not defined 상태면 tsif-dma using으로 변경 됨. 
+//#define GDMA 
 
-//20110401 koo :  tsif pid reg를 이용한 pid filtering 기능 사용 option. 해당 기능 사용시 gpsb-dma의 pid match 기능은 사용하지 않음.
-//					tcc880x & tcc930x tsif의 pid 등록은 16개만 할수 있기 때문에 32개가 설정가능 할 때까지는 test 용으로 사용
+//20111212 koo :  tsif pid reg를 이용한 pid filtering 기능 사용 option. 해당 기능 사용시 gpsb-dma의 pid match 기능은 사용하지 않음.
 //#define TSIF_PIDMATCH_USE
 
-#ifdef GDMA
-#define TSIF_CH 				0		//tsif use ch0
-#else //GDMA
-#define TSIF_CH 				1		//tsif use ch1
-#endif //GDMA
+#define TSIF_CH 					0		//tsif use ch0,1,2
 
-#define TSIF_DMA_CONTROLLER		1		//tsif use dma controller 1
-#define TSIF_DMA_CH				2		//tsif use dma ch2-n (n:0,1,2)
+#define TSIF_DMA_CONTROLLER		1		//tsif use gdma controller 1
+#define TSIF_DMA_CH				2		//tsif use gdma ch2-n (n:0,1,2)
 
-#if defined(CONFIG_MACH_TCC9300ST)			//tcc9300_stb_board tsif use gpio_d port
-#define TSIF_GPIO_PORT	0xD
-#elif defined(CONFIG_MACH_TCC8800)			//TCC93&88_DEMO_V6.1에서 xc5000을 사용할 때는 cam1 interface를 이용하고, fqd1136을 사용할 때는 ts parallel interface를 이용.
-#if defined(CONFIG_iTV_FE_TUNER_MODULE_XC5000) || defined(CONFIG_iTV_FE_TUNER_MODULE_XC5000_MODULE)
-#define TSIF_GPIO_PORT	0xE
-#elif defined(CONFIG_iTV_FE_TUNER_MODULE_FQD1136) || defined(CONFIG_iTV_FE_TUNER_MODULE_FQD1136_MODULE)
-#define TSIF_GPIO_PORT	0xF
-#endif
-#elif defined(CONFIG_MACH_TCC8800ST)
-#define TSIF_GPIO_PORT	0xF
+#define GPIO_D_PORT_TSIFNUM		0
+#define GPIO_B0_PORT_TSIFNUM	1
+#define GPIO_B1_PORT_TSIFNUM	2
+#define GPIO_C_PORT_TSIFNUM		3
+#define GPIO_E_PORT_TSIFNUM		4
+#define GPIO_F_PORT_TSIFNUM		5
+
+
+#if defined(CONFIG_MACH_TCC8920ST)
+#define TSIF_GPIO_PORT	GPIO_D_PORT_TSIFNUM
+#elif defined(CONFIG_MACH_TCC8920) || defined(CONFIG_MACH_TCC8925)
+#define TSIF_GPIO_PORT	GPIO_F_PORT_TSIFNUM
 #else
-#define TSIF_GPIO_PORT	0xE
+#define TSIF_GPIO_PORT	GPIO_F_PORT_TSIFNUM
 #endif
 
 
@@ -56,6 +53,8 @@
 #elif defined(CONFIG_MACH_TCC8800)
 #define TSIF_DMA_SIZE 				(CONSISTENT_DMA_SIZE / 8)
 #elif defined(CONFIG_MACH_TCC8800ST)
+#define TSIF_DMA_SIZE 				(CONSISTENT_DMA_SIZE / 8)
+#elif defined(CONFIG_MACH_TCC8920ST)
 #define TSIF_DMA_SIZE 				(CONSISTENT_DMA_SIZE / 8)
 #else
 #define TSIF_DMA_SIZE 				(CONSISTENT_DMA_SIZE / 8)
@@ -80,7 +79,7 @@
 
 #pragma pack(push, 4)
 struct tcc_tsif_regs {
-    volatile unsigned long TSDI, TSCR, TSPID[16], TSIC, TSIS, TSISP, TSCHS;
+    volatile unsigned long TSDI, TSRXCR, TSPID[16], TSIC, TSIS, TSISP, TSTXC;
 };
 #pragma pack(pop)
 
@@ -91,11 +90,11 @@ struct tea_dma_buf {
     int buf_size; // total size of DMA
 };
 
-typedef struct tcc_tsif_module_handle tcc_tsif_module_handle_t;
+typedef struct tcc_tsif_handle tcc_tsif_handle_t;
 typedef int (*dma_alloc_f)(struct tea_dma_buf *tdma, unsigned int size);
 typedef void (*dma_free_f)(struct tea_dma_buf *tdma);
 
-struct tcc_tsif_module_handle {
+struct tcc_tsif_handle {
     volatile struct tcc_tsif_regs *regs;
     struct tea_dma_buf rx_dma;
 	//int flag;
@@ -107,11 +106,11 @@ struct tcc_tsif_module_handle {
 	//int is_slave;
 	int gpio_port;
 
-    int (*dma_stop)(struct tcc_tsif_module_handle *h);
-    int (*dma_start)(struct tcc_tsif_module_handle *h);
-    void (*clear_fifo_packet)(struct tcc_tsif_module_handle *h);
-	void (*tsif_set)(struct tcc_tsif_module_handle *h);
-	void (*tsif_isr)(struct tcc_tsif_module_handle *h);
+    int (*dma_stop)(struct tcc_tsif_handle *h);
+    int (*dma_start)(struct tcc_tsif_handle *h);
+    void (*clear_fifo_packet)(struct tcc_tsif_handle *h);
+	void (*tsif_set)(struct tcc_tsif_handle *h);
+	void (*tsif_isr)(struct tcc_tsif_handle *h);
 	
     dma_alloc_f tea_dma_alloc; // tea function.
     dma_free_f tea_dma_free; // tea function.
@@ -143,8 +142,8 @@ struct tcc_tsif_module_handle {
 	unsigned int dma_phy_size;
 };
 
-extern int tca_tsif_module_init(struct tcc_tsif_module_handle *h, volatile struct tcc_tsif_regs *regs, 
+extern int tca_tsif_init(struct tcc_tsif_handle *h, volatile struct tcc_tsif_regs *regs, 
 		dma_alloc_f tea_dma_alloc, dma_free_f tea_dma_free, int dma_size, int tsif_ch, int dma_controller, int dma_ch, int port);
-extern void tca_tsif_module_clean(struct tcc_tsif_module_handle *h);
+extern void tca_tsif_clean(struct tcc_tsif_handle *h);
 
 #endif /*__TCC_TSIF_MODULE_HWSET_H__*/

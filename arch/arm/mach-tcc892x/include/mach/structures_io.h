@@ -2875,19 +2875,118 @@ typedef struct _TSIF{
 } TSIF, *PTSIF;
 
 typedef struct {
-    unsigned TSIF1          :2;
-    unsigned TSIF0          :2;
-    unsigned                :28;
-} TSIF_CHSEL_IDX_TYPE;
+    unsigned TX_BASE        :32;
+} TSIFDMA_TX_IDX_TYPE;
+
+typedef union {
+    unsigned long          	 nREG;
+    TSIFDMA_TX_IDX_TYPE	bREG;
+} TSIFDMA_TX_TYPE;
+
+typedef struct {
+    unsigned RX_BASE        :32;
+} TSIFDMA_RX_IDX_TYPE;
 
 typedef union {
     unsigned long           nREG;
-    TSIF_CHSEL_IDX_TYPE     bREG;
-} TSIF_CHSEL_TYPE;
+    TSIFDMA_RX_IDX_TYPE        bREG;
+} TSIFDMA_RX_TYPE;
 
-typedef struct _TSIFPORTSEL{
-    volatile TSIF_CHSEL_TYPE    TSCHS;          // 0x800  R/W  0x00000000   TSIF Channel(Port) Select Register
-} TSIFPORTSEL, *PTSIFPORTSEL;
+typedef struct {
+    unsigned SIZE           :13;
+    unsigned                :3;
+    unsigned COUNT          :13;
+    unsigned                :3;
+} TSIFDMA_PACKET_IDX_TYPE;
+
+typedef union {
+    unsigned long           nREG;
+    TSIFDMA_PACKET_IDX_TYPE    bREG;
+} TSIFDMA_PACKET_TYPE;
+
+typedef struct {
+    unsigned EN             :1;
+    unsigned TSIF           :1;
+    unsigned PCLR           :1;
+    unsigned                :1;
+    unsigned MD             :2;
+    unsigned                :8;
+    unsigned RXAM           :2;
+    unsigned TXAM           :2;
+    unsigned MS             :1;
+    unsigned MP             :1;
+    unsigned                :8;
+    unsigned END            :1;
+    unsigned CT             :1;
+    unsigned DRE            :1;
+    unsigned DTE            :1;
+} TSIFDMA_DMACTRL_IDX_TYPE;
+
+typedef union {
+    unsigned long           nREG;
+    TSIFDMA_DMACTRL_IDX_TYPE   bREG;
+} TSIFDMA_DMACTRL_TYPE;
+
+typedef struct {
+    unsigned TXPCNT         :13;
+    unsigned                :4;
+    unsigned RXPCNT         :13;
+    unsigned                :2;
+} TSIFDMA_DMASTAT_IDX_TYPE;
+
+typedef union {
+    unsigned long           nREG;
+    TSIFDMA_DMASTAT_IDX_TYPE   bREG;
+} TSIFDMA_DMASTAT_TYPE;
+
+typedef struct {
+    unsigned IRQPCNT        :13;
+    unsigned                :3;
+    unsigned IEP            :1;
+    unsigned IED            :1;
+    unsigned                :2;
+    unsigned IRQS           :1;
+    unsigned                :7;
+    unsigned ISP            :1;
+    unsigned ISD            :1;
+    unsigned                :2;
+} TSIFDMA_DMAICR_IDX_TYPE;
+
+typedef union {
+    unsigned long           nREG;
+    TSIFDMA_DMAICR_IDX_TYPE    bREG;
+} TSIFDMA_DMAICR_TYPE;
+
+typedef struct _TSIFDMA{
+	volatile TSIFDMA_TX_TYPE       		TXBASE;         // 0x020  R/W  0x00000000   TX base address register
+	volatile TSIFDMA_RX_TYPE       	RXBASE;         // 0x024  R/W  0x00000000   RX base address register
+	volatile TSIFDMA_PACKET_TYPE   	PACKET;         // 0x028  R/W  0x00000000   Packet register
+	volatile TSIFDMA_DMACTRL_TYPE  	DMACTR;         // 0x02C  R/W  0x00000000   DMA control register
+	volatile TSIFDMA_DMASTAT_TYPE  	DMASTR;         // 0x030  R/W  0x00000000   DMA status register
+	volatile TSIFDMA_DMAICR_TYPE  	DMAICR;         // 0x034  R/W  0x00000000   DMA interrupt control register
+} TSIFDMA, *PTSIFDMA;
+
+typedef struct {
+    unsigned RX_CH0		:1;
+    unsigned RX_CH1		:1;
+    unsigned RX_CH2		:1;
+    unsigned TX_CH0		:1;
+    unsigned TX_CH1		:1;
+    unsigned TX_CH2		:1;
+    unsigned DMA_CH0	:1;
+    unsigned DMA_CH1	:1;
+    unsigned DMA_CH2	:1;
+    unsigned 				:23;
+} TSIF_IRQSTS_IDX_TYPE;
+
+typedef union {
+    unsigned long           nREG;
+    TSIF_IRQSTS_IDX_TYPE    bREG;
+} TSIF_IRQSTS_TYPE;
+
+typedef struct _TSIFIRQSTATUS{
+    volatile TSIF_IRQSTS_TYPE		IRQSTS;         // 0x00C  R    0x00000000   IRQ Status Register
+} TSIFIRQSTATUS, *PTSIFIRQSTATUS;
 
 
 /*******************************************************************************

@@ -45,6 +45,7 @@ static volatile PUARTPORTCFG pUARTPORTCFG;
 static volatile PGDMACTRL pPGDMACTRL0, pPGDMACTRL1, pPGDMACTRL2, pPGDMACTRL3;
 static volatile PTIMER pTIMER;
 static volatile PVIOC_IREQ_CONFIG pVIOC_IREQ_CONFIG;
+static volatile PTSIFIRQSTATUS pPTSIFIRQSTATUS;
 static unsigned int gvioc_mask0, gvioc_mask1;
 
 /******************************************
@@ -107,6 +108,13 @@ static void tcc8920_mask_irq_vioc(struct irq_data *data)
     }
 }
 
+static void tcc8920_mask_irq_tsif(struct irq_data *data)
+{
+	unsigned int irq = data->irq;
+    if (irq != INT_TSIF) {
+        pPIC->INTMSK1.bREG.TSIF = 0;
+    }
+}
 
 /******************************************
  * Enable IRQ
@@ -200,6 +208,13 @@ static void tcc8920_unmask_irq_vioc(struct irq_data *data)
     }
 }
 
+static void tcc8920_unmask_irq_tsif(struct irq_data *data)
+{
+	unsigned int irq = data->irq;
+    if (irq != INT_TSIF) {
+        pPIC->INTMSK1.bREG.TSIF = 1;
+    }
+}
 /******************************************
  * Ack IRQ (Disable IRQ)
  *****************************************/
@@ -291,6 +306,13 @@ static void tcc8920_mask_ack_irq_vioc(struct irq_data *data)
     }
 }
 
+static void tcc8920_mask_ack_irq_tsif(struct irq_data *data)
+{
+	unsigned int irq = data->irq;
+    if (irq != INT_TSIF) {
+        pPIC->INTMSK1.bREG.TSIF = 0;
+    }
+}
 
 /******************************************
  * wake IRQ
@@ -325,6 +347,10 @@ static int tcc8920_wake_irq_vioc(struct irq_data *data, unsigned int enable)
     return 0;
 }
 
+static int tcc8920_wake_irq_tsif(struct irq_data *data, unsigned int enable)
+{
+    return 0;
+}
 static void tcc8920_irq_dummy(struct irq_data *data)
 {
 }
@@ -561,6 +587,24 @@ out:
 	return;
 }
 
+static void tcc8920_irq_tsif_handler(unsigned irq, struct irq_desc *desc)
+{
+	if(pPTSIFIRQSTATUS->IRQSTS.bREG.DMA_CH0)
+		irq = INT_TSIF_DMA0;
+	else if(pPTSIFIRQSTATUS->IRQSTS.bREG.DMA_CH1)
+		irq = INT_TSIF_DMA1;
+	else if(pPTSIFIRQSTATUS->IRQSTS.bREG.DMA_CH2)
+		irq = INT_TSIF_DMA2;
+	else {
+		pPIC->CLR1.bREG.TSIF = 1;
+		goto out;
+	}
+
+	desc = irq_desc + irq;
+	desc->handle_irq(irq, desc);
+out:
+	return;
+}
 
 
 static struct irq_chip tcc8920_irq_chip = {
@@ -630,6 +674,16 @@ static struct irq_chip tcc8920_irq_vioc_chip = {
     .irq_set_wake   = tcc8920_wake_irq_vioc,
 };
 
+static struct irq_chip tcc8920_irq_tsif_chip = {
+    .name       = "IRQ_TSIF",
+    .irq_enable     = tcc8920_irq_dummy,
+    .irq_disable    = tcc8920_irq_dummy,
+    .irq_ack        = tcc8920_mask_ack_irq_tsif,
+    .irq_mask_ack   = tcc8920_mask_ack_irq_tsif,
+    .irq_mask       = tcc8920_mask_irq_tsif,
+    .irq_unmask     = tcc8920_unmask_irq_tsif,
+    .irq_set_wake   = tcc8920_wake_irq_tsif,
+};
 void __init tcc_init_irq(void)
 {
 	int irqno;
@@ -646,7 +700,7 @@ void __init tcc_init_irq(void)
 	pPGDMACTRL2 = (volatile PGDMACTRL)tcc_p2v(HwGDMA2_BASE);
 	pTIMER = (volatile PTIMER)tcc_p2v(HwTMR_BASE);
     pVIOC_IREQ_CONFIG = (volatile PVIOC_IREQ_CONFIG)tcc_p2v(HwVIOC_IREQ);
-
+	pPTSIFIRQSTATUS = (volatile PTSIFIRQSTATUS)tcc_p2v(HwTSIF_IRQSTS_BASE);
 
 	/* ADD IOREMAP */
 
@@ -708,6 +762,9 @@ void __init tcc_init_irq(void)
 		} else if (irqno == INT_LCD) {
 			irq_set_chip(INT_LCD, &tcc8920_irq_vioc_chip);
 			irq_set_chained_handler(INT_LCD, tcc8920_irq_vioc_handler);
+		} else if (irqno == INT_TSIF) {
+			irq_set_chip(INT_TSIF, &tcc8920_irq_tsif_chip);
+			irq_set_chained_handler(INT_TSIF, tcc8920_irq_tsif_handler);
 		} else {
 			irq_set_chip(irqno, &tcc8920_irq_chip);
 			irq_set_handler(irqno, handle_level_irq);
@@ -750,6 +807,13 @@ void __init tcc_init_irq(void)
 		set_irq_flags(irqno, IRQF_VALID);
 	}
 
+	/* Install the interrupt TSIF Group handlers */
+	for (irqno = INT_TSIF_BASE; irqno <= INT_TSIF_NUM; irqno++) {
+		irq_set_chip(irqno, &tcc8920_irq_tsif_chip);
+		irq_set_handler(irqno, handle_level_irq);
+		set_irq_flags(irqno, IRQF_VALID);
+	}
+
     /* IEN SET */
 	pPIC->IEN1.bREG.UART = 1;
 	pPIC->INTMSK1.bREG.UART = 1;
@@ -759,6 +823,8 @@ void __init tcc_init_irq(void)
 	pPIC->INTMSK0.bREG.GDMA = 1;
 	pPIC->IEN0.bREG.TC0 = 1;
 	pPIC->INTMSK0.bREG.TC0 = 1;
+	pPIC->IEN1.bREG.TSIF = 1;
+	pPIC->INTMSK1.bREG.TSIF = 1;
 
     /* Video Input Output Control */
     pVIOC_IREQ_CONFIG->nIRQMASKSET.nREG[0] = 0xffffffff;    /* Disable VIOC IRQ */

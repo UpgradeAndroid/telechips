@@ -18,8 +18,8 @@
 #include <asm/dma.h>
 
 #include <mach/bsp.h>
-#include <linux/spi/tcc_tsif_module.h>
-#include "../../../spi/tcc/tca_tsif_module_hwset.h"
+#include <linux/spi/tcc_tsif.h>
+#include "../../../spi/tcc/tca_tsif_hwset.h"
 
 #include <i-tv/itv_common.h>
 #include "itccxxxx_tsif_p.h"
@@ -31,8 +31,8 @@
 static struct clk *gpsb_clk;
 #endif
 
-extern int tca_tsif_module_init(struct tcc_tsif_module_handle *h, volatile struct tcc_tsif_regs *regs, dma_alloc_f tea_dma_alloc, dma_free_f tea_dma_free, int dma_size, int tsif_ch, int dma_controller, int dma_ch, int port);
-extern void tca_tsif_module_clean(struct tcc_tsif_module_handle *h);
+extern int tca_tsif_init(struct tcc_tsif_handle *h, volatile struct tcc_tsif_regs *regs, dma_alloc_f tea_dma_alloc, dma_free_f tea_dma_free, int dma_size, int tsif_ch, int dma_controller, int dma_ch, int port);
+extern void tca_tsif_clean(struct tcc_tsif_handle *h);
 
 
 
@@ -47,7 +47,7 @@ typedef struct {
 	e_p_tsif_state state;
 
 	int mode;	// true : TSIF_Serial mode, false : TSIF_Parallel mode.
-	struct tcc_tsif_module_handle handle;
+	struct tcc_tsif_handle handle;
 
 	void *cb_data;
 	void (*callback)(void *);
@@ -100,7 +100,7 @@ struct task_struct *debug_thread = NULL;
 static irqreturn_t tsif_p_dma_handler(int irq, void *dev_id)
 {
 	st_p_tsif *instance = &p_tsif_inst;
-	struct tcc_tsif_module_handle *handle = (struct tcc_tsif_module_handle *)dev_id;
+	struct tcc_tsif_handle *handle = (struct tcc_tsif_handle *)dev_id;
 
 	handle->tsif_isr(handle);
 
@@ -231,7 +231,7 @@ static irqreturn_t tsif_p_dma_handler(int irq, void *dev_id)
 int tcc_tsif_p_get_pos(void)
 {
 	st_p_tsif *instance = &p_tsif_inst;
-	struct tcc_tsif_module_handle *handle = &instance->handle;
+	struct tcc_tsif_handle *handle = &instance->handle;
 
 #ifdef GDMA
 	return handle->cur_q_pos;
@@ -404,7 +404,7 @@ EXPORT_SYMBOL_GPL(tcc_tsif_p_remove_pid);
 void tcc_tsif_p_set_packetcnt(int cnt)
 {
 	st_p_tsif *instance = &p_tsif_inst;
-	struct tcc_tsif_module_handle *handle = &instance->handle;
+	struct tcc_tsif_handle *handle = &instance->handle;
 	
 	handle->dma_intr_packet_cnt = cnt;
 	handle->dma_total_packet_cnt = ((TSIF_DMA_SIZE / MPEG_PACKET_SIZE) / cnt) * cnt;
@@ -513,7 +513,7 @@ int tcc_tsif_p_debug_thread(void *data)
 #if 0			
 				if(debug_cnt++ > 5) {
 					st_p_tsif *instance = &p_tsif_inst;
-					struct tcc_tsif_module_handle *handle = &instance->handle;
+					struct tcc_tsif_handle *handle = &instance->handle;
 
 					handle->dma_stop(handle);
 					handle->dma_start(handle);
@@ -539,7 +539,7 @@ int tcc_tsif_p_debug_thread(void *data)
 int tcc_tsif_p_start(void)
 {
 	st_p_tsif *instance = &p_tsif_inst;
-	struct tcc_tsif_module_handle *handle = &instance->handle;
+	struct tcc_tsif_handle *handle = &instance->handle;
 
 #if defined(CONFIG_ARCH_TCC93XX)
 	clk_enable(gpsb_clk);	
@@ -600,7 +600,7 @@ EXPORT_SYMBOL_GPL(tcc_tsif_p_start);
 int tcc_tsif_p_stop(void)
 {
 	st_p_tsif *instance = &p_tsif_inst;
-	struct tcc_tsif_module_handle *handle = &instance->handle;
+	struct tcc_tsif_handle *handle = &instance->handle;
 
 #ifdef TSIF_DEBUG
 	if(debug_thread != NULL) {
@@ -641,7 +641,7 @@ int tcc_tsif_p_init(unsigned char **buffer_addr, unsigned int *real_buffer_size,
 	int error = 0;
 
 	st_p_tsif *instance = &p_tsif_inst;
-	struct tcc_tsif_module_handle *handle = &instance->handle;
+	struct tcc_tsif_handle *handle = &instance->handle;
 	struct tcc_tsif_regs *reg_addr;
 
 	if(instance->state != P_TSIF_STATE_DEINIT)
@@ -702,7 +702,7 @@ int tcc_tsif_p_init(unsigned char **buffer_addr, unsigned int *real_buffer_size,
 	tca_ckc_setiobus(RB_TSIFCONTROLLER, ENABLE);
 #endif
 
-	if(tca_tsif_module_init(handle,
+	if(tca_tsif_init(handle,
 				reg_addr,
 				tsif_p_alloc_dma_buffer,
 				tsif_p_free_dma_buffer,
@@ -758,7 +758,7 @@ err_irq:
 
 err_tsif_p:
 	
-	tca_tsif_module_clean(handle);
+	tca_tsif_clean(handle);
 	
 #if defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC88XX)
 	tca_ckc_setiobus(((TSIF_CH == 0) ? RB_TSIF0CONTROLLER : RB_TSIF1CONTROLLER), DISABLE);
@@ -774,7 +774,7 @@ EXPORT_SYMBOL_GPL(tcc_tsif_p_init);
 void tcc_tsif_p_deinit(void)
 {
 	st_p_tsif *instance = &p_tsif_inst;
-	struct tcc_tsif_module_handle *handle = &instance->handle;
+	struct tcc_tsif_handle *handle = &instance->handle;
 
 #ifdef TSIF_DEBUG
 	if(debug_thread != NULL) {
@@ -788,7 +788,7 @@ void tcc_tsif_p_deinit(void)
 
 	free_irq(handle->irq, handle);
 	
-	tca_tsif_module_clean(handle);
+	tca_tsif_clean(handle);
 	
 #if defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC88XX)
 	tca_ckc_setiobus(((TSIF_CH == 0) ? RB_TSIF0CONTROLLER : RB_TSIF1CONTROLLER), DISABLE);

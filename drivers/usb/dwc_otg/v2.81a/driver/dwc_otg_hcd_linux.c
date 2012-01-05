@@ -38,6 +38,7 @@
  * This file contains the implementation of the HCD. In Linux, the HCD
  * implements the hc_driver API.
  */
+#include <linux/version.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/moduleparam.h>
@@ -358,6 +359,7 @@ int hcd_init(struct platform_device *_dev)
 	}
 
 	hcd->regs = otg_dev->base;
+    	hcd->has_tt = 1;
 
 	/* Initialize the DWC OTG HCD. */
 	dwc_otg_hcd = dwc_otg_hcd_alloc_hcd();

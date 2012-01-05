@@ -9,6 +9,7 @@ typedef enum{
         FCH0_CH,
         FCH1_CH,
         FCH2_CH,
+        FCH3_CH,
         DEST_CH
 } G2D_CHANNEL;
 
@@ -110,6 +111,8 @@ typedef struct
 	G2D_SRC_Y2R_CTRL src2_y2r;        
 	unsigned char src2_chroma_en;
 	G2D_CHANNEL src_sel_2;
+	G2D_CHANNEL src_sel_3;
+
 	
 }G2D_SRC_CTRL;
 

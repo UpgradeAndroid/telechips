@@ -581,14 +581,12 @@ static struct platform_device *m803_devices[] __initdata = {
 #if defined(CONFIG_I2C_TCC_SMU)
     &tcc8800_i2c_smu_device,
 #endif
-#if defined(CONFIG_SPI_TCCXXXX_MASTER) || defined(CONFIG_SPI_TCCXXXX_MASTER_MODULE)
+#if defined(CONFIG_SPI_TCCXXXX_MASTER)
 	&tcc8800_spi0_device,
 #endif
-#if defined(CONFIG_SPI_TCCXXXX_TSIF_SLAVE) || defined(CONFIG_SPI_TCCXXXX_TSIF_SLAVE_MODULE)
+#if defined(CONFIG_SPI_TCCXXXX_TSIF_SLAVE)
 	&tcc_tsif_device,
-#endif
-#if defined(CONFIG_TSIF_TCCXXXX)
-	&tcc_tsif_module_device,
+	&tcc_tsif_ex_device,
 #endif
 #endif
 	&usb_mass_storage_device,
@@ -615,7 +613,7 @@ static void __init tcc8800_init_machine(void)
 
 	m803_init_gpio();
 
-#if defined(CONFIG_SPI_TCCXXXX_MASTER) || defined(CONFIG_SPI_TCCXXXX_MASTER_MODULE)
+#if defined(CONFIG_SPI_TCCXXXX_MASTER)
 	spi_register_board_info(m803_spi0_board_info, ARRAY_SIZE(m803_spi0_board_info));
 	//spi_register_board_info(tcc8800_spi1_board_info, ARRAY_SIZE(tcc8800_spi1_board_info)); //jhlim
 #endif

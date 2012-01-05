@@ -677,7 +677,7 @@ struct platform_device tcc_battery_device = {
  * Device     : SPI(GPSB) Master resource
  * Description: 
  *----------------------------------------------------------------------*/
-#if defined(CONFIG_SPI_TCCXXXX_MASTER) || defined(CONFIG_SPI_TCCXXXX_MASTER_MODULE)
+#if defined(CONFIG_SPI_TCCXXXX_MASTER)
 static struct resource spi0_resources[] = {
 	[0] = {
 		.start = tcc_p2v(HwGPSBCH0_BASE),
@@ -777,7 +777,7 @@ static inline void tcc8800_init_remote(void)
  * Device     : SPI(TSIF) Slave resource
  * Description:
  *----------------------------------------------------------------------*/
-#if defined(CONFIG_SPI_TCCXXXX_TSIF_SLAVE) || defined(CONFIG_SPI_TCCXXXX_TSIF_SLAVE_MODULE)
+#if defined(CONFIG_SPI_TCCXXXX_TSIF_SLAVE)
 static struct resource tsif_resources[] = {
 	[0] = {
 		.start = tcc_p2v(HwGPSBCH1_BASE),
@@ -809,23 +809,20 @@ struct platform_device tcc_tsif_device = {
 	.resource	= tsif_resources,
 	.num_resources	= ARRAY_SIZE(tsif_resources),
 };
-#endif
-
 
 /*----------------------------------------------------------------------
- * Device     : TSIF Parallel resource
+ * Device     : TSIF Block
  * Description:
  *----------------------------------------------------------------------*/
-#if defined(CONFIG_TSIF_TCCXXXX)
-static struct resource tsif_module_resources[] = {
+static struct resource tsif_ex_resources[] = {
     [0] = {
 		.start = tcc_p2v(HwTSIF0_BASE),
 		.end   = tcc_p2v(HwTSIF0_BASE + 0x10000),
 		.flags = IORESOURCE_MEM,
 	},
 	[1] = {
-		.start = INT_TSIF,
-		.end   = INT_TSIF,
+		.start = INT_TSIF0,
+		.end   = INT_TSIF0,
 		.flags = IORESOURCE_IRQ,
 	},
 	[2] = {
@@ -836,11 +833,11 @@ static struct resource tsif_module_resources[] = {
 	}
 };
 
-struct platform_device tcc_tsif_module_device = {
-	.name		= "tcc-tsif-module",
+struct platform_device tcc_tsif_ex_device = {
+	.name		= "tcc-tsif_ex",
 	.id			= -1,
-	.resource	= tsif_module_resources,
-	.num_resources	= ARRAY_SIZE(tsif_module_resources),
+	.resource	= tsif_ex_resources,
+	.num_resources	= ARRAY_SIZE(tsif_ex_resources),
 };
 #endif
 

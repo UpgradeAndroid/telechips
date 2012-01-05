@@ -1,5 +1,5 @@
 /****************************************************************************
- *   FileName    :  tcc_tsif_module_hwset.c
+ *   FileName    :  tcc_tsif_hwset.c
  *   Description : 
  ****************************************************************************
  *
@@ -11,161 +11,292 @@
 
 #include <linux/module.h>
 #include <mach/io.h>
-
+#include <linux/gpio.h>
 #include <mach/bsp.h>
 #include <mach/tca_tsif.h>
 
 //#define DEBUG_INFO
-static void tcc_tsif_module_hw_init(struct tcc_tsif_module_handle *h);
 
-static void tcc_tsif_module_clearfifopacket(struct tcc_tsif_module_handle *h)
+static void tcc_tsif_hw_init(struct tcc_tsif_handle *h);
+
+static void tcc_tsif_clearfifopacket(struct tcc_tsif_handle *h)
 {
-	BITSET(h->regs->TSCR, Hw7);		//set to Hw7 : empties RX Fifo
+	BITSET(h->regs->TSRXCR, Hw7);		//set to Hw7 : empties RX Fifo
 
-	BITSET(h->regs->TSCR, Hw30);
-	BITCLR(h->regs->TSCR, Hw30);
+	BITSET(h->regs->TSRXCR, Hw30);
+	BITCLR(h->regs->TSRXCR, Hw30);
 
 #ifdef DEBUG_INFO
 	printk("%s\n", __func__);
 #endif 
 }
 
-static int tca_tsif_module_set_port(struct tcc_tsif_module_handle *h)
+static int tca_tsif_set_port(struct tcc_tsif_handle *h)
 {
-	volatile PGPIO gpio_regs = (volatile PGPIO)tcc_p2v(HwGPIO_BASE);
-    volatile unsigned long* TSIFPORT = (volatile unsigned long *)tcc_p2v(HwTSIF_PORTCFG_BASE);
+	volatile unsigned long* TSIFPORT = (volatile unsigned long *)tcc_p2v(HwTSIF_TSCHS_BASE);
 	int ret = 0;
-    /*gpio_port is not gpio port such as A, B, C, D
-     * It is tsif port number
-     */
 
-	switch (h->gpio_port)
-	{
+	switch (h->gpio_port) {
+		case 0:
+				tcc_gpio_config(TCC_GPD(8), GPIO_FN(2));		//clk
+				tcc_gpio_config(TCC_GPD(9), GPIO_FN(2));		//valid
+				tcc_gpio_config(TCC_GPD(10), GPIO_FN(2));		//sync
+				tcc_gpio_config(TCC_GPD(7), GPIO_FN(2));		//d0
+
+				if(!(h->serial_mode)) {
+					tcc_gpio_config(TCC_GPD(6), GPIO_FN(2));	//d1
+					tcc_gpio_config(TCC_GPD(5), GPIO_FN(2));	//d2
+					tcc_gpio_config(TCC_GPD(4), GPIO_FN(2));	//d3
+					tcc_gpio_config(TCC_GPD(3), GPIO_FN(2));	//d4
+					tcc_gpio_config(TCC_GPD(2), GPIO_FN(2));	//d5
+					tcc_gpio_config(TCC_GPD(1), GPIO_FN(2));	//d6
+					tcc_gpio_config(TCC_GPD(0), GPIO_FN(2));	//d7
+				}
+			break;
 		case 1:
-		{
-		}
-		break;
+				tcc_gpio_config(TCC_GPB(0), GPIO_FN(7));		//clk
+				tcc_gpio_config(TCC_GPB(2), GPIO_FN(7));		//valid
+				tcc_gpio_config(TCC_GPB(1), GPIO_FN(7));		//sync
+				tcc_gpio_config(TCC_GPB(3), GPIO_FN(7));		//d0
+
+				if(!(h->serial_mode)) {
+					tcc_gpio_config(TCC_GPB(4), GPIO_FN(7));	//d1
+					tcc_gpio_config(TCC_GPB(5), GPIO_FN(7));	//d2
+					tcc_gpio_config(TCC_GPB(6), GPIO_FN(7));	//d3
+					tcc_gpio_config(TCC_GPB(7), GPIO_FN(7));	//d4
+					tcc_gpio_config(TCC_GPB(8), GPIO_FN(7));	//d5
+					tcc_gpio_config(TCC_GPB(9), GPIO_FN(7));	//d6
+					tcc_gpio_config(TCC_GPB(10), GPIO_FN(7));	//d7
+				}
+			break;
 		case 2:
-		{
-		}
-		break;
+				tcc_gpio_config(TCC_GPB(28), GPIO_FN(7));		//clk
+				tcc_gpio_config(TCC_GPB(26), GPIO_FN(7));		//valid
+				tcc_gpio_config(TCC_GPB(27), GPIO_FN(7));		//sync
+				tcc_gpio_config(TCC_GPB(25), GPIO_FN(7));		//d0
 
+				if(!(h->serial_mode)) {
+					tcc_gpio_config(TCC_GPB(24), GPIO_FN(7));	//d1
+					tcc_gpio_config(TCC_GPB(23), GPIO_FN(7));	//d2
+					tcc_gpio_config(TCC_GPB(22), GPIO_FN(7));	//d3
+					tcc_gpio_config(TCC_GPB(21), GPIO_FN(7));	//d4
+					tcc_gpio_config(TCC_GPB(20), GPIO_FN(7));	//d5
+					tcc_gpio_config(TCC_GPB(19), GPIO_FN(7));	//d6
+					tcc_gpio_config(TCC_GPB(18), GPIO_FN(7));	//d7
+				}
+			break;
 		case 3:
-		{
-		}
-		break;
- 
-		case 4:
-		{
-		}
-		break;
+				tcc_gpio_config(TCC_GPC(26), GPIO_FN(3));		//clk
+				tcc_gpio_config(TCC_GPC(24), GPIO_FN(3));		//valid
+				tcc_gpio_config(TCC_GPC(25), GPIO_FN(3));		//sync
+				tcc_gpio_config(TCC_GPC(23), GPIO_FN(3));		//d0
 
+				if(!(h->serial_mode)) {
+					tcc_gpio_config(TCC_GPC(22), GPIO_FN(3));	//d1
+					tcc_gpio_config(TCC_GPC(21), GPIO_FN(3));	//d2
+					tcc_gpio_config(TCC_GPC(20), GPIO_FN(3));	//d3
+					tcc_gpio_config(TCC_GPC(19), GPIO_FN(3));	//d4
+					tcc_gpio_config(TCC_GPC(18), GPIO_FN(3));	//d5
+					tcc_gpio_config(TCC_GPC(17), GPIO_FN(3));	//d6
+					tcc_gpio_config(TCC_GPC(16), GPIO_FN(3));	//d7
+				}
+			break;
+		case 4:
+				tcc_gpio_config(TCC_GPE(26), GPIO_FN(4));		//clk
+				tcc_gpio_config(TCC_GPE(24), GPIO_FN(4));		//valid
+				tcc_gpio_config(TCC_GPE(25), GPIO_FN(4));		//sync
+				tcc_gpio_config(TCC_GPE(23), GPIO_FN(4));		//d0
+
+				if(!(h->serial_mode)) {
+					tcc_gpio_config(TCC_GPE(22), GPIO_FN(4));	//d1
+					tcc_gpio_config(TCC_GPE(21), GPIO_FN(4));	//d2
+					tcc_gpio_config(TCC_GPE(20), GPIO_FN(4));	//d3
+					tcc_gpio_config(TCC_GPE(19), GPIO_FN(4));	//d4
+					tcc_gpio_config(TCC_GPE(18), GPIO_FN(4));	//d5
+					tcc_gpio_config(TCC_GPE(17), GPIO_FN(4));	//d6
+					tcc_gpio_config(TCC_GPE(16), GPIO_FN(4));	//d7
+				}
+			break;
 		case 5:
-		{
-		}
-		break;		
+				tcc_gpio_config(TCC_GPF(0), GPIO_FN(2));		//clk
+				tcc_gpio_config(TCC_GPF(2), GPIO_FN(2));		//valid
+				tcc_gpio_config(TCC_GPF(1), GPIO_FN(2));		//sync
+				tcc_gpio_config(TCC_GPF(3), GPIO_FN(2));		//d0
+
+				if(!(h->serial_mode)) {
+					tcc_gpio_config(TCC_GPF(4), GPIO_FN(2));	//d1
+					tcc_gpio_config(TCC_GPF(5), GPIO_FN(2));	//d2
+					tcc_gpio_config(TCC_GPF(6), GPIO_FN(2));	//d3
+					tcc_gpio_config(TCC_GPF(7), GPIO_FN(2));	//d4
+					tcc_gpio_config(TCC_GPF(8), GPIO_FN(2));	//d5
+					tcc_gpio_config(TCC_GPF(9), GPIO_FN(2));	//d6
+					tcc_gpio_config(TCC_GPF(10), GPIO_FN(2));	//d7
+				}
+			break;		
 		default:
-		{
-			ret = -1;
-		}
-		break;
+				printk("%s : select wrong port => %d\n", __func__, h->gpio_port);
+				ret = -1;
+			break;
 	}
-	
-		return ret;
+
+	if(ret != -1) {
+		unsigned int direction = 1 << (24 + h->gpio_port);
+		unsigned int channel = (h->id & 0x3) << (12 + (2 * h->gpio_port));
+		unsigned int port = (h->gpio_port & 0xf) << (4 * h->id);
+		unsigned int clr = (0x3 << (12 + (2 * h->gpio_port))) | (0xf << (4 * h->id));
+
+		BITCLR(*TSIFPORT, 0xffffffff);
+		BITCLR(*TSIFPORT, direction);			//clk, sync, valid, data input direction select
+		BITCSET(*TSIFPORT, clr, (channel | port));	//tsif channel & port number select
+	}
+
+	return ret;
 }
 
-static void tcc_tsif_module_release_port(struct tcc_tsif_module_handle *h)
+static void tcc_tsif_release_port(struct tcc_tsif_handle *h)
 {
-	volatile PGPIO gpio_regs = (volatile PGPIO)tcc_p2v(HwGPIO_BASE);
-    volatile unsigned long* TSIFPORT = (volatile unsigned long *)tcc_p2v(HwTSIF_PORTCFG_BASE);
+	volatile unsigned long* TSIFPORT = (volatile unsigned long *)tcc_p2v(HwTSIF_TSCHS_BASE);
 
-	switch (h->gpio_port)
-	{
-    	case 1:
-		{
-		}
-		break;
+	switch (h->gpio_port) {
+		case 0:
+				tcc_gpio_config(TCC_GPD(8), GPIO_FN(0));		//clk
+				tcc_gpio_config(TCC_GPD(9), GPIO_FN(0));		//valid
+				tcc_gpio_config(TCC_GPD(10), GPIO_FN(0));		//sync
+				tcc_gpio_config(TCC_GPD(0), GPIO_FN(0));		//d0
+
+				if(!(h->serial_mode)) {
+					tcc_gpio_config(TCC_GPD(1), GPIO_FN(0));	//d1
+					tcc_gpio_config(TCC_GPD(2), GPIO_FN(0));	//d2
+					tcc_gpio_config(TCC_GPD(3), GPIO_FN(0));	//d3
+					tcc_gpio_config(TCC_GPD(4), GPIO_FN(0));	//d4
+					tcc_gpio_config(TCC_GPD(5), GPIO_FN(0));	//d5
+					tcc_gpio_config(TCC_GPD(6), GPIO_FN(0));	//d6
+					tcc_gpio_config(TCC_GPD(7), GPIO_FN(0));	//d7
+				}
+			break;
+		case 1:
+				tcc_gpio_config(TCC_GPB(0), GPIO_FN(0));		//clk
+				tcc_gpio_config(TCC_GPB(2), GPIO_FN(0));		//valid
+				tcc_gpio_config(TCC_GPB(1), GPIO_FN(0));		//sync
+				tcc_gpio_config(TCC_GPB(3), GPIO_FN(0));		//d0
+
+				if(!(h->serial_mode)) {
+					tcc_gpio_config(TCC_GPB(4), GPIO_FN(0));	//d1
+					tcc_gpio_config(TCC_GPB(5), GPIO_FN(0));	//d2
+					tcc_gpio_config(TCC_GPB(6), GPIO_FN(0));	//d3
+					tcc_gpio_config(TCC_GPB(7), GPIO_FN(0));	//d4
+					tcc_gpio_config(TCC_GPB(8), GPIO_FN(0));	//d5
+					tcc_gpio_config(TCC_GPB(9), GPIO_FN(0));	//d6
+					tcc_gpio_config(TCC_GPB(10), GPIO_FN(0));	//d7
+				}
+			break;
 		case 2:
-		{
-		}
-		break;
+				tcc_gpio_config(TCC_GPB(28), GPIO_FN(0));		//clk
+				tcc_gpio_config(TCC_GPB(26), GPIO_FN(0));		//valid
+				tcc_gpio_config(TCC_GPB(27), GPIO_FN(0));		//sync
+				tcc_gpio_config(TCC_GPB(25), GPIO_FN(0));		//d0
 
+				if(!(h->serial_mode)) {
+					tcc_gpio_config(TCC_GPB(24), GPIO_FN(0));	//d1
+					tcc_gpio_config(TCC_GPB(23), GPIO_FN(0));	//d2
+					tcc_gpio_config(TCC_GPB(22), GPIO_FN(0));	//d3
+					tcc_gpio_config(TCC_GPB(21), GPIO_FN(0));	//d4
+					tcc_gpio_config(TCC_GPB(20), GPIO_FN(0));	//d5
+					tcc_gpio_config(TCC_GPB(19), GPIO_FN(0));	//d6
+					tcc_gpio_config(TCC_GPB(18), GPIO_FN(0));	//d7
+				}
+			break;
 		case 3:
-		{
-		}
-		break;
- 
-		case 4:
-		{
-		}
-		break;
+				tcc_gpio_config(TCC_GPC(26), GPIO_FN(0));		//clk
+				tcc_gpio_config(TCC_GPC(24), GPIO_FN(0));		//valid
+				tcc_gpio_config(TCC_GPC(25), GPIO_FN(0));		//sync
+				tcc_gpio_config(TCC_GPC(23), GPIO_FN(0));		//d0
 
+				if(!(h->serial_mode)) {
+					tcc_gpio_config(TCC_GPC(22), GPIO_FN(0));	//d1
+					tcc_gpio_config(TCC_GPC(21), GPIO_FN(0));	//d2
+					tcc_gpio_config(TCC_GPC(20), GPIO_FN(0));	//d3
+					tcc_gpio_config(TCC_GPC(19), GPIO_FN(0));	//d4
+					tcc_gpio_config(TCC_GPC(18), GPIO_FN(0));	//d5
+					tcc_gpio_config(TCC_GPC(17), GPIO_FN(0));	//d6
+					tcc_gpio_config(TCC_GPC(16), GPIO_FN(0));	//d7
+				}
+			break;
+		case 4:
+				tcc_gpio_config(TCC_GPE(26), GPIO_FN(0));		//clk
+				tcc_gpio_config(TCC_GPE(24), GPIO_FN(0));		//valid
+				tcc_gpio_config(TCC_GPE(25), GPIO_FN(0));		//sync
+				tcc_gpio_config(TCC_GPE(23), GPIO_FN(0));		//d0
+
+				if(!(h->serial_mode)) {
+					tcc_gpio_config(TCC_GPE(22), GPIO_FN(0));	//d1
+					tcc_gpio_config(TCC_GPE(21), GPIO_FN(0));	//d2
+					tcc_gpio_config(TCC_GPE(20), GPIO_FN(0));	//d3
+					tcc_gpio_config(TCC_GPE(19), GPIO_FN(0));	//d4
+					tcc_gpio_config(TCC_GPE(18), GPIO_FN(0));	//d5
+					tcc_gpio_config(TCC_GPE(17), GPIO_FN(0));	//d6
+					tcc_gpio_config(TCC_GPE(16), GPIO_FN(0));	//d7
+				}
+			break;
 		case 5:
-		{
-		}
-		break;			
+				tcc_gpio_config(TCC_GPF(0), GPIO_FN(0));		//clk
+				tcc_gpio_config(TCC_GPF(2), GPIO_FN(0));		//valid
+				tcc_gpio_config(TCC_GPF(1), GPIO_FN(0));		//sync
+				tcc_gpio_config(TCC_GPF(3), GPIO_FN(0));		//d0
+
+				if(!(h->serial_mode)) {
+					tcc_gpio_config(TCC_GPF(4), GPIO_FN(2));	//d1
+					tcc_gpio_config(TCC_GPF(5), GPIO_FN(2));	//d2
+					tcc_gpio_config(TCC_GPF(6), GPIO_FN(2));	//d3
+					tcc_gpio_config(TCC_GPF(7), GPIO_FN(2));	//d4
+					tcc_gpio_config(TCC_GPF(8), GPIO_FN(2));	//d5
+					tcc_gpio_config(TCC_GPF(9), GPIO_FN(2));	//d6
+					tcc_gpio_config(TCC_GPF(10), GPIO_FN(2));	//d7
+				}
+			break;		
 		default:
-		{
-			printk("error release port\n");
-		}
-		break;
+				printk("%s : select wrong port => %d\n", __func__, h->gpio_port);
+			break;
 	}
 
-    /* tsif ch release */
-	if(h->id == 0) {
-		BITCLR(*TSIFPORT, Hw3|Hw2);
-	} else {
-		BITCLR(*TSIFPORT, Hw1|Hw0);
+	{
+		unsigned int clr = (0x3 << (12 + (2 * h->gpio_port))) | (0xf << (4 * h->id));
+
+		BITCLR(*TSIFPORT, clr);
 	}
 }
 
 
-static void tcc_tsif_module_set(struct tcc_tsif_module_handle *h)
+static void tcc_tsif_set(struct tcc_tsif_handle *h)
 {
 //20110526 koo : android tcc880x kernel에서는 module init 후에 tsif & gpsb1을 swret state 및 clk disable 상태로 만들기 때문에 module init 시의 tsif & dma reg 설정 value가 
 //				reset 되기 때문에 start 시 다시 설정.
-	tcc_tsif_module_hw_init(h);
+	tcc_tsif_hw_init(h);
 
-#ifdef GDMA
-#if !defined(CONFIG_iTV_FE_TUNER_MODULE_XC5000) && !defined(CONFIG_iTV_FE_TUNER_MODULE_FQD1136)
-	BITSET(h->regs->TSCR, Hw17);
-#endif
-#else //GDMA
-	BITSET(h->regs->TSCR, Hw17);
-#endif //GDMA
+	//BITSET(h->regs->TSRXCR, Hw17);
 
-	if(h->msb_first)		BITSET(h->regs->TSCR, Hw16);
-	else					BITCLR(h->regs->TSCR, Hw16);
+	if(h->msb_first)		BITSET(h->regs->TSRXCR, Hw16);
+	else					BITCLR(h->regs->TSRXCR, Hw16);
 
-	if(h->big_endian)		BITSET(h->regs->TSCR, Hw15);
-	else					BITCLR(h->regs->TSCR, Hw15);
+	if(h->big_endian)		BITSET(h->regs->TSRXCR, Hw15);
+	else					BITCLR(h->regs->TSRXCR, Hw15);
 		
-	if(h->serial_mode) {
-		BITSET(h->regs->TSCR, Hw14);
-		BITSET(h->regs->TSCR, Hw4|Hw3|Hw1);
-	} 
-	else {
-		BITCLR(h->regs->TSCR, Hw14);
-		//20110413 koo : tcc880x의 경우 gpsb-dma를 사용할 때 parallel sync delay를 5clk로 주었을 때 read 시 data가 깨지는 증상이 발생하여 
-		//					4clk으로 설정하여 사용하고 tcc930x의 경우에는 5clk으로 설정하여 사용하도록 soc team에서 guide 받음.
-		//					 soc team에서는 4clk과 5clk 사이 margin 으로 인해 발생되는 문제로 추정함.
+	if(h->serial_mode)		BITSET(h->regs->TSRXCR, Hw14);
+	else					BITCLR(h->regs->TSRXCR, Hw14);
 
-		BITSET(h->regs->TSCR, Hw2);
-	}
+	if(h->clk_polarity)		BITSET(h->regs->TSRXCR, Hw13);
+	else					BITCLR(h->regs->TSRXCR, Hw13);
 
-	if(h->clk_polarity)		BITSET(h->regs->TSCR, Hw13);
-	else					BITCLR(h->regs->TSCR, Hw13);
+	if(h->valid_polarity)	BITSET(h->regs->TSRXCR, Hw12);
+	else					BITCLR(h->regs->TSRXCR, Hw12);
 
-	if(h->valid_polarity)	BITSET(h->regs->TSCR, Hw12);
-	else					BITCLR(h->regs->TSCR, Hw12);
+	if(h->sync_polarity)	BITSET(h->regs->TSRXCR, Hw11);
+	else					BITCLR(h->regs->TSRXCR, Hw11);
 
-	if(h->sync_polarity)	BITSET(h->regs->TSCR, Hw11);
-	else					BITCLR(h->regs->TSCR, Hw11);
-
-	if(h->sync_delay)		BITSET(h->regs->TSCR, Hw5);
-	else					BITCLR(h->regs->TSCR, Hw5);
+	if(h->sync_delay)		BITSET(h->regs->TSRXCR, Hw5);
+	else					BITCLR(h->regs->TSRXCR, Hw5);
 	
-	//BITSET(h->regs->TSCR, (h->sync_delay & 0x1f));
+	//BITSET(h->regs->TSRXCR, (h->sync_delay & 0x1f));
 
 #ifdef DEBUG_INFO
 	printk("%s : mode set : %s, %s, %s, %s, %s, %s, sync delay %d port 0x%X\n", __func__, 
@@ -180,10 +311,10 @@ static void tcc_tsif_module_set(struct tcc_tsif_module_handle *h)
 }
 
 #ifdef GDMA
-static void tcc_tsif_module_isr(struct tcc_tsif_module_handle *h)
+static void tcc_tsif_isr(struct tcc_tsif_handle *h)
 {
 	volatile PGDMACTRL dma_regs;
-	
+
 	if(h->dma_controller == 0)
 		dma_regs = (volatile PGDMACTRL)tcc_p2v(HwGDMA0_BASE);
 	else if(h->dma_controller == 1)
@@ -193,30 +324,30 @@ static void tcc_tsif_module_isr(struct tcc_tsif_module_handle *h)
 
 	if(h->dma_ch == 0)
 	{
-		if(dma_regs->CHCTRL0 & Hw3) {
-			BITSET(dma_regs->CHCTRL0, Hw3);		//dma done flag set
-			h->dma_phy_curpos = dma_regs->C_DADR0;
+		if(dma_regs->CHCTRL0.nREG & Hw3) {
+			BITSET(dma_regs->CHCTRL0.nREG, Hw3);		//dma done flag set
+			h->dma_phy_curpos = dma_regs->C_DADR0.nREG;
 		}
 	}
 	else if(h->dma_ch == 1)
 	{
-		if(dma_regs->CHCTRL1 & Hw3) {
-			BITSET(dma_regs->CHCTRL1, Hw3);		//dma done flag set
-			h->dma_phy_curpos = dma_regs->C_DADR1;
+		if(dma_regs->CHCTRL1.nREG & Hw3) {
+			BITSET(dma_regs->CHCTRL1.nREG, Hw3);		//dma done flag set
+			h->dma_phy_curpos = dma_regs->C_DADR1.nREG;
 		}
 	}
 	else
 	{
-		if(dma_regs->CHCTRL2 & Hw3) {
-			BITSET(dma_regs->CHCTRL2, Hw3);		//dma done flag set
-			h->dma_phy_curpos = dma_regs->C_DADR2;
+		if(dma_regs->CHCTRL2.nREG & Hw3) {
+			BITSET(dma_regs->CHCTRL2.nREG, Hw3);		//dma done flag set
+			h->dma_phy_curpos = dma_regs->C_DADR2.nREG;
 		}
 	}
 
 	h->dma_intr_cnt++;
 }
 
-static void tcc_tsif_module_dma_init(struct tcc_tsif_module_handle *h)
+static void tcc_tsif_dma_init(struct tcc_tsif_handle *h)
 {
 	volatile PGDMACTRL dma_regs;
 	unsigned int mask_addr;
@@ -237,85 +368,88 @@ static void tcc_tsif_module_dma_init(struct tcc_tsif_module_handle *h)
 	if(h->dma_ch == 0) {
 		tsif_tsdi_addr = (int)&(h->regs->TSDI);
 		tsif_tsdi_addr -= IO_OFFSET;
-		BITCSET(dma_regs->ST_SADR0, (Hw32-Hw0), tsif_tsdi_addr);		//source addr set
-		BITCLR(dma_regs->SPARAM0, (Hw32-Hw0));
+		BITCSET(dma_regs->ST_SADR0.nREG, (Hw32-Hw0), tsif_tsdi_addr);		//source addr set
+		BITCLR(dma_regs->SPARAM0.nREG, (Hw32-Hw0));
 
-		BITCSET(dma_regs->ST_DADR0, (Hw32-Hw0), h->rx_dma.dma_addr);	//destination addr set
+		BITCSET(dma_regs->ST_DADR0.nREG, (Hw32-Hw0), h->rx_dma.dma_addr);	//destination addr set
 		mask_addr = TSIF_MASK_SIZE << 8;								// 1mbyte mask set
-		BITCSET(dma_regs->DPARAM0, (Hw32-Hw0), (mask_addr|TSIF_DMA_INCREASE_SIZE));		//inc & mask addr set
+		BITCSET(dma_regs->DPARAM0.nREG, (Hw32-Hw0), (mask_addr|TSIF_DMA_INCREASE_SIZE));		//inc & mask addr set
 
-		BITCSET(dma_regs->HCOUNT0, (Hw32-Hw0), TSIF_DMA_HOPE_CNT(h->dma_intr_packet_cnt));		//hop count set
-		BITCLR(dma_regs->CHCTRL0, (Hw32-Hw0));							//repeat ctrl reg set
+		BITCSET(dma_regs->HCOUNT0.nREG, (Hw32-Hw0), TSIF_DMA_HOPE_CNT(h->dma_intr_packet_cnt));		//hop count set
+		BITCLR(dma_regs->CHCTRL0.nREG, (Hw32-Hw0));							//repeat ctrl reg set
 
-		if(h->id == 0)	BITCSET(dma_regs->EXTREQ0, (Hw32-Hw0), Hw3);	//ext request set tsif0
-		else			BITCSET(dma_regs->EXTREQ0, (Hw32-Hw0), Hw7);	//ext request set tsif1
+		if(h->id == 0)			BITCSET(dma_regs->EXTREQ0.nREG, (Hw32-Hw0), Hw3);		//ext request set tsif0
+		else if(h->id == 1)		BITCSET(dma_regs->EXTREQ0.nREG, (Hw32-Hw0), Hw7);		//ext request set tsif1
+		else					BITCSET(dma_regs->EXTREQ0.nREG, (Hw32-Hw0), Hw31);	//ext request set tsif2
 
 		//20110530 koo : transfer type setting => edge or level
 		//reg_val = Hw15|Hw11|Hw9|Hw8|Hw5|Hw4|Hw2|Hw1;
 		reg_val = Hw15|Hw11|Hw5|Hw4|Hw2|Hw1;
 		
-		if(GDMA_WORD_SIZE == 4)			reg_val |= Hw5 | Hw4;
+		if(GDMA_WORD_SIZE == 4)		reg_val |= Hw5 | Hw4;
 		else if(GDMA_WORD_SIZE == 2)	reg_val |= Hw4;
 		if(GDMA_BURST_SIZE == 8)		reg_val |= Hw7 | Hw6;
 		else if(GDMA_BURST_SIZE == 4)	reg_val |= Hw7;
 		else if(GDMA_BURST_SIZE == 2)	reg_val |= Hw6;
-		BITCSET(dma_regs->CHCTRL0, (Hw32-Hw0), reg_val);		//channel ctrl reg set
+		BITCSET(dma_regs->CHCTRL0.nREG, (Hw32-Hw0), reg_val);		//channel ctrl reg set
 	} else if(h->dma_ch == 1) {
 		tsif_tsdi_addr = (int)&(h->regs->TSDI);
 		tsif_tsdi_addr -= IO_OFFSET;
-		BITCSET(dma_regs->ST_SADR1, (Hw32-Hw0), tsif_tsdi_addr);		//source addr set
-		BITCLR(dma_regs->SPARAM1, (Hw32-Hw0));
+		BITCSET(dma_regs->ST_SADR1.nREG, (Hw32-Hw0), tsif_tsdi_addr);		//source addr set
+		BITCLR(dma_regs->SPARAM1.nREG, (Hw32-Hw0));
 
-		BITCSET(dma_regs->ST_DADR1, (Hw32-Hw0), h->rx_dma.dma_addr);	//destination addr set
+		BITCSET(dma_regs->ST_DADR1.nREG, (Hw32-Hw0), h->rx_dma.dma_addr);	//destination addr set
 		mask_addr = TSIF_MASK_SIZE << 8;						    	// 1mbyte mask set
-		BITCSET(dma_regs->DPARAM1, (Hw32-Hw0), (mask_addr|TSIF_DMA_INCREASE_SIZE));		//inc & mask addr set
+		BITCSET(dma_regs->DPARAM1.nREG, (Hw32-Hw0), (mask_addr|TSIF_DMA_INCREASE_SIZE));		//inc & mask addr set
 
-		BITCSET(dma_regs->HCOUNT1, (Hw32-Hw0), TSIF_DMA_HOPE_CNT(h->dma_intr_packet_cnt));		//hop count set
-		BITCLR(dma_regs->CHCTRL1, (Hw32-Hw0));							//repeat ctrl reg set
+		BITCSET(dma_regs->HCOUNT1.nREG, (Hw32-Hw0), TSIF_DMA_HOPE_CNT(h->dma_intr_packet_cnt));		//hop count set
+		BITCLR(dma_regs->CHCTRL1.nREG, (Hw32-Hw0));							//repeat ctrl reg set
 
-		if(h->id == 0)	BITCSET(dma_regs->EXTREQ1, (Hw32-Hw0), Hw3);	//ext request set tsif0
-		else			BITCSET(dma_regs->EXTREQ1, (Hw32-Hw0), Hw7);	//ext request set tsif1
+		if(h->id == 0)			BITCSET(dma_regs->EXTREQ1.nREG, (Hw32-Hw0), Hw3);		//ext request set tsif0
+		else if(h->id == 1)		BITCSET(dma_regs->EXTREQ1.nREG, (Hw32-Hw0), Hw7);		//ext request set tsif1
+		else					BITCSET(dma_regs->EXTREQ1.nREG, (Hw32-Hw0), Hw31);	//ext request set tsif2
 
 		//20110530 koo : transfer type setting => edge or level
 		//reg_val = Hw15|Hw11|Hw9|Hw8|Hw5|Hw4|Hw2|Hw1;
 		reg_val = Hw15|Hw11|Hw5|Hw4|Hw2|Hw1;
 
-		if(GDMA_WORD_SIZE == 4)			reg_val |= Hw5 | Hw4;
+		if(GDMA_WORD_SIZE == 4)		reg_val |= Hw5 | Hw4;
 		else if(GDMA_WORD_SIZE == 2)	reg_val |= Hw4;
 		if(GDMA_BURST_SIZE == 8)		reg_val |= Hw7 | Hw6;
 		else if(GDMA_BURST_SIZE == 4)	reg_val |= Hw7;
 		else if(GDMA_BURST_SIZE == 2)	reg_val |= Hw6;
-		BITCSET(dma_regs->CHCTRL1, (Hw32-Hw0), reg_val);			//channel ctrl reg set
+		BITCSET(dma_regs->CHCTRL1.nREG, (Hw32-Hw0), reg_val);			//channel ctrl reg set
 	} else { 
 		tsif_tsdi_addr = (int)&(h->regs->TSDI);
 		tsif_tsdi_addr -= IO_OFFSET;
-		BITCSET(dma_regs->ST_SADR2, (Hw32-Hw0), tsif_tsdi_addr);		//source addr set
-		BITCLR(dma_regs->SPARAM2, (Hw32-Hw0));
+		BITCSET(dma_regs->ST_SADR2.nREG, (Hw32-Hw0), tsif_tsdi_addr);		//source addr set
+		BITCLR(dma_regs->SPARAM2.nREG, (Hw32-Hw0));
 
-		BITCSET(dma_regs->ST_DADR2, (Hw32-Hw0), h->rx_dma.dma_addr);	//destination addr set
+		BITCSET(dma_regs->ST_DADR2.nREG, (Hw32-Hw0), h->rx_dma.dma_addr);	//destination addr set
 		mask_addr = TSIF_MASK_SIZE << 8;								// 1mbyte mask set
-		BITCSET(dma_regs->DPARAM2, (Hw32-Hw0), (mask_addr|TSIF_DMA_INCREASE_SIZE));		//inc & mask addr set
+		BITCSET(dma_regs->DPARAM2.nREG, (Hw32-Hw0), (mask_addr|TSIF_DMA_INCREASE_SIZE));		//inc & mask addr set
 
-		BITCSET(dma_regs->HCOUNT2, (Hw32-Hw0), TSIF_DMA_HOPE_CNT(h->dma_intr_packet_cnt));		//hop count set
-		BITCLR(dma_regs->CHCTRL2, (Hw32-Hw0));							//repeat ctrl reg set
+		BITCSET(dma_regs->HCOUNT2.nREG, (Hw32-Hw0), TSIF_DMA_HOPE_CNT(h->dma_intr_packet_cnt));		//hop count set
+		BITCLR(dma_regs->CHCTRL2.nREG, (Hw32-Hw0));							//repeat ctrl reg set
 
-		if(h->id == 0)	BITCSET(dma_regs->EXTREQ2, (Hw32-Hw0), Hw3);	//ext request set tsif0
-		else			BITCSET(dma_regs->EXTREQ2, (Hw32-Hw0), Hw7);	//ext request set tsif1
+		if(h->id == 0)			BITCSET(dma_regs->EXTREQ2.nREG, (Hw32-Hw0), Hw3);		//ext request set tsif0
+		else if(h->id == 1)		BITCSET(dma_regs->EXTREQ2.nREG, (Hw32-Hw0), Hw7);		//ext request set tsif1
+		else					BITCSET(dma_regs->EXTREQ2.nREG, (Hw32-Hw0), Hw31);	//ext request set tsif2
 
 		//20110530 koo : transfer type setting => edge or level
 		//reg_val = Hw15|Hw11|Hw9|Hw8|Hw5|Hw4|Hw2|Hw1;
 		reg_val = Hw15|Hw11|Hw5|Hw4|Hw2|Hw1;
 		
-		if(GDMA_WORD_SIZE == 4)			reg_val |= Hw5 | Hw4;
+		if(GDMA_WORD_SIZE == 4)		reg_val |= Hw5 | Hw4;
 		else if(GDMA_WORD_SIZE == 2)	reg_val |= Hw4;
 		if(GDMA_BURST_SIZE == 8)		reg_val |= Hw7 | Hw6;
 		else if(GDMA_BURST_SIZE == 4)	reg_val |= Hw7;
 		else if(GDMA_BURST_SIZE == 2)	reg_val |= Hw6;
-		BITCSET(dma_regs->CHCTRL2, (Hw32-Hw0), reg_val);			//channel ctrl reg set
+		BITCSET(dma_regs->CHCTRL2.nREG, (Hw32-Hw0), reg_val);			//channel ctrl reg set
 	}
 }
 
-static int tcc_tsif_module_dmastart(struct tcc_tsif_module_handle *h)
+static int tcc_tsif_dmastart(struct tcc_tsif_handle *h)
 {
 	volatile PGDMACTRL dma_regs;
 
@@ -335,13 +469,13 @@ static int tcc_tsif_module_dmastart(struct tcc_tsif_module_handle *h)
 	h->dma_recv_size	= 0;
 	h->dma_intr_cnt		= 0;
 
-	tcc_tsif_module_dma_init(h);
+	tcc_tsif_dma_init(h);
 
-	if(h->dma_ch == 0)	 	BITSET(dma_regs->CHCTRL0, 	Hw0);	//dma enable
-	else if(h->dma_ch == 1)	BITSET(dma_regs->CHCTRL1, 	Hw0);	//dma enable
-	else					BITSET(dma_regs->CHCTRL2, 	Hw0);	//dma enable
+	if(h->dma_ch == 0)	 		BITSET(dma_regs->CHCTRL0.nREG, 	Hw0);	//dma enable
+	else if(h->dma_ch == 1)	BITSET(dma_regs->CHCTRL1.nREG, 	Hw0);	//dma enable
+	else						BITSET(dma_regs->CHCTRL2.nREG, 	Hw0);	//dma enable
 		
-	BITSET(h->regs->TSCR, Hw31);								//tsif enable
+	BITSET(h->regs->TSRXCR, Hw31);								//tsif enable
 
 #ifdef DEBUG_INFO
 	printk("%s\n", __func__);
@@ -350,7 +484,7 @@ static int tcc_tsif_module_dmastart(struct tcc_tsif_module_handle *h)
 	return 0;
 }
 
-static int tcc_tsif_module_dmastop(struct tcc_tsif_module_handle *h)
+static int tcc_tsif_dmastop(struct tcc_tsif_handle *h)
 {
 	volatile PGDMACTRL dma_regs;
 
@@ -361,11 +495,11 @@ static int tcc_tsif_module_dmastop(struct tcc_tsif_module_handle *h)
 	else if(h->dma_controller == 2)
 		dma_regs = (volatile PGDMACTRL)tcc_p2v(HwGDMA2_BASE);
 
-	if(h->dma_ch == 0)		BITCLR(dma_regs->CHCTRL0, 	Hw0);	//dma disable
-	else if(h->dma_ch == 1)	BITCLR(dma_regs->CHCTRL1, 	Hw0);	//dma disable
-	else					BITCLR(dma_regs->CHCTRL2, 	Hw0);	//dma disable
+	if(h->dma_ch == 0)			BITCLR(dma_regs->CHCTRL0.nREG, 	Hw0);	//dma disable
+	else if(h->dma_ch == 1)	BITCLR(dma_regs->CHCTRL1.nREG, 	Hw0);	//dma disable
+	else						BITCLR(dma_regs->CHCTRL2.nREG, 	Hw0);	//dma disable
 
-	BITCLR(h->regs->TSCR, Hw31);								//tsif disable
+	BITCLR(h->regs->TSRXCR, Hw31);								//tsif disable
 
 #ifdef DEBUG_INFO
 	printk("%s\n", __func__);
@@ -374,25 +508,24 @@ static int tcc_tsif_module_dmastop(struct tcc_tsif_module_handle *h)
 	return 0;
 }
 
-static void tcc_tsif_module_dma_deinit(struct tcc_tsif_module_handle *h)
+static void tcc_tsif_dma_deinit(struct tcc_tsif_handle *h)
 {
-	volatile PGDMACTRL dma_regs;
+	//volatile PGDMACTRL dma_regs;
 
-	dma_regs = (volatile PGDMACTRL)tcc_p2v(HwGDMA0_BASE);
+	//dma_regs = (volatile PGDMACTRL)tcc_p2v(HwGDMA0_BASE);
 }
 #else //GDMA
-static void tcc_tsif_module_isr(struct tcc_tsif_module_handle *h)
+static void tcc_tsif_isr(struct tcc_tsif_handle *h)
 {
-	volatile PGPSB dma_regs;
+	volatile PTSIFDMA dma_regs;
 	unsigned long dma_done_reg = 0;
 
-	if(h->id == 0)
-		dma_regs = (volatile PGPSB)tcc_p2v(HwGPSB0_BASE);
-	else if(h->id == 1)
-		dma_regs = (volatile PGPSB)tcc_p2v(HwGPSB1_BASE);
+	if(h->id == 0)			dma_regs = (volatile PTSIFDMA)tcc_p2v(HwTSIF_DMA0_BASE);
+	else if(h->id == 1)		dma_regs = (volatile PTSIFDMA)tcc_p2v(HwTSIF_DMA1_BASE);
+	else					dma_regs = (volatile PTSIFDMA)tcc_p2v(HwTSIF_DMA2_BASE);
 
 	dma_done_reg = dma_regs->DMAICR.nREG;
-	if( dma_done_reg & (Hw29|Hw28) ) {
+	if(dma_done_reg & (Hw29|Hw28)) {
 		BITSET(dma_regs->DMAICR.nREG, (Hw29|Hw28));
 		h->cur_q_pos = (int)(dma_regs->DMASTR.nREG >> 17);
 	}
@@ -400,14 +533,13 @@ static void tcc_tsif_module_isr(struct tcc_tsif_module_handle *h)
 	return;
 }
 
-static void tcc_tsif_module_dma_init(struct tcc_tsif_module_handle *h)
+static void tcc_tsif_dma_init(struct tcc_tsif_handle *h)
 {
-	volatile PGPSB dma_regs;
+	volatile PTSIFDMA dma_regs;
 	
-	if(h->id == 0)
-		dma_regs = (volatile PGPSB)tcc_p2v(HwGPSB0_BASE);
-	else if(h->id == 1)
-		dma_regs = (volatile PGPSB)tcc_p2v(HwGPSB1_BASE);
+	if(h->id == 0)			dma_regs = (volatile PTSIFDMA)tcc_p2v(HwTSIF_DMA0_BASE);
+	else if(h->id == 1)		dma_regs = (volatile PTSIFDMA)tcc_p2v(HwTSIF_DMA1_BASE);
+	else					dma_regs = (volatile PTSIFDMA)tcc_p2v(HwTSIF_DMA2_BASE);
 
 	//BITCSET(dma_regs->TXBASE, (Hw32-Hw0), h->regs->TSDI);
 	BITCSET(dma_regs->RXBASE.nREG, (Hw32-Hw0), h->rx_dma.dma_addr);
@@ -418,17 +550,17 @@ static void tcc_tsif_module_dma_init(struct tcc_tsif_module_handle *h)
 	BITCLR(dma_regs->DMACTR.nREG, Hw28); //0:little endian, 1:Big endian
 }
 
-static int tcc_tsif_module_dmastart(struct tcc_tsif_module_handle *h)
+static int tcc_tsif_dmastart(struct tcc_tsif_handle *h)
 {
-	volatile PGPSB dma_regs;
-	unsigned int packet_cnt = (h->dma_total_packet_cnt & 0x1FFF) -1;
-	unsigned int packet_size = (MPEG_PACKET_SIZE & 0x1FFF);
-	unsigned int intr_packet_cnt = (h->dma_intr_packet_cnt & 0x1FFF) -1;
+	volatile PTSIFDMA dma_regs;
 
-	if(h->id == 0)
-		dma_regs = (volatile PGPSB)tcc_p2v(HwGPSB0_BASE);
-	else if(h->id == 1)
-		dma_regs = (volatile PGPSB)tcc_p2v(HwGPSB1_BASE);
+	unsigned int packet_cnt = (h->dma_total_packet_cnt & 0x1FFF) + 1;
+	unsigned int packet_size = (MPEG_PACKET_SIZE & 0x1FFF);
+	unsigned int intr_packet_cnt = (h->dma_intr_packet_cnt & 0x1FFF) - 1;
+
+	if(h->id == 0)			dma_regs = (volatile PTSIFDMA)tcc_p2v(HwTSIF_DMA0_BASE);
+	else if(h->id == 1)		dma_regs = (volatile PTSIFDMA)tcc_p2v(HwTSIF_DMA1_BASE);
+	else					dma_regs = (volatile PTSIFDMA)tcc_p2v(HwTSIF_DMA2_BASE);
 
 	BITCSET(dma_regs->RXBASE.nREG, (Hw32-Hw0), h->rx_dma.dma_addr);
 
@@ -447,7 +579,7 @@ static int tcc_tsif_module_dmastart(struct tcc_tsif_module_handle *h)
 
 #ifndef TSIF_PIDMATCH_USE	
 	BITSET(dma_regs->DMACTR.nREG, Hw19|Hw18);		//enable PID & Sync Byte match
-#endif	
+#endif
 
 	//BITCSET(dma_regs->DMACTR, Hw5|Hw4, Hw29);
 	BITCSET(dma_regs->DMACTR.nREG, Hw5|Hw4, Hw4);	//00:normal mode, 01:MPEG2_TS mode
@@ -456,73 +588,77 @@ static int tcc_tsif_module_dmastart(struct tcc_tsif_module_handle *h)
 	BITSET(dma_regs->DMACTR.nREG, Hw1);				//enable TSSEL
 	BITSET(dma_regs->DMACTR.nREG, Hw0);				//enable DMA
 
-	BITSET(h->regs->TSCR, Hw31);
+	BITSET(h->regs->TSRXCR, Hw31);
+
+#ifdef DEBUG_INFO
+	printk("%s\n", __func__);
+#endif
 
 	return 0;
 }
 
-static int tcc_tsif_module_dmastop(struct tcc_tsif_module_handle *h)
+static int tcc_tsif_dmastop(struct tcc_tsif_handle *h)
 {
-	volatile PGPSB dma_regs;
-	
-	if(h->id == 0)
-		dma_regs = (volatile PGPSB)tcc_p2v(HwGPSB0_BASE);
-	else if(h->id == 1)
-		dma_regs = (volatile PGPSB)tcc_p2v(HwGPSB1_BASE);
+	volatile PTSIFDMA dma_regs;
+
+	if(h->id == 0)			dma_regs = (volatile PTSIFDMA)tcc_p2v(HwTSIF_DMA0_BASE);
+	else if(h->id == 1)		dma_regs = (volatile PTSIFDMA)tcc_p2v(HwTSIF_DMA1_BASE);
+	else					dma_regs = (volatile PTSIFDMA)tcc_p2v(HwTSIF_DMA2_BASE);
 
 	BITCLR(dma_regs->DMACTR.nREG, Hw30); //disable DMA receive
 	BITSET(dma_regs->DMAICR.nREG, Hw29|Hw28);
 	BITCLR(dma_regs->DMACTR.nREG, Hw0);
 	
-	BITCLR(h->regs->TSCR, Hw31);
+	BITCLR(h->regs->TSRXCR, Hw31);
+
+#ifdef DEBUG_INFO
+	printk("%s\n", __func__);
+#endif
 
 	return 0;
 }
 
-static void tcc_tsif_module_dma_deinit(struct tcc_tsif_module_handle *h)
+static void tcc_tsif_dma_deinit(struct tcc_tsif_handle *h)
 {
 }
 #endif //GDMA
 
-static void tcc_tsif_module_hw_init(struct tcc_tsif_module_handle *h)
+static void tcc_tsif_hw_init(struct tcc_tsif_handle *h)
 {
 	unsigned int reg_val;
 	int i;
 
-	tca_tsif_module_set_port(h);
-
-	if(TSIF_BYTE_SIZE == 4)			reg_val = Hw17 | Hw9 | Hw8 | Hw7;
+	tca_tsif_set_port(h);
+ 
+	if(TSIF_BYTE_SIZE == 4)		reg_val = Hw17 | Hw9 | Hw8 | Hw7;
 	else if(TSIF_BYTE_SIZE == 2)	reg_val = Hw17 | Hw8 | Hw7;
 	else							reg_val = Hw17 | Hw7;
-	BITCSET(h->regs->TSCR, 	(Hw32-Hw0), reg_val);
+	BITCSET(h->regs->TSRXCR, 	(Hw32-Hw0), reg_val);
 	
-	//20100120 koo atsc 동작 시 little endian으로 동작 시키면 tsif reg에서 0x47 detect는 되지만 dma buf에 4byte align이 뒤바뀌어져 있음. 하여 0x47 detect mode clear
-	BITCLR(h->regs->TSCR, Hw17);
-#if !defined(CONFIG_iTV_FE_TUNER_MODULE_XC5000) && !defined(CONFIG_iTV_FE_TUNER_MODULE_FQD1136)
-	BITSET(h->regs->TSCR, Hw18);
-#endif
+	BITCLR(h->regs->TSRXCR, Hw17);
+	
 	reg_val = (TSIF_RXFIFO_THRESHOLD << 5) | Hw4;
 	BITCSET(h->regs->TSIC,(Hw32-Hw0), reg_val);
 	
  	for(i=0; i<16; i++) {	
-		BITCLR(h->regs->TSPID[i], 	(Hw32-Hw0));
+		BITCLR(h->regs->TSPID[i], (Hw32-Hw0));
 	}
-
-	tcc_tsif_module_dma_init(h);
+ 
+	tcc_tsif_dma_init(h);
 	
 #ifdef DEBUG_INFO
 	printk("%s\n", __func__);
 #endif
 }
 
-static void tcc_tsif_module_hw_deinit(struct tcc_tsif_module_handle *h)
+static void tcc_tsif_hw_deinit(struct tcc_tsif_handle *h)
 {
-	tcc_tsif_module_release_port(h);
+	tcc_tsif_release_port(h);
 
-	BITCLR(h->regs->TSCR, 	(Hw32-Hw0));
+	BITCLR(h->regs->TSRXCR, 	(Hw32-Hw0));
 	BITCLR(h->regs->TSIC,	(Hw32-Hw0));
 
-	tcc_tsif_module_dma_deinit(h);
+	tcc_tsif_dma_deinit(h);
 
 #ifdef DEBUG_INFO
 	printk("%s\n", __func__);
@@ -535,7 +671,7 @@ static void tcc_tsif_module_hw_deinit(struct tcc_tsif_module_handle *h)
  * ret == 0: success
  * ret > 0 or ret < 0: fail
  ******************************/
-int tca_tsif_module_init(struct tcc_tsif_module_handle *h,
+int tca_tsif_init(struct tcc_tsif_handle *h,
 					volatile struct tcc_tsif_regs *regs,
 					dma_alloc_f tea_dma_alloc,
 					dma_free_f tea_dma_free,
@@ -549,22 +685,24 @@ int tca_tsif_module_init(struct tcc_tsif_module_handle *h,
 	
 	if(regs)
 	{   
-		h->regs = (volatile struct tca_spi_regs *)tcc_p2v((regs));
+		//h->regs = (volatile struct tcc_tsif_regs *)tcc_p2v((regs));
+		h->regs = regs;
+
 		h->dma_controller	= dma_controller;
 		h->id 				= tsif_ch;
 		h->dma_ch			= dma_ch;
 #ifdef GDMA
-		h->irq 				= (INT_DMA0_BASE + 3*dma_controller + dma_ch); //INT_DMA
+		h->irq 				= (INT_DMA_BASE + 3*dma_controller + dma_ch); //INT_DMA
 #else //GDMA
-		h->irq				= (tsif_ch == 0) ? INT_GPSB0_DMA : INT_GPSB1_DMA;
+		h->irq				= INT_TSIF_BASE + tsif_ch;
 #endif //GDMA
 		h->gpio_port 		= port;
 
-		h->dma_stop 		= tcc_tsif_module_dmastop;
-		h->dma_start 		= tcc_tsif_module_dmastart;
-		h->clear_fifo_packet= tcc_tsif_module_clearfifopacket;
-		h->tsif_set			= tcc_tsif_module_set;
-		h->tsif_isr			= tcc_tsif_module_isr;
+		h->dma_stop 		= tcc_tsif_dmastop;
+		h->dma_start 		= tcc_tsif_dmastart;
+		h->clear_fifo_packet= tcc_tsif_clearfifopacket;
+		h->tsif_set			= tcc_tsif_set;
+		h->tsif_isr			= tcc_tsif_isr;
 
 		h->tea_dma_alloc 	= tea_dma_alloc;
 		h->tea_dma_free 	= tea_dma_free;
@@ -579,28 +717,29 @@ int tca_tsif_module_init(struct tcc_tsif_module_handle *h,
 			ret = 0;
 		}
 
-		tcc_tsif_module_hw_init(h);
+		//20111212 koo : h->serial_mode setting 이 되어 있지 않아 start 시에 port setting 하도록 수정.
+		//tcc_tsif_hw_init(h);
 		
 		if(ret)
-			tca_tsif_module_clean(h);
+			tca_tsif_clean(h);
 	}
 
 	return ret;
 }
 
-void tca_tsif_module_clean(struct tcc_tsif_module_handle *h)
+void tca_tsif_clean(struct tcc_tsif_handle *h)
 {
 	if(h) {
 		if(h->tea_dma_free) {
 			h->tea_dma_free(&(h->rx_dma));
 		}
 
-		tcc_tsif_module_hw_deinit(h);
+		tcc_tsif_hw_deinit(h);
 	}
 }
 
 
-EXPORT_SYMBOL(tca_tsif_module_init);
-EXPORT_SYMBOL(tca_tsif_module_clean);
+EXPORT_SYMBOL(tca_tsif_init);
+EXPORT_SYMBOL(tca_tsif_clean);
 
 

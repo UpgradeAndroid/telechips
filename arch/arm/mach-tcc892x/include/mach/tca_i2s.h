@@ -7,6 +7,10 @@
 
 #define BASE_ADDR_PIC       HwPIC_BASE
 
+#if defined(CONFIG_TCC8923_0XA)
+#undef CONFIG_MACH_M805_892X
+#endif
+
 #if defined(CONFIG_MACH_M805_892X)
 #define BASE_ADDR_ADMA      HwAUDIO1_ADMA_BASE
 #define BASE_ADDR_DAI       HwAUDIO1_DAI_BASE

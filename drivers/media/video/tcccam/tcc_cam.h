@@ -27,7 +27,7 @@
 //#define FIFO_TRIGGER_LVL (32)
 
 /* Maximum number of buffers */
-#define TCC_CAMERA_MAX_BUFNBRS 		6
+#define TCC_CAMERA_MAX_BUFNBRS 		14
 
 #define ALIGNED_BUFF(buf, mul) ( ( (unsigned int)buf + (mul-1) ) & ~(mul-1) )
 
