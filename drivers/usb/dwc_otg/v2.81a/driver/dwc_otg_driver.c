@@ -70,7 +70,7 @@
 #include <asm/io.h>
 #include <asm/sizes.h>
 #include <asm/mach-types.h>
-
+#include <asm/gpio.h>
 
 #include "dwc_os.h"
 #include "dwc_otg_dbg.h"
@@ -749,6 +749,11 @@ static int tcc_usb_thread(void* _dwc_otg_device)
 	dwc_otg_device->flagID = -1;
 	dwc_otg_device->flagDeviceAttach = 0;
 
+	#if defined(CONFIG_MACH_TCC8920ST)
+		gpio_set_value(TCC_GPG(4), 0);
+		gpio_set_value(TCC_GPB(24), 1);
+	#endif
+	
 	while (!kthread_should_stop())
 	{
 		down(&dwc_otg_device->vbus_usb_task_lock);
