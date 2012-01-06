@@ -73,7 +73,10 @@ static int at070tn93_set_power(struct lcd_panel *panel, int on, unsigned int lcd
 		if(lcd_bl_level)		{
 			msleep(80); 	
 		#if defined(CONFIG_ARCH_TCC892X)
-			tcc_gpio_config(pdata->bl_on, GPIO_FN(9));
+			if(system_rev == 0x1005)
+				tcc_gpio_config(pdata->bl_on, GPIO_FN(11));
+			else
+				tcc_gpio_config(pdata->bl_on, GPIO_FN(9));
 		#else
 			tcc_gpio_config(pdata->bl_on, GPIO_FN(2));
 		#endif

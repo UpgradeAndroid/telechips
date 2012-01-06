@@ -2154,11 +2154,6 @@ int __init tcc_output_starter_init(void)
 
 	pmap_get_info("fb_video", &pmap_fb);
 
-	#if defined(CONFIG_MACH_TCC8920ST)
-		gpio_set_value(TCC_GPG(4), 0);
-		gpio_set_value(TCC_GPB(24), 1);
-	#endif
-
 	#if defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC88XX)/* || defined(CONFIG_ARCH_TCC892X)*/
 		lcdc_1st = STARTER_LCDC_0; /* LCDC0: HDMI or Component */
 		lcdc_2nd = STARTER_LCDC_1; /* LCDC1: Composite */

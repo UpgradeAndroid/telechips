@@ -820,10 +820,10 @@ static int es8388_register_init(struct snd_soc_codec *codec)
     snd_soc_write(codec, ES8388_ADCCONTROL3, 0x82);     // Input Select: LIN2/RIN2
     snd_soc_write(codec, ES8388_ADCCONTROL4, 0x4C);     // Left data = left ADC, right data = right ADC, 24 bits I2S
     snd_soc_write(codec, ES8388_ADCCONTROL5, 0x02);     // 256fs
-    snd_soc_write(codec, ES8388_ADCCONTROL6, 0x00);     // Disable High pass filter
+    snd_soc_write(codec, ES8388_ADCCONTROL6, 0x30);     // Disable High pass filter
 
-    snd_soc_write(codec, ES8388_LADC_VOL, 0x04);        // 0dB
-    snd_soc_write(codec, ES8388_RADC_VOL, 0x04);        // 0dB
+    snd_soc_write(codec, ES8388_LADC_VOL, 0x00);        // 0dB
+    snd_soc_write(codec, ES8388_RADC_VOL, 0x00);        // 0dB
 
     //snd_soc_write(codec, ES8388_ADCCONTROL10, 0x3A);    // ALC stereo, Max gain(17.5dB), Min gain(0dB)
     snd_soc_write(codec, ES8388_ADCCONTROL10, 0xda);    // ALC stereo, Max gain(17.5dB), Min gain(0dB)  //ca

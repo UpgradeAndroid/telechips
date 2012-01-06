@@ -276,7 +276,7 @@ static void cif_data_init(void *priv)
 	data->cif_cfg.zoom_step			= 0;
 	
 	data->cif_cfg.base_buf			= hardware_data.cif_buf.addr;
-	data->cif_cfg.pp_num			= 0;//TCC_CAMERA_MAX_BUFNBRS;
+	data->cif_cfg.pp_num			= 0; // TCC_CAMERA_MAX_BUFNBRS;
 
 	data->cif_cfg.fmt				= tcc_sensor_info.format;
 	
@@ -320,7 +320,7 @@ static void cif_data_init(void *priv)
 	data->cif_cfg.base_buf			= hardware_data.cif_buf.addr;
 	#endif
 
-	data->cif_cfg.pp_num			= 0;//TCC_CAMERA_MAX_BUFNBRS;
+	data->cif_cfg.pp_num			= 0; // TCC_CAMERA_MAX_BUFNBRS;
 #if defined(CONFIG_VIDEO_ATV_SENSOR_TVP5150) || defined(CONFIG_VIDEO_ATV_SENSOR_RDA5888)
 	data->cif_cfg.fmt				= M420_EVEN;
 #else
@@ -1282,8 +1282,8 @@ void cif_dma_hw_reg(unsigned char frame_num)
 
 #if defined(CONFIG_USE_ISP)
 	ISP_SetPreviewH_StartAddress((unsigned int)data->cif_cfg.preview_buf[frame_num].p_Y,
-									(unsigned int)data->cif_cfg.preview_buf[frame_num].p_Cb,
-									(unsigned int)data->cif_cfg.preview_buf[frame_num].p_Cr);
+									(unsigned int)data->cif_cfg.preview_buf[frame_num].p_Cr,
+									(unsigned int)data->cif_cfg.preview_buf[frame_num].p_Cb);
 #elif	defined(CONFIG_ARCH_TCC892X)
 	// For Making the format android(ICS) wants, we had to change between Cb and Cr.
 	VIOC_WDMA_SetImageBase(pWDMABase, (unsigned int)data->cif_cfg.preview_buf[frame_num].p_Y, 
@@ -1291,11 +1291,11 @@ void cif_dma_hw_reg(unsigned char frame_num)
 									(unsigned int)data->cif_cfg.preview_buf[frame_num].p_Cb);	
 #else
 	TDD_CIF_SetBaseAddr(INPUT_IMG, (unsigned int)data->cif_cfg.preview_buf[frame_num].p_Y,
-									(unsigned int)data->cif_cfg.preview_buf[frame_num].p_Cb,
-									(unsigned int)data->cif_cfg.preview_buf[frame_num].p_Cr);
-#if defined(CONFIG_VIDEO_ATV_SENSOR_TVP5150)
-//	TDD_CIF_SetBaseAddr_offset(INPUT_IMG, data->cif_cfg.main_set.target_x, data->cif_cfg.main_set.target_x/2);
-#endif
+									(unsigned int)data->cif_cfg.preview_buf[frame_num].p_Cr,
+									(unsigned int)data->cif_cfg.preview_buf[frame_num].p_Cb);
+	#if defined(CONFIG_VIDEO_ATV_SENSOR_TVP5150)
+	//TDD_CIF_SetBaseAddr_offset(INPUT_IMG, data->cif_cfg.main_set.target_x, data->cif_cfg.main_set.target_x/2);
+	#endif
 #endif //CONFIG_USE_ISP
 }
 
@@ -1594,8 +1594,13 @@ int tccxxx_vioc_vin_main(VIOC_VIN *pVIN)
 	if(data->cif_cfg.oper_mode == OPER_CAPTURE)
 	{
 		#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
+		if(data->cif_cfg.main_set.target_x >= tcc_sensor_info.cam_capchg_width) {
 			width 	= tcc_sensor_info.capture_w;
 			height 	= tcc_sensor_info.capture_h;
+		} else {
+			width 	= tcc_sensor_info.preview_w;
+			height 	= tcc_sensor_info.preview_h;
+		}
 		#else
 			width 	= CAP_W;
 			height 	= CAP_H;

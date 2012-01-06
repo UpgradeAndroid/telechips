@@ -44,22 +44,6 @@ config TCC8803
 
 endchoice
 
-choice
-	prompt "TCC892x series"
-	depends on ARCH_TCC892X
-	default TCC8920
-
-config TCC8920
-	bool "TCC8920"
-
-config TCC8923
-	bool "TCC8923"
-
-config TCC8924
-	bool "TCC8924"
-
-endchoice
-
 comment "DRAM Settings"
 
 config MEM_CLK_SYNC_MODE
