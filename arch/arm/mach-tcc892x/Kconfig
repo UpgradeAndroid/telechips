@@ -1,42 +1,42 @@
 if ARCH_TCC892X
 
-comment "TCC Board Type"
+choice
+	prompt "TCC892x Board(Machine) Type"
+	default MACH_TCC8920
+	depends on ARCH_TCC892X
+	help
+	  Select TCC892x board type.
 
 config MACH_TCC8920
 	bool "TCC8920 evaluation board"
-	depends on ARCH_TCC892X
 	help
 	  Support for the TCC8920 evaluation board. Say Y here if you
 	  have such a device.
 
-
 config MACH_TCC8923
 	bool "TCC8923 evaluation board"
-	depends on ARCH_TCC892X
 	help
 	  Support for the TCC8923 evaluation board. Say Y here if you
 	  have such a device.
 
 config MACH_TCC8925
 	bool "TCC8925 evaluation board"
-	depends on ARCH_TCC892X
 	help
 	  Support for the TCC8925 evaluation board. Say Y here if you
 	  have such a device.
 
 config MACH_TCC8920ST
 	bool "TCC8920 STB evaluation board"
-	depends on ARCH_TCC892X
 	help
 	  Support for the TCC8924 evaluation board. Say Y here if you
 	  have such a device.
 
 config MACH_M805_892X
 	bool "M805_TCC8923 board"
-	depends on ARCH_TCC892X
 	help
-	  Support for the TCC892X evaluation board. Say Y here if you
+	  Support for the TCC8923 M805 board. Say Y here if you
 	  have such a device.
+endchoice
 
 config TCC8923_0XA
 	bool "TCC8923_0XA Chipset"
