@@ -17,58 +17,60 @@
 
 static struct tcc_freq_table_t gtClockLimitTable[] = {
 	/*  CPU /   DDI /   MEM /   GPU /    IO /  VBUS /  VCOD /   SMU /  HSIO */
-#if defined(CONFIG_MACH_TCC8920ST)
-//	{ 625000,      0, 300000,      0, 196000,      0,      0, 100000,      0 },	// Core 1.20V
-	{ 740000, 396400, 360000,      0, 196000, 351930, 351930, 100000,      0 },	// Core 1.32V
+#if (0)
+	{ 343750, 155150, 149190, 184000,  97470, 137750, 137750,  97470,      0 },	// Core 1.00V
+	{ 401250, 189010, 181740, 224140, 118735, 167800, 167800, 100000,      0 },	// Core 1.05V
+	{ 468750, 222860, 214290, 264290, 140000, 197860, 197860, 100000,      0 },	// Core 1.10V
+	{ 546875, 267425, 257140, 317140, 168000, 237425, 237425, 100000,      0 },	// Core 1.15V
+	{ 625000, 312000, 300000, 370000, 196000, 277000, 277000, 100000,      0 },	// Core 1.20V
+	{ 718750, 349440, 342850, 414400, 219520, 310240, 310240, 100000,      0 },	// Core 1.25V
+	{ 812500, 386880, 385700, 458800, 243040, 343480, 343480, 100000,      0 },	// Core 1.30V
 #else
-#if (1)
-	{ 837500, 396400, 360000, 470090, 240000, 351930, 351930, 100000,      0 },	// Core 1.32V	
-#else
-	{ 225000,      0, 125000,      0, 116000,      0,      0,  50000,      0 },	// Core 1.00V
-	{ 325000,      0, 150000,      0, 136000,      0,      0, 100000,      0 },	// Core 1.05V
-	{ 425000,      0, 200000,      0, 156000,      0,      0, 100000,      0 },	// Core 1.10V
-	{ 525000,      0, 250000,      0, 176000,      0,      0, 100000,      0 },	// Core 1.15V
+	{ 343750,      0, 149190,      0,  97470,      0,      0,  97470,      0 },	// Core 1.00V
+	{ 401250,      0, 181740,      0, 118735,      0,      0, 100000,      0 },	// Core 1.05V
+	{ 468750,      0, 214290,      0, 140000,      0,      0, 100000,      0 },	// Core 1.10V
+	{ 546875,      0, 257140,      0, 168000,      0,      0, 100000,      0 },	// Core 1.15V
 	{ 625000,      0, 300000,      0, 196000,      0,      0, 100000,      0 },	// Core 1.20V
-	{ 800000,      0, 360000,      0, 220000,      0,      0, 100000,      0 },	// Core 1.20V
-//	{ 996000,      0, 400000,      0, 220000,      0,      0, 100000,      0 },	// Core 1.20V
-#endif
+	{ 718750,      0, 342850,      0, 219520,      0,      0, 100000,      0 },	// Core 1.25V
+	{ 812500,      0, 385700,      0, 243040,      0,      0, 100000,      0 },	// Core 1.30V
+//	{ 996000,      0, 534000,      0, 220000,      0,      0, 100000,      0 },	// Core 1.50V
 #endif
 };
 
 //sync with gtJpegClockLimitTable
 const struct tcc_freq_table_t gtCameraClockLimitTable[] =
 {
-	{      0, 312000, 300000,      0,      0,      0,      0,      0,      0 },	// Core 1.20V
-	{      0, 312000, 300000,      0,      0,      0,      0,      0,      0 },	// Core 1.20V
-	{      0, 312000, 300000,      0,      0,      0,      0,      0,      0 },	// Core 1.20V
+	{      0, 222860, 214290,      0,      0,      0,      0,      0,      0 },	// Core 1.10V
+	{      0, 222860, 300000,      0,      0,      0,      0,      0,      0 },	// Core 1.20V
+	{      0, 386880, 385700,      0,      0,      0,      0,      0,      0 },	// Core 1.30V
 };
 
 const struct tcc_freq_table_t gtISPCameraClockLimitTable[] =
 {
-	{      0, 312000, 300000,      0,      0,      0,      0,      0,      0 },	// Core 1.20V
-	{      0, 312000, 300000,      0,      0,      0,      0,      0,      0 },	// Core 1.20V
-	{      0, 312000, 300000,      0,      0,      0,      0,      0,      0 },	// Core 1.20V
+	{      0, 222860, 214290,      0,      0,      0,      0,      0,      0 },	// Core 1.10V
+	{      0, 222860, 300000,      0,      0,      0,      0,      0,      0 },	// Core 1.20V
+	{      0, 386880, 385700,      0,      0,      0,      0,      0,      0 },	// Core 1.30V
 };
 
 const struct tcc_freq_table_t gtVpuNormalClockLimitTable[] =
 {
-	{      0, 312000, 300000,      0,      0, 277000, 277000,      0,      0 },	// Core 1.20V
-	{      0, 312000, 300000,      0,      0, 277000, 277000,      0,      0 },	// Core 1.20V
-	{      0, 312000, 300000,      0,      0, 277000, 277000,      0,      0 },	// Core 1.20V
+	{      0,      0, 214290,      0, 140000, 197860, 197860,      0,      0 },	// Core 1.10V
+	{      0,      0, 300000,      0, 196000, 277000, 277000,      0,      0 },	// Core 1.10V
+	{      0,      0, 385700,      0, 243040, 343480, 343480,      0,      0 },	// Core 1.30V
 };
 
 const struct tcc_freq_table_t gtJpegClockLimitTable[]= {
-	{      0, 312000, 300000,      0,      0, 277000, 277000,      0,      0 },	// Core 1.20V
-	{      0, 312000, 300000,      0,      0, 277000, 277000,      0,      0 },	// Core 1.20V
-	{      0, 312000, 300000,      0,      0, 277000, 277000,      0,      0 },	// Core 1.20V
+	{      0,      0, 214290,      0, 140000, 197860, 197860,      0,      0 },	// Core 1.10V
+	{      0,      0, 300000,      0, 196000, 277000, 277000,      0,      0 },	// Core 1.20V
+	{      0,      0, 385700,      0, 243040, 297000, 297000,      0,      0 },	// Core 1.30V
 };
 
 const struct tcc_freq_table_t gtJpegMaxClockLimitTable = {
-	       0, 312000, 300000,      0,      0, 277000, 277000,      0,      0	// Core 1.20V
+	       0,      0, 385700,      0, 243040, 297000, 297000,      0,      0	// Core 1.30V
 };
 
 const struct tcc_freq_table_t gtHdmiClockLimitTable = {
-	       0, 312000, 300000,      0, 196000,      0,      0,      0,      0	// Core 1.20V
+	       0, 386880, 385700,      0, 243040,      0,      0,      0,      0	// Core 1.30V
 };
 
 const struct tcc_freq_table_t gtMaliClockLimitTable = {
@@ -76,7 +78,7 @@ const struct tcc_freq_table_t gtMaliClockLimitTable = {
 };
 
 const struct tcc_freq_table_t stFBClockLimitTable = {
-	       0, 110000, 125000,      0,  98000,      0,      0,      0,      0	// Core 1.00V
+	       0, 155150, 149190,      0,  97470,      0,      0,      0,      0	// Core 1.00V
 };
 
 const struct tcc_freq_table_t gtOverlayClockLimitTable = {
@@ -93,20 +95,20 @@ const struct tcc_freq_table_t gtTvClockLimitTable = {
 };
 
 const struct tcc_freq_table_t gtEthernetClockLimitTable = {
-	       0, 312000, 300000,      0, 196000,      0,      0,      0,      0	// Core 1.20V
+	       0,      0, 300000,      0, 196000,      0,      0,      0,      0	// Core 1.20V
 };
 
 const struct tcc_freq_table_t gtBtClockLimitTable = {
-	       0,      0, 300000,      0, 196000,      0,      0,      0,      0	// Core 1.32V
+	       0,      0, 300000,      0, 196000,      0,      0,      0,      0	// Core 1.20V
 };
 
 const struct tcc_freq_table_t gtUSBClockLimitTable[] = {
-	{      0,      0,      0,      0,  98000,      0,      0,      0,      0 }, // Core 1.00V	// Idle
-	{      0,      0, 300000,      0, 196000,      0,      0,      0,      0 }, // Core 1.20V	// Actived
+	{      0,      0,      0,      0,  97470,      0,      0,      0,      0 },	// Core 1.00V	// Idle
+	{      0,      0, 300000,      0, 196000,      0,      0,      0,      0 },	// Core 1.20V	// Actived
 };
 
 const struct tcc_freq_table_t gtAppClockLimitTable = {
-	  600000,      0, 300000,      0,      0,      0,      0,      0,      0	// Core 1.32V
+	  812500,      0, 385700,      0,      0,      0,      0,      0,      0	// Core 1.30V
 };
 
 const struct tcc_freq_table_t gtRemoconClockLimitTable = {
@@ -114,7 +116,7 @@ const struct tcc_freq_table_t gtRemoconClockLimitTable = {
 };
 
 const struct tcc_freq_table_t gtHSIOClockLimitTable = {
-	       0,      0, 300000,      0,      0,      0,      0,      0, 250000	// Core 1.25V
+	       0,      0, 300000,      0,      0,      0,      0,      0, 250000	// Core 1.20V
 };
 
 const struct tcc_freq_table_t gtHSIONormalClockLimitTable = {
@@ -122,8 +124,8 @@ const struct tcc_freq_table_t gtHSIONormalClockLimitTable = {
 };
 
 const struct tcc_freq_table_t gtVoipClockLimitTable[] = {
-	{      0,      0, 300000,      0, 196000,      0,      0,      0,      0 },	// Core 1.10V
-	{      0,      0, 300000,      0, 196000,      0,      0,      0,      0 },	// Core 1.32V
+	{      0,      0, 214290,      0, 140000,      0,      0,      0,      0 },	// Core 1.10V
+	{      0,      0, 385700,      0, 243040,      0,      0,      0,      0 },	// Core 1.30V
 };
 
 EXPORT_SYMBOL(gtCameraClockLimitTable);
