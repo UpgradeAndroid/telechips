@@ -759,6 +759,8 @@ unsigned int tca_ckc_setperi(unsigned int periname,unsigned int isenable, unsign
             for (i=0 ; i<MAX_CLK_SRC ; i++) {
                 if (stClockSource[i] == 0)
                     continue;
+                if (stClockSource[i] < freq)
+                    continue;
                 div_100[i] = ((freq*(65536>>dco_shift))/(stClockSource[i]/100))<<dco_shift;
                 if ((div_100[i]%100) > 50) {
                     div[i] = div_100[i]/100 + 1;
@@ -830,6 +832,8 @@ unsigned int tca_ckc_setperi(unsigned int periname,unsigned int isenable, unsign
             searchsrc = 0xFFFFFFFF;
             for (i=0 ; i<MAX_CLK_SRC ; i++) {
                 if (stClockSource[i] == 0)
+                    continue;
+                if (stClockSource[i] < freq)
                     continue;
                 div_100[i] = stClockSource[i]/(freq/100);
                 if (div_100[i] > MAX_PERI_DIV*100)
