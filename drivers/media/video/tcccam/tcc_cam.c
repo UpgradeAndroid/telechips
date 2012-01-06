@@ -1282,8 +1282,8 @@ void cif_dma_hw_reg(unsigned char frame_num)
 
 #if defined(CONFIG_USE_ISP)
 	ISP_SetPreviewH_StartAddress((unsigned int)data->cif_cfg.preview_buf[frame_num].p_Y,
-									(unsigned int)data->cif_cfg.preview_buf[frame_num].p_Cb,
-									(unsigned int)data->cif_cfg.preview_buf[frame_num].p_Cr);
+									(unsigned int)data->cif_cfg.preview_buf[frame_num].p_Cr,
+									(unsigned int)data->cif_cfg.preview_buf[frame_num].p_Cb);
 #elif	defined(CONFIG_ARCH_TCC892X)
 	// For Making the format android(ICS) wants, we had to change between Cb and Cr.
 	VIOC_WDMA_SetImageBase(pWDMABase, (unsigned int)data->cif_cfg.preview_buf[frame_num].p_Y, 
@@ -1291,11 +1291,11 @@ void cif_dma_hw_reg(unsigned char frame_num)
 									(unsigned int)data->cif_cfg.preview_buf[frame_num].p_Cb);	
 #else
 	TDD_CIF_SetBaseAddr(INPUT_IMG, (unsigned int)data->cif_cfg.preview_buf[frame_num].p_Y,
-									(unsigned int)data->cif_cfg.preview_buf[frame_num].p_Cb,
-									(unsigned int)data->cif_cfg.preview_buf[frame_num].p_Cr);
-#if defined(CONFIG_VIDEO_ATV_SENSOR_TVP5150)
-//	TDD_CIF_SetBaseAddr_offset(INPUT_IMG, data->cif_cfg.main_set.target_x, data->cif_cfg.main_set.target_x/2);
-#endif
+									(unsigned int)data->cif_cfg.preview_buf[frame_num].p_Cr,
+									(unsigned int)data->cif_cfg.preview_buf[frame_num].p_Cb);
+	#if defined(CONFIG_VIDEO_ATV_SENSOR_TVP5150)
+	//TDD_CIF_SetBaseAddr_offset(INPUT_IMG, data->cif_cfg.main_set.target_x, data->cif_cfg.main_set.target_x/2);
+	#endif
 #endif //CONFIG_USE_ISP
 }
 
