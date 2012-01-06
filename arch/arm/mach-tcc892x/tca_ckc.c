@@ -547,6 +547,8 @@ unsigned int tca_ckc_setfbusctrl(unsigned int clkname, unsigned int isenable, un
         for (i=0 ; i<MAX_CLK_SRC ; i++) {
             if (stClockSource[i] == 0)
                 continue;
+        if (stClockSource[i] < freq)
+            continue;
             div_100[i] = stClockSource[i]/(freq/100);
 
             if (div_100[i] > MAX_FBUS_DIV*100)
@@ -586,6 +588,13 @@ unsigned int tca_ckc_setfbusctrl(unsigned int clkname, unsigned int isenable, un
             }
         }
         if (searchsrc == 0xFFFFFFFF) {
+            if (overclksrc == 0xFFFFFFFF) {
+                overclksrc = 0;
+                for (i=1 ; i<MAX_CLK_SRC ; i++) {
+                    if (stClockSource[i] > stClockSource[overclksrc])
+                        overclksrc = i;
+                }
+            }
             searchsrc = overclksrc;
             div[searchsrc] = 2;
         }        
@@ -720,11 +729,14 @@ unsigned int tca_ckc_setperi(unsigned int periname,unsigned int isenable, unsign
 {
     volatile PCLK_XXX_TYPE *pPCLKCTRL_XXX = (PCLK_XXX_TYPE *)((&pCKC->PCLKCTRL00)+periname);
     volatile PCLK_YYY_TYPE *pPCLKCTRL_YYY = (PCLK_YYY_TYPE *)((&pCKC->PCLKCTRL00)+periname);
-    unsigned int div[MAX_CLK_SRC], div_100[MAX_CLK_SRC], i, searchsrc, dco_shift;
+    unsigned int div[MAX_CLK_SRC], div_100[MAX_CLK_SRC], i, searchsrc, overclksrc, dco_shift;
     unsigned int clkmd, clksrc, clkdiv, clkrate;
 
     if (hdmi_lcdc_source == periname)
         return 0;
+
+    searchsrc = 0xFFFFFFFF;
+    overclksrc = 0xFFFFFFFF;
 
     /* PCK_YYY (n=0~55, n== 7,27,28,31,36,37,38) */
     if (periname == PERI_HDMIA || periname == PERI_ADAI1 || periname == PERI_ADAM1 || periname == PERI_SPDIF1 ||
@@ -755,7 +767,7 @@ unsigned int tca_ckc_setperi(unsigned int periname,unsigned int isenable, unsign
                 dco_shift = 4;
             else                         // 209.7152 MHz
                 dco_shift = 5;
-            searchsrc = 0xFFFFFFFF;
+
             for (i=0 ; i<MAX_CLK_SRC ; i++) {
                 if (stClockSource[i] == 0)
                     continue;
@@ -777,6 +789,17 @@ unsigned int tca_ckc_setperi(unsigned int periname,unsigned int isenable, unsign
                     if (div_100[i] < div_100[searchsrc])
                         searchsrc = i;
                 }
+            }
+            if (searchsrc == 0xFFFFFFFF) {
+                if (overclksrc == 0xFFFFFFFF) {
+                    overclksrc = 0;
+                    for (i=1 ; i<MAX_CLK_SRC ; i++) {
+                        if (stClockSource[i] > stClockSource[overclksrc])
+                            overclksrc = i;
+                    }
+                }
+                searchsrc = overclksrc;
+                div[searchsrc] = 1;
             }
 
             switch(searchsrc) {
@@ -829,7 +852,6 @@ unsigned int tca_ckc_setperi(unsigned int periname,unsigned int isenable, unsign
                 clkdiv -= 1;
         }
         else {
-            searchsrc = 0xFFFFFFFF;
             for (i=0 ; i<MAX_CLK_SRC ; i++) {
                 if (stClockSource[i] == 0)
                     continue;
@@ -860,6 +882,17 @@ unsigned int tca_ckc_setperi(unsigned int periname,unsigned int isenable, unsign
                             searchsrc = i;
                     }
                 }
+            }
+            if (searchsrc == 0xFFFFFFFF) {
+                if (overclksrc == 0xFFFFFFFF) {
+                    overclksrc = 0;
+                    for (i=1 ; i<MAX_CLK_SRC ; i++) {
+                        if (stClockSource[i] > stClockSource[overclksrc])
+                            overclksrc = i;
+                    }
+                }
+                searchsrc = overclksrc;
+                div[searchsrc] = 1;
             }
 
             switch(searchsrc) {
