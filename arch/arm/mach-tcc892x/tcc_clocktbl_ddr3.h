@@ -56,7 +56,7 @@ const struct tcc_freq_table_t gtVpuNormalClockLimitTable[] =
 {
 	{      0,      0, 380710,      0, 140000, 197860, 197860,      0,      0 },	// Core 1.10V
 	{      0,      0, 380710,      0, 196000, 277000, 277000,      0,      0 },	// Core 1.10V
-	{      0,      0, 533000,      0, 243040, 343480, 343480,      0,      0 },	// Core 1.30V
+	{ 800000,      0, 533000,      0, 243040, 343480, 343480,      0,      0 },	// Core 1.30V
 };
 
 const struct tcc_freq_table_t gtJpegClockLimitTable[]= {
