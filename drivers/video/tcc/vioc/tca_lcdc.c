@@ -154,8 +154,8 @@ void lcdc_initialize(struct lcd_panel *lcd_spec)
 	//pDISPBase->uCLKDIV.bREG.ACDIV= 1;
 	//pDISPBase->uCLKDIV.bREG.PXCLKDIV = lcd_spec->clk_div/2;
 
-	BITCSET(pDISPBase->uCLKDIV.nREG,0x00FF0000, lcd_spec->clk_div/2  << 16 );
-	BITCSET(pDISPBase->uCLKDIV.nREG,0x000000FF, 1);
+	BITCSET(pDISPBase->uCLKDIV.nREG,0x00FF0000,  1 << 16 );
+	BITCSET(pDISPBase->uCLKDIV.nREG,0x000000FF, lcd_spec->clk_div/2);
 
 // Background color
 	//pDISPBase->uBG.nREG = 0x00000000;
