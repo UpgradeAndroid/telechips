@@ -730,7 +730,7 @@ static irqreturn_t cif_cam_isr(int irq, void *client_data/*, struct pt_regs *reg
 					#if defined(FEATURE_ANDROID_ICS)
 					{
 						unsigned int stride = ALIGNED_BUFF(data->cif_cfg.main_set.target_x, 16);
-						prev_buf->v4lbuf.bytesused = ALIGNED_BUFF((stride/2), 16) * (data->cif_cfg.main_set.target_y/2);
+						curr_buf->v4lbuf.bytesused = ALIGNED_BUFF((stride/2), 16) * (data->cif_cfg.main_set.target_y/2);
 					}
 					#else // FEATURE_ANDROID_ICS
 					if(data->cif_cfg.fmt == M420_ZERO)
