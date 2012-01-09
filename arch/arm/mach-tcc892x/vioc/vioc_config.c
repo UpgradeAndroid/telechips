@@ -156,7 +156,6 @@ int VIOC_CONFIG_PlugOut(unsigned int nType)
 {
 	VIOC_CONFIG_PATH_u *pConfigPath = NULL;
 	unsigned int nStatus;
-	unsigned int loop = 0x20000;
 
 	pConfigPath = VIOC_CONFIG_GetPathStruct(nType);
 	if(pConfigPath == NULL) {
@@ -245,6 +244,24 @@ void VIOC_CONFIG_WMIXPath(unsigned int Path, unsigned int Mode)
 			BITCSET(pWMIXPath->uMISC.nREG, (0x1<<28), (Mode<<28));
 			break;
 	}
+}
+
+int VIOC_CONFIG_CheckPlugInOut(unsigned int nDevice)
+{
+	VIOC_CONFIG_PATH_u *pConfigPath = NULL;
+	unsigned int nStatus;
+	int ret = -1;
+
+	pConfigPath = VIOC_CONFIG_GetPathStruct(nDevice);
+	if(pConfigPath == NULL) {
+		printk("Invalid Path Type. \n");
+		return (VIOC_DEVICE_INVALID);
+	}
+
+	nStatus = (pConfigPath->nREG>>16) & 0x3;
+	if(nStatus == VIOC_PATH_DISCONNECTED) 	ret = 0;
+
+	return ret;
 }
 
 
