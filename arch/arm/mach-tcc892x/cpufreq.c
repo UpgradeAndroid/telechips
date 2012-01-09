@@ -799,8 +799,8 @@ static struct cpufreq_driver tcc_cpufreq_driver = {
 	.verify	= tcc_cpufreq_verify,
 	.target	= tcc_cpufreq_target,
 	.get	= tcc_cpufreq_get,
-//	.suspend = tcc_cpufreq_suspend,
-//	.resume	= tcc_cpufreq_resume,
+	.suspend = tcc_cpufreq_suspend,
+	.resume	= tcc_cpufreq_resume,
 };
 
 static int __init tcc_cpufreq_register(void)
