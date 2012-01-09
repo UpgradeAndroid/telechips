@@ -681,7 +681,10 @@ static int tcc_cpufreq_resume(struct cpufreq_policy *policy)
 #endif
 	struct tcc_freq_table_t freqs;
 
-	memcpy(&freqs, &gtClockLimitTable[NUM_FREQS - 1], sizeof(struct tcc_freq_table_t));
+	if (cpufreq_is_performace_governor())
+		memcpy(&freqs, &gtClockLimitTable[NUM_FREQS - 1], sizeof(struct tcc_freq_table_t));
+	else
+		memcpy(&freqs, &gtClockLimitTable[0], sizeof(struct tcc_freq_table_t));
 
 #if defined(CONFIG_CPU_HIGHSPEED)
 	//timer_highspeed.expires = jiffies + msecs_to_jiffies(HIGHSPEED_TIMER_TICK);	// 100 milisec.

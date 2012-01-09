@@ -1500,6 +1500,9 @@ static int __cpufreq_governor(struct cpufreq_policy *policy,
 	*/
 #ifdef CONFIG_CPU_FREQ_GOV_PERFORMANCE
 	struct cpufreq_governor *gov = &cpufreq_gov_performance;
+#if defined(CONFIG_ARCH_TCC)
+	cpufreq_performance_governor_flag = 1;
+#endif
 #else
 	struct cpufreq_governor *gov = NULL;
 #endif
@@ -1693,6 +1696,22 @@ static int __cpufreq_set_policy(struct cpufreq_policy *data,
 				goto error_out;
 			}
 			/* might be a policy change, too, so fall through */
+
+#if defined(CONFIG_ARCH_TCC)
+			if (strcmp(data->governor->name, "ondemand")==0) {
+				pr_debug("############# governor changed to ondemand #############\n");
+				cpufreq_set_performance_governor_flag(0);
+			}
+			else if (strcmp(data->governor->name, "performance")==0) {
+				pr_debug("############# governor changed to performance #############\n");
+				cpufreq_set_performance_governor_flag(1);
+			}
+			else {
+				pr_debug("############# %s is undefined governor #############\n", data->governor->name);
+				cpufreq_set_performance_governor_flag(0);
+			}
+#endif
+
 		}
 		pr_debug("governor: change or update limits\n");
 		__cpufreq_governor(data, CPUFREQ_GOV_LIMITS);
