@@ -739,6 +739,10 @@ static void shutdown(void)
 	{
 		BITCLR(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<4); //GPIO B 4
 	}
+	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 2)
+	{
+		BITCLR(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<29); //GPIO B 29
+	}
 	#endif
 
 // -------------------------------------------------------------------------
@@ -869,6 +873,14 @@ static void shutdown(void)
 			((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_B12 = 1;	// PMU WakeUp Enable
 		#endif
 	}
+	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 2)
+	{
+		//set wake-up polarity
+		((PPMU)HwPMU_BASE)->PMU_WKPOL1.bREG.GPIO_E24 = 1; //power key - Active Low
+		//set wake-up source
+		((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E24 = 1; //power key
+	}
+
 #endif
 
 	/* RTC Alarm Wake Up */
@@ -936,6 +948,10 @@ static void wakeup(void)
 	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 1)
 	{
 		BITSET(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<4); //GPIO B 4
+	}
+	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 2)
+	{
+		BITSET(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<29); //GPIO B 29
 	}
 	#endif
 
@@ -1264,6 +1280,10 @@ static void sleep(void)
 	{
 		BITCLR(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<4); //GPIO B 4
 	}
+	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 2)
+	{
+		BITCLR(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<29); //GPIO B 29
+	}
 	#endif
 
 // -------------------------------------------------------------------------
@@ -1388,6 +1408,13 @@ static void sleep(void)
 			((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_B12 = 1;	// PMU WakeUp Enable
 		#endif
 	}
+	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 2)
+	{
+		//set wake-up polarity
+		((PPMU)HwPMU_BASE)->PMU_WKPOL1.bREG.GPIO_E24 = 1; //power key - Active Low
+		//set wake-up source
+		((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E24 = 1; //power key
+	}
 #endif
 
 	/* RTC Alarm Wake Up */
@@ -1433,6 +1460,10 @@ static void sleep(void)
 	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 1)
 	{
 		BITSET(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<4); //GPIO B 4
+	}
+	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 2)
+	{
+		BITSET(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<29); //GPIO B 29
 	}
 	#endif
 
@@ -1750,6 +1781,8 @@ static int tcc_pm_enter(suspend_state_t state)
 // set board information
 	if(system_rev == 0x1005)
 		*(volatile unsigned long *)SRAM_STACK_ADDR = 1;
+	else if(system_rev == 0x1006)
+		*(volatile unsigned long *)SRAM_STACK_ADDR = 2;
 	else
 		*(volatile unsigned long *)SRAM_STACK_ADDR = 0;
 
