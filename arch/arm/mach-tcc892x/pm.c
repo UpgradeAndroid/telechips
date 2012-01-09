@@ -821,12 +821,10 @@ static void shutdown(void)
 	((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D09 = 1; //power key
 
 	#if defined(CONFIG_MMC_TCC_SDHC)	// Wakeup for SD Insert->Remove in Suspend.
+	#if defined(CONFIG_TCC8923_0XA)
 	if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1)		// SD Insert -> Remove in suspend : Active High
-		#if defined(CONFIG_TCC8923_0XA)
 		((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E13 = 1;	// PMU WakeUp Enable
-		#else
-		((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D17 = 1;	// PMU WakeUp Enable
-		#endif
+	#endif
 	#endif
 #elif defined(CONFIG_MACH_TCC8920ST)
 	//set wake-up polarity
@@ -1359,8 +1357,6 @@ static void sleep(void)
 	#if defined(CONFIG_TCC8923_0XA)
 	if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1)		// SD Insert -> Remove in suspend : Active High
 		((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E13 = 1;	// PMU WakeUp Enable
-	#else
-		//((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D17 = 1;	// PMU WakeUp Enable
 	#endif
 	#endif
 #elif defined(CONFIG_MACH_TCC8920ST)
