@@ -803,6 +803,9 @@ static void shutdown(void)
 	//set wake-up trigger mode : level
 	((PPMU)HwPMU_BASE)->PMU_WKMOD0.nREG = 0xFFFFFFFF;
 	((PPMU)HwPMU_BASE)->PMU_WKMOD1.nREG = 0xFFFFFFFF;
+	//set wake-up polarity : default : active high
+	((PPMU)HwPMU_BASE)->PMU_WKPOL0.nREG = 0x00000000;
+	((PPMU)HwPMU_BASE)->PMU_WKPOL1.nREG = 0x00000000;
 
 	/* Power Key */
 #if defined(CONFIG_MACH_M805_892X)
@@ -810,11 +813,25 @@ static void shutdown(void)
 	((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_D09 = 1; //power key - Active Low
 	//set wake-up source
 	((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D09 = 1; //power key
+
+	#if defined(CONFIG_MMC_TCC_SDHC)	// Wakeup for SD Insert->Remove in Suspend.
+	if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1)		// SD Insert -> Remove in suspend : Active High
+		#if defined(CONFIG_TCC8923_0XA)
+		((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E13 = 1;	// PMU WakeUp Enable
+		#else
+		((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D17 = 1;	// PMU WakeUp Enable
+		#endif
+	#endif
 #elif defined(CONFIG_MACH_TCC8920ST)
 	//set wake-up polarity
 	((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_D14 = 1; //power key - Active Low
 	//set wake-up source
 	((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D14 = 1; //power key
+
+	#if defined(CONFIG_MMC_TCC_SDHC)	// Wakeup for SD Insert->Remove in Suspend.
+	if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1)		// SD Insert -> Remove in suspend : Active High
+		((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D12 = 1;	// PMU WakeUp Enable
+	#endif
 #else
 	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0)
 	{
@@ -822,6 +839,11 @@ static void shutdown(void)
 		((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_G16 = 1; //power key - Active Low
 		//set wake-up source
 		((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_G16 = 1; //power key
+
+		#if defined(CONFIG_MMC_TCC_SDHC)	// Wakeup for SD Insert->Remove in Suspend.
+		if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1)		// SD Insert -> Remove in suspend : Active High
+			((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D13 = 1;	// PMU WakeUp Enable
+		#endif
 	}
 	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 1)
 	{
@@ -829,6 +851,11 @@ static void shutdown(void)
 		((PPMU)HwPMU_BASE)->PMU_WKPOL1.bREG.GPIO_E30 = 1; //power key - Active Low
 		//set wake-up source
 		((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E30 = 1; //power key
+
+		#if defined(CONFIG_MMC_TCC_SDHC)	// Wakeup for SD Insert->Remove in Suspend.
+		if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1)		// SD Insert -> Remove in suspend : Active High
+			((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_B12 = 1;	// PMU WakeUp Enable
+		#endif
 	}
 #endif
 
@@ -837,6 +864,7 @@ static void shutdown(void)
 	((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.RTC_WAKEUP = 0; //RTC_PMWKUP - Active High
 	//set wake-up source
 	((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.RTC_WAKEUP = 1; //RTC_PMWKUP - PMU WakeUp Enable
+
 
 // -------------------------------------------------------------------------
 // Enter Shutdown !!
@@ -1280,6 +1308,9 @@ static void sleep(void)
 	//set wake-up trigger mode : level
 	((PPMU)HwPMU_BASE)->PMU_WKMOD0.nREG = 0xFFFFFFFF;
 	((PPMU)HwPMU_BASE)->PMU_WKMOD1.nREG = 0xFFFFFFFF;
+	//set wake-up polarity : active high
+	((PPMU)HwPMU_BASE)->PMU_WKPOL0.nREG = 0x00000000;
+	((PPMU)HwPMU_BASE)->PMU_WKPOL1.nREG = 0x00000000;
 
 	/* Power Key */
 #if defined(CONFIG_MACH_M805_892X)
@@ -1287,11 +1318,25 @@ static void sleep(void)
 	((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_D09 = 1; //power key - Active Low
 	//set wake-up source
 	((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D09 = 1; //power key
+
+	#if defined(CONFIG_MMC_TCC_SDHC)	// Wakeup for SD Insert->Remove in Suspend.
+	if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1)		// SD Insert -> Remove in suspend : Active High
+		#if defined(CONFIG_TCC8923_0XA)
+		((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E13 = 1;	// PMU WakeUp Enable
+		#else
+		((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D17 = 1;	// PMU WakeUp Enable
+		#endif
+	#endif
 #elif defined(CONFIG_MACH_TCC8920ST)
 	//set wake-up polarity
 	((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_D14 = 1; //power key - Active Low
 	//set wake-up source
 	((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D14 = 1; //power key
+
+	#if defined(CONFIG_MMC_TCC_SDHC)	// Wakeup for SD Insert->Remove in Suspend.
+	if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1)		// SD Insert -> Remove in suspend : Active High
+		((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D12 = 1;	// PMU WakeUp Enable
+	#endif
 #else
 	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0)
 	{
@@ -1299,6 +1344,11 @@ static void sleep(void)
 		((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_G16 = 1; //power key - Active Low
 		//set wake-up source
 		((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_G16 = 1; //power key
+
+		#if defined(CONFIG_MMC_TCC_SDHC)	// Wakeup for SD Insert->Remove in Suspend.
+		if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1)		// SD Insert -> Remove in suspend : Active High
+			((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D13 = 1;	// PMU WakeUp Enable
+		#endif
 	}
 	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 1)
 	{
@@ -1306,6 +1356,11 @@ static void sleep(void)
 		((PPMU)HwPMU_BASE)->PMU_WKPOL1.bREG.GPIO_E30 = 1; //power key - Active Low
 		//set wake-up source
 		((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E30 = 1; //power key
+
+		#if defined(CONFIG_MMC_TCC_SDHC)	// Wakeup for SD Insert->Remove in Suspend.
+		if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1)		// SD Insert -> Remove in suspend : Active High
+			((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_B12 = 1;	// PMU WakeUp Enable
+		#endif
 	}
 #endif
 
@@ -1645,6 +1700,9 @@ static void sleep_mode(void)
                         Power Management Driver
 
 ===========================================================================*/
+#if defined(CONFIG_MMC_TCC_SDHC)
+extern int tcc892x_sd_card_detect(void);
+#endif
 
 /*===========================================================================
 FUNCTION
@@ -1666,6 +1724,10 @@ static int tcc_pm_enter(suspend_state_t state)
 		*(volatile unsigned long *)SRAM_STACK_ADDR = 1;
 	else
 		*(volatile unsigned long *)SRAM_STACK_ADDR = 0;
+
+#if defined(CONFIG_MMC_TCC_SDHC)
+	*(volatile unsigned long *)(SRAM_STACK_ADDR+4) = tcc892x_sd_card_detect();
+#endif
 
 // -------------------------------------------------------------------------
 // enter shutdown mode
