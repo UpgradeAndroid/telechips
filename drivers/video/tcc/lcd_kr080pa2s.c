@@ -74,7 +74,10 @@ static int kr080pa2s_set_power(struct lcd_panel *panel, int on, unsigned int lcd
 			{
 			msleep(80); 	
 		#if defined(CONFIG_ARCH_TCC892X)
-			tcc_gpio_config(pdata->bl_on, GPIO_FN(9));
+			if (system_rev == 0x1005)
+				tcc_gpio_config(pdata->bl_on, GPIO_FN(11));
+			else
+				tcc_gpio_config(pdata->bl_on, GPIO_FN(9));
 		#else
 			tcc_gpio_config(pdata->bl_on, GPIO_FN(2));
 		#endif
@@ -103,7 +106,6 @@ static int kr080pa2s_set_backlight_level(struct lcd_panel *panel, int level)
 	struct lcd_platform_data *pdata = panel->dev->platform_data;	
 	mutex_lock(&panel_lock);
 	lcd_bl_level = level;
-	
 #if 1
 	if (level == 0) {
 		tcc_gpio_config(pdata->bl_on, GPIO_FN(0));
@@ -111,23 +113,36 @@ static int kr080pa2s_set_backlight_level(struct lcd_panel *panel, int level)
 	} else {
 #if defined(CONFIG_ARCH_TCC892X)
 
-		if(lcd_pwr_state)
-			tcc_gpio_config(pdata->bl_on, GPIO_FN(9));
+		if(lcd_pwr_state) {
+			if (system_rev == 0x1005)
+				tcc_gpio_config(pdata->bl_on, GPIO_FN(11));
+			else
+				tcc_gpio_config(pdata->bl_on, GPIO_FN(9));
+		}
 
-		pTIMER	= (volatile PTIMER)tcc_p2v(HwTMR_BASE);
-		pTIMER->TREF1.nREG = MAX_BL_LEVEL;
-		pTIMER->TCFG1.nREG	= 0x105;	
-		pTIMER->TMREF1.nREG = (level | 0x07);
-		pTIMER->TCFG1.nREG	= 0x105;
+		if (system_rev == 0x1005) {
+			pTIMER	= (volatile PTIMER)tcc_p2v(HwTMR_BASE);
+			pTIMER->TREF0.nREG  = MAX_BL_LEVEL;
+			pTIMER->TCFG0.nREG  = 0x105;	
+			pTIMER->TMREF0.nREG = (level | 0x07);
+			pTIMER->TCFG0.nREG  = 0x105;
+		}
+		else {
+			pTIMER	= (volatile PTIMER)tcc_p2v(HwTMR_BASE);
+			pTIMER->TREF1.nREG  = MAX_BL_LEVEL;
+			pTIMER->TCFG1.nREG  = 0x105;	
+			pTIMER->TMREF1.nREG = (level | 0x07);
+			pTIMER->TCFG1.nREG  = 0x105;
+		}
 #else
 	
 		if(lcd_pwr_state)
 			tcc_gpio_config(pdata->bl_on, GPIO_FN(2));
 		pTIMER	= (volatile PTIMER)tcc_p2v(HwTMR_BASE);
-		pTIMER->TREF0 = MAX_BL_LEVEL;
-		pTIMER->TCFG0	= 0x105;	
+		pTIMER->TREF0  = MAX_BL_LEVEL;
+		pTIMER->TCFG0  = 0x105;	
 		pTIMER->TMREF0 = (level | 0x07);
-		pTIMER->TCFG0	= 0x105;
+		pTIMER->TCFG0  = 0x105;
 #endif
 	}
 #endif//
