@@ -215,13 +215,13 @@ EXPORT_SYMBOL(lcdc_initialize);
 FUNCTION
  - index : 0 = lcdc0, 1 = lcdc1
 ===========================================================================*/
-unsigned char DEV_LCDC_Wait_signal(char lcdc)
+unsigned int DEV_LCDC_Wait_signal(char lcdc)
 {
 
 	// TO DO
 	#define MAX_LCDC_WAIT_TIEM 		0x70000000
 
-	unsigned loop = 0;
+	unsigned loop = 1;
 	VIOC_DISP * pDISPBase;
 	VIOC_RDMA * pRDMABase;
 	PPMU pPMU = (PPMU)(tcc_p2v(HwPMU_BASE));
@@ -248,23 +248,24 @@ unsigned char DEV_LCDC_Wait_signal(char lcdc)
 	if ( ISZERO(pDISPBase->uCTRL.nREG, HwDISP_LEN) )
 		return FALSE;
 
+	BITSET(pRDMABase->uSTATUS.nREG, Hw4);
+
 	while(TRUE && (loop < MAX_LCDC_WAIT_TIEM))
 	{
-		if(ISSET(pRDMABase->uSTATUS.nREG, Hw19))
+		if(ISSET(pRDMABase->uSTATUS.nREG, Hw4))
 			break;
 		loop++;
 	}
-
-	loop=0;
-
+#if 0
+	loop=1;
 	while(TRUE && (loop < MAX_LCDC_WAIT_TIEM) )
 	{
 		if(ISSET(pDISPBase->uLSTATUS.nREG , HwLSTATUS_DEOF))
 			break;
 		loop++;
 	}
-
- 	return TRUE;
+#endif//
+ 	return loop;
 }
 EXPORT_SYMBOL(DEV_LCDC_Wait_signal);
 
