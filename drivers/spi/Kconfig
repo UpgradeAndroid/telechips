@@ -454,12 +454,6 @@ config SPI_TCCXXXX_TSIF_SLAVE
 	depends on SPI && (ARCH_TCC88XX || ARCH_TCC892X)
 	help
 	  SPI controller IP from the Telechips SoCs
-
-config TSIF_TCCXXXX
-        tristate  "Telechips TSIF controller"
-	depends on SPI && (ARCH_TCC88XX || ARCH_TCC892X)
-	help
-	  TSIF controller IP from the Telechips SoCs		
 # E: telechips
 
 #

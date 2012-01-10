@@ -184,20 +184,15 @@ static struct led_classdev tcc8920_backlight_led = {
 
 static int tcc8920_backlight_probe(struct platform_device *pdev)
 {
-	if(system_rev == 0x1005){
-		lcd_pdata.display_on = TCC_GPB(7);
-		lcd_pdata.bl_on = TCC_GPF(16);
-	}
-
-	gpio_request(GPIO_LCD_ON, "lcd_on");
+	gpio_request(lcd_pdata.power_on, "lcd_on");
 	gpio_request(lcd_pdata.bl_on, "lcd_bl");
 	gpio_request(lcd_pdata.display_on, "lcd_display");
-	gpio_request(GPIO_LCD_RESET, "lcd_reset");
+	gpio_request(lcd_pdata.reset, "lcd_reset");
 
-	gpio_direction_output(GPIO_LCD_ON, 1);
+	gpio_direction_output(lcd_pdata.power_on, 1);
 	gpio_direction_output(lcd_pdata.bl_on, 1);
 	gpio_direction_output(lcd_pdata.display_on, 1);
-	gpio_direction_output(GPIO_LCD_RESET, 1);
+	gpio_direction_output(lcd_pdata.reset, 1);
 	
 	return led_classdev_register(&pdev->dev, &tcc8920_backlight_led);
 }
@@ -226,6 +221,11 @@ int __init tcc8920_init_panel(void)
 	int ret;
 	if (!machine_is_tcc8920())
 		return 0;
+
+	if(system_rev == 0x1005){
+		lcd_pdata.display_on = TCC_GPB(7);
+		lcd_pdata.bl_on = TCC_GPF(16);
+	}
 
 	printk("supported LCD panel type %d\n", tcc_panel_id);
 

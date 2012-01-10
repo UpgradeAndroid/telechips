@@ -54,11 +54,22 @@ void tca_i2c_setgpio(int core, int ch)
 				tcc_gpio_config(TCC_GPG(7), GPIO_FN4|GPIO_OUTPUT|GPIO_LOW);
 				#endif
 			#else
-				//I2C[8] - GPIOB[9][10]
-				//i2c_portcfg->PCFG0.bREG.MASTER0 = 8;
-				BITCSET(((PI2CPORTCFG)io_p2v(HwI2C_PORTCFG_BASE))->PCFG0.nREG, 0x000000FF, 8);
-				tcc_gpio_config(TCC_GPB(9), GPIO_FN11|GPIO_OUTPUT|GPIO_LOW);
-				tcc_gpio_config(TCC_GPB(10), GPIO_FN11|GPIO_OUTPUT|GPIO_LOW);
+				if(system_rev == 0x1006)
+				{
+					//I2C[18] - GPIOF[13][14]
+					//((PI2CPORTCFG)HwI2C_PORTCFG_BASE)->PCFG0.bREG.MASTER0 = 18;
+					BITCSET(((PI2CPORTCFG)HwI2C_PORTCFG_BASE)->PCFG0.nREG, 0x000000FF, 18);
+					tcc_gpio_config(TCC_GPF(13), GPIO_FN10|GPIO_OUTPUT|GPIO_LOW);
+					tcc_gpio_config(TCC_GPF(14), GPIO_FN10|GPIO_OUTPUT|GPIO_LOW);
+				}
+				else
+				{
+					//I2C[8] - GPIOB[9][10]
+					//i2c_portcfg->PCFG0.bREG.MASTER0 = 8;
+					BITCSET(((PI2CPORTCFG)io_p2v(HwI2C_PORTCFG_BASE))->PCFG0.nREG, 0x000000FF, 8);
+					tcc_gpio_config(TCC_GPB(9), GPIO_FN11|GPIO_OUTPUT|GPIO_LOW);
+					tcc_gpio_config(TCC_GPB(10), GPIO_FN11|GPIO_OUTPUT|GPIO_LOW);
+				}
 			#endif
 			break;
 		case 1:
@@ -85,6 +96,14 @@ void tca_i2c_setgpio(int core, int ch)
 				tcc_gpio_config(TCC_GPF(27), GPIO_FN10|GPIO_OUTPUT|GPIO_LOW);
 				tcc_gpio_config(TCC_GPF(28), GPIO_FN10|GPIO_OUTPUT|GPIO_LOW);
 			}
+			else if(system_rev == 0x1006)
+			{
+				//I2C[28] - GPIO_ADC[2][3]
+				//((PI2CPORTCFG)HwI2C_PORTCFG_BASE)->PCFG0.bREG.MASTER1 = 28;
+				BITCSET(((PI2CPORTCFG)io_p2v(HwI2C_PORTCFG_BASE))->PCFG0.nREG, 0x0000FF00, 28<<8);
+				tcc_gpio_config(TCC_GPADC(2), GPIO_FN3|GPIO_OUTPUT|GPIO_LOW);
+				tcc_gpio_config(TCC_GPADC(3), GPIO_FN3|GPIO_OUTPUT|GPIO_LOW);
+			}
 			else
 			{
 				//I2C[22] - GPIOG[2][3]
@@ -96,11 +115,14 @@ void tca_i2c_setgpio(int core, int ch)
 			#endif
 			break;
 		case 2:
-			//I2C[28] - GPIO_ADC[2][3]
-			//i2c_portcfg->PCFG0.bREG.MASTER2 = 28;
-			BITCSET(((PI2CPORTCFG)io_p2v(HwI2C_PORTCFG_BASE))->PCFG0.nREG, 0x00FF0000, 28<<16);
-			tcc_gpio_config(TCC_GPADC(2), GPIO_FN3|GPIO_OUTPUT|GPIO_LOW);
-			tcc_gpio_config(TCC_GPADC(3), GPIO_FN3|GPIO_OUTPUT|GPIO_LOW);
+			if(system_rev != 0x1006)
+			{
+				//I2C[28] - GPIO_ADC[2][3]
+				//i2c_portcfg->PCFG0.bREG.MASTER2 = 28;
+				BITCSET(((PI2CPORTCFG)io_p2v(HwI2C_PORTCFG_BASE))->PCFG0.nREG, 0x00FF0000, 28<<16);
+				tcc_gpio_config(TCC_GPADC(2), GPIO_FN3|GPIO_OUTPUT|GPIO_LOW);
+				tcc_gpio_config(TCC_GPADC(3), GPIO_FN3|GPIO_OUTPUT|GPIO_LOW);
+			}
 			break;
 		case 3:
 			//I2C[27] - GPIO_HDMI[2][3]

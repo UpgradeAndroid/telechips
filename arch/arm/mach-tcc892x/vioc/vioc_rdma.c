@@ -65,11 +65,6 @@ void VIOC_RDMA_SetImageDisable(VIOC_RDMA *pRDMA )
 {
 	int i;
 
-	/*
-	pRDMA->uCTRL.bREG.IEN = 0;
-	pRDMA->uCTRL.bREG.UPD = 1;
-	*/
-	
 	BITCSET(pRDMA->uCTRL.nREG, 1<<28, 0<<28 );
 	BITCSET(pRDMA->uCTRL.nREG, 1<<16, 1<<16 );
 
@@ -77,7 +72,7 @@ void VIOC_RDMA_SetImageDisable(VIOC_RDMA *pRDMA )
 	/* VIOC_RDMA_SetImageDisable(pRDMA); */ /* Channel turn off when scaler changed, so now blocking. */
 	
 	/* Wait for EOF */
-	for ( i =0; i <0x20000; i++)
+	for ( i =0; i <0x7000000; i++)
 	{
 		NOP;
 		//if ( pRDMA->uSTATUS.bREG.STS_DEVEOF == 1)

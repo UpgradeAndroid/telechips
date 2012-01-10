@@ -202,6 +202,12 @@ int tcc8920_mmc_cd_int_config(struct device *dev, int id, unsigned int cd_irq)
 	return 0;
 }
 
+//Start : Wakeup for SD Insert->Remove in suspend. - 120109, hjbae
+int tcc892x_sd_card_detect(void)
+{
+	return gpio_get_value(mmc_ports[TCC_MMC_TYPE_SD].cd) ? 0 : 1;
+}
+//End
 
 struct tcc_mmc_platform_data tcc8920_mmc_platform_data[] = {
 	[TCC_MMC_TYPE_SD] = {

@@ -802,14 +802,14 @@ static struct resource tsif_ex_resources[] = {
 		.flags = IORESOURCE_MEM,
 	},
 	[1] = {
-		.start = INT_TSIF,
-		.end   = INT_TSIF,
+		.start = INT_TSIF_DMA0,
+		.end   = INT_TSIF_DMA0,
 		.flags = IORESOURCE_IRQ,
 	},
 	[2] = {
 	    .name   = "tsif0",
-   		.start	= 5,/* PortX GPIO_X[X:X] */
-		.end	= 5,
+   		.start	= 1,/* Port1 GPIO_B[0:3] */
+		.end	= 1,
 		.flags	= IORESOURCE_IO,
 	}
 };

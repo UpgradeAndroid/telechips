@@ -599,8 +599,12 @@ void tca_tsif_clean(struct tcc_tsif_handle *h)
 	}
 }
 
+int tca_tsif_register_pids(struct tcc_tsif_handle *h, unsigned int *pids, unsigned int count)
+{
+    return 0;
+}
 
 EXPORT_SYMBOL(tca_tsif_init);
 EXPORT_SYMBOL(tca_tsif_clean);
-
+EXPORT_SYMBOL(tca_tsif_register_pids);
 

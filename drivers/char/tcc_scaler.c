@@ -847,13 +847,11 @@ long tccxxx_scaler_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	{
 		case TCC_SCALER_IOCTRL:			
 		case TCC_SCALER_IOCTRL_KERENL:
-			mutex_lock(&msc_data->io_mutex);
-			
-			if(msc_data->block_operating)
-			{
+			mutex_lock(&msc_data->io_mutex);			
+			if(msc_data->block_operating) {
 				msc_data->block_waiting = 1;
 				ret = wait_event_interruptible_timeout(msc_data->cmd_wq, msc_data->block_operating == 0, msecs_to_jiffies(200));
-				if(ret <= 0)	{
+				if(ret <= 0) {
 					msc_data->block_operating = 0;
 					printk("[%d]: scaler 0 timed_out block_operation:%d!! cmd_count:%d \n", ret, msc_data->block_waiting, msc_data->cmd_count);
 				}
@@ -862,18 +860,17 @@ long tccxxx_scaler_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 			if(cmd == TCC_SCALER_IOCTRL_KERENL)	{
 				memcpy(&scaler_v,(SCALER_TYPE*)arg,sizeof(scaler_v));
-			}
-			else		{
-				if(copy_from_user(&scaler_v,(SCALER_TYPE*)arg,sizeof(scaler_v)))		{
+			} else {
+				if(copy_from_user(&scaler_v,(SCALER_TYPE*)arg,sizeof(scaler_v))) {
 					printk(KERN_ALERT "Not Supported copy_from_user(%d)\n", cmd);
 					ret = -EFAULT;
 				}
 			}
 			
-			if(ret >= 0)
-			{
-				if(msc_data->block_operating >= 1){
-					printk("scaler + :: block_operating(%d) - block_waiting(%d) - cmd_count(%d) - poll_count(%d)!!!\n", msc_data->block_operating, msc_data->block_waiting, msc_data->cmd_count, msc_data->poll_count);		
+			if(ret >= 0) {
+				if(msc_data->block_operating >= 1) {
+					printk("scaler + :: block_operating(%d) - block_waiting(%d) - cmd_count(%d) - poll_count(%d)!!!\n", \
+							msc_data->block_operating, msc_data->block_waiting, msc_data->cmd_count, msc_data->poll_count);
 				}
 
 				#if defined(CONFIG_ARCH_TCC892X)
@@ -883,13 +880,16 @@ long tccxxx_scaler_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				msc_data->block_waiting = 0;
 				msc_data->block_operating = 1;
 				ret = M2M_Scaler_Ctrl_Detail(&scaler_v);
-				if(ret < 0)
-					msc_data->block_operating = 0;	
+				if(ret < 0) 	msc_data->block_operating = 0;
 			}
-
 			mutex_unlock(&msc_data->io_mutex);
-			
 			return ret;
+
+		#if defined(CONFIG_ARCH_TCC892X)
+		case TCC_SCALER_VIOC_PLUGOUT:
+			ret = VIOC_API_SCALER_SetPlugOut((unsigned int)arg);
+			return ret;
+		#endif
 
 		default:
 			printk(KERN_ALERT "Not Supported SCALER_IOCTL(%d)\n", cmd);

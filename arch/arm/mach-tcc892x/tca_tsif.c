@@ -10,22 +10,23 @@
  ****************************************************************************/
 
 #include <linux/module.h>
+#include <linux/delay.h>
 #include <mach/io.h>
 #include <linux/gpio.h>
 #include <mach/bsp.h>
 #include <mach/tca_tsif.h>
 
 //#define DEBUG_INFO
-
-static void tcc_tsif_hw_init(struct tcc_tsif_handle *h);
-
 static void tcc_tsif_clearfifopacket(struct tcc_tsif_handle *h)
 {
+#ifdef DEBUG_INFO
+	printk("%s - in\n", __func__);
+#endif    
 	BITSET(h->regs->TSRXCR, Hw7);		//set to Hw7 : empties RX Fifo
 
-	BITSET(h->regs->TSRXCR, Hw30);
+    BITSET(h->regs->TSRXCR, Hw30);
 	BITCLR(h->regs->TSRXCR, Hw30);
-
+    msleep(1);
 #ifdef DEBUG_INFO
 	printk("%s\n", __func__);
 #endif 
@@ -269,12 +270,10 @@ static void tcc_tsif_release_port(struct tcc_tsif_handle *h)
 
 static void tcc_tsif_set(struct tcc_tsif_handle *h)
 {
-//20110526 koo : android tcc880x kernel에서는 module init 후에 tsif & gpsb1을 swret state 및 clk disable 상태로 만들기 때문에 module init 시의 tsif & dma reg 설정 value가 
-//				reset 되기 때문에 start 시 다시 설정.
-	tcc_tsif_hw_init(h);
-
+#ifdef DEBUG_INFO
+	printk("%s - in\n", __func__);
+#endif
 	//BITSET(h->regs->TSRXCR, Hw17);
-
 	if(h->msb_first)		BITSET(h->regs->TSRXCR, Hw16);
 	else					BITCLR(h->regs->TSRXCR, Hw16);
 
@@ -558,6 +557,10 @@ static int tcc_tsif_dmastart(struct tcc_tsif_handle *h)
 	unsigned int packet_size = (MPEG_PACKET_SIZE & 0x1FFF);
 	unsigned int intr_packet_cnt = (h->dma_intr_packet_cnt & 0x1FFF) - 1;
 
+#ifdef DEBUG_INFO
+	printk("%s - in\n", __func__);
+#endif
+
 	if(h->id == 0)			dma_regs = (volatile PTSIFDMA)tcc_p2v(HwTSIF_DMA0_BASE);
 	else if(h->id == 1)		dma_regs = (volatile PTSIFDMA)tcc_p2v(HwTSIF_DMA1_BASE);
 	else					dma_regs = (volatile PTSIFDMA)tcc_p2v(HwTSIF_DMA2_BASE);
@@ -577,44 +580,59 @@ static int tcc_tsif_dmastart(struct tcc_tsif_handle *h)
 
 	BITSET(dma_regs->DMACTR.nREG, Hw30);				//enable recv DMA requeset 
 
-#ifndef TSIF_PIDMATCH_USE	
-	BITSET(dma_regs->DMACTR.nREG, Hw19|Hw18);		//enable PID & Sync Byte match
+#if defined(SUPPORT_PIDFILTER_DMA)
+   	BITSET(dma_regs->DMACTR.nREG, Hw19|Hw18);		//enable PID & Sync Byte match
 #endif
-
-	//BITCSET(dma_regs->DMACTR, Hw5|Hw4, Hw29);
-	BITCSET(dma_regs->DMACTR.nREG, Hw5|Hw4, Hw4);	//00:normal mode, 01:MPEG2_TS mode
+    if( h->mpeg_ts == 0)
+    {
+   	    BITCLR(dma_regs->DMACTR.nREG, Hw19|Hw18);//disable PID & Sync Byte match
+        BITCLR(dma_regs->DMACTR.nREG, Hw5|Hw4);	//00:normal mode, 01:MPEG2_TS mode
+      	BITCLR(h->regs->TSRXCR, Hw17);
+      	BITSET(h->regs->TSRXCR, Hw6);
+//     	BITSET(h->regs->TSRXCR, Hw5);
+    }
+    else
+    	BITCSET(dma_regs->DMACTR.nREG, Hw5|Hw4, Hw4);	//00:normal mode, 01:MPEG2_TS mode
 	BITSET(dma_regs->DMACTR.nREG, Hw29);				//enable continues
-
 	BITSET(dma_regs->DMACTR.nREG, Hw1);				//enable TSSEL
 	BITSET(dma_regs->DMACTR.nREG, Hw0);				//enable DMA
-
+    msleep(1);
 	BITSET(h->regs->TSRXCR, Hw31);
+
+#if 0    
+    if(h->mpeg_ts == 0)
+    {
+        msleep(2000);
+        BITCLR(h->regs->TSRXCR, Hw5);
+    }
+#endif
 
 #ifdef DEBUG_INFO
 	printk("%s\n", __func__);
 #endif
-
 	return 0;
 }
 
 static int tcc_tsif_dmastop(struct tcc_tsif_handle *h)
 {
 	volatile PTSIFDMA dma_regs;
-
+#ifdef DEBUG_INFO
+	printk("%s - in\n", __func__);
+#endif
 	if(h->id == 0)			dma_regs = (volatile PTSIFDMA)tcc_p2v(HwTSIF_DMA0_BASE);
 	else if(h->id == 1)		dma_regs = (volatile PTSIFDMA)tcc_p2v(HwTSIF_DMA1_BASE);
 	else					dma_regs = (volatile PTSIFDMA)tcc_p2v(HwTSIF_DMA2_BASE);
 
+	BITCLR(h->regs->TSRXCR, Hw31);
+    msleep(1);
+
 	BITCLR(dma_regs->DMACTR.nREG, Hw30); //disable DMA receive
 	BITSET(dma_regs->DMAICR.nREG, Hw29|Hw28);
 	BITCLR(dma_regs->DMACTR.nREG, Hw0);
-	
-	BITCLR(h->regs->TSRXCR, Hw31);
 
 #ifdef DEBUG_INFO
 	printk("%s\n", __func__);
 #endif
-
 	return 0;
 }
 
@@ -626,8 +644,9 @@ static void tcc_tsif_dma_deinit(struct tcc_tsif_handle *h)
 static void tcc_tsif_hw_init(struct tcc_tsif_handle *h)
 {
 	unsigned int reg_val;
-	int i;
-
+#ifdef DEBUG_INFO
+	printk("%s - in\n", __func__);
+#endif
 	tca_tsif_set_port(h);
  
 	if(TSIF_BYTE_SIZE == 4)		reg_val = Hw17 | Hw9 | Hw8 | Hw7;
@@ -636,13 +655,15 @@ static void tcc_tsif_hw_init(struct tcc_tsif_handle *h)
 	BITCSET(h->regs->TSRXCR, 	(Hw32-Hw0), reg_val);
 	
 	BITCLR(h->regs->TSRXCR, Hw17);
-	
 	reg_val = (TSIF_RXFIFO_THRESHOLD << 5) | Hw4;
 	BITCSET(h->regs->TSIC,(Hw32-Hw0), reg_val);
-	
- 	for(i=0; i<16; i++) {	
-		BITCLR(h->regs->TSPID[i], (Hw32-Hw0));
-	}
+
+#if defined(SUPPORT_PIDFILTER_INTERNAL)
+    BITSET(h->regs->TSRXCR, Hw17);
+#endif	
+    //DMA Sync Delay Options
+    //25: enable sync delay, 20-24 : Delay Value
+    BITSET(h->regs->TSRXCR,Hw25|Hw24|Hw23|Hw21);
  
 	tcc_tsif_dma_init(h);
 	
@@ -653,6 +674,9 @@ static void tcc_tsif_hw_init(struct tcc_tsif_handle *h)
 
 static void tcc_tsif_hw_deinit(struct tcc_tsif_handle *h)
 {
+#ifdef DEBUG_INFO
+	printk("%s - in\n", __func__);
+#endif
 	tcc_tsif_release_port(h);
 
 	BITCLR(h->regs->TSRXCR, 	(Hw32-Hw0));
@@ -682,6 +706,7 @@ int tca_tsif_init(struct tcc_tsif_handle *h,
                     int port)
 {
 	int ret = 1;
+	volatile PPIC pic_regs = (volatile PPIC)tcc_p2v(HwPIC_BASE);
 	
 	if(regs)
 	{   
@@ -703,6 +728,7 @@ int tca_tsif_init(struct tcc_tsif_handle *h,
 		h->clear_fifo_packet= tcc_tsif_clearfifopacket;
 		h->tsif_set			= tcc_tsif_set;
 		h->tsif_isr			= tcc_tsif_isr;
+    	h->hw_init          = tcc_tsif_hw_init;
 
 		h->tea_dma_alloc 	= tea_dma_alloc;
 		h->tea_dma_free 	= tea_dma_free;
@@ -717,8 +743,9 @@ int tca_tsif_init(struct tcc_tsif_handle *h,
 			ret = 0;
 		}
 
-		//20111212 koo : h->serial_mode setting 이 되어 있지 않아 start 시에 port setting 하도록 수정.
-		//tcc_tsif_hw_init(h);
+        /* interrupt init */
+		BITSET(pic_regs->MODE1.nREG, (INT_TSIF-32));	// level-trigger
+		BITCLR(pic_regs->POL1.nREG, (INT_TSIF-32));	// active-high            
 		
 		if(ret)
 			tca_tsif_clean(h);
@@ -738,8 +765,64 @@ void tca_tsif_clean(struct tcc_tsif_handle *h)
 	}
 }
 
+int tca_tsif_register_pids(struct tcc_tsif_handle *h, unsigned int *pids, unsigned int count)
+{
+    int ret = 0, tsif_channel;
+    tsif_channel = h->id;
+
+    //supporting pids is 32 
+    if (count <= 32 && tsif_channel < 2) {        
+        int i = 0;
+#if defined(SUPPORT_PIDFILTER_DMA)
+        volatile unsigned long* PIDT;
+        for (i = 0; i < 32; i++) {
+            PIDT = (volatile unsigned long *)tcc_p2v(HwTSIF_PIDT(i));
+            *PIDT = 0;
+        }
+        if (count > 0) {
+            for (i = 0; i < count; i++) {
+                PIDT = (volatile unsigned long *)tcc_p2v(HwTSIF_PIDT(i));
+                *PIDT = pids[i] & 0x1FFFFFFF;
+                BITSET(*PIDT, HwTSIF_PIDT_CH0<<tsif_channel);
+                printk("PIDT 0x%08X : 0x%08X\n", (unsigned int)PIDT, (unsigned int)*PIDT);
+            }            
+            h->mpeg_ts = 1; //0:normal spi, 1:mpeg_ts
+        } 
+#endif
+#if defined(SUPPORT_PIDFILTER_INTERNAL)
+        for (i = 0; i < 16; i++) {            
+		    BITCLR(h->regs->TSPID[i], (Hw32-Hw0));
+        }
+
+        if (count > 0) {
+            for (i = 0; i < count; i++) {
+                int reg_index = i/2;
+                if(i%2)
+                {
+                    BITSET(h->regs->TSPID[reg_index], Hw29);
+                    BITSET(h->regs->TSPID[reg_index],(pids[i]&0x1FFF)<<16);
+                    printk("PIDT %d-H : 0x%08X\n",reg_index, (h->regs->TSPID[reg_index] & 0xFFFF0000)>>16);
+                }
+                else
+                {
+                    BITSET(h->regs->TSPID[reg_index], Hw13);
+                    BITSET(h->regs->TSPID[reg_index], pids[i]&0x1FFF);
+                    printk("PIDT %d-L : 0x%08X\n",reg_index, h->regs->TSPID[reg_index] & 0xFFFF);                   
+                }
+			    h->mpeg_ts = 1; //0:normal spi, 1:mpeg_ts
+            }            
+        } 
+#endif
+    }
+    else {
+        printk("tsif: PID TABLE is so big !!!\n");
+        ret = -EINVAL;
+    }
+    return ret;
+}
 
 EXPORT_SYMBOL(tca_tsif_init);
 EXPORT_SYMBOL(tca_tsif_clean);
+EXPORT_SYMBOL(tca_tsif_register_pids);
 
 
