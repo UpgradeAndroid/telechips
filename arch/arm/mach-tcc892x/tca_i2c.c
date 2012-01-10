@@ -58,7 +58,7 @@ void tca_i2c_setgpio(int core, int ch)
 				{
 					//I2C[18] - GPIOF[13][14]
 					//((PI2CPORTCFG)HwI2C_PORTCFG_BASE)->PCFG0.bREG.MASTER0 = 18;
-					BITCSET(((PI2CPORTCFG)HwI2C_PORTCFG_BASE)->PCFG0.nREG, 0x000000FF, 18);
+					BITCSET(((PI2CPORTCFG)io_p2v(HwI2C_PORTCFG_BASE))->PCFG0.nREG, 0x000000FF, 18);
 					tcc_gpio_config(TCC_GPF(13), GPIO_FN10|GPIO_OUTPUT|GPIO_LOW);
 					tcc_gpio_config(TCC_GPF(14), GPIO_FN10|GPIO_OUTPUT|GPIO_LOW);
 				}
