@@ -71,8 +71,7 @@ VIOC_CONFIG_PATH_u *VIOC_CONFIG_GetPathStruct (unsigned int nType)
 	volatile PVIOC_IREQ_CONFIG pIREQConfig;
 	pIREQConfig = (volatile PVIOC_IREQ_CONFIG)tcc_p2v((unsigned int)HwVIOC_IREQ);
 
-	switch(nType)
-	{
+	switch(nType) {
 		case (VIOC_SC0):
 			//pConfigPath = &(pIREQConfig->uSC0.bREG);
 			pConfigPath = &pIREQConfig->uSC0.nREG;
@@ -120,9 +119,8 @@ int VIOC_CONFIG_PlugIn (unsigned int nType, unsigned int nValue)
 	unsigned int nStatus;
 
 	pConfigPath = VIOC_CONFIG_GetPathStruct(nType);
-	if(pConfigPath == NULL)
-	{
-		printk("Invalid Path Type ... \n");
+	if(pConfigPath == NULL) {
+		printk("Invalid Path Type. \n");
 		return (VIOC_DEVICE_INVALID);
 	}
 
@@ -132,9 +130,8 @@ int VIOC_CONFIG_PlugIn (unsigned int nType, unsigned int nValue)
 	BITCSET(pConfigPath->nREG, (0x1<<31), (0x1<<31));
 
 	//if(pConfigPath->ERR)
-	if(((pConfigPath->nREG>>18) & 0x1))
-	{
-		printk("Path Configuration Error : Device is Busy(1) ... \n");
+	if(((pConfigPath->nREG>>18) & 0x1)) {
+		printk("Path Configuration Error:  Device is Busy(1). \n");
 		//pConfigPath->EN = 0;
 		BITCSET(pConfigPath->nREG, (0x1<<31), (0x0<<31));
 		return (VIOC_DEVICE_BUSY);
@@ -143,14 +140,13 @@ int VIOC_CONFIG_PlugIn (unsigned int nType, unsigned int nValue)
 	while(1) {
 		//nStatus = pConfigPath->STATUS;
 		nStatus = (pConfigPath->nREG>>16) & 0x3;
-		if(nStatus == VIOC_PATH_CONNECTED ) {
+		if(nStatus == VIOC_PATH_CONNECTED) {
 			//printk("Path Configuration Done ... \n");
 			break;
 		} else {
-			printk("Path Configuration Error : Device is Busy(2) ... \n");
+			printk("Path Configuration Error:  Device is Busy(2) ... \n");
 			msleep(10);
 		}
-			
 	}
 
 	return (VIOC_DEVICE_CONNECTED);
@@ -160,12 +156,10 @@ int VIOC_CONFIG_PlugOut(unsigned int nType)
 {
 	VIOC_CONFIG_PATH_u *pConfigPath = NULL;
 	unsigned int nStatus;
-	unsigned int loop = 0x20000;
-	pConfigPath = VIOC_CONFIG_GetPathStruct(nType);
 
-	if(pConfigPath == NULL)
-	{
-		printk("Invalid Path Type ... \n");
+	pConfigPath = VIOC_CONFIG_GetPathStruct(nType);
+	if(pConfigPath == NULL) {
+		printk("Invalid Path Type. \n");
 		return (VIOC_DEVICE_INVALID);
 	}
 
@@ -173,37 +167,26 @@ int VIOC_CONFIG_PlugOut(unsigned int nType)
 	BITCSET(pConfigPath->nREG, (0x1<<31), (0x0<<31));
 
 	//if(pConfigPath->ERR)
-	if(((pConfigPath->nREG>>18) & 0x1))
-	{
-		printk("Path Configuration Error : Device is Busy(1) ... \n");
+	if(((pConfigPath->nREG>>18) & 0x1)) {
+		printk("Path Configuration Error:  Device is Busy(1). \n");
 		//pConfigPath->EN = 0;
 		BITCSET(pConfigPath->nREG, (0x1<<31), (0x0<<31));
 		return (VIOC_DEVICE_BUSY);
 	}
 
-	while (1)
-	{
+	while(1) {
 		//nStatus = pConfigPath->STATUS;
 		nStatus = (pConfigPath->nREG>>16) & 0x3;
-		#if 0 //[[ hskim_20110816_BEGIN -- .
-		sim_value (nStatus);
-		#endif //]] hskim_20110816_END -- .
-
-		loop--;
-		if(loop < 1)
-		{
-			printk("Path Configuration Error : Device is Busy(2) ... \n");
-			return (VIOC_DEVICE_BUSY);
-		}
-		
-		if(nStatus == VIOC_PATH_DISCONNECTED)
-		{
-			printk("Path Configuration Done ... \n");
+		if(nStatus == VIOC_PATH_DISCONNECTED ) {
+			//printk("Path Configuration Done ... \n");
 			break;
+		} else {
+			printk("Path Configuration Error:  Device is Busy(2). \n");
+			msleep(10);
 		}
 	}
 
-	return (VIOC_DEVICE_CONNECTED);
+	return (VIOC_PATH_DISCONNECTED);
 }
 
 void VIOC_CONFIG_RDMA12PathCtrl(unsigned int Path)
@@ -261,6 +244,24 @@ void VIOC_CONFIG_WMIXPath(unsigned int Path, unsigned int Mode)
 			BITCSET(pWMIXPath->uMISC.nREG, (0x1<<28), (Mode<<28));
 			break;
 	}
+}
+
+int VIOC_CONFIG_CheckPlugInOut(unsigned int nDevice)
+{
+	VIOC_CONFIG_PATH_u *pConfigPath = NULL;
+	unsigned int nStatus;
+	int ret = -1;
+
+	pConfigPath = VIOC_CONFIG_GetPathStruct(nDevice);
+	if(pConfigPath == NULL) {
+		printk("Invalid Path Type. \n");
+		return (VIOC_DEVICE_INVALID);
+	}
+
+	nStatus = (pConfigPath->nREG>>16) & 0x3;
+	if(nStatus == VIOC_PATH_DISCONNECTED) 	ret = 0;
+
+	return ret;
 }
 
 

@@ -130,6 +130,7 @@ extern int VIOC_CONFIG_PlugOut(unsigned int nType);
 extern void VIOC_CONFIG_RDMA12PathCtrl(unsigned int Path);
 extern void VIOC_CONFIG_RDMA14PathCtrl(unsigned int Path);
 extern void VIOC_CONFIG_WMIXPath(unsigned int Path, unsigned int Mode);
+extern int VIOC_CONFIG_CheckPlugInOut(unsigned int nDevice);
 #endif
 
 

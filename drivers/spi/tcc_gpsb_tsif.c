@@ -39,6 +39,7 @@
 #include <linux/spi/tcc_gpsb_tsif.h>
 #include <mach/tca_spi.h>
 #include "tsdemux/TSDEMUX_sys.h"
+//#define      SUPPORT_TSIF_BLOCK
 static int tcc_tsif_init(void);
 
 static struct clk *gpsb_clk;
@@ -121,7 +122,6 @@ static int __init tsif_drv_probe(struct platform_device *pdev)
 	int irq = -1;
     struct resource *regs = NULL;
     struct resource *port = NULL;
-    struct spi_master *master = NULL;
 
     regs = platform_get_resource(pdev, IORESOURCE_MEM, 0);
     if (!regs) {
@@ -134,11 +134,6 @@ static int __init tsif_drv_probe(struct platform_device *pdev)
     port = platform_get_resource(pdev, IORESOURCE_IO, 0);
     if (!port) {
         return -ENXIO;
-    }
-
-    master = spi_alloc_master(&(pdev->dev), sizeof(struct tca_spi_handle));
-    if (!master) {
-        ret = -ENOMEM;     
     }
 
 	tsif_pri.bus_num =  pdev->id;
@@ -533,9 +528,8 @@ err_spi:
 	return ret;
 }
 
-static void tcc_tsif_deinit(int tsif_num)
+static void tcc_tsif_deinit(void)
 {
-
 	free_irq(tsif_handle.irq, &tsif_handle);
     tca_spi_clean(&tsif_handle);
 }
@@ -586,10 +580,25 @@ struct file_operations tcc_tsif_fops =
 };
 
 static struct class *tsif_class;
+
+extern int tsif_ex_init(void);
+extern void tsif_ex_exit(void);
+static int g_use_tsif_block = 0;
+
 static int __init tsif_init(void)
 {
     int ret = 0;
-	printk("%s\n", __func__);
+#ifdef      SUPPORT_TSIF_BLOCK
+	if(machine_is_tcc8920())
+    {
+        if(system_rev == 0x1005)
+        { 
+            g_use_tsif_block = 1;
+            tsif_ex_init();
+            return 0;
+        }
+    }
+#endif
     memset(&tsif_pri, 0, sizeof(struct tca_spi_pri_handle));
     ret = register_chrdev(0, TSIF_DEV_NAME, &tcc_tsif_fops);
     if (ret < 0) {
@@ -613,6 +622,13 @@ static int __init tsif_init(void)
 
 static void __exit tsif_exit(void)
 {
+    if(g_use_tsif_block)
+    {
+        g_use_tsif_block = 0;
+        tsif_ex_exit();
+        return;
+    }
+    tcc_tsif_deinit();
 	unregister_chrdev(tsif_pri.drv_major_num, TSIF_DEV_NAME);
     platform_driver_unregister(&tsif_platform_driver);
 	if(gpsb_clk)

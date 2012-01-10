@@ -111,7 +111,7 @@ int VIOC_API_SCALER_SetPlugOut(unsigned int scaler)
 	int ret;
 
 	ret = VIOC_CONFIG_PlugOut(scaler);
-	if(ret == VIOC_DEVICE_CONNECTED)
+	if(ret == VIOC_PATH_DISCONNECTED)
 		ret = VIOC_DRIVER_NOERR;
 	else
 		ret = VIOC_DRIVER_ERR;
