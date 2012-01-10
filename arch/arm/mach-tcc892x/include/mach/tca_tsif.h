@@ -14,6 +14,10 @@
 #include <mach/memory.h>
 #include <mach/irqs.h>
 
+#define    SUPPORT_PIDFILTER_INTERNAL    //filtering support using internal logic(TSPID reg)
+//#define    SUPPORT_PIDFILTER_DMA       //filtering suuport using dma logic
+
+
 //20111212 koo : GDMA가 not defined 상태면 tsif-dma using으로 변경 됨. 
 //#define GDMA 
 
@@ -43,7 +47,7 @@
 
 
 #define TSIF_BYTE_SIZE			4		// 1, 2, 4byte
-#define TSIF_RXFIFO_THRESHOLD	4		// 0-7 (0=>8 depth)
+#define TSIF_RXFIFO_THRESHOLD	1		// 0-7 (0=>8 depth)
 #define GDMA_WORD_SIZE			4		// 1, 2, 4byte
 #define GDMA_BURST_SIZE			4		// 1, 2, 4, 8 = (TSIF_BYTE_SIZE * TSIF_RXFIFO_THRESHOLD) / GDMA_WORD_SIZE
 
@@ -111,6 +115,7 @@ struct tcc_tsif_handle {
     void (*clear_fifo_packet)(struct tcc_tsif_handle *h);
 	void (*tsif_set)(struct tcc_tsif_handle *h);
 	void (*tsif_isr)(struct tcc_tsif_handle *h);
+	void (*hw_init)(struct tcc_tsif_handle *h);
 	
     dma_alloc_f tea_dma_alloc; // tea function.
     dma_free_f tea_dma_free; // tea function.
@@ -140,10 +145,12 @@ struct tcc_tsif_handle {
 	unsigned char sync_delay;
 	unsigned int dma_phy_addr;
 	unsigned int dma_phy_size;
+	unsigned int mpeg_ts;
 };
 
 extern int tca_tsif_init(struct tcc_tsif_handle *h, volatile struct tcc_tsif_regs *regs, 
 		dma_alloc_f tea_dma_alloc, dma_free_f tea_dma_free, int dma_size, int tsif_ch, int dma_controller, int dma_ch, int port);
 extern void tca_tsif_clean(struct tcc_tsif_handle *h);
 
+extern int tca_tsif_register_pids(struct tcc_tsif_handle *h, unsigned int *pids, unsigned int count);
 #endif /*__TCC_TSIF_MODULE_HWSET_H__*/
