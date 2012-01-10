@@ -885,9 +885,11 @@ long tccxxx_scaler_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			mutex_unlock(&msc_data->io_mutex);
 			return ret;
 
+		#if defined(CONFIG_ARCH_TCC892X)
 		case TCC_SCALER_VIOC_PLUGOUT:
-			ret = VIOC_API_SCALER_SetPlugOut((unsigned int *)arg);
+			ret = VIOC_API_SCALER_SetPlugOut((unsigned int)arg);
 			return ret;
+		#endif
 
 		default:
 			printk(KERN_ALERT "Not Supported SCALER_IOCTL(%d)\n", cmd);
