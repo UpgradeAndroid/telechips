@@ -298,7 +298,7 @@ static int tcc_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long arg
 {
 	int ret = 0;
 
-//	printk("%s[0x%X] - in\n", __func__, cmd);
+	//printk("%s[0x%X] - in\n", __func__, cmd);
     switch (cmd) {
     case IOCTL_TSIF_DMA_START:
         {
@@ -314,15 +314,16 @@ static int tcc_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long arg
                 return -EFAULT;
             }
             tsif_ex_handle.dma_stop(&tsif_ex_handle);
-           	
-           	//tsif_ex_handle.msb_first = 0x01;       //1:msb first, 0:lsb first
-            //tsif_ex_handle.clk_polarity = 0x00;    //1:falling edge 0:rising edge
-            //tsif_ex_handle.valid_polarity = 0x01;  //1:valid high active 0:valid low active
-            //tsif_ex_handle.sync_polarity = 0x00;   //0:sync high active 1:sync low active
+            if(param.dma_mode == 0)
+               	tsif_ex_handle.mpeg_ts = 0;
+
+            tsif_ex_handle.msb_first = 0x01;       //1:msb first, 0:lsb first
+            tsif_ex_handle.clk_polarity = 0x00;    //1:falling edge 0:rising edge
+            tsif_ex_handle.valid_polarity = 0x01;  //1:valid high active 0:valid low active
+            tsif_ex_handle.sync_polarity = 0x00;   //0:sync high active 1:sync low active
             tsif_ex_handle.big_endian = 0x00;	     //1:big endian, 0:little endian
             tsif_ex_handle.serial_mode = 0x01;     //1:serialmode 0:parallel mode
             tsif_ex_handle.sync_delay = 0x00;
-
 
             if(param.mode & SPI_CPOL)
                tsif_ex_handle.clk_polarity = 0x01;    //1:falling edge 0:rising edge
@@ -332,20 +333,21 @@ static int tcc_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long arg
             if(param.mode & SPI_CS_HIGH)
             {
                 tsif_ex_handle.valid_polarity = 0x01;  //1:valid high active 0:valid low active
+                if(tsif_ex_handle.mpeg_ts == 0)
+                    tsif_ex_handle.sync_polarity = 0x00;   //0:sync high active 1:sync low active
             }
             else
             {
                 tsif_ex_handle.valid_polarity = 0x00;  //1:valid high active 0:valid low active
+                if(tsif_ex_handle.mpeg_ts == 0)
+                    tsif_ex_handle.sync_polarity = 0x01;   //0:sync high active 1:sync low active
             }
 
             if(param.mode & SPI_LSB_FIRST)
            	    tsif_ex_handle.msb_first = 0x00;       //1:msb first, 0:lsb first
             else
                	tsif_ex_handle.msb_first = 0x01;       //1:msb first, 0:lsb first
-           
-            if(param.dma_mode == 0)
-               	tsif_ex_handle.mpeg_ts = 0;
-
+          
             tsif_ex_handle.dma_total_packet_cnt = param.ts_total_packet_cnt;
             tsif_ex_handle.dma_intr_packet_cnt = param.ts_intr_packet_cnt;
 
@@ -408,7 +410,7 @@ static int tcc_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long arg
         ret = -EINVAL;
         break;
     }
-//	printk("%s[0x%X] - out\n", __func__, cmd);
+	//printk("%s[0x%X] - out\n", __func__, cmd);
     return ret;
 }
 

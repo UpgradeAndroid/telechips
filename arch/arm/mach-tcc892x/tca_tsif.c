@@ -24,8 +24,9 @@ static void tcc_tsif_clearfifopacket(struct tcc_tsif_handle *h)
 #endif    
 	BITSET(h->regs->TSRXCR, Hw7);		//set to Hw7 : empties RX Fifo
 
-	BITSET(h->regs->TSRXCR, Hw30);
+    BITSET(h->regs->TSRXCR, Hw30);
 	BITCLR(h->regs->TSRXCR, Hw30);
+    msleep(1);
 #ifdef DEBUG_INFO
 	printk("%s\n", __func__);
 #endif 
@@ -580,21 +581,31 @@ static int tcc_tsif_dmastart(struct tcc_tsif_handle *h)
 	BITSET(dma_regs->DMACTR.nREG, Hw30);				//enable recv DMA requeset 
 
 #if defined(SUPPORT_PIDFILTER_DMA)
-	BITSET(dma_regs->DMACTR.nREG, Hw19|Hw18);		//enable PID & Sync Byte match
+   	BITSET(dma_regs->DMACTR.nREG, Hw19|Hw18);		//enable PID & Sync Byte match
 #endif
     if( h->mpeg_ts == 0)
     {
+   	    BITCLR(dma_regs->DMACTR.nREG, Hw19|Hw18);//disable PID & Sync Byte match
         BITCLR(dma_regs->DMACTR.nREG, Hw5|Hw4);	//00:normal mode, 01:MPEG2_TS mode
       	BITCLR(h->regs->TSRXCR, Hw17);
       	BITSET(h->regs->TSRXCR, Hw6);
+//     	BITSET(h->regs->TSRXCR, Hw5);
     }
     else
     	BITCSET(dma_regs->DMACTR.nREG, Hw5|Hw4, Hw4);	//00:normal mode, 01:MPEG2_TS mode
 	BITSET(dma_regs->DMACTR.nREG, Hw29);				//enable continues
 	BITSET(dma_regs->DMACTR.nREG, Hw1);				//enable TSSEL
 	BITSET(dma_regs->DMACTR.nREG, Hw0);				//enable DMA
-
+    msleep(1);
 	BITSET(h->regs->TSRXCR, Hw31);
+
+#if 0    
+    if(h->mpeg_ts == 0)
+    {
+        msleep(2000);
+        BITCLR(h->regs->TSRXCR, Hw5);
+    }
+#endif
 
 #ifdef DEBUG_INFO
 	printk("%s\n", __func__);
@@ -649,10 +660,10 @@ static void tcc_tsif_hw_init(struct tcc_tsif_handle *h)
 
 #if defined(SUPPORT_PIDFILTER_INTERNAL)
     BITSET(h->regs->TSRXCR, Hw17);
+#endif	
     //DMA Sync Delay Options
     //25: enable sync delay, 20-24 : Delay Value
     BITSET(h->regs->TSRXCR,Hw25|Hw24|Hw23|Hw21);
-#endif	
  
 	tcc_tsif_dma_init(h);
 	

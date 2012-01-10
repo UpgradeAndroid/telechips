@@ -39,7 +39,7 @@
 #include <linux/spi/tcc_gpsb_tsif.h>
 #include <mach/tca_spi.h>
 #include "tsdemux/TSDEMUX_sys.h"
-//#define      SUPPORT_TSIF_BLOCK
+#define      SUPPORT_TSIF_BLOCK
 static int tcc_tsif_init(void);
 
 static struct clk *gpsb_clk;
