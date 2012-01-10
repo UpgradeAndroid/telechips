@@ -954,19 +954,8 @@ static void copy_change_clock(void)
 	while(*(volatile unsigned int *)(L2CACHE_BASE+L2X0_CACHE_SYNC)&1); //wait for sync
 	*(volatile unsigned int *)(L2CACHE_BASE+L2X0_CTRL) = 1; //cache on
 #endif
-	
-//--------------------------------------------------------------
-// enable LCD
-#if !defined(CONFIG_MACH_TCC8920ST)
-#if defined(CONFIG_LCD_LCDC0_USE)
-	if(RDMA_sts)
-		tcc_LCDC_onoff_ctrl(0,1);
-#else
-	if(RDMA_sts)
-		tcc_LCDC_onoff_ctrl(1,1);
-#endif
-#endif
 
+	
 //--------------------------------------------------------------
 // enable kernel tick timer
 #if !defined(CONFIG_GENERIC_TIME)
