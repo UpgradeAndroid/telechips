@@ -1500,9 +1500,6 @@ static int __cpufreq_governor(struct cpufreq_policy *policy,
 	*/
 #ifdef CONFIG_CPU_FREQ_GOV_PERFORMANCE
 	struct cpufreq_governor *gov = &cpufreq_gov_performance;
-#if defined(CONFIG_ARCH_TCC)
-	cpufreq_performance_governor_flag = 1;
-#endif
 #else
 	struct cpufreq_governor *gov = NULL;
 #endif
