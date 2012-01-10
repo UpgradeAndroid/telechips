@@ -39,22 +39,8 @@ static inline void arch_idle(void)
 
 static inline void arch_reset(char mode, const char *cmd)
 {
-#if defined(CONFIG_REGULATOR)
-	struct regulator *vdd_core;
-#endif
 	volatile PPMU pPMU = (volatile PPMU)(tcc_p2v(HwPMU_BASE));
 	volatile PIOBUSCFG pIOBUSCFG = (volatile PIOBUSCFG)(tcc_p2v(HwIOBUSCFG_BASE));
-
-#if defined(CONFIG_REGULATOR)
-	vdd_core = regulator_get(NULL, "vdd_coreA");
-	if (IS_ERR(vdd_core))
-		vdd_core = NULL;
-	else
-	{
-		regulator_set_voltage(vdd_core, 1200000, 1200000);
-		regulator_put(vdd_core);
-	}
-#endif
 
 	/* remap to internal ROM */
 	pPMU->PMU_CONFIG.bREG.REMAP = 0;

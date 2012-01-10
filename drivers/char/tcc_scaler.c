@@ -384,7 +384,7 @@ char M2M_Scaler_Ctrl_Detail(SCALER_TYPE *scale_img)
 	VIOC_RDMA_SetImageSize(pRDMABase, scale_img->src_ImgWidth, scale_img->src_ImgHeight);
 	VIOC_RDMA_SetImageOffset(pRDMABase, scale_img->src_fmt, scale_img->src_ImgWidth);
 	VIOC_RDMA_SetImageBase(pRDMABase, pSrcBase0, pSrcBase1, pSrcBase2);
-	VIOC_RDMA_SetImageEnable(pRDMABase);
+	//VIOC_RDMA_SetImageEnable(pRDMABase);
 
 	// set to VIOC Scaler2
 	pScalerInfo.BYPASS 			= FALSE /* 0 */;
@@ -399,7 +399,7 @@ char M2M_Scaler_Ctrl_Detail(SCALER_TYPE *scale_img)
 	VIOC_API_SCALER_SetConfig(VIOC_SC1, &pScalerInfo);
 	VIOC_API_SCALER_SetPlugIn(VIOC_SC1, VIOC_SC_RDMA_12);
 	VIOC_API_SCALER_SetUpdate(VIOC_SC1);
-
+	VIOC_RDMA_SetImageEnable(pRDMABase); // SoC guide info.
 
 	// set to WMIX30  
 	//VIOC_CONFIG_WMIXPath(WMIX30, 0 /* by-pass */);
@@ -646,30 +646,10 @@ static irqreturn_t tccxxx_scaler_handler(int irq, void *client_data/*, struct pt
 	intr_data_t *msc_data = client_data;
 	
 	#if defined(CONFIG_ARCH_TCC892X)
-	if(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_UPD_MASK) {
-		dprintk("WDMA Interrupt is VIOC_WDMA_IREQ_UPD_MASK. \n");
-	} else if(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_SREQ_MASK) {
-		dprintk("WDMA Interrupt is VIOC_WDMA_IREQ_SREQ_MASK. \n");
-	} else if(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_ROLL_MASK) {
-		dprintk("WDMA Interrupt is VIOC_WDMA_IREQ_ROLL_MASK. \n");
-	} else if(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_ENR_MASK) {
-		dprintk("WDMA Interrupt is VIOC_WDMA_IREQ_ENR_MASK. \n");
-	} else if(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_ENF_MASK) {
-		dprintk("WDMA Interrupt is VIOC_WDMA_IREQ_ENF_MASK. \n");
-	} else if(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_EOFR_MASK) {
+	if(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_EOFR_MASK) {
 		dprintk("WDMA Interrupt is VIOC_WDMA_IREQ_EOFR_MASK. \n");
-	} else if(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_EOFF_MASK) {
-		dprintk("WDMA Interrupt is VIOC_WDMA_IREQ_EOFF_MASK. \n");
-	} else if(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_SEOFR_MASK) {
-		dprintk("\n interrupt is VIOC_WDMA_IREQ_SEOFR_MASK. \n");
-	} else if(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_SEOFF_MASK) {
-		dprintk("\n interrupt is VIOC_WDMA_IREQ_SEOFF_MASK. \n");
-	} else {
-		dprintk("\n interrupt is UNKNOWN. \n");
+		pWDMABase->uIRQSTS.nREG = 0xFFFFFFFF;   // wdma status register all clear.
 	}
-	pWDMABase->uIRQSTS.nREG = 0xFFFFFFFF;   // wdma status register all clear.
-	pWDMABase->uIRQMSK.nREG = 0xFFFFFFFF;   // wdma interrupt register all disable.
-	pWDMABase->uIRQMSK.nREG = 0x00000000UL; // wdma interrupt register all enable.
 	#else // CONFIG_ARCH_TCC892X
 	IFlag = pM2MSCALER->MSCSTR;
 
@@ -979,7 +959,7 @@ int tccxxx_scaler_open(struct inode *inode, struct file *filp)
 		pWDMABase = (volatile PVIOC_WDMA)tcc_p2v((unsigned int)HwVIOC_WDMA03);
 
 		VIOC_SC_SetSWReset(VIOC_SC1, 12/*RDMA12*/, 3/*WDMA03*/);
-		VIOC_WDMA_SetIreqMask(pWDMABase, (VIOC_WDMA_IREQ_EOFR_MASK|VIOC_WDMA_IREQ_SEOFR_MASK), 0x0);
+		VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_EOFR_MASK, 0x0);
 		ret = request_irq(INT_VIOC_WD3, tccxxx_scaler_handler, IRQF_SHARED, "scaler", &sc_data);
 		#else // CONFIG_ARCH_TCC892X
 		M2M_Scaler_SW_Reset(M2M_SCALER0);
