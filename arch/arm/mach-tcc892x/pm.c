@@ -1763,7 +1763,7 @@ static int tcc_pm_enter(suspend_state_t state)
 
 // -------------------------------------------------------------------------
 // set board information
-	if(system_rev == 0x1005)
+	if(system_rev == 0x1005 || system_rev == 0x1007)
 		*(volatile unsigned long *)SRAM_STACK_ADDR = 1;
 	else if(system_rev == 0x1006)
 		*(volatile unsigned long *)SRAM_STACK_ADDR = 2;

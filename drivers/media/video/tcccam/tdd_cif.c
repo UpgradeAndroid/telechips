@@ -96,7 +96,7 @@ void TDD_CIF_Initialize()
 		BITCSET(pGPIO_F->GPFN0.nREG, 0xFFFFFFFF, 0x11111111);  
 		BITCSET(pGPIO_F->GPFN1.nREG, 0x0000FFFF, 0x0000B111);	
 	#else
-		if(system_rev == 0x1005){
+		if(system_rev == 0x1005 || system_rev == 0x1007){
 			BITCSET(pGPIO_F->GPEN.nREG, 0x4100FFFF, 0x4100FFFF);
 			
 			// Change to Functional GPIO that GPIO_D

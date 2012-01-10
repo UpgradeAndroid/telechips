@@ -209,7 +209,7 @@ static struct axp192_subdev_data axp192_subdev[] = {
 
 static int axp192_irq_init(void)
 {
-	if(system_rev == 0x1005)
+	if(system_rev == 0x1005 || system_rev == 0x1007)
 	{
 		tcc_gpio_config(TCC_GPE(29), GPIO_FN(0)|GPIO_PULL_DISABLE);  // GPIOE[31]: input mode, disable pull-up/down
 		tcc_gpio_config_ext_intr(PMIC_IRQ, EXTINT_GPIOE_29);
@@ -687,7 +687,7 @@ static void __init tcc8920_init_machine(void)
 
 #if defined(CONFIG_SENSORS_AK8975)
     /* Input mode */
-	if(system_rev == 0x1005)
+	if(system_rev == 0x1005 || system_rev == 0x1007)
 	{
 	    tcc_gpio_config(TCC_GPG(16), GPIO_FN(0)|GPIO_PULL_DISABLE);  // GPIOE[29]: input mode, disable pull-up/down
 	    gpio_direction_input(TCC_GPG(16));

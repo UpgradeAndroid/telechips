@@ -88,7 +88,7 @@ void tca_i2c_setgpio(int core, int ch)
 				tcc_gpio_config(TCC_GPG(11), GPIO_FN4|GPIO_OUTPUT|GPIO_LOW);
 				#endif
 			#else
-			if(system_rev == 0x1005)
+			if(system_rev == 0x1005 || system_rev == 0x1007)
 			{
 				//I2C[21] - GPIOF[27][28]
 				//i2c_portcfg->PCFG0.bREG.MASTER1 = 21;

@@ -978,7 +978,7 @@ int sensor_if_init(struct v4l2_pix_format *pix)
 			gpio_direction_output(TCC_GPE(10), 0);
 		#else
 
-			if(system_rev == 0x1005){
+			if(system_rev == 0x1005 || system_rev == 0x1007){
 				// In case of CAM0, Power
 				gpio_request(TCC_GPF(24), NULL);				
 				gpio_direction_output(TCC_GPF(24), 1);
@@ -1579,7 +1579,7 @@ void sensor_power_enable(void)
 		#if defined(CONFIG_MACH_M805_892X)
 		
 		#else
-			if(system_rev == 0x1005){
+			if(system_rev == 0x1005 || system_rev == 0x1007){
 				// In Case of CAM0
 				gpio_set_value(TCC_GPF(24), 1);
 			}
@@ -1645,7 +1645,7 @@ void sensor_power_disable(void)
 		#if defined(CONFIG_MACH_M805_892X)
 		
 		#else
-			if(system_rev == 0x1005){
+			if(system_rev == 0x1005 || system_rev == 0x1007){
 				// In Case of CAM0
 				gpio_set_value(TCC_GPF(24), 0);
 			}
@@ -1757,7 +1757,7 @@ int sensor_get_powerdown(void)
 		#if defined(CONFIG_MACH_M805_892X)
 		
 		#else
-			if(system_rev == 0x1005){
+			if(system_rev == 0x1005 || system_rev == 0x1007){
 				#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
 					if(CameraID)
 					{
@@ -1954,7 +1954,7 @@ void sensor_powerdown_enable(void)
 		#if defined(CONFIG_MACH_M805_892X)
 			gpio_set_value(TCC_GPE(22), 1);	
 		#else
-			if(system_rev == 0x1005){
+			if(system_rev == 0x1005 || system_rev == 0x1007){
 				#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
 					if(CameraID){
 						#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9M113)
@@ -2153,7 +2153,7 @@ void sensor_powerdown_disable(void)
 		#if defined(CONFIG_MACH_M805_892X)
 			gpio_set_value(TCC_GPE(22), 0);	
 		#else
-			if(system_rev == 0x1005){
+			if(system_rev == 0x1005 || system_rev == 0x1007){
 				#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
 					if(CameraID){
 						#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9M113)
