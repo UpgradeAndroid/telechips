@@ -88,6 +88,7 @@ void TDD_CIF_Initialize()
 	volatile PGPION pGPIO_F = (PGPION)tcc_p2v(HwGPIOF_BASE);
 	volatile PGPION pGPIO_C = (PGPION)tcc_p2v(HwGPIOC_BASE);
 	volatile PGPION pGPIO_D = (PGPION)tcc_p2v(HwGPIOD_BASE);
+	volatile PGPION pGPIO_G = (PGPION)tcc_p2v(HwGPIOG_BASE);
 
 	#if defined(CONFIG_MACH_M805_892X)
 		printk("m805_892x port configuration!!\n");
@@ -104,6 +105,16 @@ void TDD_CIF_Initialize()
 
 			BITCSET(pGPIO_F->GPFN3.nREG, 0x0F00000F, 0x00000000);	// FL_EN(30), Power(24)
 			printk("0x1005 tcc892x port configuration!!\n");
+		}
+		else if(system_rev == 0x1006){
+
+			// Change to Functional GPIO that GPIO_D
+			BITCSET(pGPIO_F->GPFN0.nREG, 0xFFFFFFFF, 0x11111111);  
+			BITCSET(pGPIO_F->GPFN1.nREG, 0xF00FFFFF, 0x0001B111);
+
+			BITCSET(pGPIO_D->GPFN0.nREG, 0x00000FF0, 0x00000000);	// PWDN, 5M Reset, D[1] , STDBY, 1.3M PWDN, D[2]
+			BITCSET(pGPIO_G->GPFN0.nREG, 0x000000F0, 0x00000000);	// FL_EN, 5M PWDN, G[1] 
+			
 		}
 		else{
 			// Change to Functional GPIO that GPIO_D
