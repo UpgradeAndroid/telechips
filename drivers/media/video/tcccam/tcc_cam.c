@@ -867,7 +867,7 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 				
 				//printk("[Camera Preview] Interrupt Rising Up!!\n");
 				prev_buf = data->buf + data->cif_cfg.now_frame_num;
-				prev_num = data->cif_cfg.now_frame_num;
+				prev_num = data->cif_cfg.now_frame_num;		
 
 				next_buf = list_entry(data->list.next->next, struct tccxxx_cif_buffer, buf_list);
 				next_num = next_buf->v4lbuf.index;
@@ -876,8 +876,8 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 				{
 					//exception process!!
 					if(prev_num != prev_buf->v4lbuf.index) {
-						printk("Frame num mismatch :: true num  :: %d \n", curr_num);
-						printk("Frame num mismatch :: false num :: %d \n", curr_buf->v4lbuf.index);
+						printk("Frame num mismatch :: true num  :: %d \n", prev_num);
+						printk("Frame num mismatch :: false num :: %d \n", prev_buf->v4lbuf.index);
 						prev_buf->v4lbuf.index = prev_num ;
 					}
 
@@ -954,7 +954,7 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 				else
 				{
 					prev_buf = NULL;
-					//dprintk("no-buf change... wakeup!! \n");
+					dprintk("no-buf change... wakeup!! \n");
 					skipped_frm++;
 				}
 
