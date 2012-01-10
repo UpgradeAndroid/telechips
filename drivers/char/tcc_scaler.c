@@ -887,7 +887,7 @@ long tccxxx_scaler_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 		#if defined(CONFIG_ARCH_TCC892X)
 		case TCC_SCALER_VIOC_PLUGOUT:
-			ret = VIOC_API_SCALER_SetPlugOut((unsigned int *)arg);
+			ret = VIOC_API_SCALER_SetPlugOut((unsigned int)arg);
 			return ret;
 		#endif
 
