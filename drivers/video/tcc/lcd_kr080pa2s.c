@@ -74,7 +74,7 @@ static int kr080pa2s_set_power(struct lcd_panel *panel, int on, unsigned int lcd
 			{
 			msleep(80); 	
 		#if defined(CONFIG_ARCH_TCC892X)
-			if (system_rev == 0x1005)
+			if (system_rev == 0x1005 || system_rev == 0x1007)
 				tcc_gpio_config(pdata->bl_on, GPIO_FN(11));
 			else
 				tcc_gpio_config(pdata->bl_on, GPIO_FN(9));
@@ -114,13 +114,13 @@ static int kr080pa2s_set_backlight_level(struct lcd_panel *panel, int level)
 #if defined(CONFIG_ARCH_TCC892X)
 
 		if(lcd_pwr_state) {
-			if (system_rev == 0x1005)
+			if (system_rev == 0x1005 || system_rev == 0x1007)
 				tcc_gpio_config(pdata->bl_on, GPIO_FN(11));
 			else
 				tcc_gpio_config(pdata->bl_on, GPIO_FN(9));
 		}
 
-		if (system_rev == 0x1005) {
+		if (system_rev == 0x1005 || system_rev == 0x1007) {
 			pTIMER	= (volatile PTIMER)tcc_p2v(HwTMR_BASE);
 			pTIMER->TREF0.nREG  = MAX_BL_LEVEL;
 			pTIMER->TCFG0.nREG  = 0x105;	

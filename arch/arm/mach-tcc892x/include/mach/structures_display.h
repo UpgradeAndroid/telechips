@@ -3310,8 +3310,8 @@ typedef union {
 } DDI_NTSCPALEN_TYPE;
 
 typedef struct {
-	unsigned SEL			:1;
-	unsigned RST			:1;
+	unsigned 					:1;
+	unsigned RST				:1;
 	unsigned EN				:1;
 	unsigned OC				:1;
 	unsigned VSEL			:1;
@@ -3319,7 +3319,8 @@ typedef struct {
 	unsigned M				:7;
 	unsigned P				:6;
 	unsigned TC				:3;
-	unsigned				:8;
+	unsigned					:6;
+	unsigned	SEL				:2;
 } DDI_LVDSCTRL_IDX_TYPE;
 
 typedef union {

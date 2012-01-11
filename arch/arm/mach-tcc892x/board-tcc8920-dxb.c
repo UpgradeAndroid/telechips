@@ -342,7 +342,7 @@ static void tcc_dxb_init(void)
 	if(machine_is_tcc8920())
 	{
 		/*PULL_UP is disabled to save current.*/
-        if(system_rev == 0x1005)
+        if(system_rev == 0x1005 || system_rev == 0x1007)
         {
             gGPIO_DXB0_SCLK = GPIO_DXB0_SCLK_REV1005;
             gGPIO_DXB0_SFRM = GPIO_DXB0_SFRM_REV1005;

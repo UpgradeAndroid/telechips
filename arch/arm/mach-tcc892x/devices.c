@@ -873,7 +873,7 @@ static int __init tcc892x_init_devices(void)
 
 #if defined(CONFIG_SPI_TCCXXXX_MASTER)
     #if   defined(CONFIG_MACH_TCC8920)		        
-    if(system_rev == 0x1005)
+    if(system_rev == 0x1005 || system_rev == 0x1007)
     {
         spi0_resources[2].start = 17; /* Port17 GPIO_G[0:3] */
         spi0_resources[2].end = 17;
@@ -883,7 +883,7 @@ static int __init tcc892x_init_devices(void)
 
 #if defined(CONFIG_SPI_TCCXXXX_TSIF_SLAVE)
     #if   defined(CONFIG_MACH_TCC8920)		        
-    if(system_rev == 0x1005)
+    if(system_rev == 0x1005 || system_rev == 0x1007)
     {
         tsif_resources[2].start = 5; /* Port5 GPIO_B[0:3] */
         tsif_resources[2].end = 5;

@@ -222,7 +222,7 @@ int __init tcc8920_init_panel(void)
 	if (!machine_is_tcc8920())
 		return 0;
 
-	if(system_rev == 0x1005){
+	if(system_rev == 0x1005 || system_rev == 0x1007){
 		lcd_pdata.display_on = TCC_GPB(7);
 		lcd_pdata.bl_on = TCC_GPF(16);
 	}
