@@ -113,6 +113,7 @@ struct tcc_tsif_handle {
 	void (*tsif_set)(struct tcc_tsif_handle *h);
 	void (*tsif_isr)(struct tcc_tsif_handle *h);
 	void (*hw_init)(struct tcc_tsif_handle *h);
+    int (*tsif_resync)(struct tcc_tsif_handle *h);
 	
     dma_alloc_f tea_dma_alloc; // tea function.
     dma_free_f tea_dma_free; // tea function.

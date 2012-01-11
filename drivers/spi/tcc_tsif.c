@@ -286,6 +286,7 @@ static unsigned int tcc_tsif_poll(struct file *filp, struct poll_table_struct *w
     if (tsif_get_readable_cnt(&tsif_ex_handle) >= tsif_ex_handle.dma_intr_packet_cnt) {
 		return  (POLLIN | POLLRDNORM);
     }
+    tsif_ex_handle.tsif_resync(&tsif_ex_handle);
     return 0;
 }
 
@@ -303,6 +304,7 @@ static int tcc_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long arg
     case IOCTL_TSIF_DMA_START:
         {
             struct tcc_tsif_param param;
+            int clk_polarity,  valid_polarity, sync_polarity, msb_first, mpeg_ts;
             if (copy_from_user(&param, (void *)arg, sizeof(struct tcc_tsif_param))) {
                 printk("cannot copy from user tcc_tsif_param in IOCTL_TSIF_DMA_START !!! \n");
                 return -EFAULT;
@@ -313,49 +315,53 @@ static int tcc_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long arg
                 printk("so big ts_total_packet_cnt !!! \n");
                 return -EFAULT;
             }
-            tsif_ex_handle.dma_stop(&tsif_ex_handle);
-            if(param.dma_mode == 0)
-               	tsif_ex_handle.mpeg_ts = 0;
+            if( tsif_ex_handle.dma_stop(&tsif_ex_handle) == 0)
+                tsif_ex_handle.clear_fifo_packet(&tsif_ex_handle);
 
-            tsif_ex_handle.msb_first = 0x01;       //1:msb first, 0:lsb first
-            tsif_ex_handle.clk_polarity = 0x00;    //1:falling edge 0:rising edge
-            tsif_ex_handle.valid_polarity = 0x01;  //1:valid high active 0:valid low active
-            tsif_ex_handle.sync_polarity = 0x00;   //0:sync high active 1:sync low active
-            tsif_ex_handle.big_endian = 0x00;	     //1:big endian, 0:little endian
-            tsif_ex_handle.serial_mode = 0x01;     //1:serialmode 0:parallel mode
-            tsif_ex_handle.sync_delay = 0x00;
+            if(param.dma_mode == 0)
+  	            tsif_ex_handle.mpeg_ts = 0;
 
             if(param.mode & SPI_CPOL)
-               tsif_ex_handle.clk_polarity = 0x01;    //1:falling edge 0:rising edge
+               clk_polarity = 0x01;    //1:falling edge 0:rising edge
             else
-               tsif_ex_handle.clk_polarity = 0x00;    //1:falling edge 0:rising edge
+               clk_polarity = 0x00;    //1:falling edge 0:rising edge
 
+            sync_polarity = 0x00;   //0:sync high active 1:sync low active
             if(param.mode & SPI_CS_HIGH)
             {
-                tsif_ex_handle.valid_polarity = 0x01;  //1:valid high active 0:valid low active
+                valid_polarity = 0x01;  //1:valid high active 0:valid low active
                 if(tsif_ex_handle.mpeg_ts == 0)
-                    tsif_ex_handle.sync_polarity = 0x00;   //0:sync high active 1:sync low active
+                    sync_polarity = 0x00;   //0:sync high active 1:sync low active
             }
             else
             {
-                tsif_ex_handle.valid_polarity = 0x00;  //1:valid high active 0:valid low active
+                valid_polarity = 0x00;  //1:valid high active 0:valid low active
                 if(tsif_ex_handle.mpeg_ts == 0)
-                    tsif_ex_handle.sync_polarity = 0x01;   //0:sync high active 1:sync low active
+                    sync_polarity = 0x01;   //0:sync high active 1:sync low active
             }
 
             if(param.mode & SPI_LSB_FIRST)
-           	    tsif_ex_handle.msb_first = 0x00;       //1:msb first, 0:lsb first
+           	    msb_first = 0x00;       //1:msb first, 0:lsb first
             else
-               	tsif_ex_handle.msb_first = 0x01;       //1:msb first, 0:lsb first
-          
+               	msb_first = 0x01;       //1:msb first, 0:lsb first
+
+            if( tsif_ex_handle.clk_polarity != clk_polarity ||\
+                tsif_ex_handle.valid_polarity != valid_polarity ||\
+                tsif_ex_handle.sync_polarity != sync_polarity ||\
+                tsif_ex_handle.msb_first != msb_first)
+            {
+                tsif_ex_handle.msb_first = msb_first;       //1:msb first, 0:lsb first
+                tsif_ex_handle.clk_polarity = clk_polarity;    //1:falling edge 0:rising edge
+                tsif_ex_handle.valid_polarity = valid_polarity;  //1:valid high active 0:valid low active
+                tsif_ex_handle.sync_polarity = sync_polarity;   //0:sync high active 1:sync low active
+                tsif_ex_handle.tsif_set(&tsif_ex_handle);
+            }
+
             tsif_ex_handle.dma_total_packet_cnt = param.ts_total_packet_cnt;
             tsif_ex_handle.dma_intr_packet_cnt = param.ts_intr_packet_cnt;
-
-            tsif_ex_handle.tsif_set(&tsif_ex_handle);
-            tsif_ex_handle.clear_fifo_packet(&tsif_ex_handle);
             tsif_ex_handle.q_pos = tsif_ex_handle.cur_q_pos = 0;
             printk("interrupt packet count [%u]\n", tsif_ex_handle.dma_intr_packet_cnt);
-            tsif_ex_handle.dma_start(&tsif_ex_handle);
+            tsif_ex_handle.dma_start(&tsif_ex_handle);                        
         }
         break;			
     case IOCTL_TSIF_DMA_STOP:
@@ -455,6 +461,14 @@ static int tcc_tsif_init(void)
     tsif_ex_handle.hw_init(&tsif_ex_handle);
     tsif_ex_handle.clear_fifo_packet(&tsif_ex_handle);
     tsif_ex_handle.dma_stop(&tsif_ex_handle);
+    tsif_ex_handle.msb_first = 0x01;       //1:msb first, 0:lsb first
+    tsif_ex_handle.clk_polarity = 0x00;    //1:falling edge 0:rising edge
+    tsif_ex_handle.valid_polarity = 0x01;  //1:valid high active 0:valid low active
+    tsif_ex_handle.sync_polarity = 0x00;   //0:sync high active 1:sync low active
+    tsif_ex_handle.big_endian = 0x00;	     //1:big endian, 0:little endian
+    tsif_ex_handle.serial_mode = 0x01;     //1:serialmode 0:parallel mode
+    tsif_ex_handle.sync_delay = 0x00;
+    tsif_ex_handle.tsif_set(&tsif_ex_handle);
 	
     ret = request_irq(tsif_ex_handle.irq, tsif_ex_dma_handler, IRQF_SHARED, TSIF_DEV_NAME, &tsif_ex_handle);
 	if (ret) { 
@@ -500,6 +514,8 @@ static int tcc_tsif_open(struct inode *inode, struct file *filp)
 static int tcc_tsif_release(struct inode *inode, struct file *filp)
 {
    	mutex_lock(&(tsif_ex_pri.mutex));
+    if( tsif_ex_handle.dma_stop(&tsif_ex_handle) == 0)
+       tsif_ex_handle.clear_fifo_packet(&tsif_ex_handle);
 	TSDEMUX_Close();
     if (tsif_ex_pri.open_cnt > 0) {
         tsif_ex_pri.open_cnt--;
