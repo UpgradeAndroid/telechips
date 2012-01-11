@@ -167,7 +167,10 @@ int USBPHY_Power(dwc_otg_core_if_t *_core_if, int power)
 {
 	if (power)
 #if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC892X)
-		return dwc_otg_driver_force_init();
+		if (dwc_otg_is_device_mode(_core_if)) 
+			return dwc_otg_driver_force_init();
+		else
+			return 0;
 #else
 		return USBPHY_SetMode(_core_if, USBPHY_MODE_ON);
 #endif
