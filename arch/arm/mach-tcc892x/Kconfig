@@ -13,18 +13,6 @@ config MACH_TCC8920
 	  Support for the TCC8920 evaluation board. Say Y here if you
 	  have such a device.
 
-config MACH_TCC8923
-	bool "TCC8923 evaluation board"
-	help
-	  Support for the TCC8923 evaluation board. Say Y here if you
-	  have such a device.
-
-config MACH_TCC8925
-	bool "TCC8925 evaluation board"
-	help
-	  Support for the TCC8925 evaluation board. Say Y here if you
-	  have such a device.
-
 config MACH_TCC8920ST
 	bool "TCC8920 STB evaluation board"
 	help
