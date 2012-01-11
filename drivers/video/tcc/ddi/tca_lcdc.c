@@ -362,7 +362,7 @@ EXPORT_SYMBOL(lcdc_initialize);
 FUNCTION
  - index : 0 = lcdc0, 1 = lcdc1
 ===========================================================================*/
-unsigned char DEV_LCDC_Wait_signal(char lcdc)
+unsigned int DEV_LCDC_Wait_signal(char lcdc)
 {
 	#define MAX_LCDC_WAIT_TIEM 		0x70000000
 	unsigned int loop = 0;
