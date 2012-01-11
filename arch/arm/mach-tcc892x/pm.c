@@ -78,15 +78,6 @@ typedef void (*FuncPtr)(void);
 
 #define L2CACHE_BASE   0xFA000000
 
-enum {
-	REV_TCC8920_EVM = 0,
-	REV_M805_TCC8920,
-	REV_TCC8920_STB,
-	REV_TCC8920_2CS,
-	REV_TCC8925_EVM,
-	REV_TCC892X_MAX
-} flag_tcc892x_evm;
-
 /*===========================================================================
 FUNCTION
 ===========================================================================*/
@@ -733,20 +724,21 @@ static void shutdown(void)
 
 // -------------------------------------------------------------------------
 // ZQ/VDDQ Power OFF
+
 	#if defined(CONFIG_MACH_M805_892X)
 	BITCLR(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
-	#else
-	if(*(volatile unsigned long *)SRAM_STACK_ADDR == REV_TCC8920_EVM)
-	{
-		BITCLR(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
-	}
-	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == REV_TCC8920_2CS)
+	#elif defined(CONFIG_MACH_TCC8920)
+	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1005 || *(volatile unsigned long *)SRAM_STACK_ADDR == 0x1007)
 	{
 		BITCLR(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<4); //GPIO B 4
 	}
-	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == REV_TCC8925_EVM)
+	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1006)
 	{
 		BITCLR(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<29); //GPIO B 29
+	}
+	else
+	{
+		BITCLR(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
 	}
 	#endif
 
@@ -842,19 +834,7 @@ static void shutdown(void)
 		((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D12 = 1;	// PMU WakeUp Enable
 	#endif
 #else
-	if(*(volatile unsigned long *)SRAM_STACK_ADDR == REV_TCC8920_EVM)
-	{
-		//set wake-up polarity
-		((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_G16 = 1; //power key - Active Low
-		//set wake-up source
-		((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_G16 = 1; //power key
-
-		#if defined(CONFIG_MMC_TCC_SDHC)	// Wakeup for SD Insert->Remove in Suspend.
-		if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1)		// SD Insert -> Remove in suspend : Active High
-			((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D13 = 1;	// PMU WakeUp Enable
-		#endif
-	}
-	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == REV_TCC8920_2CS)
+	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1005 || *(volatile unsigned long *)SRAM_STACK_ADDR == 0x1007)
 	{
 		//set wake-up polarity
 		((PPMU)HwPMU_BASE)->PMU_WKPOL1.bREG.GPIO_E30 = 1; //power key - Active Low
@@ -866,7 +846,7 @@ static void shutdown(void)
 			((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_B12 = 1;	// PMU WakeUp Enable
 		#endif
 	}
-	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == REV_TCC8925_EVM)
+	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1006)
 	{
 		//set wake-up polarity
 		((PPMU)HwPMU_BASE)->PMU_WKPOL1.bREG.GPIO_E24 = 1; //power key - Active Low
@@ -876,6 +856,18 @@ static void shutdown(void)
 		#if defined(CONFIG_MMC_TCC_SDHC)	// Wakeup for SD Insert->Remove in Suspend.
 		if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1)		// SD Insert -> Remove in suspend : Active High
 			((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E28 = 1;	// PMU WakeUp Enable
+		#endif
+	}
+	else
+	{
+		//set wake-up polarity
+		((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_G16 = 1; //power key - Active Low
+		//set wake-up source
+		((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_G16 = 1; //power key
+
+		#if defined(CONFIG_MMC_TCC_SDHC)	// Wakeup for SD Insert->Remove in Suspend.
+		if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1)		// SD Insert -> Remove in suspend : Active High
+			((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D13 = 1;	// PMU WakeUp Enable
 		#endif
 	}
 #endif
@@ -935,18 +927,18 @@ static void wakeup(void)
 
 	#if defined(CONFIG_MACH_M805_892X)
 	BITSET(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
-	#else
-	if(*(volatile unsigned long *)SRAM_STACK_ADDR == REV_TCC8920_EVM)
-	{
-		BITSET(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
-	}
-	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == REV_TCC8920_2CS)
+	#elif defined(CONFIG_MACH_TCC8920)
+	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1005 || *(volatile unsigned long *)SRAM_STACK_ADDR == 0x1007)
 	{
 		BITSET(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<4); //GPIO B 4
 	}
-	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == REV_TCC8925_EVM)
+	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1006)
 	{
 		BITSET(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<29); //GPIO B 29
+	}
+	else
+	{
+		BITSET(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
 	}
 	#endif
 
@@ -1262,20 +1254,21 @@ static void sleep(void)
 
 // -------------------------------------------------------------------------
 // ZQ/VDDQ Power OFF
+
 	#if defined(CONFIG_MACH_M805_892X)
 	BITCLR(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
-	#else
-	if(*(volatile unsigned long *)SRAM_STACK_ADDR == REV_TCC8920_EVM)
-	{
-		BITCLR(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
-	}
-	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == REV_TCC8920_2CS)
+	#elif defined(CONFIG_MACH_TCC8920)
+	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1005 || *(volatile unsigned long *)SRAM_STACK_ADDR == 0x1007)
 	{
 		BITCLR(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<4); //GPIO B 4
 	}
-	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == REV_TCC8925_EVM)
+	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1006)
 	{
 		BITCLR(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<29); //GPIO B 29
+	}
+	else
+	{
+		BITCLR(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
 	}
 	#endif
 
@@ -1365,19 +1358,7 @@ static void sleep(void)
 		((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D12 = 1;	// PMU WakeUp Enable
 	#endif
 #else
-	if(*(volatile unsigned long *)SRAM_STACK_ADDR == REV_TCC8920_EVM)
-	{
-		//set wake-up polarity
-		((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_G16 = 1; //power key - Active Low
-		//set wake-up source
-		((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_G16 = 1; //power key
-
-		#if defined(CONFIG_MMC_TCC_SDHC)	// Wakeup for SD Insert->Remove in Suspend.
-		if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1)		// SD Insert -> Remove in suspend : Active High
-			((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D13 = 1;	// PMU WakeUp Enable
-		#endif
-	}
-	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == REV_TCC8920_2CS)
+	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1005 || *(volatile unsigned long *)SRAM_STACK_ADDR == 0x1007)
 	{
 		//set wake-up polarity
 		((PPMU)HwPMU_BASE)->PMU_WKPOL1.bREG.GPIO_E30 = 1; //power key - Active Low
@@ -1389,7 +1370,7 @@ static void sleep(void)
 			((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_B12 = 1;	// PMU WakeUp Enable
 		#endif
 	}
-	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == REV_TCC8925_EVM)
+	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1006)
 	{
 		//set wake-up polarity
 		((PPMU)HwPMU_BASE)->PMU_WKPOL1.bREG.GPIO_E24 = 1; //power key - Active Low
@@ -1399,6 +1380,18 @@ static void sleep(void)
 		#if defined(CONFIG_MMC_TCC_SDHC)	// Wakeup for SD Insert->Remove in Suspend.
 		if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1)		// SD Insert -> Remove in suspend : Active High
 			((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E28 = 1;	// PMU WakeUp Enable
+		#endif
+	}
+	else
+	{
+		//set wake-up polarity
+		((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_G16 = 1; //power key - Active Low
+		//set wake-up source
+		((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_G16 = 1; //power key
+
+		#if defined(CONFIG_MMC_TCC_SDHC)	// Wakeup for SD Insert->Remove in Suspend.
+		if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1)		// SD Insert -> Remove in suspend : Active High
+			((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D13 = 1;	// PMU WakeUp Enable
 		#endif
 	}
 #endif
@@ -1436,18 +1429,18 @@ static void sleep(void)
 
 	#if defined(CONFIG_MACH_M805_892X)
 	BITSET(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
-	#else
-	if(*(volatile unsigned long *)SRAM_STACK_ADDR == REV_TCC8920_EVM)
-	{
-		BITSET(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
-	}
-	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == REV_TCC8920_2CS)
+	#elif defined(CONFIG_MACH_TCC8920)
+	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1005 || *(volatile unsigned long *)SRAM_STACK_ADDR == 0x1007)
 	{
 		BITSET(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<4); //GPIO B 4
 	}
-	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == REV_TCC8925_EVM)
+	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1006)
 	{
 		BITSET(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<29); //GPIO B 29
+	}
+	else
+	{
+		BITSET(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
 	}
 	#endif
 
@@ -1763,12 +1756,7 @@ static int tcc_pm_enter(suspend_state_t state)
 
 // -------------------------------------------------------------------------
 // set board information
-	if(system_rev == 0x1005 || system_rev == 0x1007)
-		*(volatile unsigned long *)SRAM_STACK_ADDR = 1;
-	else if(system_rev == 0x1006)
-		*(volatile unsigned long *)SRAM_STACK_ADDR = 2;
-	else
-		*(volatile unsigned long *)SRAM_STACK_ADDR = 0;
+	*(volatile unsigned long *)SRAM_STACK_ADDR = system_rev;
 
 #if defined(CONFIG_MMC_TCC_SDHC)
 	*(volatile unsigned long *)(SRAM_STACK_ADDR+4) = tcc892x_sd_card_detect();
