@@ -85,17 +85,8 @@ const struct tcc_freq_table_t gtOverlayClockLimitTable = {
 	       0,      0,      0,      0, 196000,      0,      0,      0,      0	// Core 1.20V
 };
 
-
-const struct tcc_freq_table_t stPowerResumeClockLimitTable = {
-	       0,      0, 533000,      0, 196000,      0,      0,      0,      0	// Core 1.20V
-};
-
 const struct tcc_freq_table_t gtTvClockLimitTable = {
 	       0, 312000, 533000,      0,      0,      0,      0,      0,      0	// Core 1.20V
-};
-
-const struct tcc_freq_table_t gtEthernetClockLimitTable = {
-	       0,      0, 533000,      0, 196000,      0,      0,      0,      0	// Core 1.20V
 };
 
 const struct tcc_freq_table_t gtBtClockLimitTable = {
@@ -137,7 +128,6 @@ EXPORT_SYMBOL(gtHdmiClockLimitTable);
 EXPORT_SYMBOL(gtMaliClockLimitTable);
 EXPORT_SYMBOL(stFBClockLimitTable);
 EXPORT_SYMBOL(gtTvClockLimitTable);
-EXPORT_SYMBOL(gtEthernetClockLimitTable);
 EXPORT_SYMBOL(gtBtClockLimitTable);
 EXPORT_SYMBOL(gtAppClockLimitTable);
 EXPORT_SYMBOL(gtUSBClockLimitTable);
