@@ -812,8 +812,9 @@ void TCC_OUTPUT_FB_WaitVsyncInterrupt(unsigned int type)
 		Output_struct.state = 0;
 		ret = wait_event_interruptible_timeout(Output_struct.waitq, Output_struct.state == 1, msecs_to_jiffies(50));
 	#endif
-	tca_lcdc_interrupt_onoff(FALSE, pDISP_OUTPUT[type].LCDC_N);
-
+#ifndef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
+	//tca_lcdc_interrupt_onoff(FALSE, pDISP_OUTPUT[type].LCDC_N);
+#endif
 	if(ret <= 0)	{
 	 	printk("  [%d]: tcc_setup_interrupt timed_out!! \n", ret);
 	}

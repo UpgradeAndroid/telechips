@@ -742,7 +742,7 @@ config TCC_MEMSCALER1
 config TCC_HW_JPEG_ENC
 	bool "TCCXX H/W JPEG-Encoder driver"
 	default y
-	depends on (ARCH_TCC88XX || ARCH_TCC92XX || ARCH_TCC93XX)
+	depends on (ARCH_TCC88XX || ARCH_TCC92XX || ARCH_TCC93XX  || ARCH_TCC892X)
 
 config TCC_HW_JPEG_DEC
 	bool "TCCXX H/W JPEG-Decoder driver"
