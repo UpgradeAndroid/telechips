@@ -309,6 +309,7 @@ int __init m805_892x_init_panel(void)
 
 	platform_device_register(&m805_892x_backlight);
 	ret = platform_driver_register(&m805_892x_backlight_driver);
+
 	if (ret)
 		return ret;
 

@@ -35,7 +35,7 @@
 #define WAIT_FLAG	0xFFFF
 #define END_FLAG	0xFFFE
 
-extern void lcdc_initialize(struct lcd_panel *lcd_spec);
+extern void lcdc_initialize(struct lcd_panel *lcd_spec, unsigned int lcdc_num);
 
 
 static const struct i2c_device_id dx08d11vm0aaa_id[] = {
@@ -237,7 +237,7 @@ static int dx08d11vm0aaa_panel_init(struct lcd_panel *panel)
 	return 0;
 }
 
-static int dx08d11vm0aaa_set_power(struct lcd_panel *panel, int on)
+static int dx08d11vm0aaa_set_power(struct lcd_panel *panel, int on, unsigned int lcd_num)
 {
 	struct lcd_platform_data *pdata = panel->dev->platform_data;
 
@@ -251,7 +251,7 @@ static int dx08d11vm0aaa_set_power(struct lcd_panel *panel, int on)
 		DX08D11VM0AAA_Module_On();
 		msleep(16);
 
-		lcdc_initialize(panel);
+		lcdc_initialize(panel, lcd_num);
 		LCDC_IO_Set(1, panel->bus_width);
 		msleep(16);
 

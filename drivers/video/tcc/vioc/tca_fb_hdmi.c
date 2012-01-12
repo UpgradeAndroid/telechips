@@ -62,17 +62,17 @@ void TCC_HDMI_LCDC_Timing(char hdmi_lcdc, struct lcdc_timimg_parms_t *mode)
 {
 	unsigned int width, height;
 	VIOC_DISP *pDISP;
-	VIOC_WMIX * pWIMX;	
+	VIOC_WMIX * pWMIX;	
 	stLCDCTR pCtrlParam;
 	stLTIMING HDMI_TIMEp;
 
 	if(hdmi_lcdc)	{
 		pDISP = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP1);
-		pWIMX =(VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX1); 
+		pWMIX =(VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX1); 
 	}
 	else		{
 		pDISP = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP0);
-		pWIMX =(VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX0); 
+		pWMIX =(VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX0); 
 	}
 
 
@@ -121,10 +121,10 @@ void TCC_HDMI_LCDC_Timing(char hdmi_lcdc, struct lcdc_timimg_parms_t *mode)
 	VIOC_DISP_SetSize (pDISP, width, height);
 	VIOC_DISP_SetBGColor(pDISP, 0, 0 , 0);
 
-	VIOC_WMIX_SetOverlayPriority(pWIMX, 0);
-	VIOC_WMIX_SetBGColor(pWIMX, 0x00, 0x00, 0x00, 0xff);
-	VIOC_WMIX_SetSize(pWIMX, width, height);
-	VIOC_WMIX_SetUpdate (pWIMX);
+	VIOC_WMIX_SetOverlayPriority(pWMIX, 0);
+	VIOC_WMIX_SetBGColor(pWMIX, 0x00, 0x00, 0x00, 0xff);
+	VIOC_WMIX_SetSize(pWMIX, width, height);
+	VIOC_WMIX_SetUpdate (pWMIX);
 	
 	VIOC_OUTCFG_SetOutConfig(VIOC_OUTCFG_HDMI, hdmi_lcdc);
 	

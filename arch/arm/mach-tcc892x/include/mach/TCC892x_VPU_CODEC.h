@@ -41,6 +41,7 @@
 #define RETCODE_ERR_STRIDE_ZERO_OR_ALIGN8	100
 #define RETCODE_ERR_MIN_RESOLUTION			101
 #define RETCODE_ERR_MAX_RESOLUTION			102
+#define RETCODE_ERR_SEQ_INIT_HANGUP			103
 #define RETCODE_H264ERR_PROFILE				110
 #define RETCODE_VC1ERR_COMPLEX_PROFILE		120
 #define RETCODE_H263ERR_ANNEX_D				130
@@ -248,7 +249,9 @@ typedef struct dec_ring_buffer_setting_in_t
 
 typedef struct dec_ring_buffer_status_out_t
 {
-	unsigned int m_iAvailableSpaceInRingBuffer;
+	unsigned long m_ulAvailableSpaceInRingBuffer;
+	codec_addr_t m_ptrReadAddr_PA;
+	codec_addr_t m_ptrWriteAddr_PA;
 } dec_ring_buffer_status_out_t;
 
 

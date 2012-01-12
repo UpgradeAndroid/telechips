@@ -177,6 +177,7 @@ void tccxx_jpgenc_reset_clock(unsigned char deinit)
 
 static int tccxx_enc_init(void *phy_src, int ImageWidth, int ImageHeight, enum jpeg_quantisation_val val, EncodeInputType type)
 {
+#if !defined(CONFIG_ARCH_TCC892X)
 	unsigned int uiOutputBufferSize, tmp_width;
 	void *BufferY, *BufferU, *BufferV;
 
@@ -228,7 +229,7 @@ static int tccxx_enc_init(void *phy_src, int ImageWidth, int ImageHeight, enum j
 	JPEG_SET_Encode_Config(&gJPEG_ENC_Info);
 
 	JPEG_INTERRUPT_Enable(JPEG_ENCODE_MODE);
-
+#endif // CONFIG_ARCH_TCC892X
 	return 0;
 }
 
@@ -469,6 +470,7 @@ static int tccxx_make_exifheader(TCCXXX_JPEG_ENC_EXIF_DATA* arg)
 ****************************************************************************/
 static irqreturn_t tccxx_enc_handler(int irq, void *client_data)
 {
+#if !defined(CONFIG_ARCH_TCC892X)
 	unsigned long IFlag, IAck;
 	int_data_t *jpg_intr = client_data;
 	volatile PJPEGENCODER pJPEGENC = (PJPEGENCODER)tcc_p2v(HwJPEGENCODER_BASE);
@@ -478,7 +480,6 @@ static irqreturn_t tccxx_enc_handler(int irq, void *client_data)
 	spin_unlock_irq(&(jpg_intr->lock));
 
 	IFlag = pJPEGENC->JP_INT_FLAG;
-
 	if(IFlag & HwJP_INT_FLAG_JOB_FINISHED)
 	{				
 		gJpegEncodeDone = 1;
@@ -491,7 +492,7 @@ static irqreturn_t tccxx_enc_handler(int irq, void *client_data)
 
 	IAck = pJPEGENC->JP_INT_ACK;
 	wake_up_interruptible(&(jpg_intr->wq));
-
+#endif // CONFIG_ARCH_TCC892X
 	return IRQ_HANDLED;
 }
 
@@ -599,8 +600,9 @@ static int tcc_jpegenc_release(struct inode *inode, struct file *filp)
 		if(jpgenc_data.irq_reged)
 		{
 			jpgenc_data.irq_reged = 0;
-			
+			#if !defined(CONFIG_ARCH_TCC892X)
 			free_irq(IRQ_JPGE, &jpgenc_data);
+			#endif // CONFIG_ARCH_TCC892X
 		}
 
 		if(pJpegenc_remapped_header != NULL)
@@ -631,13 +633,14 @@ static int tcc_jpegenc_open(struct inode *inode, struct file *filp)
 	dprintk("tcc_jpegenc_open!!\n");
 	
 	if(!jpgenc_data.irq_reged)
-	{			
+	{
+		#if !defined(CONFIG_ARCH_TCC892X)
 		if((ret = request_irq(IRQ_JPGE, tccxx_enc_handler, IRQF_DISABLED, "jpeg_enc", &jpgenc_data)) < 0)
 		{
 			printk("FAILED to aquire jpeg_enc-irq\n");
 			return -EFAULT;
 		}
-
+		#endif // CONFIG_ARCH_TCC892X
 		jpgenc_data.irq_reged = 1;
 	}
 	tccxx_jpgenc_set_clock(1);

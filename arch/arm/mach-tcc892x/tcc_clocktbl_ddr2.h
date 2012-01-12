@@ -33,7 +33,7 @@ static struct tcc_freq_table_t gtClockLimitTable[] = {
 	{ 625000,      0, 300000,      0, 196000,      0,      0, 100000,      0 },	// Core 1.20V
 	{ 718750,      0, 342850,      0, 219520,      0,      0, 100000,      0 },	// Core 1.25V
 	{ 812500,      0, 385700,      0, 243040,      0,      0, 100000,      0 },	// Core 1.30V
-//	{ 996000,      0, 534000,      0, 220000,      0,      0, 100000,      0 },	// Core 1.50V
+//	{ 996000,      0, 400000,      0, 220000,      0,      0, 100000,      0 },	// Core 1.50V
 #endif
 };
 
@@ -85,17 +85,8 @@ const struct tcc_freq_table_t gtOverlayClockLimitTable = {
 	       0,      0,      0,      0, 196000,      0,      0,      0,      0	// Core 1.20V
 };
 
-
-const struct tcc_freq_table_t stPowerResumeClockLimitTable = {
-	       0,      0, 300000,      0, 196000,      0,      0,      0,      0	// Core 1.20V
-};
-
 const struct tcc_freq_table_t gtTvClockLimitTable = {
 	       0, 312000, 300000,      0,      0,      0,      0,      0,      0	// Core 1.20V
-};
-
-const struct tcc_freq_table_t gtEthernetClockLimitTable = {
-	       0,      0, 300000,      0, 196000,      0,      0,      0,      0	// Core 1.20V
 };
 
 const struct tcc_freq_table_t gtBtClockLimitTable = {
@@ -137,7 +128,6 @@ EXPORT_SYMBOL(gtHdmiClockLimitTable);
 EXPORT_SYMBOL(gtMaliClockLimitTable);
 EXPORT_SYMBOL(stFBClockLimitTable);
 EXPORT_SYMBOL(gtTvClockLimitTable);
-EXPORT_SYMBOL(gtEthernetClockLimitTable);
 EXPORT_SYMBOL(gtBtClockLimitTable);
 EXPORT_SYMBOL(gtAppClockLimitTable);
 EXPORT_SYMBOL(gtUSBClockLimitTable);

@@ -237,26 +237,25 @@ void JPEG_Exif_Header_Info_Init(void)
 ****************************************************************************/
 void JPEG_SW_Reset(JpegOperationType mode)
 {
+#if !defined(CONFIG_ARCH_TCC892X)
 	#if defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC88XX)
 	volatile PVIDEOBUSCFG pVIDEOBUS = (PVIDEOBUSCFG)tcc_p2v(HwVIDEOBUSCFG_BASE);
 	#else
 	volatile PVIDEOCODEC pVIDEOBUS = (PVIDEOCODEC)tcc_p2v(HwVIDEOBUS_BASE);
 	#endif
-	
 	if(mode == JPEG_ENCODE_MODE)
 	{
 		BITSET(pVIDEOBUS->SWRESET, HwVIDEOC_SWRESET_JPEG_ENCODER);  // Reset
 		BITCLR(pVIDEOBUS->SWRESET, HwVIDEOC_SWRESET_JPEG_ENCODER);  // Normal
 	}
-#if defined(CONFIG_ARCH_TCC92XX)	
+	#if defined(CONFIG_ARCH_TCC92XX)	
 	else  /* JPEG_DECODE_MODE */
 	{
 		BITSET(pVIDEOBUS->SWRESET, HwVIDEOC_SWRESET_JPEG_DECODER);  // Reset
 		BITCLR(pVIDEOBUS->SWRESET, HwVIDEOC_SWRESET_JPEG_DECODER);  // Normal
 	}
-#endif
-	
-	return;
+	#endif
+#endif // CONFIG_ARCH_TCC892X
 }
 EXPORT_SYMBOL(JPEG_SW_Reset);
 
@@ -270,9 +269,9 @@ EXPORT_SYMBOL(JPEG_SW_Reset);
 ****************************************************************************/
 void JPEG_INTERRUPT_Enable(JpegOperationType mode)
 {
+#if !defined(CONFIG_ARCH_TCC892X)
 	volatile PJPEGENCODER pJPEGENC = (PJPEGENCODER)tcc_p2v(HwJPEGENCODER_BASE);
 	volatile PPIC pPIC = (PPIC)tcc_p2v(HwPIC_BASE);
-	
 	if(mode == JPEG_ENCODE_MODE)
 	{
 		BITSET(pJPEGENC->JP_INT_MASK, HwJP_INT_MASK_YBUF_ROLLING);
@@ -282,7 +281,7 @@ void JPEG_INTERRUPT_Enable(JpegOperationType mode)
 		BITSET(pPIC->IEN0,  HwINT0_JPGE); 
 		BITSET(pPIC->MODE0,  HwINT0_JPGE); 
 	}
-#if defined(CONFIG_ARCH_TCC92XX)
+	#if defined(CONFIG_ARCH_TCC92XX)
 	else
 	{
 		BITSET(pPIC->CLR0,  HwINT0_JPGD); 
@@ -291,27 +290,29 @@ void JPEG_INTERRUPT_Enable(JpegOperationType mode)
 		BITSET(pPIC->IEN0,  HwINT0_JPGD); 
 		BITSET(pPIC->MODE0,  HwINT0_JPGD); 
 	}
-#endif
+	#endif
+#endif // CONFIG_ARCH_TCC892X
 }
 
 void JPEG_INTERRUPT_Disable(JpegOperationType mode)
 {
+#if !defined(CONFIG_ARCH_TCC892X)
 	volatile PPIC pPIC = (PPIC)tcc_p2v(HwPIC_BASE);
-	
 	if(mode == JPEG_ENCODE_MODE)
 	{
 		BITSET(pPIC->CLR0, HwINT0_JPGE);
 		BITCLR(pPIC->IEN0, HwINT0_JPGE);
 		BITCLR(pPIC->SEL0, HwINT0_JPGE);
 	}
-#if defined(CONFIG_ARCH_TCC92XX)
+	#if defined(CONFIG_ARCH_TCC92XX)
 	else
 	{
 		BITSET(pPIC->CLR0, HwINT0_JPGD);
 		BITCLR(pPIC->IEN0, HwINT0_JPGD);
 		BITCLR(pPIC->SEL0, HwINT0_JPGD);
 	}
-#endif
+	#endif
+#endif // CONFIG_ARCH_TCC892X
 }
 EXPORT_SYMBOL(JPEG_INTERRUPT_Enable);
 EXPORT_SYMBOL(JPEG_INTERRUPT_Disable);
@@ -319,9 +320,9 @@ EXPORT_SYMBOL(JPEG_INTERRUPT_Disable);
 void JPEG_VIDEOCACHE_Enable(unsigned char on, unsigned int read_min_addr, unsigned int read_max_addr, 
 									unsigned int wrtie_min_addr, unsigned int wrtie_max_addr)
 {
-#ifdef USE_VCACHE
+#if !defined(CONFIG_ARCH_TCC892X)
+	#ifdef USE_VCACHE
 	volatile PVIDEOCACHE pVIDEOCACHE = (PVIDEOCACHE)tcc_p2v(HwVIDEOCACHE_BASE);
-
 	if(on)
 	{		
 		pVIDEOCACHE->R0MIN = read_min_addr;
@@ -336,12 +337,14 @@ void JPEG_VIDEOCACHE_Enable(unsigned char on, unsigned int read_min_addr, unsign
 	{
 		BITCLR(pVIDEOCACHE->VCCTRL, HwVIDEOCACHE_CACHEON);
 	}
-#endif
+	#endif
+#endif // CONFIG_ARCH_TCC892X
 }
 
 void JPEG_VIDEOCACHE_Drain(void)
 {
-#ifdef USE_VCACHE
+#if !defined(CONFIG_ARCH_TCC892X)
+	#ifdef USE_VCACHE
 	unsigned long IFlag;
 	volatile PVIDEOCACHE pVIDEOCACHE = (PVIDEOCACHE)tcc_p2v(HwVIDEOCACHE_BASE);
 
@@ -356,7 +359,8 @@ void JPEG_VIDEOCACHE_Drain(void)
 
 	BITSET(pVIDEOCACHE->VWBCTRL, 0x00000000); 
 	BITCLR(pVIDEOCACHE->VCCTRL, HwVIDEOCACHE_CACHEON);	
-#endif
+	#endif
+#endif // CONFIG_ARCH_TCC892X
 }
 EXPORT_SYMBOL(JPEG_VIDEOCACHE_Enable);
 EXPORT_SYMBOL(JPEG_VIDEOCACHE_Drain);
@@ -371,10 +375,10 @@ EXPORT_SYMBOL(JPEG_VIDEOCACHE_Drain);
 ****************************************************************************/
 int JPEG_ENCODE_Start(int ImageWidth, int ImageHeight, unsigned int *uiBitStreamSize, unsigned int *uiHeaderSize)
 {
+#if !defined(CONFIG_ARCH_TCC892X)
 	volatile PJPEGENCODER pJPEGENC = (PJPEGENCODER)tcc_p2v(HwJPEGENCODER_BASE);
-	
 	BITCSET(pJPEGENC->JP_START, 0x0000000F, HwJP_START_RUN);
-
+#endif // CONFIG_ARCH_TCC892X
 	return 0;
 }
 
@@ -411,13 +415,14 @@ int JPEG_ENCODE_Get_Result(int ImageWidth, int ImageHeight, unsigned int *uiBitS
 ****************************************************************************/
 unsigned int JPEG_Encoded_Data_Size(void)
 {
-    unsigned int uiBitStreamSize;
+	unsigned int uiBitStreamSize = 0;
+#if !defined(CONFIG_ARCH_TCC892X)
 	volatile PJPEGENCODER pJPEGENC = (PJPEGENCODER)tcc_p2v(HwJPEGENCODER_BASE);
-	
-    uiBitStreamSize = pJPEGENC->JP_DBUF_WCNT;
-    uiBitStreamSize = uiBitStreamSize*16;
-    
-    return uiBitStreamSize;
+
+	uiBitStreamSize = pJPEGENC->JP_DBUF_WCNT;
+	uiBitStreamSize = uiBitStreamSize*16;
+#endif // CONFIG_ARCH_TCC892X
+	return uiBitStreamSize;
 }
 
 /****************************************************************************
@@ -429,6 +434,7 @@ unsigned int JPEG_Encoded_Data_Size(void)
 ****************************************************************************/
 void DQT_Set_Value(int q_value)
 {
+#if !defined(CONFIG_ARCH_TCC892X)
 	int i, j, val;
 	int Wdata = 0;
 	volatile PJPEGENCODER pJPEGENC = (PJPEGENCODER)tcc_p2v(HwJPEGENCODER_BASE);
@@ -491,6 +497,7 @@ void DQT_Set_Value(int q_value)
 
 		pJPEGENC->JPC_QTAB1[i] = Wdata;
 	}
+#endif // CONFIG_ARCH_TCC892X
 }
 
 /****************************************************************************
@@ -502,6 +509,7 @@ void DQT_Set_Value(int q_value)
 ****************************************************************************/
 void JPEG_SET_Encode_Config(JPEG_ENC_INFO *jpeg_enc_info)
 {
+#if !defined(CONFIG_ARCH_TCC892X)
 	volatile PJPEGENCODER pJPEGENC = (PJPEGENCODER)tcc_p2v(HwJPEGENCODER_BASE);
 	
 	JPEG_VIDEOCACHE_Enable(1, (unsigned int)gJPEGEnc_Buffer_Info.pBaseRawDataAddr, (unsigned int)gJPEGEnc_Buffer_Info.pBaseRawDataAddr + gJPEGEnc_Buffer_Info.pBaseRawDataSize, 
@@ -536,6 +544,7 @@ void JPEG_SET_Encode_Config(JPEG_ENC_INFO *jpeg_enc_info)
 	}
 	
 	DQT_Set_Value(jpeg_enc_info->q_value);
+#endif // CONFIG_ARCH_TCC892X
 }
 
 /****************************************************************************

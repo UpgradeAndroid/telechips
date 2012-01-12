@@ -87,7 +87,7 @@ void TCC_VIQE_DI_Init(int scalerCh, unsigned int srcWidth, unsigned int srcHeigh
 	
 	VIOC_VIQE_FMT_TYPE img_fmt = VIOC_VIQE_FMT_YUV420;
 	VIOC_VIQE_DEINTL_MODE DI_mode = VIOC_VIQE_DEINTL_MODE_2D;
-	int top_size_dont_use = ON;		//If this value is OFF, The size information is get from VIOC modules.
+	int top_size_dont_use = OFF;		//If this value is OFF, The size information is get from VIOC modules.
 
 	
 	pmap_get_info("viqe", &pmap_viqe);
@@ -112,7 +112,7 @@ void TCC_VIQE_DI_Init(int scalerCh, unsigned int srcWidth, unsigned int srcHeigh
 	framebufWidth = ((srcWidth - crop_left - crop_right) >> 3) << 3;			// 8bit align
 	framebufHeight = ((srcHeight - crop_top - crop_bottom) >> 1) << 1;		// 2bit align
 
-	printk("TCC_VIQE_DI_Init, %d, W:%d, H:%d\n", scalerCh, framebufWidth, framebufHeight);
+	printk("TCC_VIQE_DI_Init, scaler:%d, W:%d, H:%d\n", scalerCh, framebufWidth, framebufHeight);
 	if(DI_mode == VIOC_VIQE_DEINTL_S)
 	{
 		deintl_dma_base0	= NULL;
@@ -217,7 +217,23 @@ void TCC_VIQE_DI_Run(int scalerCh, unsigned int srcWidth, unsigned int srcHeight
 
 void TCC_VIQE_DI_DeInit(void)
 {
-	VIOC_API_VIQE_SetPlugOut(VIOC_VIQE);
+	printk("TCC_VIQE_DI_DeInit\n");
+	VIOC_VIQE_DEINTL_MODE DI_mode = VIOC_VIQE_DEINTL_MODE_2D;
+	volatile PVIOC_IREQ_CONFIG pIREQConfig;
+	pIREQConfig = (volatile PVIOC_IREQ_CONFIG)tcc_p2v((unsigned int)HwVIOC_IREQ);
+
+	if(DI_mode == VIOC_VIQE_DEINTL_S)
+	{
+		VIOC_API_VIQE_SetPlugOut(VIOC_DEINTLS);
+		BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<17), (0x01<<17)); // DEINTLS reset
+		BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<17), (0x00<<17)); // DEINTLS reset
+	}
+	else
+	{
+		VIOC_API_VIQE_SetPlugOut(VIOC_VIQE);
+		BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<16), (0x01<<16)); // VIQE reset
+		BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<16), (0x00<<16)); // VIQE reset
+	}
 }
 
 

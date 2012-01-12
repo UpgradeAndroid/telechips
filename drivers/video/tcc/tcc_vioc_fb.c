@@ -102,6 +102,16 @@ extern int tca_fb_init(void);
 extern void tca_fb_exit(void);
 extern int tcc_lcd_interrupt_reg(char SetClear);
 
+#if defined(CONFIG_FB_TCC_COMPOSITE)
+extern int tcc_composite_detect(void);
+extern void tcc_composite_update(struct tcc_lcdc_image_update *update);
+#endif
+
+#if defined(CONFIG_FB_TCC_COMPONENT)
+extern int tcc_component_detect(void);
+extern void tcc_component_update(struct tcc_lcdc_image_update *update);
+#endif
+
 
 static pmap_t pmap_fb_video;
 #define FB_VIDEO_MEM_BASE	pmap_fb_video.base
@@ -152,6 +162,998 @@ char fb_power_state;
 static u_char *fb_mem_vaddr[CONFIG_FB_TCC_DEVS]= {0,};
 static u_int   fb_mem_size [CONFIG_FB_TCC_DEVS]= {0,};
 
+#ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
+#include <mach/vioc_disp.h>
+
+static int debug_v = 0;
+#define vprintk(msg...)	if (debug_v) { printk( "tccfb_vsync: " msg); }
+static int testToggleBit1=0;
+
+static int testToggleBit=0;
+inline static int tcc_vsync_get_time(void);
+inline static void tcc_vsync_set_time(int time);
+#define USE_VSYNC_TIMER
+//#define USE_SOFT_IRQ_FOR_VSYNC
+
+#define TIME_BUFFER_COUNT			30
+// if time gab of video frame over base time is bigger than this value, that frame is skipped.
+#define VIDEO_SYNC_MARGIN_LATE		50
+// if time gap of video frame over base time is less than this value, that frame is displayed immediately
+#define VIDEO_SYNC_MARGIN_EARLY		50
+
+#define TIME_MARK_SKIP				(-1)
+
+typedef struct{
+	int readIdx ;
+	int writeIdx ;
+	int clearIdx;
+
+	int valid_buff_count;
+	int readable_buff_count;
+
+	int max_buff_num ;
+	int last_cleared_buff_id;
+	int available_buffer_id_on_vpu;
+	int cur_lcdc_buff_addr;
+	struct tcc_lcdc_image_update stImage[6] ;
+}tcc_vsync_buffer_t;
+
+typedef struct {
+	tcc_vsync_buffer_t vsync_buffer;
+
+	// for time sync
+	unsigned int unVsyncCnt ;
+	int baseTime;
+	unsigned int timeGapIdx ;
+	unsigned int timeGapBufferFullFlag;
+	int timeGap[TIME_BUFFER_COUNT];
+	int timeGapTotal;
+	int updateGapTime;
+	int vsync_interval;
+	int perfect_vsync_flag;
+
+	int skipFrameStatus;
+	int overlayUsedFlag;
+	int outputMode;
+	int video_frame_rate;
+
+	//for deinterlace mode
+	int deinterlace_mode;
+	int firstFrameFlag;
+	int m2m_mode;
+	int output_toMemory;
+	int nDeinterProcCount;
+	int nTimeGapToNextField;
+	int interlace_output;
+	int interlace_bypass_lcdc;
+}tcc_video_disp ;
+
+typedef struct _tcc_viqe_param_t
+{
+	int mode;
+	int region;
+	int strength1;
+	int strength2;
+	int modeparam;
+} tcc_viqe_param_t;
+
+tcc_viqe_param_t viqe_param;
+
+spinlock_t vsync_lock ;
+spinlock_t vsync_lockDisp ;
+
+tcc_video_disp tccvid_vsync ;
+
+DECLARE_WAIT_QUEUE_HEAD( wq_consume ) ;
+DECLARE_WAIT_QUEUE_HEAD( wq_consume1 ) ;
+
+#ifdef USE_SOFT_IRQ_FOR_VSYNC
+static struct work_struct vsync_work_q;
+#endif
+
+inline static int tcc_vsync_set_max_buffer(tcc_vsync_buffer_t * buffer_t, int buffer_count)
+{
+	buffer_t->max_buff_num = buffer_count;
+	return buffer_count;
+}
+
+inline static int tcc_vsync_push_buffer(tcc_vsync_buffer_t * buffer_t, struct tcc_lcdc_image_update* inputData)
+{
+
+	if(buffer_t->valid_buff_count >= buffer_t->max_buff_num || buffer_t->readable_buff_count >= buffer_t->max_buff_num)
+	{
+		printk("error: buffer full %d, max %d\n", buffer_t->valid_buff_count, buffer_t->max_buff_num);
+		return -1;
+	}
+
+	memcpy(&(buffer_t->stImage[buffer_t->writeIdx]),(void*)inputData, sizeof(struct tcc_lcdc_image_update) );
+	
+	//printk("tcc_vsync_push_buffer writeIdx(%d) valid_buff_count %d buffer_unique_id %d addr0 %x \n", 
+	//	buffer_t->writeIdx,buffer_t->valid_buff_count, buffer_t->stImage[buffer_t->writeIdx].buffer_unique_id,buffer_t->stImage[buffer_t->writeIdx].addr0);
+		
+	if(++buffer_t->writeIdx >= buffer_t->max_buff_num)
+		buffer_t->writeIdx = 0;
+	
+
+	buffer_t->valid_buff_count++;
+	buffer_t->readable_buff_count++;
+	
+	return 0;
+}
+
+inline static int tcc_vsync_pop_buffer(tcc_vsync_buffer_t * buffer_t)
+{
+	if(buffer_t->readable_buff_count == 0)
+	{
+		printk("error: buffer empty \n");
+		return -1;
+	}
+
+	if(++buffer_t->readIdx >= buffer_t->max_buff_num)
+		buffer_t->readIdx = 0;
+
+	buffer_t->readable_buff_count--;
+
+	//printk("tcc_vsync_pop_buffer readIdxbuffer_t(%d) writeIdx(%d) valid_ valid_count %d readble %d\n", 
+	//	buffer_t->readIdx,buffer_t->writeIdx,buffer_t->valid_buff_count,buffer_t->readable_buff_count);
+
+	return buffer_t->readable_buff_count;
+}
+
+inline static void* tcc_vsync_get_buffer(tcc_vsync_buffer_t * buffer_t, int offset)
+{
+	int readIdx;
+
+	if((buffer_t->readable_buff_count-offset) > 0)
+	{
+		readIdx = buffer_t->readIdx;
+
+		while(offset)
+		{
+			if(++readIdx >= buffer_t->max_buff_num)
+				readIdx = 0;
+
+			offset--;
+		}
+
+		return (void*)&(buffer_t->stImage[readIdx]);
+		
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+inline static int tcc_vsync_clean_buffer(tcc_vsync_buffer_t * buffer_t)
+{
+	if(buffer_t->readIdx == buffer_t->clearIdx || buffer_t->valid_buff_count == 0)
+	{
+		vprintk("error: no clean buffer clearIdx(%d) valid_buff_count(%d) \n",  buffer_t->clearIdx,buffer_t->valid_buff_count );
+		return -1;
+	}
+
+	vprintk("tcc_vsync_clean_buffer start clearIdx(%d) readIdx(%d) writeIdx(%d) valid_buff_count %d  \n", buffer_t->clearIdx,buffer_t->readIdx,buffer_t->writeIdx,buffer_t->valid_buff_count);
+	do
+	{
+		if(++buffer_t->clearIdx >= buffer_t->max_buff_num)
+			buffer_t->clearIdx = 0;
+		
+		if(buffer_t->last_cleared_buff_id < buffer_t->stImage[buffer_t->clearIdx].buffer_unique_id)
+			buffer_t->last_cleared_buff_id = buffer_t->stImage[buffer_t->clearIdx].buffer_unique_id;
+
+		buffer_t->valid_buff_count--;
+
+	}while(buffer_t->readIdx != buffer_t->clearIdx);
+	wake_up_interruptible( &wq_consume ) ;
+	vprintk("tcc_vsync_clean_buffer valid_buff_count %d  \n", buffer_t->valid_buff_count);
+	//printk("tcc_vsync_clean_buffer clearIdx(%d) readIdx(%d) writeIdx(%d) buff_id %d valid_count %d readble %d \n",
+	//	buffer_t->clearIdx,buffer_t->readIdx,buffer_t->writeIdx,buffer_t->last_cleared_buff_id,buffer_t->valid_buff_count,buffer_t->readable_buff_count);
+	return buffer_t->valid_buff_count;
+}
+
+
+inline static int tcc_vsync_pop_all_buffer(tcc_vsync_buffer_t * buffer_t)
+{
+
+	if(buffer_t->valid_buff_count == 0)
+	{
+		vprintk("error: buffer empty \n");
+		return -1;
+	}
+
+	while(buffer_t->valid_buff_count)
+	{
+		if(buffer_t->last_cleared_buff_id < buffer_t->stImage[buffer_t->clearIdx].buffer_unique_id)
+			buffer_t->last_cleared_buff_id = buffer_t->stImage[buffer_t->clearIdx].buffer_unique_id;
+
+		if(++buffer_t->clearIdx >= buffer_t->max_buff_num)
+			buffer_t->clearIdx = 0;
+
+		buffer_t->valid_buff_count--;
+	}
+
+	buffer_t->readIdx = buffer_t->clearIdx;
+	buffer_t->readable_buff_count = 0;
+	printk("tcc_vsync_pop_all_buffer valid_buff_count %d  \n", buffer_t->valid_buff_count);
+	return 0;
+}
+
+
+inline static int tcc_vsync_is_full_buffer(tcc_vsync_buffer_t * buffer_t)
+{
+	if(buffer_t->valid_buff_count >= buffer_t->max_buff_num)
+		return 1;
+	else
+		return 0;
+}
+
+inline static int tcc_vsync_is_empty_buffer(tcc_vsync_buffer_t * buffer_t)
+{
+	if(buffer_t->valid_buff_count > 0)
+		return 0;
+	else
+		return 1;
+}
+
+static void tcc_check_interlace_output(int output_mode)
+{
+	VIOC_DISP * pDISPBase;
+	char hdmi_lcdc = EX_OUT_LCDC;
+
+	if( output_mode == TCC_OUTPUT_HDMI ){
+		if(hdmi_lcdc)
+			pDISPBase = (VIOC_DISP*)tcc_p2v(HwVIOC_DISP1);
+		else
+			pDISPBase = (VIOC_DISP*)tcc_p2v(HwVIOC_DISP0);
+	}
+	else if( (output_mode == TCC_OUTPUT_COMPONENT) || (output_mode == TCC_OUTPUT_COMPOSITE) ){
+		if(hdmi_lcdc)
+			pDISPBase = (VIOC_DISP*)tcc_p2v(HwVIOC_DISP0);
+		else
+			pDISPBase = (VIOC_DISP*)tcc_p2v(HwVIOC_DISP1);
+	}
+	
+	if(pDISPBase->uCTRL.nREG & HwDISP_NI)
+		tccvid_vsync.interlace_output = 0;
+	else
+		tccvid_vsync.interlace_output = 1;
+}
+
+static void DisplayUpdate(void)
+{
+	int current_time;
+	int time_gap;
+	static int time_gap_sign = 1;
+	int valid_buff_count;
+	int i;
+	
+	
+	struct tcc_lcdc_image_update *pNextImage;
+
+	if(tccvid_vsync.vsync_buffer.readable_buff_count < 2)
+	{
+		vprintk("There is no output data\n");
+		//return;
+	}
+
+	current_time = tcc_vsync_get_time();
+	tcc_vsync_clean_buffer(&tccvid_vsync.vsync_buffer);
+
+	valid_buff_count = tccvid_vsync.vsync_buffer.readable_buff_count;
+	valid_buff_count--;
+	//printk("DisplayUpdate valid_buff_count : %d readIdx %d \n", valid_buff_count,tccvid_vsync.vsync_buffer.readIdx) ;
+	//vprintk("DisplayUpdate valid_buff_count : %d\n", valid_buff_count) ;
+	
+	for(i=0; i < valid_buff_count; i++)
+	{
+		pNextImage = tcc_vsync_get_buffer(&tccvid_vsync.vsync_buffer, 0);
+		vprintk("DisplayUpdate pNextImage->time_stamp : %d %d\n", pNextImage->time_stamp,current_time) ;
+		//printk("DisplayUpdateI time_stamp(%d), current_time(%d) sync_time(%d)\n", pNextImage->time_stamp, current_time,pNextImage->sync_time) ;
+
+		time_gap = (current_time+VIDEO_SYNC_MARGIN_EARLY) - pNextImage->time_stamp;
+		if(time_gap >= 0)
+		{
+			tcc_vsync_pop_buffer(&tccvid_vsync.vsync_buffer);
+
+			if(tccvid_vsync.perfect_vsync_flag == 1 && time_gap < 4 )
+			{
+				tcc_vsync_set_time(current_time + (tccvid_vsync.vsync_interval>>1)*time_gap_sign);
+				if(time_gap_sign > 0)
+					time_gap_sign = -1;
+				else
+					time_gap_sign = 1;
+			}
+		}
+		else
+		{
+			break;
+		}
+	}
+
+	pNextImage = &tccvid_vsync.vsync_buffer.stImage[tccvid_vsync.vsync_buffer.readIdx];
+	
+	if(tccvid_vsync.outputMode == Output_SelectMode && tccvid_vsync.vsync_buffer.cur_lcdc_buff_addr != pNextImage->addr0  )
+	{
+		//printk("mt(%d), remain_buff(%d) readIdx(%d) write(%d) readaddr(%x) cleared_buff_id(%d) buffer_unique_id %d\n", pNextImage->time_stamp, tccvid_vsync.vsync_buffer.readable_buff_count,
+		//	tccvid_vsync.vsync_buffer.readIdx,tccvid_vsync.vsync_buffer.writeIdx,pNextImage->addr0,tccvid_vsync.vsync_buffer.last_cleared_buff_id,tccvid_vsync.vsync_buffer.stImage[tccvid_vsync.vsync_buffer.readIdx].buffer_unique_id) ;
+		tccvid_vsync.vsync_buffer.cur_lcdc_buff_addr = pNextImage->addr0;
+#if 0
+	    if(testToggleBit)
+	    {
+			PGPION hwGPIOC;
+	        testToggleBit = 0; 
+
+			hwGPIOC = (volatile PGPION)tcc_p2v(HwGPIOC_BASE);
+			//hwGPIOC->GPEN.nREG|= (unsigned int)(0x00004000);
+			//hwGPIOC->GPDAT.nREG |= (unsigned int)(0x00004000);
+			hwGPIOC->GPFN1.bREG.GPFN14 = 0;
+			hwGPIOC->GPEN.bREG.GP14 = 1;
+			hwGPIOC->GPDAT.bREG.GP14 = 1;
+
+			
+	    }
+	    else
+	    {
+			PGPION hwGPIOC;
+	        testToggleBit = 1;
+
+			hwGPIOC = (volatile PGPION)tcc_p2v(HwGPIOC_BASE);
+			//hwGPIOC->GPEN.nREG |= (unsigned int)(0x00004000);
+			//hwGPIOC->GPDAT.nREG &= (unsigned int)(~0x00004000);
+			hwGPIOC->GPFN1.bREG.GPFN14 = 0;
+			hwGPIOC->GPEN.bREG.GP14 = 1;
+			hwGPIOC->GPDAT.bREG.GP14 = 0;
+
+	    }
+#endif
+		switch(Output_SelectMode)
+		{
+			case TCC_OUTPUT_NONE:
+				TCC_HDMI_DISPLAY_UPDATE(LCD_OUT_LCDC, pNextImage);
+				break;
+			case TCC_OUTPUT_HDMI:
+				TCC_HDMI_DISPLAY_UPDATE(EX_OUT_LCDC, pNextImage);
+				break;
+			case TCC_OUTPUT_COMPONENT:
+				#if defined(CONFIG_FB_TCC_COMPONENT)
+					tcc_component_update(pNextImage);
+				#endif
+				break;
+			case TCC_OUTPUT_COMPOSITE:
+				#if defined(CONFIG_FB_TCC_COMPOSITE)
+					tcc_composite_update(pNextImage);
+				#endif
+				break;
+				
+			default:
+				break;
+		}
+	}
+	return;
+}
+
+#ifdef TCC_VIDEO_DISPLAY_DEINTERLACE_MODE
+static unsigned int deint_address[6];
+static int scalerChannel = 0;
+
+static int SavedOddfirst = -1;
+
+static int byPassImageToLCDC(struct tcc_lcdc_image_update *pImage, int ref_cnt, int lcdc_num)
+{
+	VIOC_DISP * pDISPBase;
+	int ret = 0;
+	
+	if(lcdc_num)
+		pDISPBase = (VIOC_DISP*)tcc_p2v(HwVIOC_DISP1);
+	else
+		pDISPBase = (VIOC_DISP*)tcc_p2v(HwVIOC_DISP0);
+	
+	SavedOddfirst = pImage->odd_first_flag;
+
+	if(SavedOddfirst==1){//Bottom first
+		if(tccvid_vsync.nDeinterProcCount ==0){
+			//if(ISSET(lstatus, HwLSTATUS_EF)){
+			if(pDISPBase->uLSTATUS.bREG.TFIELD){
+				ret = 1;
+			}
+		}
+		else{
+			//if(!ISSET(lstatus, HwLSTATUS_EF)){
+			if(!pDISPBase->uLSTATUS.bREG.TFIELD){
+				ret = 1;
+			}
+		}
+		
+	}
+	else{// Top field
+		//if(tccvid_vsync.nDeinterProcCount ==1){
+		if(tccvid_vsync.nDeinterProcCount ==1){
+			if(pDISPBase->uLSTATUS.bREG.TFIELD){
+				ret = 1;
+			}
+		}
+		else{
+			//if(!ISSET(lstatus, HwLSTATUS_EF)){
+			if(!pDISPBase->uLSTATUS.bREG.TFIELD){
+				ret = 1;
+			}
+		}
+	}
+	
+	if(SavedOddfirst != pImage->odd_first_flag){
+		//printk("DisplayUpdate odd_first_flag changed %d from %d time_stamp %d \n",SavedOddfirst,pImage->odd_first_flag,pImage->time_stamp);
+		SavedOddfirst = pImage->odd_first_flag;
+		ret = 1;
+	}
+	
+	switch(Output_SelectMode)
+	{
+		case TCC_OUTPUT_NONE:
+			TCC_HDMI_DISPLAY_UPDATE(LCD_OUT_LCDC, pImage);
+			break;
+		case TCC_OUTPUT_HDMI:
+			TCC_HDMI_DISPLAY_UPDATE(EX_OUT_LCDC, pImage);
+			break;
+		case TCC_OUTPUT_COMPONENT:
+			#if defined(CONFIG_FB_TCC_COMPONENT)
+				tcc_component_update(pImage);
+			#endif
+			break;
+		case TCC_OUTPUT_COMPOSITE:
+			#if defined(CONFIG_FB_TCC_COMPOSITE)
+				tcc_composite_update(pImage);
+			#endif
+			break;
+			
+		default:
+			break;
+	}
+	
+	return ret;
+
+}
+
+static void DisplayUpdateWithDeinterlace(void)
+{
+	int lcdCtrlNum;
+	int current_time;
+	int time_gap,time_diff;
+	static int time_gap_sign = 1;
+	int valid_buff_count;
+	int i;
+	static struct tcc_lcdc_image_update *pRefImage1;
+	static struct tcc_lcdc_image_update *pRefImage2;
+
+	if(tccvid_vsync.vsync_buffer.readable_buff_count < 3)
+	{
+		vprintk("There is no output data.\n");
+		//return;
+	}
+
+	current_time = tcc_vsync_get_time();
+
+
+	if((tccvid_vsync.outputMode == TCC_OUTPUT_NONE) || (tccvid_vsync.outputMode == TCC_OUTPUT_COMPONENT) || (tccvid_vsync.outputMode == TCC_OUTPUT_COMPOSITE))
+		lcdCtrlNum = 1;
+	else
+		lcdCtrlNum = 0;	
+
+	if(tccvid_vsync.nDeinterProcCount == 0)
+	{
+		tcc_vsync_clean_buffer(&tccvid_vsync.vsync_buffer);
+
+		valid_buff_count = tccvid_vsync.vsync_buffer.readable_buff_count;
+		valid_buff_count--;
+		for(i=0; i < valid_buff_count; i++)
+		{
+			pRefImage1 = tcc_vsync_get_buffer(&tccvid_vsync.vsync_buffer, 0);
+
+			time_gap = (current_time+VIDEO_SYNC_MARGIN_EARLY) - pRefImage1->time_stamp;
+			if(time_gap >= 0)
+			{
+				tcc_vsync_pop_buffer(&tccvid_vsync.vsync_buffer);
+
+				if(tccvid_vsync.perfect_vsync_flag == 1 && time_gap < 4 )
+				{
+					tcc_vsync_set_time(current_time + (tccvid_vsync.vsync_interval>>1)*time_gap_sign);
+					if(time_gap_sign > 0)
+						time_gap_sign = -1;
+					else
+						time_gap_sign = 1;
+				}
+			}
+			else
+			{
+				break;
+			}
+		}
+
+		pRefImage1 = &tccvid_vsync.vsync_buffer.stImage[tccvid_vsync.vsync_buffer.readIdx];	
+
+		//printk("mt(%d), st(%d)\n", pRefImage1->time_stamp, current_time) ;
+
+		time_diff = abs (( pRefImage1->time_stamp - (current_time+VIDEO_SYNC_MARGIN_EARLY) ));
+		
+		if(tccvid_vsync.interlace_bypass_lcdc ||(pRefImage1->addr0 != tccvid_vsync.vsync_buffer.cur_lcdc_buff_addr && time_diff < 100))
+		{
+			tccvid_vsync.vsync_buffer.cur_lcdc_buff_addr = pRefImage1->addr0;
+
+			if(tccvid_vsync.vsync_buffer.readable_buff_count > 1)
+			{
+				if(tccvid_vsync.vsync_buffer.readIdx == (tccvid_vsync.vsync_buffer.max_buff_num-1))
+				{
+					pRefImage2 = &tccvid_vsync.vsync_buffer.stImage[0];
+				}
+				else
+				{
+					pRefImage2 = &tccvid_vsync.vsync_buffer.stImage[tccvid_vsync.vsync_buffer.readIdx+1];	
+				}
+			}
+			else
+			{
+				pRefImage2 = &tccvid_vsync.vsync_buffer.stImage[tccvid_vsync.vsync_buffer.readIdx];			
+			}
+
+			if(tccvid_vsync.outputMode == Output_SelectMode)
+			{
+				deint_address[0] = pRefImage2->addr0;
+				deint_address[1] = pRefImage2->addr1;
+				deint_address[2] = pRefImage2->addr2;
+				deint_address[3] = pRefImage1->addr0;
+				deint_address[4] = pRefImage1->addr1;
+				deint_address[5] = pRefImage1->addr2;
+
+#if 0
+			    if(testToggleBit)
+			    {
+					PGPION hwGPIOD;
+			        testToggleBit = 0; 
+
+					hwGPIOD = (volatile PGPION)tcc_p2v(HwGPIOD_BASE);
+					hwGPIOD->GPEN |= (unsigned int)(0x00008000);
+					hwGPIOD->GPDAT |= (unsigned int)(0x00008000);
+			    }
+			    else
+			    {
+					PGPION hwGPIOD;
+			        testToggleBit = 1;
+
+					hwGPIOD = (volatile PGPION)tcc_p2v(HwGPIOD_BASE);
+					hwGPIOD->GPEN |= (unsigned int)(0x00008000);
+					hwGPIOD->GPDAT &= (unsigned int)(~0x00008000);
+			    }
+#endif
+				if(!tccvid_vsync.interlace_bypass_lcdc)
+				{
+					TCC_ExcuteVIQE_60Hz(scalerChannel, (unsigned int *)deint_address,			// address[0:3] : previous, address[4:6] : current
+											pRefImage1->Frame_width, pRefImage1->Frame_height,	// srcWidth, srcHeight
+											pRefImage1->crop_top, pRefImage1->crop_bottom, pRefImage1->crop_left, pRefImage1->crop_right,	// offset top, offset bottom, offset left, offset right
+											pRefImage1->Image_width, tccvid_vsync.interlace_output?pRefImage1->Image_height/2:pRefImage1->Image_height,	// dstWidth, dstHeight
+											pRefImage1->offset_x, tccvid_vsync.interlace_output?pRefImage1->offset_y/2: pRefImage1->offset_y,
+											lcdCtrlNum, tccvid_vsync.m2m_mode, tccvid_vsync.nDeinterProcCount,
+											pRefImage1->odd_first_flag, pRefImage1->deinterlace_mode);
+				}
+				else
+				{
+					if(byPassImageToLCDC(pRefImage1, 0, lcdCtrlNum) == 1){
+						tccvid_vsync.nDeinterProcCount =0;
+						return;
+					}
+				}
+			}
+			tccvid_vsync.nDeinterProcCount ++;
+		}		
+	}
+	else
+	{
+		//if(pRefImage1->time_stamp <= (current_time+VIDEO_SYNC_MARGIN_EARLY))
+		{
+			if(tccvid_vsync.outputMode == Output_SelectMode)
+			{
+				if(!tccvid_vsync.interlace_bypass_lcdc)
+				{
+					TCC_ExcuteVIQE_60Hz(scalerChannel, (unsigned int *)deint_address,			// address[0:3] : previous, address[4:6] : current
+											pRefImage1->Frame_width, pRefImage1->Frame_height,	// srcWidth, srcHeight
+											pRefImage1->crop_top, pRefImage1->crop_bottom, pRefImage1->crop_left, pRefImage1->crop_right,	// offset top, offset bottom, offset left, offset right
+											pRefImage1->Image_width, tccvid_vsync.interlace_output?pRefImage1->Image_height/2:pRefImage1->Image_height,	// dstWidth, dstHeight
+											pRefImage1->offset_x, tccvid_vsync.interlace_output?pRefImage1->offset_y/2: pRefImage1->offset_y,
+											lcdCtrlNum, tccvid_vsync.m2m_mode, tccvid_vsync.nDeinterProcCount,
+											pRefImage1->odd_first_flag^0X01, pRefImage1->deinterlace_mode);
+				}
+				else
+				{
+					if(byPassImageToLCDC(pRefImage1, 1, lcdCtrlNum) == 1)
+					{
+					}
+				}
+			}
+			tccvid_vsync.nDeinterProcCount = 0;
+		}
+	}
+
+	return;
+}
+#endif // TCC_VIDEO_DISPLAY_DEINTERLACE_MODE
+
+static irqreturn_t tcc_lcd_handler0_for_video(int irq, void *dev_id)
+{
+///wz// tccvid_vsync 
+	tca_lcdc_interrupt_onoff(1, 0);
+	if(Output_SelectMode == TCC_OUTPUT_NONE || Output_SelectMode == TCC_OUTPUT_COMPONENT || Output_SelectMode == TCC_OUTPUT_COMPOSITE)
+	{
+#ifdef USE_SOFT_IRQ_FOR_VSYNC
+		if (schedule_work(&vsync_work_q) == 0 ) {
+			printk("vsync error:cannot schedule work !!!\n");
+		}
+#else
+
+#ifndef USE_VSYNC_TIMER
+		if((++tccvid_vsync.unVsyncCnt) &0x01)
+			tccvid_vsync.baseTime += 16;
+		else
+			tccvid_vsync.baseTime += 17;
+
+		if(!(tccvid_vsync.unVsyncCnt%6))
+			tccvid_vsync.baseTime++;
+#endif
+
+		if( tcc_vsync_is_empty_buffer(&tccvid_vsync.vsync_buffer) == 0 )
+		{
+			#ifdef TCC_VIDEO_DISPLAY_DEINTERLACE_MODE
+				if(!tccvid_vsync.output_toMemory)
+					DisplayUpdateWithDeinterlace();
+				else
+			#endif
+				DisplayUpdate();				
+		}
+#endif
+	}
+
+	return IRQ_HANDLED;	
+}
+
+static irqreturn_t tcc_lcd_handler1_for_video(int irq, void *dev_id)
+{
+	tca_lcdc_interrupt_onoff(1, 1);
+
+	if(Output_SelectMode == TCC_OUTPUT_HDMI)
+	{
+#ifdef USE_SOFT_IRQ_FOR_VSYNC
+		if (schedule_work(&vsync_work_q) == 0 ) {
+            printk("vsync error:cannot schedule work !!!\n");
+        }
+#else
+#ifndef USE_VSYNC_TIMER
+	   if((++tccvid_vsync.unVsyncCnt) &0x01)
+	           tccvid_vsync.baseTime += 16;
+	   else
+	           tccvid_vsync.baseTime += 17;
+
+	   if(!(tccvid_vsync.unVsyncCnt%6))
+	           tccvid_vsync.baseTime++;
+#endif
+
+		if( tcc_vsync_is_empty_buffer(&tccvid_vsync.vsync_buffer) == 0)
+		{
+			#ifdef TCC_VIDEO_DISPLAY_DEINTERLACE_MODE
+				if(!tccvid_vsync.output_toMemory)
+					DisplayUpdateWithDeinterlace();
+				else
+			#endif
+				DisplayUpdate();				
+		}
+#endif
+	}
+
+	return IRQ_HANDLED;	
+}
+
+#ifdef USE_VSYNC_TIMER
+static unsigned int tcc_vsync_timer_count = 0;
+static int tcc_vsync_timer_last_get_time = 0;
+
+static irqreturn_t tcc_vsync_timer_handler(int irq, void *dev_id)
+{
+	PTIMER pTIMER_reg = (volatile PTIMER)tcc_p2v(HwTMR_BASE);
+
+	//pTIMER_reg->TIREQ = 0x00000202;
+	//pTIMER_reg->TIREQ.nREG = 0x00000202;
+	pTIMER_reg->TIREQ.bREG.TI1 = 1;
+	pTIMER_reg->TIREQ.bREG.TF1 = 1;
+	printk("tcc_vsync_timer_handler \n");
+//	tcc_vsync_timer_count +=55924;
+
+	return IRQ_HANDLED;	
+}
+
+static int timer_interrupt_onoff = 0;
+void tccfb_vsync_timer_onoff(int onOff)
+{
+	PPIC pHwPIC_reg = (volatile PPIC)tcc_p2v(HwPIC_BASE);
+	PTIMER pTIMER_reg = (volatile PTIMER)tcc_p2v(HwTMR_BASE);
+
+	tcc_vsync_timer_count = 0;
+	tcc_vsync_timer_last_get_time = 0;
+	printk("tccfb_vsync_timer_onoff onOff %d\n",onOff);
+
+	if(onOff == 1)	{
+		PCKC pCKC = (volatile PCKC)tcc_p2v(HwCKC_BASE);
+
+		writel(0x24000000, &pCKC->PCLKCTRL01);//PCLK_TCT
+		/*
+		pTIMER_reg->TCFG1 = 0x00000059;
+		pTIMER_reg->TREF1 = 0x0000FFFF;
+		pTIMER_reg->TIREQ = 0x00000202;
+		*/
+		
+		pTIMER_reg->TCFG1.bREG.EN = 1;
+		pTIMER_reg->TCFG1.bREG.IEN = 1;
+		pTIMER_reg->TCFG1.bREG.TCKSEL= 5;
+		pTIMER_reg->TREF1.nREG= 0x0000FFFF;
+		pTIMER_reg->TIREQ.bREG.TI1 = 1;
+		pTIMER_reg->TIREQ.bREG.TF1 = 1;
+		pTIMER_reg->TCNT1.bREG.TCNT = 0;
+		
+		/*
+		pTIMER_reg->TCFG1.nREG= 0x00000059;
+		pTIMER_reg->TREF1.nREG = 0x0000FFFF;
+		pTIMER_reg->TIREQ.nREG = 0x00000202;
+		pTIMER_reg->TCNT1.nREG = 0x0000;
+			*/
+		// interrupt enable 
+		pHwPIC_reg->SEL0.bREG.TC0= 1;
+		pHwPIC_reg->IEN0.bREG.TC0 = 1;
+		pHwPIC_reg->INTMSK0.bREG.TC0 = 1;
+		pHwPIC_reg->MODEA0.bREG.TC0 = 1;
+/*
+		// interrupt enable 
+		BITSET(pHwPIC_reg->SEL0, HwINT0_TC0);	// 1 : IRQ interrupt
+		BITSET(pHwPIC_reg->IEN0, HwINT0_TC0);
+		BITSET(pHwPIC_reg->INTMSK0, HwINT0_TC0);	
+		BITSET(pHwPIC_reg->MODE0, HwINT0_TC0); //0 : edge-triggered mode  1: level
+*/
+		if(timer_interrupt_onoff == 0)
+		{
+			request_irq(INT_TC_TI1, tcc_vsync_timer_handler,	IRQF_SHARED,
+					"TCC_TC1",	tcc_vsync_timer_handler);
+
+			timer_interrupt_onoff = 1;
+		}
+	
+	}
+	else	{
+		/*
+		pTIMER_reg->TCFG1.nREG= 0x00000000;
+		pTIMER_reg->TREF1.nREG= 0x0000FFFF;
+		pTIMER_reg->TIREQ.nREG = 0x00000000;
+		pTIMER_reg->TCNT1.nREG = 0x0000;
+*/
+
+		pTIMER_reg->TCFG1.bREG.EN = 0;
+		pTIMER_reg->TCFG1.bREG.IEN = 0;
+		pTIMER_reg->TCFG1.bREG.TCKSEL= 0;
+		pTIMER_reg->TREF1.nREG= 0x0000FFFF;
+		pTIMER_reg->TIREQ.bREG.TI1 = 0;
+		pTIMER_reg->TIREQ.bREG.TF1 = 0;
+		pTIMER_reg->TCNT1.bREG.TCNT = 0;
+
+		// interrupt disable
+		pHwPIC_reg->CLR0.bREG.TC0 = 1;
+		pHwPIC_reg->IEN0.bREG.TC0 = 0;
+		pHwPIC_reg->INTMSK0.bREG.TC0 = 0;
+		/*
+		BITSET(pHwPIC_reg->CLR0, HwINT0_TC0);
+		BITCLR(pHwPIC_reg->IEN0, HwINT0_TC0);
+		BITCLR(pHwPIC_reg->INTMSK0, HwINT0_TC0);	
+*/
+		if(timer_interrupt_onoff == 1)
+		{
+			free_irq(INT_TC_TI1, tcc_vsync_timer_handler);
+			timer_interrupt_onoff = 0;
+		}
+
+	}
+}
+
+unsigned int tcc_vsync_get_timer_clock(void)
+{
+	int timer_tick;
+	int msec_time;
+	int add_count;
+	
+	PTIMER pTIMER_reg = (volatile PTIMER)tcc_p2v(HwTMR_BASE);
+
+	timer_tick = pTIMER_reg->TCNT1.bREG.TCNT;
+	//timer_tick = pTIMER_reg->TCNT1.nREG;
+
+	msec_time = timer_tick*85/1000 + timer_tick/3000;
+	
+
+	msec_time += (tcc_vsync_timer_count/10);
+	
+	//printk(" timer_tick(%d) msec_time(%d), tcc_vsync_timer_last_get_time(%d) %d\n",timer_tick,msec_time,tcc_vsync_timer_last_get_time,tcc_vsync_timer_count);
+	if(msec_time < tcc_vsync_timer_last_get_time)
+	{
+		//printk("msec_time(%d), tcc_vsync_timer_last_get_time(%d)\n", msec_time, tcc_vsync_timer_last_get_time);
+		tcc_vsync_timer_count +=55924;
+		msec_time += 5592;
+	}
+
+	//if(tcc_vsync_timer_last_get_time >= msec_time)
+	//	printk(" same time msec_time(%d), tcc_vsync_timer_last_get_time(%d)\n",tcc_vsync_timer_last_get_time,msec_time);
+	
+	tcc_vsync_timer_last_get_time = msec_time;
+	return msec_time;
+}
+#endif
+
+inline static void tcc_vsync_set_time(int time)
+{
+#ifdef USE_VSYNC_TIMER
+	tccvid_vsync.baseTime = tcc_vsync_get_timer_clock() - time;
+	printk("set base time %d kernel time %d time %d \n",tccvid_vsync.baseTime,tcc_vsync_get_timer_clock(),time);
+#else
+	tccvid_vsync.baseTime = time;
+#endif
+}
+
+inline static int tcc_vsync_get_time(void)
+{
+#ifdef USE_VSYNC_TIMER
+	return tcc_vsync_get_timer_clock() - tccvid_vsync.baseTime;
+#else
+	return tccvid_vsync.baseTime;
+#endif
+
+}
+
+
+static int lcdc_interrupt_onoff = 0;
+void tca_vsync_video_display_enable(void)
+{
+	int ret;
+	char hdmi_lcdc = EX_OUT_LCDC;
+	
+	if(lcdc_interrupt_onoff == 0)
+	{
+		if(hdmi_lcdc){
+			tca_lcdc_interrupt_onoff(1, 1);
+			ret = request_irq(INT_VIOC_DEV1, tcc_lcd_handler1_for_video,	IRQF_SHARED,
+					"TCC_VIOC_DEV1",	tcc_lcd_handler1_for_video);
+			printk("tca_vsync_video_display_enable : request_irq 1 ret %d\n",ret);
+		}
+		else{
+			tca_lcdc_interrupt_onoff(1, 0);
+			ret= request_irq(INT_VIOC_DEV0, tcc_lcd_handler0_for_video,	IRQF_SHARED,
+					"TCC_VIOC_DEV0",	tcc_lcd_handler0_for_video);
+			
+			printk("tca_vsync_video_display_enable : request_irq 0 ret %d\n",ret);
+		}
+
+#ifdef USE_SOFT_IRQ_FOR_VSYNC
+	    INIT_WORK(&vsync_work_q, tcc_video_display_update_isr);
+#endif
+		lcdc_interrupt_onoff = 1;
+	}
+	else
+	{
+		printk("tccfb error: lcdc interrupt have been enabled already\n");
+	}
+}
+void tca_vsync_video_display_disable(void)
+{
+	char hdmi_lcdc = EX_OUT_LCDC;
+	printk("tca_vsync_video_display_disable \n");
+	if(lcdc_interrupt_onoff == 1)
+	{
+		if(hdmi_lcdc){
+			tca_lcdc_interrupt_onoff(0, 1);
+			free_irq(INT_VIOC_DEV1, tcc_lcd_handler1_for_video);
+		}
+		else {
+			tca_lcdc_interrupt_onoff(0, 0);
+			free_irq(INT_VIOC_DEV0, tcc_lcd_handler0_for_video);
+		}
+		lcdc_interrupt_onoff = 0;
+	}
+	else
+	{
+		printk("tccfb error: lcdc interrupt have been disabled already\n");
+	}
+}
+
+#if defined(TCC_VIDEO_DISPLAY_DEINTERLACE_MODE)
+void tcc_vsync_viqe_deinitialize(void)
+{
+	if(!tccvid_vsync.output_toMemory &&!tccvid_vsync.interlace_bypass_lcdc)
+	{
+		spin_lock_irq(&vsync_lock) ;
+		if(Output_SelectMode == TCC_OUTPUT_HDMI)
+			TCC_DeInitializeVIQE(0, scalerChannel, tccvid_vsync.deinterlace_mode);
+		else
+			TCC_DeInitializeVIQE(1, scalerChannel, tccvid_vsync.deinterlace_mode);
+		spin_unlock_irq(&vsync_lock) ;
+	}
+}
+#endif /* TCC_VIDEO_DISPLAY_DEINTERLACE_MODE */
+
+void tcc_vsync_set_firstFrameFlag(int firstFrameFlag)
+{
+	tccvid_vsync.firstFrameFlag = firstFrameFlag;
+}
+
+static int tccfb_calculateSyncTime(int currentTime)
+{
+	static int lastUdateTime = 0;
+	int diffTime;
+	int avgTime;
+	int base_time;
+
+
+	if(lastUdateTime == currentTime)
+		return 0;
+
+	lastUdateTime= currentTime;
+
+	spin_lock_irq(&vsync_lock) ;
+	base_time = tcc_vsync_get_time();
+	spin_unlock_irq(&vsync_lock) ;
+	
+	diffTime = 	currentTime - base_time;
+
+	tccvid_vsync.timeGapTotal -= tccvid_vsync.timeGap[tccvid_vsync.timeGapIdx];
+	tccvid_vsync.timeGapTotal += diffTime;
+	tccvid_vsync.timeGap[tccvid_vsync.timeGapIdx++] = diffTime;
+
+	if(tccvid_vsync.timeGapIdx >= TIME_BUFFER_COUNT)
+		tccvid_vsync.timeGapIdx = 0;
+
+	if(tccvid_vsync.timeGapIdx == 0)
+		tccvid_vsync.timeGapBufferFullFlag = 1;
+
+	if(tccvid_vsync.timeGapBufferFullFlag)
+		avgTime = tccvid_vsync.timeGapTotal / TIME_BUFFER_COUNT;
+	else
+		avgTime = tccvid_vsync.timeGapTotal / (int)(tccvid_vsync.timeGapIdx);
+
+
+	vprintk("diffTime %d, avgTime %d, base : %d\n", diffTime, avgTime, base_time);
+
+	if( (tccvid_vsync.timeGapBufferFullFlag || tccvid_vsync.unVsyncCnt < 100) 
+		&& (avgTime > tccvid_vsync.updateGapTime || avgTime < -(tccvid_vsync.updateGapTime))	)
+	{
+		memset(tccvid_vsync.timeGap, 0x00, sizeof(tccvid_vsync.timeGap));
+		tccvid_vsync.timeGapBufferFullFlag = 0;
+		tccvid_vsync.timeGapIdx = 0;
+		tccvid_vsync.timeGapTotal = 0;
+		
+		printk("changed time base time %d kernel time %d time %d \n",tccvid_vsync.baseTime,tcc_vsync_get_timer_clock(),currentTime);
+		spin_lock_irq(&vsync_lock) ;
+		tcc_vsync_set_time(base_time+avgTime);
+		spin_unlock_irq(&vsync_lock) ;
+
+		printk("changed base time : %d, add time: %d diffTime %d \n",base_time+avgTime, avgTime,diffTime);
+	}
+	
+	return 0;
+}
+
+static void tccfb_ResetSyncTime(int currentTime)
+{
+	memset(tccvid_vsync.timeGap, 0x00, sizeof(tccvid_vsync.timeGap));
+	tccvid_vsync.timeGapBufferFullFlag = 0;
+	tccvid_vsync.timeGapIdx = 0;
+	tccvid_vsync.timeGapTotal = 0;
+	
+	spin_lock_irq(&vsync_lock) ;
+	tcc_vsync_set_time(currentTime);
+	tccvid_vsync.unVsyncCnt=0;
+	spin_unlock_irq(&vsync_lock) ;
+
+	printk("reset base time : %d\n",currentTime);
+}
+#endif
 
 void tccfb_hdmi_starter(char hdmi_lcdc_num, struct lcdc_timimg_parms_t *lcdc_timing)
 {
@@ -159,6 +1161,17 @@ void tccfb_hdmi_starter(char hdmi_lcdc_num, struct lcdc_timimg_parms_t *lcdc_tim
 
 	TCC_HDMI_LCDC_Timing(EX_OUT_LCDC, lcdc_timing);
 	Output_SelectMode = TCC_OUTPUT_HDMI;
+
+	
+	#if defined(TCC_VIDEO_DISPLAY_BY_VSYNC_INT)
+	memset( &tccvid_vsync, 0, sizeof( tccvid_vsync ) ) ; 
+	tccvid_vsync.overlayUsedFlag = -1;
+	tccvid_vsync.outputMode = -1;
+	tccvid_vsync.firstFrameFlag = 1;
+	tccvid_vsync.deinterlace_mode= -1;
+	tccvid_vsync.m2m_mode = -1;
+	tccvid_vsync.output_toMemory = -1;
+	#endif
 }
 
 static int tccfb_check_var(struct fb_var_screeninfo *var,
@@ -316,6 +1329,13 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 	{
 		case TCC_LCDC_HDMI_START:
 			TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_HDMI, EX_OUT_LCDC, 1);
+			#ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
+			//tca_vsync_video_display_enable();
+
+			spin_lock_irq(&vsync_lock);
+			tccvid_vsync.outputMode = -1;
+			spin_unlock_irq(&vsync_lock);
+			#endif
 			break;
 
 		case TCC_LCDC_HDMI_TIMING:
@@ -336,7 +1356,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 				TCC_HDMI_LCDC_OutputEnable(EX_OUT_LCDC, 1);
 
 				TCC_OUTPUT_FB_MouseShow(0, TCC_OUTPUT_HDMI);
-		}
+			}
 			break;
 
 		case TCC_LCDC_HDMI_DISPLAY:
@@ -349,6 +1369,15 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 				dprintk("%s : TCC_LCDC_HDMI_DISPLAY\n", __func__);
 
 				if(Output_SelectMode == TCC_OUTPUT_HDMI)	{
+					#ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
+ 					// this code prevent a error of transparent on layer0 after stopping v
+					if(ImageInfo.Lcdc_layer == 0 && ImageInfo.enable == 0)
+					{
+					       spin_lock_irq(&vsync_lock);
+					       tccvid_vsync.outputMode = -1;
+					       spin_unlock_irq(&vsync_lock);
+					}
+					 #endif
   					TCC_HDMI_DISPLAY_UPDATE(EX_OUT_LCDC, (struct tcc_lcdc_image_update *)&ImageInfo);
 				}
 			}
@@ -369,6 +1398,11 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 			}
 
 			TCC_OUTPUT_FB_MouseShow(0, TCC_OUTPUT_HDMI);
+			
+			#ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
+			tca_vsync_video_display_disable();
+			tcc_vsync_set_firstFrameFlag(1);
+			#endif
 			break;
 
 		case TCC_LCDC_HDMI_CHECK:
@@ -460,6 +1494,55 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 			}
 			break;
 
+		case TCC_LCDC_COMPOSITE_CHECK:
+			{
+				unsigned int composite_detect = 1;
+
+				#if defined(CONFIG_FB_TCC_COMPOSITE)
+					composite_detect = tcc_composite_detect();
+				#endif
+
+				if (copy_to_user((void *)arg, &composite_detect, sizeof(unsigned int)))
+					return -EFAULT;
+			}
+			break;
+			
+		case TCC_LCDC_COMPOSITE_MODE_SET:
+			{
+				LCDC_COMPOSITE_MODE composite_mode;
+				if(copy_from_user((void *)&composite_mode, (const void *)arg, sizeof(LCDC_COMPOSITE_MODE))){
+					return -EFAULT;
+				}
+
+				if(composite_mode == LCDC_COMPOSITE_UI_MODE)
+				{
+					Output_SelectMode = TCC_OUTPUT_COMPOSITE;
+ #ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
+					{
+					       spin_lock_irq(&vsync_lock);
+					       tccvid_vsync.outputMode = -1;
+					       spin_unlock_irq(&vsync_lock);
+					}
+ #endif
+ 					printk("TCC_LCDC_COMPOSITE_MODE_SET : Output_SelectMode = %d , composite_mode = %d\n", composite_mode, Output_SelectMode);
+#if !defined(CONFIG_TCC_HDMI_UI_DISPLAY_OFF)
+					TCC_OUTPUT_FB_Update(fb_info->fb->var.xres, fb_info->fb->var.yres, fb_info->fb->var.bits_per_pixel, Output_BaseAddr, Output_SelectMode);
+					TCC_OUTPUT_FB_UpdateSync(Output_SelectMode);
+					TCC_OUTPUT_LCDC_OutputEnable(EX_OUT_LCDC, 1);
+#endif /*CONFIG_TCC_HDMI_UI_DISPLAY_OFF*/
+
+#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
+					TCC_OUTPUT_FB_MouseShow(1, TCC_OUTPUT_COMPOSITE);
+#endif
+				}
+				else if(composite_mode == LCDC_COMPOSITE_NONE_MODE)
+				{
+					Output_SelectMode = TCC_OUTPUT_NONE;
+				}
+			}
+			break;
+
+
 		case TCC_LCDC_MOUSE_SHOW:
 			{
 				unsigned int enable;
@@ -485,6 +1568,512 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 				TCC_OUTPUT_FB_MouseSetIcon(&mouse_icon);
 			}
 			break;
+
+	#ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
+	case TCC_LCDC_VIDEO_START_VSYNC:
+		{
+			int backup_time;
+			int backup_frame_rate;
+			printk("\n### TCC_LCDC_VIDEO_START_VSYNC \n");
+			
+			if(!fb_power_state)
+			{
+				printk("##### Error ### vsync start\n");				
+				return -1;
+			}
+			
+			backup_time = tccvid_vsync.nTimeGapToNextField; 
+			backup_frame_rate = tccvid_vsync.video_frame_rate;
+			memset( &tccvid_vsync, 0, sizeof( tccvid_vsync ) ) ; 
+			tccvid_vsync.overlayUsedFlag = -1;
+			tccvid_vsync.outputMode = -1;
+			tccvid_vsync.firstFrameFlag = 1;
+			tccvid_vsync.deinterlace_mode= -1;
+			tccvid_vsync.m2m_mode = -1;
+			tccvid_vsync.output_toMemory = -1;
+			tccvid_vsync.nTimeGapToNextField = backup_time;
+			tccvid_vsync.video_frame_rate = backup_frame_rate;
+
+			if(backup_time)
+				tccvid_vsync.updateGapTime = backup_time;
+			else
+				tccvid_vsync.updateGapTime = 16;
+
+			if(Output_SelectMode == TCC_OUTPUT_HDMI && HDMI_video_hz != 0)
+			{
+				tccvid_vsync.vsync_interval = (1000/HDMI_video_hz);
+
+				if( (tccvid_vsync.video_frame_rate > 0) 
+					&& (HDMI_video_hz >= tccvid_vsync.video_frame_rate) 
+					&& ((HDMI_video_hz % tccvid_vsync.video_frame_rate) == 0)
+				)
+					tccvid_vsync.perfect_vsync_flag = 1;
+				else
+					tccvid_vsync.perfect_vsync_flag = 0;						
+			}
+			else
+			{
+				tccvid_vsync.vsync_interval = (1000/60);
+			}
+			printk("vsync_interval (%d), perfect_flag(%d)\n", tccvid_vsync.vsync_interval, tccvid_vsync.perfect_vsync_flag);
+			spin_lock_init(&vsync_lock) ;
+			spin_lock_init(&vsync_lockDisp ) ;
+
+			#ifdef USE_VSYNC_TIMER
+			tccfb_vsync_timer_onoff(1);
+			msleep(0);
+			#endif
+			spin_lock_irq(&vsync_lock) ;
+			tcc_vsync_set_time(0);
+			spin_unlock_irq(&vsync_lock) ;
+
+			tca_vsync_video_display_enable();
+
+			tcc_vsync_set_max_buffer(&tccvid_vsync.vsync_buffer, arg);
+		}
+		break ;
+
+	case TCC_LCDC_VIDEO_END_VSYNC:
+		{
+			printk("\nTCC_LCDC_VIDEO_END_VSYNC fb_power_state:%d \n", fb_power_state);
+
+			#ifdef USE_VSYNC_TIMER
+			tccfb_vsync_timer_onoff(0);
+			#endif
+			
+			tca_vsync_video_display_disable();			
+			#ifdef TCC_VIDEO_DISPLAY_DEINTERLACE_MODE
+			tcc_vsync_viqe_deinitialize();
+			SavedOddfirst=-1;
+			#endif
+			tccvid_vsync.skipFrameStatus = 1;
+			tccvid_vsync.nTimeGapToNextField = 0;
+
+
+			if(Output_SelectMode == TCC_OUTPUT_NONE)
+			{
+				struct tcc_lcdc_image_update ImageInfo;
+				memset(&ImageInfo, 0x00, sizeof(struct tcc_lcdc_image_update));
+				TCC_HDMI_DISPLAY_UPDATE(LCD_OUT_LCDC, &ImageInfo);
+			}
+
+		}
+		break ;
+
+	#ifdef TCC_VIDEO_DISPLAY_DEINTERLACE_MODE
+	case TCC_LCDC_VIDEO_DEINTERLACE_MODE:
+		{
+			printk("### TCC_LCDC_VIDEO_DEINTERLACE_MODE %d \n", (int)arg);
+
+			if(tccvid_vsync.deinterlace_mode == -1)
+				tccvid_vsync.deinterlace_mode= arg;
+		}
+		break ;
+
+	case TCC_LCDC_VIDEO_DEINTERLACE_SET:
+		{
+			int iRet;
+			if(copy_from_user(&viqe_param, arg, sizeof(tcc_viqe_param_t)))
+				return -EINVAL;
+
+			printk("### TCC_LCDC_VIDEO_DEINTERLACE_SET %d %d %d %d %d\n", viqe_param.mode, viqe_param.region, viqe_param.strength1, viqe_param.strength2, viqe_param.modeparam);
+
+			iRet = TCC_ConfigVIQEParamSet(viqe_param.mode, viqe_param.region, viqe_param.strength1, viqe_param.strength2, viqe_param.modeparam);
+			if(iRet < 0)
+				return -EINVAL;
+		}
+	break;
+	#endif
+
+	case TCC_LCDC_VIDEO_SET_SIZE_CHANGE:
+		{
+			printk("### Display size is changed, firstFrame(%d) deint_mode(%d) \n", tccvid_vsync.firstFrameFlag, tccvid_vsync.deinterlace_mode);
+
+			//if(tccvid_vsync.firstFrameFlag == 0)
+			{
+#ifdef TCC_VIDEO_DISPLAY_DEINTERLACE_MODE
+				if(Output_SelectMode == TCC_OUTPUT_HDMI)
+					TCC_DeInitializeVIQE(0, scalerChannel, tccvid_vsync.deinterlace_mode);
+				else
+					TCC_DeInitializeVIQE(1, scalerChannel, tccvid_vsync.deinterlace_mode);
+#endif
+				spin_lock_irq(&vsync_lock) ;
+				tccvid_vsync.firstFrameFlag = 1;
+				tccvid_vsync.deinterlace_mode = -1;
+				tccvid_vsync.m2m_mode = -1;
+				tccvid_vsync.output_toMemory = -1;
+
+				// have to add code about pop all buffer.
+				tcc_vsync_pop_all_buffer(&tccvid_vsync.vsync_buffer);
+				printk("### vsync pop all buffer success!\n");
+				
+				spin_unlock_irq(&vsync_lock) ;
+			}
+		}
+		break ;
+
+	case TCC_LCDC_VIDEO_SET_FRAMERATE:
+		{
+			int media_time_gap;
+			printk("### TCC_LCDC_VIDEO_SET_FRAMERATE %d\n", (int)arg);
+
+			if(arg < 1000)
+			{
+				if(arg == 29)
+				{
+					arg = 30;
+				}
+				else if(arg == 23)
+				{
+					arg = 24;
+				}
+			}
+			else
+			{
+				arg += 500;
+				arg /= 1000;
+			}
+
+			tccvid_vsync.video_frame_rate = arg;
+
+			if(tccvid_vsync.video_frame_rate > 0)
+				media_time_gap = 1000/tccvid_vsync.video_frame_rate/2;
+			else
+				media_time_gap = 16;
+			
+			tccvid_vsync.nTimeGapToNextField= media_time_gap;
+
+			printk("### video_frame_rate(%d), media_time_gap(%d)\n",tccvid_vsync.video_frame_rate, media_time_gap);
+		}
+		break ;
+
+	case TCC_LCDC_VIDEO_PUSH_VSYNC:
+		if(Output_SelectMode == TCC_OUTPUT_NONE || Output_SelectMode == TCC_OUTPUT_HDMI || Output_SelectMode == TCC_OUTPUT_COMPONENT || Output_SelectMode == TCC_OUTPUT_COMPOSITE)
+		{
+			struct tcc_lcdc_image_update input_image;
+			int error_type = 0;
+			int check_time;
+
+			if (copy_from_user((void *)&input_image , (const void *)arg, sizeof(struct tcc_lcdc_image_update)))
+			{
+				printk("fatal error") ;
+				return -EFAULT;
+			}
+
+			//printk("## Frame %d x %d , Image %d x %d, start x:%d y:%d, Addr %x\n", input_image.Frame_width, input_image.Frame_height, input_image.Image_width, input_image.Image_height, input_image.offset_x, input_image.offset_y, input_image.addr0);
+
+			//printk("### push valid(%d), max(%d), vtime(%d), ctime(%d), buff_id(%d)\n",
+			//				tccvid_vsync.vsync_buffer.valid_buff_count,
+			//				tccvid_vsync.vsync_buffer.max_buff_num,
+			//				input_image.time_stamp, input_image.sync_time, input_image.buffer_unique_id);
+
+			spin_lock_irq(&vsync_lock) ;
+			check_time = abs(tcc_vsync_get_time() - input_image.sync_time);
+			spin_unlock_irq(&vsync_lock) ;
+
+			if(check_time> 200)
+			{
+				printk("reset time base time %d kernel time %d time %d",tccvid_vsync.baseTime,tcc_vsync_get_timer_clock(),input_image.sync_time);
+				tccfb_ResetSyncTime(0);
+			}
+			
+			tccfb_calculateSyncTime(input_image.sync_time);
+
+			if(tccvid_vsync.outputMode < 0)
+			{
+				switch(input_image.outputMode)
+				{
+					case OUTPUT_NONE:
+						tccvid_vsync.outputMode = TCC_OUTPUT_NONE;			
+						break;
+					case OUTPUT_HDMI:
+						tccvid_vsync.outputMode = TCC_OUTPUT_HDMI;
+						tcc_check_interlace_output(tccvid_vsync.outputMode);
+						break;
+					case OUTPUT_COMPOSITE:
+						tccvid_vsync.outputMode = TCC_OUTPUT_COMPOSITE; 		
+						tcc_check_interlace_output(tccvid_vsync.outputMode);
+						break;
+					case OUTPUT_COMPONENT:
+						tccvid_vsync.outputMode = TCC_OUTPUT_COMPONENT; 		
+						tcc_check_interlace_output(tccvid_vsync.outputMode);
+						break;
+					default:
+						tccvid_vsync.outputMode = TCC_OUTPUT_NONE;									
+				}
+				
+				vprintk("tccvid_vsync.outputMode %d input_image.outputMode %d \n", tccvid_vsync.outputMode ,input_image.outputMode);			
+			}
+
+			if(tccvid_vsync.deinterlace_mode < 0)
+			{
+				unsigned int lcdCtrlNum, lcd_width, lcd_height;
+				VIOC_DISP * pDISPBase;
+						
+				if((tccvid_vsync.outputMode == TCC_OUTPUT_NONE) || (tccvid_vsync.outputMode == TCC_OUTPUT_COMPONENT) || (tccvid_vsync.outputMode == TCC_OUTPUT_COMPOSITE))
+					lcdCtrlNum = LCD_LCDC_NUM;
+				else
+					lcdCtrlNum = EX_OUT_LCDC; 
+				
+				/* Set the output resolution */
+				if (lcdCtrlNum)
+					pDISPBase = (VIOC_DISP*)tcc_p2v(HwVIOC_DISP1);
+				else
+					pDISPBase = (VIOC_DISP*)tcc_p2v(HwVIOC_DISP0);
+
+				VIOC_DISP_GetSize(pDISPBase, &lcd_width, &lcd_height);
+				
+				tccvid_vsync.deinterlace_mode = input_image.deinterlace_mode;
+				tccvid_vsync.output_toMemory = input_image.output_toMemory;
+				printk("### deinterlace_mode(%d), output_toMemory(%d)\n", tccvid_vsync.deinterlace_mode, tccvid_vsync.output_toMemory);
+				
+				tccvid_vsync.interlace_bypass_lcdc = 0;
+			
+				if( (tccvid_vsync.deinterlace_mode == 1) && 
+					(tccvid_vsync.interlace_output == 1) && 
+					(input_image.Frame_width == lcd_width) && (input_image.Frame_height == lcd_height) )
+				{
+					tccvid_vsync.interlace_bypass_lcdc = 1;
+				}
+			}
+			
+			if(input_image.output_path)
+			{
+			
+			printk("### output_path \n");
+				spin_lock_irq(&vsync_lockDisp) ;
+				tcc_vsync_pop_all_buffer(&tccvid_vsync.vsync_buffer);
+				tccvid_vsync.vsync_buffer.last_cleared_buff_id = input_image.buffer_unique_id;
+				spin_unlock_irq(&vsync_lockDisp) ;
+
+				if(!tccvid_vsync.output_toMemory && !tccvid_vsync.interlace_bypass_lcdc)		//tccvid_vsync.deinterlace_mode && //
+				{
+					int lcdCtrlNum;
+
+					tccvid_vsync.nDeinterProcCount = 0;
+					
+					#ifdef TCC_VIDEO_DISPLAY_DEINTERLACE_MODE
+					deint_address[0] = input_image.addr0;
+					deint_address[1] = input_image.addr1;
+					deint_address[2] = input_image.addr2;
+					deint_address[3] = input_image.addr0;
+					deint_address[4] = input_image.addr1;
+					deint_address[5] = input_image.addr2;
+
+					if((tccvid_vsync.outputMode == TCC_OUTPUT_NONE) || (tccvid_vsync.outputMode == TCC_OUTPUT_COMPONENT) || (tccvid_vsync.outputMode == TCC_OUTPUT_COMPOSITE))
+						lcdCtrlNum = 1;
+					else
+						lcdCtrlNum = 0; 
+
+					// This variable represent to which block will be used.
+					// if m2m_mode == 0, than VIQE-Scaler-LCD on-the-fly will be used for de-interlace.
+					// m2m_mode == 1, than Scaler-LCD on-the-fly will be used for de-interlace.
+					tccvid_vsync.m2m_mode = input_image.m2m_mode;
+
+					TCC_ExcuteVIQE_60Hz(scalerChannel, (unsigned int *)deint_address,			// address[0:3] : previous, address[4:6] : current
+											input_image.Frame_width, input_image.Frame_height,	// srcWidth, srcHeight
+											input_image.crop_top, input_image.crop_bottom, input_image.crop_left, input_image.crop_right,	// offset top, offset bottom, offset left, offset right
+											input_image.Image_width, tccvid_vsync.interlace_output?input_image.Image_height/2:input_image.Image_height, // dstWidth, dstHeight
+											input_image.offset_x, tccvid_vsync.interlace_output?input_image.offset_y/2: input_image.offset_y,
+											lcdCtrlNum, tccvid_vsync.m2m_mode, tccvid_vsync.nDeinterProcCount,
+											input_image.odd_first_flag, input_image.deinterlace_mode);
+
+					#endif
+				}
+				else if(tccvid_vsync.interlace_bypass_lcdc){
+
+					tccvid_vsync.nDeinterProcCount =0;
+				}
+				else
+				{
+					switch(Output_SelectMode)
+					{
+						case TCC_OUTPUT_NONE:
+							TCC_HDMI_DISPLAY_UPDATE(LCD_OUT_LCDC, &input_image);
+							break;
+						case TCC_OUTPUT_HDMI:
+							TCC_HDMI_DISPLAY_UPDATE(EX_OUT_LCDC, &input_image);
+							break;
+						case TCC_OUTPUT_COMPONENT:
+						#if defined(CONFIG_FB_TCC_COMPONENT)
+								tcc_component_update(&input_image);
+						#endif
+							break;
+						case TCC_OUTPUT_COMPOSITE:
+						#if defined(CONFIG_FB_TCC_COMPOSITE)
+								tcc_composite_update(&input_image);
+						#endif
+							break;
+						default:
+							break;
+					}
+				}
+
+				input_image.time_stamp = 0;
+
+				goto PUSH_VIDEO_FORCE;
+			}
+			
+			if(tccvid_vsync.skipFrameStatus)
+			{
+				error_type = 1;
+			}
+			else if(tccvid_vsync.outputMode != Output_SelectMode)
+			{
+				vprintk("vsync push error : output mode different %d %d \n", tccvid_vsync.outputMode ,Output_SelectMode);			
+				error_type = 2;
+			}
+			else if(tccvid_vsync.vsync_buffer.available_buffer_id_on_vpu > input_image.buffer_unique_id)
+			{
+				vprintk("vsync push error : buffer index sync fail omx_buf_id: %d, cur_buff_id: %d \n", 
+						tccvid_vsync.vsync_buffer.available_buffer_id_on_vpu, input_image.buffer_unique_id);
+				error_type = 3;
+			}
+			else if(input_image.time_stamp < input_image.sync_time)
+			{
+				if(input_image.time_stamp < 3000)
+				{
+					vprintk("vsync push error 4: vtime: %d, sync_time: %d \n", input_image.time_stamp, input_image.sync_time);
+					error_type = 4;
+				}
+				else
+				{
+					//printk("vsync push error : vtime: %d, writeIdx %d \n", input_image.time_stamp, tccvid_vsync.vsync_buffer.writeIdx);
+					input_image.time_stamp = TIME_MARK_SKIP;
+					
+				}
+			}
+
+			if(error_type > 0)
+			{
+				printk("vsync push error : %d buffer_unique_id %d\n", error_type,input_image.buffer_unique_id);
+				spin_lock_irq(&vsync_lockDisp) ;
+				tccvid_vsync.vsync_buffer.last_cleared_buff_id = input_image.buffer_unique_id;
+				spin_unlock_irq(&vsync_lockDisp) ;
+				goto TCC_VSYNC_PUSH_ERROR;
+			}
+
+			#ifdef TCC_VIDEO_DISPLAY_DEINTERLACE_MODE
+			if(!tccvid_vsync.output_toMemory && tccvid_vsync.firstFrameFlag &&!tccvid_vsync.interlace_bypass_lcdc)
+			{
+				int lcdCtrlNum;
+
+				tccvid_vsync.nDeinterProcCount = 0;
+
+				deint_address[0] = input_image.addr0;
+				deint_address[1] = input_image.addr1;
+				deint_address[2] = input_image.addr2;
+				deint_address[3] = input_image.addr0;
+				deint_address[4] = input_image.addr1;
+				deint_address[5] = input_image.addr2;
+
+				printk("first TCC_excuteVIQE_60Hz \n") ;
+
+				if((tccvid_vsync.outputMode == TCC_OUTPUT_NONE) || (tccvid_vsync.outputMode == TCC_OUTPUT_COMPONENT) || (tccvid_vsync.outputMode == TCC_OUTPUT_COMPOSITE))
+					lcdCtrlNum = 1;
+				else
+					lcdCtrlNum = 0; 
+
+				tccvid_vsync.m2m_mode =  input_image.m2m_mode;
+
+
+				TCC_InitalizeVIQE_60Hz(scalerChannel, (unsigned int *)deint_address,			// address[0:3] : previous, address[4:6] : current
+										input_image.Frame_width, input_image.Frame_height,	// srcWidth, srcHeight
+										input_image.crop_top, input_image.crop_bottom, input_image.crop_left, input_image.crop_right,	// offset top, offset bottom, offset left, offset right
+										input_image.Image_width, tccvid_vsync.interlace_output?input_image.Image_height/2:input_image.Image_height, 	// dstWidth, dstHeight
+										input_image.offset_x, tccvid_vsync.interlace_output?input_image.offset_y/2: input_image.offset_y,
+										lcdCtrlNum, tccvid_vsync.m2m_mode, tccvid_vsync.nDeinterProcCount,
+										input_image.odd_first_flag, tccvid_vsync.deinterlace_mode);
+			}
+			#endif
+
+			tccvid_vsync.firstFrameFlag = 0;
+
+PUSH_VIDEO_FORCE : 
+			if(tcc_vsync_is_full_buffer(&tccvid_vsync.vsync_buffer))
+			{
+				vprintk("mio push wait start\n") ;
+				wait_event_interruptible_timeout( wq_consume, 
+												tcc_vsync_is_full_buffer(&tccvid_vsync.vsync_buffer) == 0, 
+												msecs_to_jiffies(500)) ;
+				vprintk("mio push wait end \n");
+			}
+
+			spin_lock_irq(&vsync_lock) ;
+			if(tcc_vsync_push_buffer(&tccvid_vsync.vsync_buffer, &input_image) < 0)
+			{
+				printk("critical error: vsync buffer full by fault buffer controll\n");
+			}
+			spin_unlock_irq(&vsync_lock) ;
+			//printk("OddFirst = %d, interlaced %d\n", input_image.odd_first_flag, input_image.deinterlace_mode);
+			vprintk("vtime : %d, curtime : %d\n", input_image.time_stamp, input_image.sync_time) ;
+
+		}
+
+TCC_VSYNC_PUSH_ERROR:
+		return tccvid_vsync.vsync_buffer.writeIdx;
+		break ;
+		
+	case TCC_LCDC_VIDEO_GET_DISPLAYED :
+		
+		if(tccvid_vsync.outputMode == Output_SelectMode)
+		{
+			if(tccvid_vsync.skipFrameStatus)
+			{
+				printk("frame skip mode return\n");
+				return -1;
+			}
+			
+			//printk("# last disp num(%d) \n", tccvid_vsync.vsync_buffer.last_cleared_buff_id ) ;
+			return tccvid_vsync.vsync_buffer.last_cleared_buff_id ? (tccvid_vsync.vsync_buffer.last_cleared_buff_id-1):0 ; 
+			
+		}
+		break ;
+		
+	case TCC_LCDC_VIDEO_CLEAR_FRAME:
+		{
+			int syncBufferIdx;
+			syncBufferIdx = arg;
+			printk("video fram clear %d\n", syncBufferIdx) ;
+
+			spin_lock_irq(&vsync_lock) ;
+			tcc_vsync_pop_all_buffer(&tccvid_vsync.vsync_buffer);
+			spin_unlock_irq(&vsync_lock) ;
+			printk("valid video fram count %d\n", tccvid_vsync.vsync_buffer.valid_buff_count) ;
+
+			tccvid_vsync.vsync_buffer.available_buffer_id_on_vpu = syncBufferIdx+1;
+
+		}
+		break ;
+		
+	case TCC_LCDC_VIDEO_SKIP_FRAME_START:
+		{
+			vprintk("video fram skip start\n") ;
+			tccvid_vsync.skipFrameStatus = 1;
+		}
+		break ;
+
+	case TCC_LCDC_VIDEO_SKIP_FRAME_END:
+		{
+			vprintk("video fram skip end\n") ;
+			spin_lock_irq(&vsync_lock) ;
+			tcc_vsync_pop_all_buffer(&tccvid_vsync.vsync_buffer);
+			spin_unlock_irq(&vsync_lock);
+
+			tccvid_vsync.skipFrameStatus = 0;
+			tccfb_ResetSyncTime(0);
+		}
+		break ;
+		
+	case TCC_LCDC_VIDEO_SKIP_ONE_FRAME:
+		{
+			spin_lock_irq(&vsync_lockDisp) ;
+			printk("TCC_LCDC_VIDEO_SKIP_ONE_FRAME arg %d\n",arg) ;
+			tccvid_vsync.vsync_buffer.last_cleared_buff_id = arg;
+			spin_unlock_irq(&vsync_lockDisp) ;
+		}
+		break ;
+#endif
 		default:
 			dprintk("ioctl: Unknown [%d/0x%X]", cmd, cmd);
 			break;

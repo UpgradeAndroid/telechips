@@ -187,9 +187,13 @@ int tcc_gpio_config(unsigned gpio, unsigned flags)
 		writel(readl(&r->pull_select) & (~bit), &r->pull_select);
 		writel(readl(&r->pull_enable) | bit, &r->pull_enable);
 	} else if (flags & GPIO_PULL_DISABLE) {
-		writel(readl(&r->pull_enable) & (~bit), &r->pull_enable);
+		writel(readl(&r->pull_enable) & (~bit), &r->pull_enable);	
+  	} else if (flags & GPIO_SCHMITT_INPUT) {
+		writel(readl(&r->in_type) | bit, &r->in_type);
+	} else if (flags & GPIO_CMOS_INPUT) {
+		writel(readl(&r->in_type) & (~bit), &r->in_type);
 	}
-  
+
 	return 0;
 }
 
