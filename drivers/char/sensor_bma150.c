@@ -246,8 +246,6 @@ static int sensor_used_count=0;
 #define SENSOR_TEMPERATURE_CENTER	(BMA_TEMPERATURE_CENTER)
 
 static int bma150_read_accel_xyz(struct i2c_client *client,	struct bmasensoracc *acc);
-static void tcc_sensor_landscapeDevice2AndroidPortrait(struct bmasensoracc *sensor_accel);
-static void tcc_sensor_PortraitAndroid2AndroidPortrait(struct bmasensoracc *sensor_accel);
 static void tcc_sensor_convertCoordination(struct bmasensoracc *sensor_accel, matrix3by3 *layout);
 static void tcc_sensor_set_enable_by_client_for_calibration(struct bmasensor_data *sensor_data, int enable);
 
@@ -644,10 +642,6 @@ int tcc_sensor_calibration(struct bmasensor_data *sensor_data, short x_offset,sh
 
 		sensor_dbg_d("%s: B %d %d %d\n", __func__, calib.x,calib.y,calib.z);
 		
-		tcc_sensor_PortraitAndroid2AndroidPortrait(&calib);
-
-		sensor_dbg_d("%s: C %d %d %d\n", __func__, calib.x,calib.y,calib.z);
-		
 		//bma150_set_offset_xyz(sensor_data->i2cClient,-calib.x,-calib.y,-calib.z);
 	}
 
@@ -1042,28 +1036,6 @@ static int tcc_sensor_i2c_register(void)
     return 0;
 }
 
-static void tcc_sensor_landscapeDevice2AndroidPortrait(struct bmasensoracc *sensor_accel)
-{
-    short x,y,z;
-    x = sensor_accel->x;
-    y = sensor_accel->y;
-    z = sensor_accel->z;
-    sensor_accel->x = y;
-    sensor_accel->y = -x;
-    sensor_accel->z = z;
-}
-
-static void tcc_sensor_PortraitAndroid2AndroidPortrait(struct bmasensoracc *sensor_accel)
-{
-    int x,y,z;
-    x = sensor_accel->x;
-    y = sensor_accel->y;
-    z = sensor_accel->z;
-    sensor_accel->x = -y;
-    sensor_accel->y = x;
-    sensor_accel->z = z;
-}
-
 static void tcc_sensor_convertCoordination(struct bmasensoracc *sensor_accel, matrix3by3 *layout)
 {
     short x,y,z;
@@ -1100,10 +1072,6 @@ static void tcc_sensor_set_data(struct bmasensor_data *sensor_data,struct bmasen
 	tmpData.y = y;
 	tmpData.z = z;
 	tcc_sensor_convertCoordination(&tmpData, &gsenlayout[LAYOUT_CHIP2HAL]);
-
-#if !defined(CONFIG_GSEN_PORTRAIT)
-	tcc_sensor_landscapeDevice2AndroidPortrait(&tmpData);
-#endif
 
 	tcc_sensor_compensation(sensor_data,&tmpData);
 
