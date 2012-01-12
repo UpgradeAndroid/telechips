@@ -29,10 +29,13 @@ static void tcc_tsif_clearfifopacket(struct tcc_tsif_handle *h)
 #ifdef DEBUG_INFO
 	printk("%s - in\n", __func__);
 #endif    
-	BITSET(h->regs->TSRXCR, Hw7);		//set to Hw7 : empties RX Fifo
+    //don't use this clear fifo method
+    //this clear only read side, write size doesn't be cleard
+    //BITSET(h->regs->TSRXCR, Hw7);		//set to Hw7 : empties RX Fifo
 
+    //this clear both read/write size fifo
     BITSET(h->regs->TSRXCR, Hw30);
-//	BITCLR(h->regs->TSRXCR, Hw30);
+	BITCLR(h->regs->TSRXCR, Hw30);
 #ifdef DEBUG_INFO
 	printk("%s\n", __func__);
 #endif 
@@ -592,13 +595,17 @@ static int tcc_tsif_dmastart(struct tcc_tsif_handle *h)
     BITCLR(dma_regs->DMACTR.nREG, Hw5|Hw4);	//00:normal mode, 01:MPEG2_TS mode
 
 #if defined(SUPPORT_PIDFILTER_DMA)
-    if( h->mpeg_ts == 1)
+    if(h->mpeg_ts == Hw0)
+    {
+   	    BITCSET(dma_regs->DMACTR.nREG, Hw5|Hw4, Hw4);	//00:normal mode, 01:MPEG2_TS mode
+    }
+    else if(h->mpeg_ts == (Hw0|Hw1))
     {
        	BITSET(dma_regs->DMACTR.nREG, Hw19|Hw18);		//enable PID & Sync Byte match
    	    BITCSET(dma_regs->DMACTR.nREG, Hw5|Hw4, Hw4);	//00:normal mode, 01:MPEG2_TS mode
     }
 #endif
-    if( h->mpeg_ts == 0)
+    if( (h->mpeg_ts == 0) || (h->mpeg_ts == Hw0))
     {   	    
       	BITCLR(h->regs->TSRXCR, Hw17);      	
     }
@@ -607,11 +614,8 @@ static int tcc_tsif_dmastart(struct tcc_tsif_handle *h)
 	BITSET(dma_regs->DMACTR.nREG, Hw1);				//enable TSSEL
 	BITSET(dma_regs->DMACTR.nREG, Hw0);				//enable DMA
 	BITSET(h->regs->TSRXCR, Hw31);
-    tsif_delay(100);
-    BITCLR(h->regs->TSRXCR, Hw30);                  //Clear Fifo
     if( h->mpeg_ts == 0)
     {
-        tsif_delay(50);    
         BITSET(h->regs->TSRXCR, Hw6);
     }
 #ifdef DEBUG_INFO
@@ -666,7 +670,7 @@ static void tcc_tsif_hw_init(struct tcc_tsif_handle *h)
 	
 	BITCLR(h->regs->TSRXCR, Hw17);
 	reg_val = (TSIF_RXFIFO_THRESHOLD << 5) | Hw4;
-	BITCSET(h->regs->TSIC,(Hw32-Hw0), reg_val);
+	BITCSET(h->regs->TSIC,(Hw32-Hw0), reg_val|Hw1);
 
 #if defined(SUPPORT_PIDFILTER_INTERNAL)
     BITSET(h->regs->TSRXCR, Hw17);
@@ -810,7 +814,7 @@ int tca_tsif_register_pids(struct tcc_tsif_handle *h, unsigned int *pids, unsign
                 BITSET(*PIDT, HwTSIF_PIDT_CH0<<tsif_channel);
                 printk("PIDT 0x%08X : 0x%08X\n", (unsigned int)PIDT, (unsigned int)*PIDT);
             }            
-            h->mpeg_ts = 1; //0:normal spi, 1:mpeg_ts
+            h->mpeg_ts = Hw0|Hw1;
         } 
 #endif
 #if defined(SUPPORT_PIDFILTER_INTERNAL)
@@ -833,7 +837,7 @@ int tca_tsif_register_pids(struct tcc_tsif_handle *h, unsigned int *pids, unsign
                     BITSET(h->regs->TSPID[reg_index], pids[i]&0x1FFF);
                     printk("PIDT %d-L : 0x%08X\n",reg_index, h->regs->TSPID[reg_index] & 0xFFFF);                   
                 }
-			    h->mpeg_ts = 1; //0:normal spi, 1:mpeg_ts
+                h->mpeg_ts = Hw0|Hw1;
             }            
         } 
 #endif
