@@ -1242,7 +1242,7 @@ static long tcc_composite_ioctl(struct file *file, unsigned int cmd, void *arg)
 		case TCC_COMPOSITE_IOCTL_END:
 			tcc_composite_end();
 
-			TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_COMPOSITE, Composite_LCDC_Num, FALSE);			
+			//TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_COMPOSITE, Composite_LCDC_Num, FALSE);			
 						
 #ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
 			tca_vsync_video_display_disable();
