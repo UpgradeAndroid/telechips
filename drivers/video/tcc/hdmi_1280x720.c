@@ -29,7 +29,7 @@
 
 static struct mutex panel_lock;
 
-extern void lcdc_initialize(struct lcd_panel *lcd_spec);
+extern void lcdc_initialize(struct lcd_panel *lcd_spec, unsigned int lcdc_num);
 
 static int hdmi1280x720_panel_init(struct lcd_panel *panel)
 {

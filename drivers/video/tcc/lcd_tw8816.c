@@ -33,7 +33,7 @@
 
 #include "tca_tw8816.h"
 
-extern void lcdc_initialize(struct lcd_panel *lcd_spec);
+extern void lcdc_initialize(struct lcd_panel *lcd_spec, unsigned int lcdc_num);
 
 struct tcc_i2c_chip_info {
 	unsigned gpio_start;
@@ -88,7 +88,7 @@ static int tw8816_panel_init(struct lcd_panel *panel)
 	return 0;
 }
 
-static int tw8816_set_power(struct lcd_panel *panel, int on)
+static int tw8816_set_power(struct lcd_panel *panel, int on, unsigned int lcd_num)
 {
 #if 0
 
@@ -111,7 +111,7 @@ static int tw8816_set_power(struct lcd_panel *panel, int on)
 			
 		msleep(16);
 
-		lcdc_initialize(panel);
+		lcdc_initialize(panel, lcd_num);
 		LCDC_IO_Set(1, panel->bus_width);
 		msleep(16);
 

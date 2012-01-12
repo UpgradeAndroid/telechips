@@ -1372,19 +1372,6 @@ int hdmi_get_setting_flag(unsigned int *hdmi_setting)
 	return 1;
 }
 
-#if defined(CONFIG_LCD_LCDC0_USE) //M805_8923
-#define TCC_HDMI_LCDC1_USE
-#endif
-
-#if defined(TELECHIPS)
-
-#ifdef TCC_HDMI_LCDC1_USE
-	#define LCDC_BIT 	HwINT0_LCD1
-#else
-	#define LCDC_BIT 	HwINT0_LCD0
-#endif//TCC_HDMI_LCDC1_USE
-
-#endif//TELECHIPS
 
 
 void tcc_usleep(unsigned int delay)
@@ -1534,11 +1521,11 @@ void tcc_hdmi_power_on(void)
 
 		pCKC->PCLKCTRL17.nREG = 0x2D000000;
 //		pCKC->PCLKCTRL18.nREG = 0xBD000001;
-		#ifdef TCC_HDMI_LCDC1_USE // pjj
-		pCKC->PCLKCTRL05.nREG = 0x2C000000;
-		#else
-		pCKC->PCLKCTRL03.nREG = 0x2C000000;
-		#endif//
+
+		if(hdmi_dev->hdmi_lcdc_num)
+			pCKC->PCLKCTRL05.nREG = 0x2C000000;
+		else
+			pCKC->PCLKCTRL03.nREG = 0x2C000000;
 	}
 	#else
 		if (hdmi_clk)
@@ -1595,22 +1582,19 @@ void tcc_hdmi_power_on(void)
 
 
 	#if  defined (CONFIG_ARCH_TCC88XX )  || defined( CONFIG_ARCH_TCC92XX) || defined (CONFIG_ARCH_TCC93XX)
-	// enable DDI_BUS HDMI CLK
-	regl = readl(DDICFG_HDMICTRL);
-	writel((regl&0xFFFF7FFF)  
-					#ifdef TCC_HDMI_LCDC1_USE // pjj
-							|HDMICTRL_PATH_LCDC1
-					#else
-							|HDMICTRL_PATH_LCDC0
-					#endif//
-					,DDICFG_HDMICTRL);
+		// enable DDI_BUS HDMI CLK
+		regl = readl(DDICFG_HDMICTRL);
+
+		if(hdmi_dev->hdmi_lcdc_num)
+			writel((regl&0xFFFF7FFF)  |HDMICTRL_PATH_LCDC1 ,DDICFG_HDMICTRL);
+		else	
+			writel((regl&0xFFFF7FFF)  |HDMICTRL_PATH_LCDC0 ,DDICFG_HDMICTRL);
 
 	#elif defined(CONFIG_ARCH_TCC892X)
-		#ifdef TCC_HDMI_LCDC1_USE // pjj
-		VIOC_OUTCFG_SetOutConfig(VIOC_OUTCFG_HDMI, 1);
-		#else
-		VIOC_OUTCFG_SetOutConfig(VIOC_OUTCFG_HDMI, 0);
-		#endif//
+		if(hdmi_dev->hdmi_lcdc_num)
+			VIOC_OUTCFG_SetOutConfig(VIOC_OUTCFG_HDMI, 1);
+		else
+			VIOC_OUTCFG_SetOutConfig(VIOC_OUTCFG_HDMI, 0);
 	#endif//
 
 	tcc_ddi_hdmi_ctrl(HDMICTRL_HDMI_ENABLE, 1);
@@ -1710,13 +1694,18 @@ void tcc_hdmi_power_off(void)
 	memset(&gHdmiVideoParms, 0, sizeof(struct HDMIVideoParameter));
  }
 
+extern unsigned int tca_get_hdmi_lcdc_num(viod);
 
 static int hdmi_probe(struct platform_device *pdev)
 {
-    unsigned char reg;
-
+ 	unsigned char reg;
 	struct tcc_hdmi_platform_data *hdmi_dev;
 
+	pdev_hdmi = &pdev->dev;
+	
+	hdmi_dev = (struct tcc_hdmi_platform_data *)pdev_hdmi->platform_data;
+	hdmi_dev->hdmi_lcdc_num = tca_get_hdmi_lcdc_num();
+	
 	if (hdmi_clk == NULL) {
 		hdmi_clk = clk_get(0, "hdmi");
 		if (IS_ERR(hdmi_clk)) {
@@ -1736,8 +1725,7 @@ static int hdmi_probe(struct platform_device *pdev)
 
     printk(KERN_INFO "HDMI Driver ver. %s (built %s %s)\n", VERSION, __DATE__, __TIME__);
 
-	pdev_hdmi = &pdev->dev;
-	
+
     if (misc_register(&hdmi_misc_device))
     {
         dprintk(KERN_WARNING "HDMI: Couldn't register device 10, %d.\n", HDMI_MINOR);
@@ -1763,7 +1751,6 @@ static int hdmi_probe(struct platform_device *pdev)
 	if (hdmi_clk)
 		clk_disable(hdmi_clk);
 
-	hdmi_dev = (struct tcc_hdmi_platform_data *)pdev_hdmi->platform_data;
 
 	if(hdmi_dev->set_power)
 	{

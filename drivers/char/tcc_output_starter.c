@@ -1055,8 +1055,10 @@ int tcc_hdmi_set_phy_config(const struct HDMIVideoParameter * const hdmi_video_m
     return 1;
 }
 
+extern unsigned int tca_get_hdmi_lcdc_num(viod);
 int tcc_hdmi_set_lcdc_config(enum VideoFormat hdmi_video_format)
 {
+
 	PDDICONFIG pDDICfg = (PDDICONFIG)tcc_p2v(HwDDI_CONFIG_BASE);
     struct lcdc_timimg_parms_t device;
 
@@ -1065,11 +1067,12 @@ int tcc_hdmi_set_lcdc_config(enum VideoFormat hdmi_video_format)
     memcpy((void*)&device,(const void*)&(LCDCTimimgParams[hdmi_video_format]),sizeof(device));
 
 	#if defined(CONFIG_ARCH_TCC892X) && defined(CONFIG_MACH_TCC8920ST)
-		#if defined(CONFIG_LCD_LCDC0_USE)
-		tccfb_hdmi_starter(1, &device);
-		#else
-		tccfb_hdmi_starter(0, &device);
-		#endif /* CONFIG_LCD_LCDC0_USE */
+	{
+		unsigned int hdmi_lcdc_num;
+
+		hdmi_lcdc_num = tca_get_hdmi_lcdc_num();
+		tccfb_hdmi_starter(hdmi_lcdc_num, &device);
+	}
 	#else
 		if(pDDICfg->HDMI_CTRL & HwDDIC_HDMI_CTRL_SEL_LCDC1)
 			tcc92xxfb_hdmi_starter(1, &device);

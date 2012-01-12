@@ -918,7 +918,7 @@ int tca_fb_init(void)
 
 	TCC_OUTPUT_LCDC_Init();
 
-    init_waitqueue_head(&lcdc_struct.waitq);
+	init_waitqueue_head(&lcdc_struct.waitq);
 	lcdc_struct.state = 1;
 
 	#ifdef CONFIG_FB_M2M_COPY

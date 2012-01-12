@@ -336,7 +336,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 				TCC_HDMI_LCDC_OutputEnable(EX_OUT_LCDC, 1);
 
 				TCC_OUTPUT_FB_MouseShow(0, TCC_OUTPUT_HDMI);
-		}
+			}
 			break;
 
 		case TCC_LCDC_HDMI_DISPLAY:

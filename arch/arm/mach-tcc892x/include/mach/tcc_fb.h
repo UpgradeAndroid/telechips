@@ -15,8 +15,6 @@
 #ifndef __TCC_FB_H
 #define __TCC_FB_H
 
-//#define TCC_LCDC1_USE //mc min. becasue m805_8923 use lcdc0
-
 #define ATAG_TCC_PANEL	0x54434364 /* TCCd */
 
 enum {
@@ -42,6 +40,8 @@ struct lcd_platform_data {
 	unsigned display_on;
 	unsigned bl_on;
 	unsigned reset;
+
+	unsigned lcdc_num;
 };
 
 struct lcd_panel {

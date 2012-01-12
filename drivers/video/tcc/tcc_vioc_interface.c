@@ -118,6 +118,7 @@ void tcafb_clock_init(void)
 	lcdc0_clk = clk_get(0, "lcdc0");
 	if (IS_ERR(lcdc0_clk))
 		lcdc0_clk = NULL;
+
 	lcdc1_clk = clk_get(0, "lcdc1");
 
 
@@ -461,34 +462,31 @@ int tcc_lcd_interrupt_reg(char SetClear)
 }
 EXPORT_SYMBOL(tcc_lcd_interrupt_reg);
 
-
+extern unsigned int tca_get_lcd_lcdc_num(viod);
 int tca_fb_init(void)
 {
-	struct lcd_panel *lcd_info;
 	pmap_t pmap_fb_video;
 
 	printk(KERN_INFO " tcc892X %s (built %s %s)\n", __func__, __DATE__, __TIME__);
 
 	pmap_get_info("fb_video", &pmap_fb_video);
 
-#if defined(CONFIG_LCD_LCDC0_USE)
-	Fb_Lcdc_num = 0;
-	VIOC_OUTCFG_SetOutConfig(VIOC_OUTCFG_MRGB, VIOC_OUTCFG_DISP0);
-	VIOC_OUTCFG_SetOutConfig(VIOC_OUTCFG_HDMI, VIOC_OUTCFG_DISP1);
-#else	
-	Fb_Lcdc_num = 1;
-	VIOC_OUTCFG_SetOutConfig(VIOC_OUTCFG_MRGB, VIOC_OUTCFG_DISP1);
-	VIOC_OUTCFG_SetOutConfig(VIOC_OUTCFG_HDMI, VIOC_OUTCFG_DISP0);
-#endif
+	Fb_Lcdc_num = tca_get_lcd_lcdc_num();
 
 	if(Fb_Lcdc_num){
-	pWMIXBase = (VIOC_WMIX*)tcc_p2v(HwVIOC_WMIX1);
-	pDISPBase = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP1);
-	pRDMABase = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA04);
+		VIOC_OUTCFG_SetOutConfig(VIOC_OUTCFG_MRGB, VIOC_OUTCFG_DISP1);
+		VIOC_OUTCFG_SetOutConfig(VIOC_OUTCFG_HDMI, VIOC_OUTCFG_DISP0);
+
+		pWMIXBase = (VIOC_WMIX*)tcc_p2v(HwVIOC_WMIX1);
+		pDISPBase = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP1);
+		pRDMABase = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA04);
 	} else {
-	pWMIXBase = (VIOC_WMIX*)tcc_p2v(HwVIOC_WMIX0);
-	pDISPBase = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP0);
-	pRDMABase = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA00);
+		VIOC_OUTCFG_SetOutConfig(VIOC_OUTCFG_MRGB, VIOC_OUTCFG_DISP0);
+		VIOC_OUTCFG_SetOutConfig(VIOC_OUTCFG_HDMI, VIOC_OUTCFG_DISP1);
+
+		pWMIXBase = (VIOC_WMIX*)tcc_p2v(HwVIOC_WMIX0);
+		pDISPBase = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP0);
+		pRDMABase = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA00);
 	}
 
 	tcafb_clock_init();

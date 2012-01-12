@@ -27,7 +27,7 @@
 #include <mach/tca_lcdc.h>
 #include <mach/TCC_LCD_DriverCtrl.h>
 #include <mach/TCC_LCD_Interface.h>
-extern void lcdc_initialize(struct lcd_panel *lcd_spec);
+extern void lcdc_initialize(struct lcd_panel *lcd_spec, unsigned int lcdc_num);
 
 static struct mutex panel_lock;
 
@@ -153,7 +153,7 @@ static int lms350df01_panel_init(struct lcd_panel *panel)
 	return 0;
 }
 
-static int lms350df01_set_power(struct lcd_panel *panel, int on)
+static int lms350df01_set_power(struct lcd_panel *panel, int on, unsigned int lcd_num)
 {
 	struct lcd_platform_data *pdata = panel->dev->platform_data;
 	printk("%s : %d \n", __func__, on);
@@ -165,7 +165,7 @@ static int lms350df01_set_power(struct lcd_panel *panel, int on)
 		gpio_set_value(pdata->reset, 1);
 		
 		lcd_on();
-		lcdc_initialize(panel);
+		lcdc_initialize(panel, lcd_num);
 		LCDC_IO_Set(1, panel->bus_width);
 		gpio_set_value(pdata->display_on, 1);
 	} 

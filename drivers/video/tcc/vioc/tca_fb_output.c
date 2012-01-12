@@ -224,9 +224,10 @@ static irqreturn_t TCC_OUTPUT_LCDC_Handler(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-
+extern unsigned int tca_get_lcd_lcdc_num(viod);
 void TCC_OUTPUT_LCDC_Init(void)
 {
+	unsigned int lcd_lcdc_num;
 	pmap_t pmap;
 	dprintk(" %s \n", __func__);
 	lcdc0_output_clk = clk_get(0, "lcdc0");
@@ -248,15 +249,20 @@ void TCC_OUTPUT_LCDC_Init(void)
 	pmap_get_info("fb_g2d1", &pmap);
 	fb_g2d_pbuf1 = (char *) pmap.base;
 
-	#if defined(CONFIG_LCD_LCDC0_USE)
+	lcd_lcdc_num = tca_get_lcd_lcdc_num();
+	if(lcd_lcdc_num  =0)
+	{
 		pDISP_OUTPUT[TCC_OUTPUT_NONE].pVIOC_DispBase = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP0);
 		pDISP_OUTPUT[TCC_OUTPUT_NONE].pVIOC_RDMA_FB= (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA00);
 		pDISP_OUTPUT[TCC_OUTPUT_NONE].pVIOC_WMIXBase= (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX0);	
-	#else
+	}
+	else
+	{
 		pDISP_OUTPUT[TCC_OUTPUT_NONE].pVIOC_DispBase = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP1);
 		pDISP_OUTPUT[TCC_OUTPUT_NONE].pVIOC_RDMA_FB= (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA04);
 		pDISP_OUTPUT[TCC_OUTPUT_NONE].pVIOC_WMIXBase= (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX1);			
-	#endif	
+	}
+
 	memset((void *)&output_chroma, 0x00, sizeof((void *)&output_chroma));
 
 	init_waitqueue_head(&Output_struct.waitq);
@@ -286,28 +292,26 @@ void TCC_OUTPUT_LCDC_Init(void)
 	}
  }
 
-
-
+extern unsigned int tca_get_hdmi_lcdc_num(viod);
 void TCC_OUTPUT_UPDATE_OnOff(char onoff)
 {
+	unsigned int hdmi_lcdc_num;
 	dprintk(" %s \n", __func__);
+
+	hdmi_lcdc_num = tca_get_hdmi_lcdc_num();
+
 #ifdef VIOC_SCALER_PLUG_IN	
-	#if defined(CONFIG_LCD_LCDC0_USE)
-	if(onoff)	{
+	if(onoff)	
+	{
+		if(hdmi_lcdc_num)
 			VIOC_CONFIG_PlugIn (VIOC_SC0, VIOC_SC_RDMA_04);
-		}
-		else 	{
-			VIOC_CONFIG_PlugOut (VIOC_SC0);
-		}
-	#else
-		if(onoff)	{
+		else
 			VIOC_CONFIG_PlugIn (VIOC_SC0, VIOC_SC_RDMA_00);
-		}
-		else 	{
-			VIOC_CONFIG_PlugOut (VIOC_SC0);
-		}
-	#endif
-	
+	}
+	else 
+	{
+		VIOC_CONFIG_PlugOut (VIOC_SC0);
+	}
 #else
 	if(onoff)	{
 		g2d_open((struct inode *)&g2d_inode, (struct file *)&g2d_filp);
