@@ -1461,10 +1461,10 @@ void tcc_output_starter_hdmi(unsigned char lcdc_num, unsigned char hdmi_resoluti
  	
 	clock = clk_get(0, "hdmi");
 	clk_enable(clock);
-
+#if 0 // deleted hdmi_lcdc clock resource
 	clock = clk_get(0, "hdmi_lcdc");
 	clk_enable(clock);
-	
+#endif//	
 	image_width = 1280;
 	image_height = 720;
 	image_fmt = TCC_LCDC_IMG_FMT_RGB565;
