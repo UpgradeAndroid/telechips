@@ -102,6 +102,16 @@ extern int tca_fb_init(void);
 extern void tca_fb_exit(void);
 extern int tcc_lcd_interrupt_reg(char SetClear);
 
+#if defined(CONFIG_FB_TCC_COMPOSITE)
+extern int tcc_composite_detect(void);
+extern void tcc_composite_update(struct tcc_lcdc_image_update *update);
+#endif
+
+#if defined(CONFIG_FB_TCC_COMPONENT)
+extern int tcc_component_detect(void);
+extern void tcc_component_update(struct tcc_lcdc_image_update *update);
+#endif
+
 
 static pmap_t pmap_fb_video;
 #define FB_VIDEO_MEM_BASE	pmap_fb_video.base
@@ -1483,6 +1493,55 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 				dprintk("%s: TCC_LCDC_HDMI_SET_SIZE -  HDMI_video_width:%d HDMI_video_height:%d   \n", __func__ , HDMI_video_width, HDMI_video_height);
 			}
 			break;
+
+		case TCC_LCDC_COMPOSITE_CHECK:
+			{
+				unsigned int composite_detect = 1;
+
+				#if defined(CONFIG_FB_TCC_COMPOSITE)
+					composite_detect = tcc_composite_detect();
+				#endif
+
+				if (copy_to_user((void *)arg, &composite_detect, sizeof(unsigned int)))
+					return -EFAULT;
+			}
+			break;
+			
+		case TCC_LCDC_COMPOSITE_MODE_SET:
+			{
+				LCDC_COMPOSITE_MODE composite_mode;
+				if(copy_from_user((void *)&composite_mode, (const void *)arg, sizeof(LCDC_COMPOSITE_MODE))){
+					return -EFAULT;
+				}
+
+				if(composite_mode == LCDC_COMPOSITE_UI_MODE)
+				{
+					Output_SelectMode = TCC_OUTPUT_COMPOSITE;
+ #ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
+					{
+					       spin_lock_irq(&vsync_lock);
+					       tccvid_vsync.outputMode = -1;
+					       spin_unlock_irq(&vsync_lock);
+					}
+ #endif
+ 					printk("TCC_LCDC_COMPOSITE_MODE_SET : Output_SelectMode = %d , composite_mode = %d\n", composite_mode, Output_SelectMode);
+#if !defined(CONFIG_TCC_HDMI_UI_DISPLAY_OFF)
+					TCC_OUTPUT_FB_Update(fb_info->fb->var.xres, fb_info->fb->var.yres, fb_info->fb->var.bits_per_pixel, Output_BaseAddr, Output_SelectMode);
+					TCC_OUTPUT_FB_UpdateSync(Output_SelectMode);
+					TCC_OUTPUT_LCDC_OutputEnable(EX_OUT_LCDC, 1);
+#endif /*CONFIG_TCC_HDMI_UI_DISPLAY_OFF*/
+
+#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
+					TCC_OUTPUT_FB_MouseShow(1, TCC_OUTPUT_COMPOSITE);
+#endif
+				}
+				else if(composite_mode == LCDC_COMPOSITE_NONE_MODE)
+				{
+					Output_SelectMode = TCC_OUTPUT_NONE;
+				}
+			}
+			break;
+
 
 		case TCC_LCDC_MOUSE_SHOW:
 			{

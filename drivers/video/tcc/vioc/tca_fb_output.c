@@ -528,6 +528,24 @@ int TCC_OUTPUT_SetOutputResizeMode(int mode)
 	return 1;
 }
 
+void TCC_OUTPUT_LCDC_OutputEnable(char output_lcdc, unsigned int onoff)
+{
+
+	VIOC_DISP *pDISP;
+
+	if(output_lcdc)	{
+		pDISP = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP1);
+	}
+	else		{
+		pDISP = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP0);
+	}
+	
+	if(onoff)
+		VIOC_DISP_TurnOn(pDISP);
+	else
+		VIOC_DISP_TurnOff(pDISP);
+}
+
 char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int bits_per_pixel, unsigned int addr, unsigned int type)
 {
 	unsigned int regl = 0, g2d_rotate_need = 0, g2d_format_need = 0, scaler_need= 0, m2m_onthefly_use = 0, interlace_output = 0;

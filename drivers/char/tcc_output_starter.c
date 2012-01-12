@@ -69,8 +69,15 @@
 #include <mach/tca_fb_output.h>
 #include <mach/tcc_scaler_ctrl.h>
 #include "hdmi/hdmi/regs-hdmi.h"
-#include "../video/tcc/tcc_component.h"
-#include "../video/tcc/tcc_composite.h"
+
+
+#if defined(CONFIG_ARCH_TCC892X)
+#include "../video/tcc/vioc/tcc_component.h"
+#include "../video/tcc/vioc/tcc_composite.h"
+#else
+#include "../video/tcc/ddi/tcc_component.h"
+#include "../video/tcc/ddi/tcc_composite.h"
+#endif /* CONFIG_ARCH_TCC892X */
 
 /* Debugging stuff */
 static int debug = 0;
@@ -1395,7 +1402,7 @@ void tcc_output_starter_hdmi(unsigned char lcdc_num, unsigned char hdmi_resoluti
 	unsigned int output_width, output_height;
 	unsigned int image_width, image_height, image_fmt;
 	VIOC_DISP *pDISP;
-	VIOC_WMIX *pWIMX;
+	VIOC_WMIX *pWMIX;
 	VIOC_RDMA *pRDMA;
 	VIOC_SC *pSC;
 	PCLK_XXX_TYPE *pLCDC_CKC;
@@ -1424,14 +1431,14 @@ void tcc_output_starter_hdmi(unsigned char lcdc_num, unsigned char hdmi_resoluti
 	if(lcdc_num)	
 	{
 		pDISP = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP1);
-		pWIMX =(VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX1); 
+		pWMIX =(VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX1); 
 		pRDMA = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA04);
 		pLCDC_CKC = (PCLK_XXX_TYPE *)((&pCKC->PCLKCTRL00)+PERI_LCD1);
 	}
 	else
 	{
 		pDISP = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP0);
-		pWIMX =(VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX0); 
+		pWMIX =(VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX0); 
 		pRDMA = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA00);
 		pLCDC_CKC = (PCLK_XXX_TYPE *)((&pCKC->PCLKCTRL00)+PERI_LCD0);
 	}
@@ -1510,9 +1517,9 @@ void tcc_output_starter_hdmi(unsigned char lcdc_num, unsigned char hdmi_resoluti
 	//VIOC_RDMA_SetImageEnable(pRDMA);
 	BITCSET(pRDMA->uCTRL.nREG, HwDMA_IEN, HwDMA_IEN);
 	
-	VIOC_WMIX_SetPosition(pWIMX, 0, 0, 0);
-	VIOC_WMIX_SetChromaKey(pWIMX, 0, 0, 0, 0, 0, 0xF8, 0xFC, 0xF8);
-	VIOC_WMIX_SetUpdate(pWIMX);
+	VIOC_WMIX_SetPosition(pWMIX, 0, 0, 0);
+	VIOC_WMIX_SetChromaKey(pWMIX, 0, 0, 0, 0, 0, 0xF8, 0xFC, 0xF8);
+	VIOC_WMIX_SetUpdate(pWMIX);
 
 	//VIOC_RDMA_SetImageBase(pRDMA, pBaseAddr, 0, 0);
 	
@@ -1526,6 +1533,276 @@ void tcc_output_starter_hdmi(unsigned char lcdc_num, unsigned char hdmi_resoluti
 
 void tcc_output_starter_composite(unsigned char lcdc_num, unsigned char type)
 {
+#if 0
+	unsigned int lcd_reg = 0;
+	unsigned int width, height;
+	COMPOSITE_SPEC_TYPE spec;
+	unsigned int output_width, output_height;
+	unsigned int image_width, image_height, image_fmt;
+	unsigned char *pBaseAddr;
+
+	stLTIMING				CompositeTiming;
+	stLCDCTR				LcdCtrlParam;
+	PVIOC_DISP				pDISP ;
+	PVIOC_WMIX				pWMIX ;
+	PVIOC_RDMA				pRDMA;
+	VIOC_SC 				*pSC;
+	PCLK_XXX_TYPE 			*pLCDC_CKC;
+	PCKC					pCKC = (PCKC)tcc_p2v(HwCKC_BASE);
+ 	PDDICONFIG 				pDDICfg = (PDDICONFIG)tcc_p2v(HwDDI_CONFIG_BASE);
+	PNTSCPAL 				pTVE = (PNTSCPAL)tcc_p2v(HwNTSCPAL_BASE);
+	PNTSCPAL_ENCODER_CTRL 	pTVE_VEN = (PNTSCPAL_ENCODER_CTRL)tcc_p2v(HwNTSCPAL_ENC_CTRL_BASE);
+
+
+	struct clk *lcdc_clk, *dac_clk;
+	
+	printk("%s\n", __func__);
+
+	if(lcdc_num)	
+	{
+		pDISP  = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP1);
+		pWMIX  = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX1);
+		pRDMA  = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA04);
+		pLCDC_CKC = (PCLK_XXX_TYPE *)((&pCKC->PCLKCTRL00)+PERI_LCD1);
+  	}
+	else
+	{
+		pDISP  = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP0);
+		pWMIX  = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX0); 
+		pRDMA  = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA00);
+		pLCDC_CKC = (PCLK_XXX_TYPE *)((&pCKC->PCLKCTRL00)+PERI_LCD0);
+  	}
+
+	//if(type == STARTER_COMPOSITE_NTSC)
+		tcc_composite_get_spec(NTSC_M, &spec);
+	//else
+	//	tcc_composite_get_spec(PAL_B, &spec);
+	
+#if 1
+	BITSET(pDDICfg->PWDN.nREG, Hw1);		// PWDN - TVE
+	BITCLR(pDDICfg->SWRESET.nREG, Hw1);		// SWRESET - TVE
+	BITSET(pDDICfg->SWRESET.nREG, Hw1);		// SWRESET - TVE	
+	BITSET(pDDICfg->NTSCPAL_EN.nREG, Hw0);	// NTSCPAL_EN	
+#endif /* 0 */
+
+	VIOC_DISP_TurnOff(pDISP);
+	VIOC_RDMA_SetImageDisable(pRDMA);
+	pLCDC_CKC->bREG.EN = 0;
+
+	pSC = (VIOC_SC *)tcc_p2v(HwVIOC_SC0);
+
+	if(lcdc_num)	
+	{
+		tca_ckc_setperi(PERI_LCD1, ENABLE, 270000);
+	}
+	else
+	{
+		tca_ckc_setperi(PERI_LCD0, ENABLE, 270000);
+ 	}
+ 
+	tca_ckc_setippwdn(PMU_ISOL_VDAC, 0);
+
+	lcdc_clk = clk_get(0, "lcdc1");
+	clk_enable(lcdc_clk);
+	dac_clk = clk_get(0, "vdac_phy");
+	clk_enable(dac_clk);
+
+	image_width = 1280;
+	image_height = 720;
+	image_fmt = TCC_LCDC_IMG_FMT_RGB565;
+	
+	if(pmap_fb.base)
+	{
+		pBaseAddr = (unsigned)ioremap_nocache(pmap_fb.base, pmap_fb.size);
+		if(pBaseAddr)
+		{
+			memset(pBaseAddr, 0x00, pmap_fb.size);
+ 			iounmap(pBaseAddr);
+
+			pRDMA->nBASE0 = pmap_fb.base;
+		}
+
+		printk("%s paddr=0x%08x laddr=0x%08x\n", __func__, pmap_fb.base, pBaseAddr);
+	}
+
+	//TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_COMPOSITE, lcdc_num, 1);
+	tccfb_output_starter(TCC_OUTPUT_COMPOSITE, 1);
+
+	output_width = spec.composite_lcd_width;
+	output_height = spec.composite_lcd_height;
+
+	//TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_COMPOSITE, lcdc_num, 1);
+	
+	//LCDC_IO_Set(lcdc_num, spec.composite_bus_width);
+	 	
+	width = spec.composite_lcd_width;
+	height = spec.composite_lcd_height;
+	
+	CompositeTiming.lpw = spec.composite_LPW;
+	CompositeTiming.lpc = spec.composite_LPC + 1;
+	CompositeTiming.lswc = spec.composite_LSWC + 1;
+	CompositeTiming.lewc = spec.composite_LEWC + 1;
+	
+	CompositeTiming.vdb = spec.composite_VDB;
+	CompositeTiming.vdf = spec.composite_VDF;
+	CompositeTiming.fpw = spec.composite_FPW1;
+	CompositeTiming.flc = spec.composite_FLC1;
+	CompositeTiming.fswc = spec.composite_FSWC1;
+	CompositeTiming.fewc = spec.composite_FEWC1;
+	CompositeTiming.fpw2 = spec.composite_FPW2;
+	CompositeTiming.flc2 = spec.composite_FLC2;
+	CompositeTiming.fswc2 = spec.composite_FSWC2;
+	CompositeTiming.fewc2 = spec.composite_FEWC2;
+	
+	VIOC_DISP_SetTimingParam(pDISP, &CompositeTiming);
+ 
+	memset(&LcdCtrlParam, NULL, sizeof(LcdCtrlParam));
+	LcdCtrlParam.r2ymd = 3;
+	LcdCtrlParam.ckg = 1;
+	LcdCtrlParam.id= 0;
+	LcdCtrlParam.iv = 1;
+	LcdCtrlParam.ih = 1;
+	LcdCtrlParam.ip = 1;
+	LcdCtrlParam.clen = 1;
+	LcdCtrlParam.r2y = 1;
+	LcdCtrlParam.pxdw = 6;
+	LcdCtrlParam.dp = 0;
+	LcdCtrlParam.ni = 0;
+	LcdCtrlParam.advi = 1;
+	LcdCtrlParam.tv = 1;
+	LcdCtrlParam.opt = 0;
+	LcdCtrlParam.stn = 0;
+	LcdCtrlParam.evsel = 0;
+	LcdCtrlParam.ovp = 0;
+
+	VIOC_DISP_SetControlConfigure(pDISP, &LcdCtrlParam);
+
+	VIOC_DISP_SetSize(pDISP, width, height);
+	VIOC_DISP_SetBGColor(pDISP, 0, 0 , 0);
+
+	VIOC_WMIX_SetOverlayPriority(pWMIX, 0);
+	VIOC_WMIX_SetBGColor(pWMIX, 0x00, 0x00, 0x00, 0xff);
+	VIOC_WMIX_SetSize(pWMIX, width, height);
+	VIOC_WMIX_SetUpdate (pWMIX);
+
+#if 0
+	if(lcdc_num)	
+	{
+ 		VIOC_OUTCFG_SetOutConfig(VIOC_OUTCFG_SDVENC, VIOC_OUTCFG_DISP1);
+	}
+	else
+	{
+		VIOC_OUTCFG_SetOutConfig(VIOC_OUTCFG_SDVENC, VIOC_OUTCFG_DISP0);
+ 	}
+#endif /* 0 */
+ 
+	VIOC_SC_SetBypass(pSC, OFF);
+	VIOC_SC_SetSrcSize(pSC, image_width, image_height);			// set source size in scaler
+	VIOC_SC_SetDstSize(pSC, output_width, output_height);		// set destination size in scaler
+	VIOC_SC_SetOutSize(pSC, output_width, output_height);		// set output size in scaer
+	VIOC_SC_SetUpdate(pSC);										// update scaler
+
+	VIOC_RDMA_SetImageSize(pRDMA, image_width, image_height);	// set image size
+	VIOC_RDMA_SetImageFormat(pRDMA, image_fmt);					// set image format
+	VIOC_RDMA_SetImageIntl(pRDMA, FALSE);						// set image interlace mode
+	VIOC_RDMA_SetImageOffset(pRDMA, image_fmt, image_width);	// set image offset
+
+	VIOC_RDMA_SetImageAlphaSelect(pRDMA, 1);					// set alpha setting
+	VIOC_RDMA_SetImageAlphaEnable(pRDMA, 1);					// set chroma key color setting
+
+	//VIOC_RDMA_SetImageEnable(pRDMA);
+	BITCSET(pRDMA->uCTRL.nREG, HwDMA_IEN, HwDMA_IEN);
+	
+	VIOC_WMIX_SetPosition(pWMIX, 0, 0, 0);
+	VIOC_WMIX_SetChromaKey(pWMIX, 0, 0, 0, 0, 0, 0xF8, 0xFC, 0xF8);
+	VIOC_WMIX_SetUpdate(pWMIX);
+
+	//VIOC_RDMA_SetImageBase(pRDMA, pBaseAddr, 0, 0);
+
+ 	//Disconnect LCDC with NTSC/PAL encoder
+	BITCLR(pTVE_VEN->VENCON.nREG, HwTVEVENCON_EN_EN);
+		
+	//Set ECMDA Register
+	if(type == STARTER_COMPOSITE_NTSC)
+	{
+		pTVE->ECMDA.nREG  = 
+			HwTVECMDA_PWDENC_PD 			|	// [7]	 Power down mode for entire digital logic of TV encoder
+			HwTVECMDA_FDRST_1				|	// [6]	 Chroma is free running as compared to H-sync
+			HwTVECMDA_FSCSEL_NTSC			|	// [5:4] Color subcarrier frequency is 3.57954545 MHz for NTSC
+			HwTVECMDA_PEDESTAL				|	// [3]	 Video Output has a pedestal (0 is NTSC-J)
+			HwTVECMDA_PIXEL_601 			|	// [2]	 Input data is at 601 rates.
+			HwTVECMDA_IFMT_525				|	// [1]	 Output data has 525 lines
+			HwTVECMDA_PHALT_NTSC			|	// [0]	 NTSC encoded chroma signal output
+			0;
+	}
+	else
+	{
+		pTVE->ECMDA.nREG  = 
+			HwTVECMDA_FDRST_1				|	// [6]	 Chroma is free running as compared to H-sync
+			HwTVECMDA_FSCSEL_PALX			|	// [5:4] Color subcarrier frequency is 4.43361875 MHz for PAL-B,D,G,H,I,N
+			HwTVECMDA_PIXEL_601 			|	// [2]	 Input data is at 601 rates.
+			HwTVECMDA_IFMT_625				|	// [1]	 Output data has 625 lines
+			HwTVECMDA_PHALT_PAL 			|	// [0]	 PAL encoded chroma signal output
+			0;
+	}
+	
+	//Set DACSEL Register
+	BITSET(pTVE->DACSEL.nREG, HwTVEDACSEL_DACSEL_CVBS);
+	//Set DACPD Register
+	#if defined(CONFIG_ARCH_TCC892X)
+		BITCLR(pTVE->DACPD.nREG, HwTVEDACPD_PD_EN);
+	#else
+		BITSET(pTVE->DACPD.nREG, HwTVEDACPD_PD_EN);
+	#endif
+
+	BITSET(pTVE->ICNTL.nREG, HwTVEICNTL_VSIP_HIGH);
+	BITSET(pTVE->ICNTL.nREG, HwTVEICNTL_HSVSP_RISING);
+	#if 0 // COMPOSITE_CCIR656
+	BITCSET(pTVE->ICNTL.nREG, HwTVEICNTL_ISYNC_MASK, HwTVEICNTL_ISYNC_ESAV_F);
+	#else
+	BITCSET(pTVE->ICNTL.nREG, HwTVEICNTL_ISYNC_MASK, HwTVEICNTL_ISYNC_HVSI);
+	#endif
+		
+	//Set the Vertical Offset
+	BITCSET(pTVE->HVOFFST.nREG, 0x07, ((0 & 0x700)>>8));
+	pTVE->HOFFST.nREG = (0 & 0xFF);
+			
+	//Set the Horizontal Offset
+	BITCSET(pTVE->HVOFFST.nREG, 0x08, ((1 & 0x100)>>5));
+	pTVE->VOFFST.nREG = (1 & 0xFF);
+			
+	//Set the Digital Output Format
+	BITCSET(pTVE->HVOFFST.nREG, HwTVEHVOFFST_INSEL_MASK, HwTVEHVOFFST_INSEL(2));
+			
+	//Set HSVSO Register
+	BITCSET(pTVE->HSVSO.nREG, 0x07, ((0 & 0x700)>>8));
+	pTVE->HSOE.nREG = (0 & 0xFF);
+	BITCSET(pTVE->HSVSO.nREG, 0x38, ((0 & 0x700)>>5));
+	pTVE->HSOB.nREG = (0 & 0xFF);
+	BITCSET(pTVE->HSVSO.nREG, 0x40, ((0 & 0x100)>>2));
+	pTVE->VSOB.nREG = (0 & 0xFF);
+
+	//Set VSOE Register
+	BITCSET(pTVE->VSOE.nREG, 0x1F, (0 & 0x1F));
+	BITCSET(pTVE->VSOE.nREG, 0xC0, (0 & 0x03)<<6);
+	BITCSET(pTVE->VSOE.nREG, 0x20, (0 & 0x01)<<5);
+			
+	//Set the Connection Type
+	BITSET(pTVE_VEN->VENCIF.nREG, HwTVEVENCIF_FMT_1);
+
+	BITSET(pTVE_VEN->VENCON.nREG, HwTVEVENCON_EN_EN);
+	#if defined(CONFIG_ARCH_TCC892X)
+		BITSET(pTVE->DACPD.nREG, HwTVEDACPD_PD_EN);
+	#else
+		BITCLR(pTVE->DACPD.nREG, HwTVEDACPD_PD_EN);
+	#endif
+	BITCLR(pTVE->ECMDA.nREG, HwTVECMDA_PWDENC_PD);
+
+
+	VIOC_DISP_TurnOn(pDISP);
+
+	//while(1);
+#endif /* 0 */
 }
 
 void tcc_output_starter_component(unsigned char lcdc_num, unsigned char type)
