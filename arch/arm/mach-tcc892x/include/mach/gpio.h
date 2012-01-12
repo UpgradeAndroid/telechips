@@ -90,6 +90,8 @@
 #define GPIO_PULLUP         0x0100
 #define GPIO_PULLDOWN       0x0200
 #define GPIO_PULL_DISABLE   0x0400
+#define GPIO_SCHMITT_INPUT  0x0800
+#define GPIO_CMOS_INPUT     0x0010
 
 #define GPIO_INPUT	0x0001
 #define GPIO_OUTPUT	0x0002

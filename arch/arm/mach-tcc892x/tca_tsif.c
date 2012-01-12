@@ -48,7 +48,7 @@ static int tca_tsif_set_port(struct tcc_tsif_handle *h)
 
 	switch (h->gpio_port) {
 		case 0:
-				tcc_gpio_config(TCC_GPD(8), GPIO_FN(2));		//clk
+				tcc_gpio_config(TCC_GPD(8), GPIO_FN(2)|GPIO_SCHMITT_INPUT);		//clk
 				tcc_gpio_config(TCC_GPD(9), GPIO_FN(2));		//valid
 				tcc_gpio_config(TCC_GPD(10), GPIO_FN(2));		//sync
 				tcc_gpio_config(TCC_GPD(7), GPIO_FN(2));		//d0
@@ -64,7 +64,7 @@ static int tca_tsif_set_port(struct tcc_tsif_handle *h)
 				}
 			break;
 		case 1:
-				tcc_gpio_config(TCC_GPB(0), GPIO_FN(7));		//clk
+				tcc_gpio_config(TCC_GPB(0), GPIO_FN(7)|GPIO_SCHMITT_INPUT);		//clk
 				tcc_gpio_config(TCC_GPB(2), GPIO_FN(7));		//valid
 				tcc_gpio_config(TCC_GPB(1), GPIO_FN(7));		//sync
 				tcc_gpio_config(TCC_GPB(3), GPIO_FN(7));		//d0
@@ -80,7 +80,7 @@ static int tca_tsif_set_port(struct tcc_tsif_handle *h)
 				}
 			break;
 		case 2:
-				tcc_gpio_config(TCC_GPB(28), GPIO_FN(7));		//clk
+				tcc_gpio_config(TCC_GPB(28), GPIO_FN(7)|GPIO_SCHMITT_INPUT);		//clk
 				tcc_gpio_config(TCC_GPB(26), GPIO_FN(7));		//valid
 				tcc_gpio_config(TCC_GPB(27), GPIO_FN(7));		//sync
 				tcc_gpio_config(TCC_GPB(25), GPIO_FN(7));		//d0
@@ -96,7 +96,7 @@ static int tca_tsif_set_port(struct tcc_tsif_handle *h)
 				}
 			break;
 		case 3:
-				tcc_gpio_config(TCC_GPC(26), GPIO_FN(3));		//clk
+				tcc_gpio_config(TCC_GPC(26), GPIO_FN(3)|GPIO_SCHMITT_INPUT);		//clk
 				tcc_gpio_config(TCC_GPC(24), GPIO_FN(3));		//valid
 				tcc_gpio_config(TCC_GPC(25), GPIO_FN(3));		//sync
 				tcc_gpio_config(TCC_GPC(23), GPIO_FN(3));		//d0
@@ -112,7 +112,7 @@ static int tca_tsif_set_port(struct tcc_tsif_handle *h)
 				}
 			break;
 		case 4:
-				tcc_gpio_config(TCC_GPE(26), GPIO_FN(4));		//clk
+				tcc_gpio_config(TCC_GPE(26), GPIO_FN(4)|GPIO_SCHMITT_INPUT);		//clk
 				tcc_gpio_config(TCC_GPE(24), GPIO_FN(4));		//valid
 				tcc_gpio_config(TCC_GPE(25), GPIO_FN(4));		//sync
 				tcc_gpio_config(TCC_GPE(23), GPIO_FN(4));		//d0
@@ -128,7 +128,7 @@ static int tca_tsif_set_port(struct tcc_tsif_handle *h)
 				}
 			break;
 		case 5:
-				tcc_gpio_config(TCC_GPF(0), GPIO_FN(2));		//clk
+				tcc_gpio_config(TCC_GPF(0), GPIO_FN(2)|GPIO_SCHMITT_INPUT);		//clk
 				tcc_gpio_config(TCC_GPF(2), GPIO_FN(2));		//valid
 				tcc_gpio_config(TCC_GPF(1), GPIO_FN(2));		//sync
 				tcc_gpio_config(TCC_GPF(3), GPIO_FN(2));		//d0
@@ -707,12 +707,14 @@ static void tcc_tsif_hw_deinit(struct tcc_tsif_handle *h)
 
 static int tcc_tsif_resync(struct tcc_tsif_handle *h)
 {
+#if 0
     if(h->regs->TSIS & Hw1)
     {
         printk("%s:%d\n",__func__,__LINE__);
     	BITCLR(h->regs->TSRXCR, Hw31);
 	    BITSET(h->regs->TSRXCR, Hw31);
     }
+#endif    
     return 0;
 }
 
