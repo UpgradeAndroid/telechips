@@ -304,13 +304,13 @@ void TCC_OUTPUT_UPDATE_OnOff(char onoff)
 	if(onoff)	
 	{
 		if(hdmi_lcdc_num)
-			VIOC_CONFIG_PlugIn (VIOC_SC0, VIOC_SC_RDMA_04);
+			VIOC_CONFIG_PlugIn (VIOC_SC2, VIOC_SC_RDMA_04);
 		else
-			VIOC_CONFIG_PlugIn (VIOC_SC0, VIOC_SC_RDMA_00);
+			VIOC_CONFIG_PlugIn (VIOC_SC2, VIOC_SC_RDMA_00);
 	}
 	else 
 	{
-		VIOC_CONFIG_PlugOut (VIOC_SC0);
+		VIOC_CONFIG_PlugOut (VIOC_SC2);
 	}
 #else
 	if(onoff)	{
@@ -557,7 +557,7 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 	SCALER_TYPE fbscaler;
 	VIOC_SC *pSC;
 
-	pSC= (VIOC_SC *)tcc_p2v(HwVIOC_SC0);
+	pSC= (VIOC_SC *)tcc_p2v(HwVIOC_SC2);
 
 	memset(&fbscaler, 0x00, sizeof(SCALER_TYPE));
 
