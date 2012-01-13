@@ -504,6 +504,13 @@ config MMC_TCC892X_SDHC
 	  If you have an TCC board with a Multimedia Card slot,
 	  say Y here.
 
+config MMC_TCC_SUPPORT_EMMC
+        bool "Support an eMMC"
+        depends on MMC_TCC_SDHC
+        help
+          If you use eMMC , Say Y.
+          Otherwise, leave it uncheked.
+
 config MMC_TCC_SDHC_CORE0_SLOT0
 	bool "Enabling a TCC SDHC Core 0 Slot 0"
 	depends on MMC_TCC92XX_SDHC && MMC_TCC_4SD_SLOT

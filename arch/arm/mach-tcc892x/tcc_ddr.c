@@ -122,7 +122,10 @@ MEMCLK mem_clk_table[]	=
 	{0x00011303, 0x00200018, 5500000},
 	{0x00010B03, 0x00200018, 5340000},
 	{0x00010903, 0x00200018, 5300000},
-	{0x0000FB03, 0x00200018, 4980000},
+	{0x00010503, 0x00200018, 5220000},
+	{0x0000FF03, 0x00200018, 5100000},
+	{0x0000FB03, 0x00200018, 5020000},
+	{0x4101F203, 0x00200018, 4980000},
 	{0x4101C203, 0x00200018, 4500000},
 	{0x41019003, 0x00200018, 4000000},
 	{0x41018603, 0x00200018, 3900000},
@@ -448,7 +451,7 @@ static void change_clock(void)
 	*(volatile unsigned long *)addr_clk(0x000040) = CKC_CHANGE_ARG(PLL_VALUE) | 0x00100000; //pll4 for mem , lock_en
 	*(volatile unsigned long *)addr_clk(0x000040) |= 0x80000000;
 	i=20; while(i--) while((*(volatile unsigned long *)addr_clk(0x000040) & 0x00200000) == 0);
-	i=100; while(i--);
+	i=20; while(i--);
 	*(volatile unsigned long *)addr_clk(0x000004) = ((*(volatile unsigned long *)addr_clk(0x000004))&0xFFFFFFF0) | (CKC_CHANGE_ARG(CKC_CTRL_VALUE)&0x0000000F);
 	while((*(volatile unsigned long *)addr_clk(0x000004))&0x80000000);	// CHGREQ
 	*(volatile unsigned long *)addr_clk(0x000004) = ((*(volatile unsigned long *)addr_clk(0x000004))&0xFFFFFF0F) | (CKC_CHANGE_ARG(CKC_CTRL_VALUE)&0x000000F0);
@@ -669,14 +672,14 @@ static void change_clock(void)
 	#else
 	*(volatile unsigned long *)addr_mem(0x810010) &= ~Hw15; //(d)not used just for ddr3 clk div
 	#endif
-	i=50; while(i--);
+	i=10; while(i--);
 
 #if (1)
 	*(volatile unsigned long *)addr_clk(0x000004) = 0x00200014;  // mem bus
 	*(volatile unsigned long *)addr_clk(0x000040) = CKC_CHANGE_ARG(PLL_VALUE) | 0x00100000; //pll4 for mem , lock_en
 	*(volatile unsigned long *)addr_clk(0x000040) |= 0x80000000;
-	i=20; while(i--) while((*(volatile unsigned long *)addr_clk(0x000040) & 0x00200000) == 0);
-	i=100; while(i--);
+	i=15; while(i--) while((*(volatile unsigned long *)addr_clk(0x000040) & 0x00200000) == 0);
+	i=15; while(i--);
 	*(volatile unsigned long *)addr_clk(0x000004) = ((*(volatile unsigned long *)addr_clk(0x000004))&0xFFFFFFF0) | (CKC_CHANGE_ARG(CKC_CTRL_VALUE)&0x0000000F);
 	while((*(volatile unsigned long *)addr_clk(0x000004))&0x80000000);	// CHGREQ
 	*(volatile unsigned long *)addr_clk(0x000004) = ((*(volatile unsigned long *)addr_clk(0x000004))&0xFFFFFF0F) | (CKC_CHANGE_ARG(CKC_CTRL_VALUE)&0x000000F0);
@@ -795,7 +798,7 @@ static void change_clock(void)
 //--------------------------------------------------------------------------
 // release holding to access to dram
 
-	i = 50;	while(i--) tmp = denali_ctl(46); // for reset DLL on DDR3
+	i = 10;	while(i--) tmp = denali_ctl(46); // for reset DLL on DDR3
 	BITCLR(denali_ctl(44),0x1); //inhibit_dram_cmd=0
 
 // -------------------------------------------------------------------------
@@ -872,7 +875,7 @@ static void copy_change_clock(void)
 	unsigned long  flags;
 	unsigned int   stack;
 	FuncPtr pFunc = (FuncPtr)(CKC_CHANGE_FUNC_ADDR);
-	unsigned int	RDMA_sts;
+	unsigned int	RDMA_sts = 0;
 #if defined(CONFIG_DRAM_DDR3) && defined(CONFIG_CACHE_L2X0)
 	unsigned way_mask;
 #endif
@@ -882,19 +885,6 @@ static void copy_change_clock(void)
 	volatile PTIMER	pTIMER	= (volatile PTIMER)tcc_p2v(HwTMR_BASE);
 #endif
 
-//--------------------------------------------------------------
-// disable LCD
-#if !defined(CONFIG_MACH_TCC8920ST)
-#if defined(CONFIG_LCD_LCDC0_USE)
-	RDMA_sts = DEV_RDMA_Status(0);
-	if(RDMA_sts)
-		tcc_LCDC_onoff_ctrl(0,0);	//to prevent flickering LCD
-#else
-	RDMA_sts = DEV_RDMA_Status(1);
-	if(RDMA_sts)
-		tcc_LCDC_onoff_ctrl(1,0);
-#endif
-#endif
 
 //--------------------------------------------------------------
 // copy clock change function to sram
@@ -902,7 +892,7 @@ static void copy_change_clock(void)
 
 //--------------------------------------------------------------
 // disable LCD
-#if defined(CONFIG_DRAM_DDR2) || defined(CONFIG_MACH_TCC8920ST)
+#if 1//defined(CONFIG_DRAM_DDR2) || defined(CONFIG_MACH_TCC8920ST)
 	DEV_LCDC_Wait_signal(0);
 	DEV_LCDC_Wait_signal(1);
 #endif
@@ -967,19 +957,8 @@ static void copy_change_clock(void)
 	while(*(volatile unsigned int *)(L2CACHE_BASE+L2X0_CACHE_SYNC)&1); //wait for sync
 	*(volatile unsigned int *)(L2CACHE_BASE+L2X0_CTRL) = 1; //cache on
 #endif
-	
-//--------------------------------------------------------------
-// enable LCD
-#if !defined(CONFIG_MACH_TCC8920ST)
-#if defined(CONFIG_LCD_LCDC0_USE)
-	if(RDMA_sts)
-		tcc_LCDC_onoff_ctrl(0,1);
-#else
-	if(RDMA_sts)
-		tcc_LCDC_onoff_ctrl(1,1);
-#endif
-#endif
 
+	
 //--------------------------------------------------------------
 // enable kernel tick timer
 #if !defined(CONFIG_GENERIC_TIME)

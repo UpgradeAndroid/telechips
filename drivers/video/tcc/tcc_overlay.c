@@ -972,8 +972,12 @@ static struct miscdevice overlay_misc_device =
     &tcc_overlay_fops,
 };
 
+extern unsigned int tca_get_lcd_lcdc_num(viod);
 static int __init tcc_overlay_probe(struct platform_device *pdev)
 {
+	unsigned int lcd_lcdc_num;
+	lcd_lcdc_num = tca_get_lcd_lcdc_num();
+
 	overlay_lcdc_clk = clk_get(0, "lcdc1");
 	BUG_ON(overlay_lcdc_clk == NULL);
 
@@ -986,14 +990,16 @@ static int __init tcc_overlay_probe(struct platform_device *pdev)
 		#endif//
 
 	#else
-
-		#ifdef CONFIG_LCD_LCDC0_USE
-		pWMIXBase1 = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX0);
-		pRDMABase6 = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA02);
-		#else
-		pWMIXBase1 = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX1);
-		pRDMABase6 = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA06);
-		#endif//
+		if(lcd_lcdc_num)
+		{
+			pWMIXBase1 = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX1);
+			pRDMABase6 = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA06);
+		}
+		else
+		{
+			pWMIXBase1 = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX0);
+			pRDMABase6 = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA02);
+		}
 	#endif//
 
     if (misc_register(&overlay_misc_device))

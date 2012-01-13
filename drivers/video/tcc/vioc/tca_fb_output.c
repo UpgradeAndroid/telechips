@@ -224,9 +224,10 @@ static irqreturn_t TCC_OUTPUT_LCDC_Handler(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-
+extern unsigned int tca_get_lcd_lcdc_num(viod);
 void TCC_OUTPUT_LCDC_Init(void)
 {
+	unsigned int lcd_lcdc_num;
 	pmap_t pmap;
 	dprintk(" %s \n", __func__);
 	lcdc0_output_clk = clk_get(0, "lcdc0");
@@ -248,15 +249,20 @@ void TCC_OUTPUT_LCDC_Init(void)
 	pmap_get_info("fb_g2d1", &pmap);
 	fb_g2d_pbuf1 = (char *) pmap.base;
 
-	#if defined(CONFIG_LCD_LCDC0_USE)
+	lcd_lcdc_num = tca_get_lcd_lcdc_num();
+	if(lcd_lcdc_num  =0)
+	{
 		pDISP_OUTPUT[TCC_OUTPUT_NONE].pVIOC_DispBase = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP0);
 		pDISP_OUTPUT[TCC_OUTPUT_NONE].pVIOC_RDMA_FB= (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA00);
 		pDISP_OUTPUT[TCC_OUTPUT_NONE].pVIOC_WMIXBase= (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX0);	
-	#else
+	}
+	else
+	{
 		pDISP_OUTPUT[TCC_OUTPUT_NONE].pVIOC_DispBase = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP1);
 		pDISP_OUTPUT[TCC_OUTPUT_NONE].pVIOC_RDMA_FB= (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA04);
 		pDISP_OUTPUT[TCC_OUTPUT_NONE].pVIOC_WMIXBase= (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX1);			
-	#endif	
+	}
+
 	memset((void *)&output_chroma, 0x00, sizeof((void *)&output_chroma));
 
 	init_waitqueue_head(&Output_struct.waitq);
@@ -286,28 +292,26 @@ void TCC_OUTPUT_LCDC_Init(void)
 	}
  }
 
-
-
+extern unsigned int tca_get_hdmi_lcdc_num(viod);
 void TCC_OUTPUT_UPDATE_OnOff(char onoff)
 {
+	unsigned int hdmi_lcdc_num;
 	dprintk(" %s \n", __func__);
+
+	hdmi_lcdc_num = tca_get_hdmi_lcdc_num();
+
 #ifdef VIOC_SCALER_PLUG_IN	
-	#if defined(CONFIG_LCD_LCDC0_USE)
-	if(onoff)	{
-			VIOC_CONFIG_PlugIn (VIOC_SC0, VIOC_SC_RDMA_04);
-		}
-		else 	{
-			VIOC_CONFIG_PlugOut (VIOC_SC0);
-		}
-	#else
-		if(onoff)	{
-			VIOC_CONFIG_PlugIn (VIOC_SC0, VIOC_SC_RDMA_00);
-		}
-		else 	{
-			VIOC_CONFIG_PlugOut (VIOC_SC0);
-		}
-	#endif
-	
+	if(onoff)	
+	{
+		if(hdmi_lcdc_num)
+			VIOC_CONFIG_PlugIn (VIOC_SC2, VIOC_SC_RDMA_04);
+		else
+			VIOC_CONFIG_PlugIn (VIOC_SC2, VIOC_SC_RDMA_00);
+	}
+	else 
+	{
+		VIOC_CONFIG_PlugOut (VIOC_SC2);
+	}
 #else
 	if(onoff)	{
 		g2d_open((struct inode *)&g2d_inode, (struct file *)&g2d_filp);
@@ -524,6 +528,24 @@ int TCC_OUTPUT_SetOutputResizeMode(int mode)
 	return 1;
 }
 
+void TCC_OUTPUT_LCDC_OutputEnable(char output_lcdc, unsigned int onoff)
+{
+
+	VIOC_DISP *pDISP;
+
+	if(output_lcdc)	{
+		pDISP = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP1);
+	}
+	else		{
+		pDISP = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP0);
+	}
+	
+	if(onoff)
+		VIOC_DISP_TurnOn(pDISP);
+	else
+		VIOC_DISP_TurnOff(pDISP);
+}
+
 char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int bits_per_pixel, unsigned int addr, unsigned int type)
 {
 	unsigned int regl = 0, g2d_rotate_need = 0, g2d_format_need = 0, scaler_need= 0, m2m_onthefly_use = 0, interlace_output = 0;
@@ -535,7 +557,7 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 	SCALER_TYPE fbscaler;
 	VIOC_SC *pSC;
 
-	pSC= (VIOC_SC *)tcc_p2v(HwVIOC_SC0);
+	pSC= (VIOC_SC *)tcc_p2v(HwVIOC_SC2);
 
 	memset(&fbscaler, 0x00, sizeof(SCALER_TYPE));
 
@@ -808,8 +830,9 @@ void TCC_OUTPUT_FB_WaitVsyncInterrupt(unsigned int type)
 		Output_struct.state = 0;
 		ret = wait_event_interruptible_timeout(Output_struct.waitq, Output_struct.state == 1, msecs_to_jiffies(50));
 	#endif
-	tca_lcdc_interrupt_onoff(FALSE, pDISP_OUTPUT[type].LCDC_N);
-
+#ifndef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
+	//tca_lcdc_interrupt_onoff(FALSE, pDISP_OUTPUT[type].LCDC_N);
+#endif
 	if(ret <= 0)	{
 	 	printk("  [%d]: tcc_setup_interrupt timed_out!! \n", ret);
 	}

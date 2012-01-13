@@ -388,23 +388,23 @@ matrix3by3 layoutMatrix[4] =
     // FORM0_HLAYOUT : AK8975C
 #if defined(CONFIG_COMPASS_TOP)
     #if defined(CONFIG_COMPASS_ROTATE_0)
-    {-1,	0,	0,	0,	-1,	0,	0,	0,	-1},
-    #elif defined(CONFIG_COMPASS_ROTATE_90)
-    {0,	-1,	0,	1,	0,	0,	0,	0,	-1},
-    #elif defined(CONFIG_COMPASS_ROTATE_180)
-    {1,	0,	0,	0,	1,	0,	0,	0,	-1},
-    #else // CONFIG_COMPASS_ROTATE_270
     {0,	1,	0,	-1,	0,	0,	0,	0,	-1},
+    #elif defined(CONFIG_COMPASS_ROTATE_90)
+    {-1,	0,	0,	0,	-1,	0,	0,	0,	-1},
+    #elif defined(CONFIG_COMPASS_ROTATE_180)
+    {0,	-1,	0,	1,	0,	0,	0,	0,	-1},
+    #else // CONFIG_COMPASS_ROTATE_270
+    {1,	0,	0,	0,	1,	0,	0,	0,	-1},
     #endif
 #else
     #if defined(CONFIG_COMPASS_ROTATE_0)
-    {1,	0,	0,	0,	-1,	0,	0,	0,	1},
-    #elif defined(CONFIG_COMPASS_ROTATE_90)
-    {0,	-1,	0,	-1,	0,	0,	0,	0,	1},
-    #elif defined(CONFIG_COMPASS_ROTATE_180)
-    {-1,	0,	0,	0,	1,	0,	0,	0,	1},
-    #else // CONFIG_COMPASS_ROTATE_270
     {0,	1,	0,	1,	0,	0,	0,	0,	1},
+    #elif defined(CONFIG_COMPASS_ROTATE_90)
+    {1,	0,	0,	0,	-1,	0,	0,	0,	1},
+    #elif defined(CONFIG_COMPASS_ROTATE_180)
+    {0,	-1,	0,	-1,	0,	0,	0,	0,	1},
+    #else // CONFIG_COMPASS_ROTATE_270
+    {-1,	0,	0,	0,	1,	0,	0,	0,	1},
     #endif
 #endif	
 

@@ -43,10 +43,12 @@
 #include <mach/tca_tsif.h>
 #include "tsdemux/TSDEMUX_sys.h"
 
+#define USE_STATIC_DMA_BUFFER
 #undef  TSIF_DMA_SIZE
 #define TSIF_DMA_SIZE 0x200000
 
-static int tcc_tsif_init(void);
+struct tea_dma_buf *g_static_dma;
+
 static struct clk *tsif_clk;
 
 struct tcc_tsif_pri_handle {
@@ -121,7 +123,6 @@ static int __init tsif_ex_drv_probe(struct platform_device *pdev)
 
 	/* TODO: device_remove_file(&pdev->dev, &dev_attr_tcc_port); */
 	ret = device_create_file(&pdev->dev, &dev_attr_tcc_port);
-	tcc_tsif_init();
 
 	//printk("[%s]%d: init port:%d re:%d\n", pdev->name, gTSIFCH, tsif_ex_pri.gpio_port, ret);
 	return 0;
@@ -152,6 +153,9 @@ static struct platform_driver tsif_ex_platform_driver = {
 
 static void tea_free_dma_linux(struct tea_dma_buf *tdma)
 {
+    if(g_static_dma){        
+        return;
+    }
     if(tdma) {
         if(tdma->v_addr != 0) {
             dma_free_writecombine(0, tdma->buf_size, tdma->v_addr, tdma->dma_addr);
@@ -165,6 +169,13 @@ static void tea_free_dma_linux(struct tea_dma_buf *tdma)
 static int tea_alloc_dma_linux(struct tea_dma_buf *tdma, unsigned int size)
 {
     int ret = -1;
+
+    if(g_static_dma){        
+        tdma->buf_size = g_static_dma->buf_size;
+        tdma->v_addr = g_static_dma->v_addr;
+        tdma->dma_addr = g_static_dma->dma_addr;
+        return 0;
+    }
 
     if(tdma) {
         tea_free_dma_linux(tdma);
@@ -286,6 +297,7 @@ static unsigned int tcc_tsif_poll(struct file *filp, struct poll_table_struct *w
     if (tsif_get_readable_cnt(&tsif_ex_handle) >= tsif_ex_handle.dma_intr_packet_cnt) {
 		return  (POLLIN | POLLRDNORM);
     }
+    tsif_ex_handle.tsif_resync(&tsif_ex_handle);
     return 0;
 }
 
@@ -298,11 +310,12 @@ static int tcc_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long arg
 {
 	int ret = 0;
 
-//	printk("%s[0x%X] - in\n", __func__, cmd);
+	//printk("%s[0x%X] - in\n", __func__, cmd);
     switch (cmd) {
     case IOCTL_TSIF_DMA_START:
         {
             struct tcc_tsif_param param;
+            int clk_polarity,  valid_polarity, sync_polarity, msb_first, mpeg_ts;
             if (copy_from_user(&param, (void *)arg, sizeof(struct tcc_tsif_param))) {
                 printk("cannot copy from user tcc_tsif_param in IOCTL_TSIF_DMA_START !!! \n");
                 return -EFAULT;
@@ -311,49 +324,57 @@ static int tcc_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long arg
             if (((TSIF_PACKET_SIZE * param.ts_total_packet_cnt) > tsif_ex_handle.dma_total_size)
                 || (param.ts_total_packet_cnt <= 0)) {
                 printk("so big ts_total_packet_cnt !!! \n");
-                return -EFAULT;
+                param.ts_total_packet_cnt = tsif_ex_handle.dma_total_size / TSIF_PACKET_SIZE;
             }
-            tsif_ex_handle.dma_stop(&tsif_ex_handle);
-           	
-           	//tsif_ex_handle.msb_first = 0x01;       //1:msb first, 0:lsb first
-            //tsif_ex_handle.clk_polarity = 0x00;    //1:falling edge 0:rising edge
-            //tsif_ex_handle.valid_polarity = 0x01;  //1:valid high active 0:valid low active
-            //tsif_ex_handle.sync_polarity = 0x00;   //0:sync high active 1:sync low active
-            tsif_ex_handle.big_endian = 0x00;	     //1:big endian, 0:little endian
-            tsif_ex_handle.serial_mode = 0x01;     //1:serialmode 0:parallel mode
-            tsif_ex_handle.sync_delay = 0x00;
 
+            tsif_ex_handle.dma_stop(&tsif_ex_handle);
+
+            if(param.dma_mode == 1)
+                tsif_ex_handle.mpeg_ts |= Hw0;
+            else
+                tsif_ex_handle.mpeg_ts = 0;
 
             if(param.mode & SPI_CPOL)
-               tsif_ex_handle.clk_polarity = 0x01;    //1:falling edge 0:rising edge
+               clk_polarity = 0x01;    //1:falling edge 0:rising edge
             else
-               tsif_ex_handle.clk_polarity = 0x00;    //1:falling edge 0:rising edge
+               clk_polarity = 0x00;    //1:falling edge 0:rising edge
 
+            sync_polarity = 0x00;   //0:sync high active 1:sync low active
             if(param.mode & SPI_CS_HIGH)
             {
-                tsif_ex_handle.valid_polarity = 0x01;  //1:valid high active 0:valid low active
+                valid_polarity = 0x01;  //1:valid high active 0:valid low active
+                if(tsif_ex_handle.mpeg_ts == 0)
+                    sync_polarity = 0x00;   //0:sync high active 1:sync low active
             }
             else
             {
-                tsif_ex_handle.valid_polarity = 0x00;  //1:valid high active 0:valid low active
+                valid_polarity = 0x00;  //1:valid high active 0:valid low active
+                if(tsif_ex_handle.mpeg_ts == 0)
+                    sync_polarity = 0x01;   //0:sync high active 1:sync low active
             }
 
             if(param.mode & SPI_LSB_FIRST)
-           	    tsif_ex_handle.msb_first = 0x00;       //1:msb first, 0:lsb first
+           	    msb_first = 0x00;       //1:msb first, 0:lsb first
             else
-               	tsif_ex_handle.msb_first = 0x01;       //1:msb first, 0:lsb first
-           
-            if(param.dma_mode == 0)
-               	tsif_ex_handle.mpeg_ts = 0;
+               	msb_first = 0x01;       //1:msb first, 0:lsb first
+
+            if( tsif_ex_handle.clk_polarity != clk_polarity ||\
+                tsif_ex_handle.valid_polarity != valid_polarity ||\
+                tsif_ex_handle.sync_polarity != sync_polarity ||\
+                tsif_ex_handle.msb_first != msb_first)
+            {
+                tsif_ex_handle.msb_first = msb_first;       //1:msb first, 0:lsb first
+                tsif_ex_handle.clk_polarity = clk_polarity;    //1:falling edge 0:rising edge
+                tsif_ex_handle.valid_polarity = valid_polarity;  //1:valid high active 0:valid low active
+                tsif_ex_handle.sync_polarity = sync_polarity;   //0:sync high active 1:sync low active
+                tsif_ex_handle.tsif_set(&tsif_ex_handle);
+            }
 
             tsif_ex_handle.dma_total_packet_cnt = param.ts_total_packet_cnt;
             tsif_ex_handle.dma_intr_packet_cnt = param.ts_intr_packet_cnt;
-
-            tsif_ex_handle.tsif_set(&tsif_ex_handle);
-            tsif_ex_handle.clear_fifo_packet(&tsif_ex_handle);
             tsif_ex_handle.q_pos = tsif_ex_handle.cur_q_pos = 0;
             printk("interrupt packet count [%u]\n", tsif_ex_handle.dma_intr_packet_cnt);
-            tsif_ex_handle.dma_start(&tsif_ex_handle);
+            tsif_ex_handle.dma_start(&tsif_ex_handle);                        
         }
         break;			
     case IOCTL_TSIF_DMA_STOP:
@@ -408,19 +429,14 @@ static int tcc_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long arg
         ret = -EINVAL;
         break;
     }
-//	printk("%s[0x%X] - out\n", __func__, cmd);
+	//printk("%s[0x%X] - out\n", __func__, cmd);
     return ret;
 }
 
 static int tcc_tsif_init(void)
 {
     int ret = 0, tsif_channel = 0;
-    memset(&tsif_ex_handle, 0, sizeof(tcc_tsif_handle_t));
-	if(tsif_clk == NULL)
-        return -1;
-
-    clk_enable(tsif_clk); 
-   
+    memset(&tsif_ex_handle, 0, sizeof(tcc_tsif_handle_t));   
     tsif_channel = 0;
    	if(!strcmp(tsif_ex_pri.name,"tsif1"))
         tsif_channel = 1;
@@ -443,16 +459,22 @@ static int tcc_tsif_init(void)
    
     tsif_ex_handle.serial_mode = 1;
 	tsif_ex_handle.private_data = (void *)&tsif_ex_pri;
-
     init_waitqueue_head(&(tsif_ex_pri.wait_q));
-    mutex_init(&(tsif_ex_pri.mutex));
 
     tsif_ex_handle.dma_total_packet_cnt = tsif_ex_handle.dma_total_size / TSIF_PACKET_SIZE;
     tsif_ex_handle.dma_intr_packet_cnt = 1;
-
     tsif_ex_handle.hw_init(&tsif_ex_handle);
     tsif_ex_handle.clear_fifo_packet(&tsif_ex_handle);
     tsif_ex_handle.dma_stop(&tsif_ex_handle);
+    tsif_ex_handle.msb_first = 0x01;       //1:msb first, 0:lsb first
+    tsif_ex_handle.clk_polarity = 0x00;    //1:falling edge 0:rising edge
+    tsif_ex_handle.valid_polarity = 0x01;  //1:valid high active 0:valid low active
+    tsif_ex_handle.sync_polarity = 0x00;   //0:sync high active 1:sync low active
+    tsif_ex_handle.big_endian = 0x00;	     //1:big endian, 0:little endian
+    tsif_ex_handle.serial_mode = 0x01;     //1:serialmode 0:parallel mode
+    tsif_ex_handle.sync_delay = 0x00;
+	tsif_ex_handle.mpeg_ts = 0;
+    tsif_ex_handle.tsif_set(&tsif_ex_handle);
 	
     ret = request_irq(tsif_ex_handle.irq, tsif_ex_dma_handler, IRQF_SHARED, TSIF_DEV_NAME, &tsif_ex_handle);
 	if (ret) { 
@@ -478,34 +500,39 @@ static void tcc_tsif_deinit(void)
 static int tcc_tsif_open(struct inode *inode, struct file *filp)
 {
     int ret = 0;	
-    clk_enable(tsif_clk);
-
-    mutex_lock(&(tsif_ex_pri.mutex));
-	tsif_ex_pri.pcr_pid = 0xFFFF;
-	tsif_ex_handle.mpeg_ts = 0;
-	
     if (tsif_ex_pri.open_cnt == 0) {
         tsif_ex_pri.open_cnt++;
     } else {
-        ret = -EBUSY;
+        return -EBUSY;
     }
-    mutex_unlock(&(tsif_ex_pri.mutex));
 
+   	if(tsif_clk == NULL)
+        return -EBUSY;
+
+    clk_enable(tsif_clk); 
+    mutex_lock(&(tsif_ex_pri.mutex));
+	tsif_ex_pri.pcr_pid = 0xFFFF;
+	tcc_tsif_init();
+    mutex_unlock(&(tsif_ex_pri.mutex));
 	return ret;
 }
 
 
 static int tcc_tsif_release(struct inode *inode, struct file *filp)
 {
-   	mutex_lock(&(tsif_ex_pri.mutex));
-	TSDEMUX_Close();
     if (tsif_ex_pri.open_cnt > 0) {
         tsif_ex_pri.open_cnt--;
     }	
-    mutex_unlock(&(tsif_ex_pri.mutex));
 
-    clk_disable(tsif_clk);
-    
+    if(tsif_ex_pri.open_cnt == 0)
+    {
+   	    mutex_lock(&(tsif_ex_pri.mutex));
+        tsif_ex_handle.dma_stop(&tsif_ex_handle);
+        tcc_tsif_deinit();
+      	TSDEMUX_Close();
+        mutex_unlock(&(tsif_ex_pri.mutex));
+        clk_disable(tsif_clk);
+    }    
     return 0;
 }
 
@@ -524,7 +551,9 @@ static struct class *tsif_ex_class;
 int tsif_ex_init(void)
 {
     int ret = 0;
+
     memset(&tsif_ex_pri, 0, sizeof(struct tcc_tsif_pri_handle));
+    mutex_init(&(tsif_ex_pri.mutex));
     ret = register_chrdev(0, TSIF_DEV_NAME, &tcc_tsif_ex_fops);
     if (ret < 0) {
         printk("[%s:%d] register_chrdev error !!!!!\n", __func__, __LINE__); 
@@ -532,9 +561,22 @@ int tsif_ex_init(void)
     }
     tsif_ex_pri.drv_major_num = ret;
     printk("[%s:%d] major number = %d\n", __func__, __LINE__, tsif_ex_pri.drv_major_num);
-    
-//    init_waitqueue_head(&(tsif_ex_pri.wait_q));
-//    mutex_init(&(tsif_ex_pri.mutex));
+    g_static_dma = NULL;
+#ifdef      USE_STATIC_DMA_BUFFER
+     g_static_dma = kmalloc(sizeof(struct tea_dma_buf), GFP_KERNEL);
+     if(g_static_dma)
+     {
+        g_static_dma->buf_size = TSIF_DMA_SIZE;
+        g_static_dma->v_addr = dma_alloc_writecombine(0, g_static_dma->buf_size, &g_static_dma->dma_addr, GFP_KERNEL);
+		printk("tcc-tsif_ex : dma buffer alloc @0x%X(Phy=0x%X), size:%d\n", (unsigned int)g_static_dma->v_addr, (unsigned int)g_static_dma->dma_addr, g_static_dma->buf_size);
+        if(g_static_dma->v_addr == NULL)
+        {
+            kfree(g_static_dma);
+            g_static_dma = NULL;
+        }
+     }
+#endif    
+
     ret = platform_driver_probe(&tsif_ex_platform_driver, tsif_ex_drv_probe);
 
     tsif_ex_class = class_create(THIS_MODULE, TSIF_DEV_NAME);
@@ -546,7 +588,6 @@ int tsif_ex_init(void)
 
 void tsif_ex_exit(void)
 {
-    tcc_tsif_deinit();
    	unregister_chrdev(tsif_ex_pri.drv_major_num, TSIF_DEV_NAME);
     platform_driver_unregister(&tsif_ex_platform_driver);
 	if(tsif_clk)
@@ -554,6 +595,12 @@ void tsif_ex_exit(void)
 	    clk_disable(tsif_clk);
     	clk_put(tsif_clk);
 	}
+	if(g_static_dma)
+    {
+        dma_free_writecombine(0, g_static_dma->buf_size, g_static_dma->v_addr, g_static_dma->dma_addr);
+        kfree(g_static_dma);
+        g_static_dma = NULL;
+    }
 }
 
 #if 1

@@ -222,12 +222,17 @@ int __init tcc8920_init_panel(void)
 	if (!machine_is_tcc8920())
 		return 0;
 
-	if(system_rev == 0x1005){
+	if(system_rev == 0x1005 || system_rev == 0x1007){
 		lcd_pdata.display_on = TCC_GPB(7);
 		lcd_pdata.bl_on = TCC_GPF(16);
 	}
-
-	printk("supported LCD panel type %d\n", tcc_panel_id);
+	else if(system_rev == 0x1006){
+		lcd_pdata.display_on 	= TCC_GPB(28);
+		lcd_pdata.bl_on 		= TCC_GPG(5);
+		lcd_pdata.lcdc_num	= 0;	
+	}
+	
+	printk("supported LCD panel type %d  system_rev:0x%x \n", tcc_panel_id, system_rev);
 
 	switch (tcc_panel_id) {
 #ifdef CONFIG_LCD_LMS350DF01

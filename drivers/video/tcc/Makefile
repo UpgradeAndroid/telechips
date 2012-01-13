@@ -1,9 +1,7 @@
 obj-$(CONFIG_FB_TCC_OVERLAY)	+= tcc_overlay.o
 obj-$(CONFIG_FB_TCC_OVERLAY_EXT) += tcc_overlay1.o
-obj-$(CONFIG_TCC_LCDC_CONTROLLER)	+= tcc_ccfb.o tccfb.o tccfb_interface.o ddi/
-obj-$(CONFIG_TCC_VIOC_CONTROLLER)	 += tcc_vioc_fb.o tcc_vioc_interface.o vioc/
-obj-$(CONFIG_FB_TCC_COMPOSITE)	+= tcc_composite.o tcc_composite_internal.o 
-obj-$(CONFIG_FB_TCC_COMPONENT)	  += tcc_component.o tcc_component_cs4954.o tcc_component_ths8200.o
+obj-$(CONFIG_TCC_LCDC_CONTROLLER)	+= tcc_ccfb.o tccfb.o tccfb_interface.o tca_display_config.o ddi/
+obj-$(CONFIG_TCC_VIOC_CONTROLLER)	 += tcc_vioc_fb.o tcc_vioc_interface.o tca_display_config.o vioc/
 obj-$(CONFIG_LCD_HDMI1280X720)	+= hdmi_1280x720.o
 obj-$(CONFIG_LCD_LMS350DF01)	+= lcd_lms350df01.o
 obj-$(CONFIG_LCD_LMS480KF01)	+= lcd_lms480kf01.o

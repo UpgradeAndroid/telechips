@@ -89,7 +89,12 @@ typedef struct
 #define V_DEC_INIT_RESULT				25
 #define V_DEC_SEQ_HEADER_RESULT			26
 #define V_DEC_DECODE_RESULT				27
+#define V_DEC_UPDATE_RINGBUF_WP		28
 
+#define V_GET_RING_BUFFER_STATUS_RESULT	29
+#define V_FILL_RING_BUFFER_AUTO_RESULT	30
+#define V_DEC_UPDATE_RINGBUF_WP_RESULT	31
+#define V_GET_INITIAL_INFO_FOR_STREAMING_MODE_ONLY_RESULT 32
 typedef struct {
 	int result;
 	codec_handle_t gsVpuDecHandle;
@@ -113,6 +118,22 @@ typedef struct {
 	dec_output_t gsVpuDecOutput;
 }VDEC_DECODE_t;
 
+typedef struct {
+	int result;
+	dec_ring_buffer_status_out_t gsVpuDecRingStatus;
+}VDEC_RINGBUF_GETINFO_t;
+
+typedef struct {
+	int result;
+	dec_init_t gsVpuDecInit;
+	dec_ring_buffer_setting_in_t gsVpuDecRingFeed;
+}VDEC_RINGBUF_SETBUF_t;
+
+typedef struct {
+	int result;
+	int iCopiedSize;
+	int iFlushBuf;
+}VDEC_RINGBUF_SETBUF_PTRONLY_t;
 ////////////////////////////////////////////////////////////////////////////////////////
 /* VPU ENCODER */
 #define V_ENC_INIT					10	//!< init

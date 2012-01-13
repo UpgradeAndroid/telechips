@@ -149,7 +149,7 @@ static int __init tcc8920_keypad_init(void)
 	if (!machine_is_tcc8920())
 		return 0;
 
-	if(system_rev == 0x1005)
+	if(system_rev == 0x1005 || system_rev == 0x1007)
 	{
 		tcc8921_keymap_info.input_gpios = tcc8920_2cs_row_gpios;
 		tcc8921_keymap_info.output_gpios = tcc8920_2cs_col_gpios;

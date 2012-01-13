@@ -39,7 +39,7 @@
 #include <linux/spi/tcc_gpsb_tsif.h>
 #include <mach/tca_spi.h>
 #include "tsdemux/TSDEMUX_sys.h"
-//#define      SUPPORT_TSIF_BLOCK
+#define      SUPPORT_TSIF_BLOCK
 static int tcc_tsif_init(void);
 
 static struct clk *gpsb_clk;
@@ -591,7 +591,7 @@ static int __init tsif_init(void)
 #ifdef      SUPPORT_TSIF_BLOCK
 	if(machine_is_tcc8920())
     {
-        if(system_rev == 0x1005)
+        if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007)
         { 
             g_use_tsif_block = 1;
             tsif_ex_init();

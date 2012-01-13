@@ -72,6 +72,8 @@ extern const struct tcc_freq_table_t gtHSIOClockLimitTable;
 //#define GPIO_PHY_RST        TCC_GPC(28)
 //#define GPIO_PHY_RST        TCC_GPC(9)
 #define GPIO_PHY_ON         TCC_GPC(27)
+#define GPIO_E_PHY_ON         TCC_GPE(25)//tcc8925
+
 //#define INT_PHY_IRQ         TCC_GPC(9)
 
 static struct clk *hsio_clk=NULL;
@@ -126,13 +128,21 @@ static void tca_gmac_clk_disable(void)
 
 static void tca_gmac_phy_pwr_on(void)
 {
-	gpio_direction_output(GPIO_PHY_ON, 1);
+	if(machine_is_tcc8920() && (system_rev == 0x1006))//tcc8925
+		gpio_direction_output(GPIO_E_PHY_ON, 1);
+	else
+		gpio_direction_output(GPIO_PHY_ON, 1);
+	
 	msleep(10);
 }
 
 static void tca_gmac_phy_pwr_off(void)
 {
-	gpio_direction_output(GPIO_PHY_ON, 0);
+	if(machine_is_tcc8920() && (system_rev == 0x1006))//tcc8925
+		gpio_direction_output(GPIO_E_PHY_ON, 0);
+	else
+		gpio_direction_output(GPIO_PHY_ON, 0);
+	
 	msleep(10);
 }
 
@@ -145,10 +155,18 @@ static void tca_gmac_phy_reset(void)
 		msleep(300);
 	}
 	else{
-		gpio_direction_output(TCC_GPC(28), 0);
-		msleep(10);
-		gpio_direction_output(TCC_GPC(28), 1);
-		msleep(100);	
+		if(system_rev == 0x1006){//tcc8925
+			gpio_direction_output(TCC_GPC(9), 0);
+			msleep(10);
+			gpio_direction_output(TCC_GPC(9), 1);
+			msleep(100);
+		}
+		else{
+			gpio_direction_output(TCC_GPC(28), 0);
+			msleep(10);
+			gpio_direction_output(TCC_GPC(28), 1);
+			msleep(100);
+		}
 	}
 }
 
@@ -250,7 +268,7 @@ static void tca_gmac_portinit(void)
 
 #if 1
 #define GMAC_RX_DRV_STRENGTH   3
-#define GMAC_TX_DRV_STRENGTH   3
+#define GMAC_TX_DRV_STRENGTH   2
 
 		pGPIO->GPCCD0.bREG.GPCD01 = GMAC_RX_DRV_STRENGTH; //MDC
 		pGPIO->GPCCD0.bREG.GPCD02 = GMAC_RX_DRV_STRENGTH; //MDIO
@@ -336,16 +354,17 @@ static void tca_gmac_portinit(void)
 
 #else
 #define GMAC_DRV_STRENGTH 3
+#define GMAC_DRV_STRENGTH_2 2
 
 		//Setup GPIO Strength
 		tcc_gpio_config(GPIO_GMAC_MDC, GPIO_CD(GMAC_DRV_STRENGTH));
 		tcc_gpio_config(GPIO_GMAC_MDIO, GPIO_CD(GMAC_DRV_STRENGTH));
 
-		tcc_gpio_config(GPIO_GMAC_TXD0, GPIO_CD(GMAC_DRV_STRENGTH));
-		tcc_gpio_config(GPIO_GMAC_TXD1, GPIO_CD(GMAC_DRV_STRENGTH));
-		tcc_gpio_config(GPIO_GMAC_TXD2, GPIO_CD(GMAC_DRV_STRENGTH));
-		tcc_gpio_config(GPIO_GMAC_TXD3, GPIO_CD(GMAC_DRV_STRENGTH));
-		tcc_gpio_config(GPIO_GMAC_TXEN, GPIO_CD(GMAC_DRV_STRENGTH));
+		tcc_gpio_config(GPIO_GMAC_TXD0, GPIO_CD(GMAC_DRV_STRENGTH_2));
+		tcc_gpio_config(GPIO_GMAC_TXD1, GPIO_CD(GMAC_DRV_STRENGTH_2));
+		tcc_gpio_config(GPIO_GMAC_TXD2, GPIO_CD(GMAC_DRV_STRENGTH_2));
+		tcc_gpio_config(GPIO_GMAC_TXD3, GPIO_CD(GMAC_DRV_STRENGTH_2));
+		tcc_gpio_config(GPIO_GMAC_TXEN, GPIO_CD(GMAC_DRV_STRENGTH_2));
 
 		tcc_gpio_config(GPIO_GMAC_RXCLK, GPIO_CD(GMAC_DRV_STRENGTH));
 		tcc_gpio_config(GPIO_GMAC_RXD0, GPIO_CD(GMAC_DRV_STRENGTH));
@@ -353,7 +372,7 @@ static void tca_gmac_portinit(void)
 		tcc_gpio_config(GPIO_GMAC_RXD2, GPIO_CD(GMAC_DRV_STRENGTH));
 		tcc_gpio_config(GPIO_GMAC_RXD3, GPIO_CD(GMAC_DRV_STRENGTH));
 		tcc_gpio_config(GPIO_GMAC_RXDV, GPIO_CD(GMAC_DRV_STRENGTH));
-		tcc_gpio_config(GPIO_GMAC_TXCLK, GPIO_CD(GMAC_DRV_STRENGTH));
+		tcc_gpio_config(GPIO_GMAC_TXCLK, GPIO_CD(GMAC_DRV_STRENGTH_2));
 
 #if defined(CONFIG_TCC_GMAC_MII_MODE)
 		tcc_gpio_config(GPIO_GMAC_TXER, GPIO_CD(GMAC_DRV_STRENGTH));
@@ -392,14 +411,27 @@ static void tca_gmac_portinit(void)
 			gpio_direction_output(GPIO_PHY_ON, 0);
 		}
 		else{
-			tcc_gpio_config(TCC_GPC(28), GPIO_FN(0));
-			tcc_gpio_config(GPIO_PHY_ON, GPIO_FN(0));
-			
-			gpio_request(TCC_GPC(28), "PHY_RST");
-			gpio_request(GPIO_PHY_ON, "PHY_ON");
-			
-			gpio_direction_output(TCC_GPC(28), 0);
-			gpio_direction_output(GPIO_PHY_ON, 0);
+			if(system_rev == 0x1006){//tcc8925
+				tcc_gpio_config(TCC_GPC(9), GPIO_FN(0));
+				tcc_gpio_config(GPIO_E_PHY_ON, GPIO_FN(0));
+				
+				gpio_request(TCC_GPC(9), "PHY_RST");
+				gpio_request(GPIO_E_PHY_ON, "PHY_ON");
+				
+				gpio_direction_output(TCC_GPC(9), 0);
+				gpio_direction_output(GPIO_E_PHY_ON, 0);
+				
+			}
+			else{
+				tcc_gpio_config(TCC_GPC(28), GPIO_FN(0));
+				tcc_gpio_config(GPIO_PHY_ON, GPIO_FN(0));
+				
+				gpio_request(TCC_GPC(28), "PHY_RST");
+				gpio_request(GPIO_PHY_ON, "PHY_ON");
+				
+				gpio_direction_output(TCC_GPC(28), 0);
+				gpio_direction_output(GPIO_PHY_ON, 0);
+			}
 		}
 
 	    pHSIOCFG->ETHER_CFG1.bREG.CE = 0; //Clock Disable
@@ -440,7 +472,6 @@ static void tca_gmac_irq_init(void)
 
 static void tcc_gmac_set_clk_rate(struct tcc_gmac_priv *priv, unsigned int clk_rate)
 {
-	unsigned int mClock = clk_rate;
 #if defined(PHY_INFSEL_ONLY_MODE) //PHY_INFSEL Only Mode
 	switch(clk_rate) {
 		case 1250000:
@@ -453,12 +484,8 @@ static void tcc_gmac_set_clk_rate(struct tcc_gmac_priv *priv, unsigned int clk_r
 			priv->hw->clk_rate = GMII_CLK_RANGE_20_35M;
 			break;
 		default:
-			mClock = 1250000;
 			priv->hw->clk_rate = GMII_CLK_RANGE_100_150M;
 			break;
-	}
-	if(gmac_clk) {
-		clk_set_rate(gmac_clk, mClock*100);		// Unit. Hz
 	}
 #else
 	volatile PHSIOBUSCFG pHSIOCFG= (volatile PHSIOBUSCFG)tcc_p2v(HwHSIOBUSCFG_BASE);
@@ -489,9 +516,6 @@ static void tcc_gmac_set_clk_rate(struct tcc_gmac_priv *priv, unsigned int clk_r
 	}
 	#endif
 	
-	if(gmac_clk) {
-		clk_set_rate(gmac_clk, mClock*100);		// Unit. Hz
-	}
 #endif
 }
 

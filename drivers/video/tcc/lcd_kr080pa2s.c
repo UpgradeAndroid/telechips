@@ -46,7 +46,7 @@ static struct mutex panel_lock;
 static char lcd_pwr_state;
 static unsigned int lcd_bl_level;
 static char lcdc_number;
-extern void lcdc_initialize(struct lcd_panel *lcd_spec);
+extern void lcdc_initialize(struct lcd_panel *lcd_spec, unsigned int lcdc_num);
 static int kr080pa2s_panel_init(struct lcd_panel *panel)
 {
 
@@ -67,14 +67,14 @@ static int kr080pa2s_set_power(struct lcd_panel *panel, int on, unsigned int lcd
 		gpio_set_value(pdata->reset, 1);
 		msleep(20);
 
-		lcdc_initialize(panel);
+		lcdc_initialize(panel, lcd_num);
 		LCDC_IO_Set(lcd_num, panel->bus_width);
 		/*Delay Open The Backlight when Come back from suspend or resume By JimKuang*/
 		if(lcd_bl_level)		
 			{
 			msleep(80); 	
 		#if defined(CONFIG_ARCH_TCC892X)
-			if (system_rev == 0x1005)
+			if (system_rev == 0x1005 || system_rev == 0x1007)
 				tcc_gpio_config(pdata->bl_on, GPIO_FN(11));
 			else
 				tcc_gpio_config(pdata->bl_on, GPIO_FN(9));
@@ -114,13 +114,13 @@ static int kr080pa2s_set_backlight_level(struct lcd_panel *panel, int level)
 #if defined(CONFIG_ARCH_TCC892X)
 
 		if(lcd_pwr_state) {
-			if (system_rev == 0x1005)
+			if (system_rev == 0x1005 || system_rev == 0x1007)
 				tcc_gpio_config(pdata->bl_on, GPIO_FN(11));
 			else
 				tcc_gpio_config(pdata->bl_on, GPIO_FN(9));
 		}
 
-		if (system_rev == 0x1005) {
+		if (system_rev == 0x1005 || system_rev == 0x1007) {
 			pTIMER	= (volatile PTIMER)tcc_p2v(HwTMR_BASE);
 			pTIMER->TREF0.nREG  = MAX_BL_LEVEL;
 			pTIMER->TCFG0.nREG  = 0x105;	
