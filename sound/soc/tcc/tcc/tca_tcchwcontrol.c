@@ -24,6 +24,9 @@
 #include "tca_tcchwcontrol.h"
 
 
+/* System revision Info */
+extern unsigned int system_rev; 
+
 /*****************************************************************************
 * Function Name : tca_dma_clrstatus()
 ******************************************************************************
@@ -103,7 +106,14 @@ unsigned int tca_tcc_initport(void)
 		#endif
 	}
 	else {
-	    tcc_gpio_config(TCC_GPG(5), GPIO_FN1);
+	    /* SPDIF Tx */
+	    if (system_rev == 0x1006) {
+            tcc_gpio_config(TCC_GPG(18), GPIO_FN1);
+	    }
+	    else {
+	        tcc_gpio_config(TCC_GPG(5), GPIO_FN1);
+	    }
+
 	    tcc_gpio_config(TCC_GPG(6), GPIO_FN1);
 	    tcc_gpio_config(TCC_GPG(7), GPIO_FN1);
 	    tcc_gpio_config(TCC_GPG(8), GPIO_FN1);
