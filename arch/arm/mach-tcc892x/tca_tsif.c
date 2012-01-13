@@ -17,16 +17,25 @@
 #include <mach/tca_tsif.h>
 
 //#define DEBUG_INFO
+
+static void tsif_delay(int m_sec)
+{
+    mdelay(m_sec);
+//  msleep(1);
+}
+
 static void tcc_tsif_clearfifopacket(struct tcc_tsif_handle *h)
 {
 #ifdef DEBUG_INFO
 	printk("%s - in\n", __func__);
 #endif    
-	BITSET(h->regs->TSRXCR, Hw7);		//set to Hw7 : empties RX Fifo
+    //don't use this clear fifo method
+    //this clear only read side, write size doesn't be cleard
+    //BITSET(h->regs->TSRXCR, Hw7);		//set to Hw7 : empties RX Fifo
 
+    //this clear both read/write size fifo
     BITSET(h->regs->TSRXCR, Hw30);
 	BITCLR(h->regs->TSRXCR, Hw30);
-    msleep(1);
 #ifdef DEBUG_INFO
 	printk("%s\n", __func__);
 #endif 
@@ -39,7 +48,7 @@ static int tca_tsif_set_port(struct tcc_tsif_handle *h)
 
 	switch (h->gpio_port) {
 		case 0:
-				tcc_gpio_config(TCC_GPD(8), GPIO_FN(2));		//clk
+				tcc_gpio_config(TCC_GPD(8), GPIO_FN(2)|GPIO_SCHMITT_INPUT);		//clk
 				tcc_gpio_config(TCC_GPD(9), GPIO_FN(2));		//valid
 				tcc_gpio_config(TCC_GPD(10), GPIO_FN(2));		//sync
 				tcc_gpio_config(TCC_GPD(7), GPIO_FN(2));		//d0
@@ -55,7 +64,7 @@ static int tca_tsif_set_port(struct tcc_tsif_handle *h)
 				}
 			break;
 		case 1:
-				tcc_gpio_config(TCC_GPB(0), GPIO_FN(7));		//clk
+				tcc_gpio_config(TCC_GPB(0), GPIO_FN(7)|GPIO_SCHMITT_INPUT);		//clk
 				tcc_gpio_config(TCC_GPB(2), GPIO_FN(7));		//valid
 				tcc_gpio_config(TCC_GPB(1), GPIO_FN(7));		//sync
 				tcc_gpio_config(TCC_GPB(3), GPIO_FN(7));		//d0
@@ -71,7 +80,7 @@ static int tca_tsif_set_port(struct tcc_tsif_handle *h)
 				}
 			break;
 		case 2:
-				tcc_gpio_config(TCC_GPB(28), GPIO_FN(7));		//clk
+				tcc_gpio_config(TCC_GPB(28), GPIO_FN(7)|GPIO_SCHMITT_INPUT);		//clk
 				tcc_gpio_config(TCC_GPB(26), GPIO_FN(7));		//valid
 				tcc_gpio_config(TCC_GPB(27), GPIO_FN(7));		//sync
 				tcc_gpio_config(TCC_GPB(25), GPIO_FN(7));		//d0
@@ -87,7 +96,7 @@ static int tca_tsif_set_port(struct tcc_tsif_handle *h)
 				}
 			break;
 		case 3:
-				tcc_gpio_config(TCC_GPC(26), GPIO_FN(3));		//clk
+				tcc_gpio_config(TCC_GPC(26), GPIO_FN(3)|GPIO_SCHMITT_INPUT);		//clk
 				tcc_gpio_config(TCC_GPC(24), GPIO_FN(3));		//valid
 				tcc_gpio_config(TCC_GPC(25), GPIO_FN(3));		//sync
 				tcc_gpio_config(TCC_GPC(23), GPIO_FN(3));		//d0
@@ -103,7 +112,7 @@ static int tca_tsif_set_port(struct tcc_tsif_handle *h)
 				}
 			break;
 		case 4:
-				tcc_gpio_config(TCC_GPE(26), GPIO_FN(4));		//clk
+				tcc_gpio_config(TCC_GPE(26), GPIO_FN(4)|GPIO_SCHMITT_INPUT);		//clk
 				tcc_gpio_config(TCC_GPE(24), GPIO_FN(4));		//valid
 				tcc_gpio_config(TCC_GPE(25), GPIO_FN(4));		//sync
 				tcc_gpio_config(TCC_GPE(23), GPIO_FN(4));		//d0
@@ -119,7 +128,7 @@ static int tca_tsif_set_port(struct tcc_tsif_handle *h)
 				}
 			break;
 		case 5:
-				tcc_gpio_config(TCC_GPF(0), GPIO_FN(2));		//clk
+				tcc_gpio_config(TCC_GPF(0), GPIO_FN(2)|GPIO_SCHMITT_INPUT);		//clk
 				tcc_gpio_config(TCC_GPF(2), GPIO_FN(2));		//valid
 				tcc_gpio_config(TCC_GPF(1), GPIO_FN(2));		//sync
 				tcc_gpio_config(TCC_GPF(3), GPIO_FN(2));		//d0
@@ -528,7 +537,7 @@ static void tcc_tsif_isr(struct tcc_tsif_handle *h)
 		BITSET(dma_regs->DMAICR.nREG, (Hw29|Hw28));
 		h->cur_q_pos = (int)(dma_regs->DMASTR.nREG >> 17);
 	}
-
+    h->tsif_resync(h);
 	return;
 }
 
@@ -557,6 +566,8 @@ static int tcc_tsif_dmastart(struct tcc_tsif_handle *h)
 	unsigned int packet_size = (MPEG_PACKET_SIZE & 0x1FFF);
 	unsigned int intr_packet_cnt = (h->dma_intr_packet_cnt & 0x1FFF) - 1;
 
+   if(h->regs->TSRXCR & Hw31)
+        return 1;    
 #ifdef DEBUG_INFO
 	printk("%s - in\n", __func__);
 #endif
@@ -580,33 +591,33 @@ static int tcc_tsif_dmastart(struct tcc_tsif_handle *h)
 
 	BITSET(dma_regs->DMACTR.nREG, Hw30);				//enable recv DMA requeset 
 
+    BITCLR(dma_regs->DMACTR.nREG, Hw19|Hw18);//disable PID & Sync Byte match
+    BITCLR(dma_regs->DMACTR.nREG, Hw5|Hw4);	//00:normal mode, 01:MPEG2_TS mode
+
 #if defined(SUPPORT_PIDFILTER_DMA)
-   	BITSET(dma_regs->DMACTR.nREG, Hw19|Hw18);		//enable PID & Sync Byte match
-#endif
-    if( h->mpeg_ts == 0)
+    if(h->mpeg_ts == Hw0)
     {
-   	    BITCLR(dma_regs->DMACTR.nREG, Hw19|Hw18);//disable PID & Sync Byte match
-        BITCLR(dma_regs->DMACTR.nREG, Hw5|Hw4);	//00:normal mode, 01:MPEG2_TS mode
-      	BITCLR(h->regs->TSRXCR, Hw17);
-      	BITSET(h->regs->TSRXCR, Hw6);
-//     	BITSET(h->regs->TSRXCR, Hw5);
+   	    BITCSET(dma_regs->DMACTR.nREG, Hw5|Hw4, Hw4);	//00:normal mode, 01:MPEG2_TS mode
     }
-    else
-    	BITCSET(dma_regs->DMACTR.nREG, Hw5|Hw4, Hw4);	//00:normal mode, 01:MPEG2_TS mode
+    else if(h->mpeg_ts == (Hw0|Hw1))
+    {
+       	BITSET(dma_regs->DMACTR.nREG, Hw19|Hw18);		//enable PID & Sync Byte match
+   	    BITCSET(dma_regs->DMACTR.nREG, Hw5|Hw4, Hw4);	//00:normal mode, 01:MPEG2_TS mode
+    }
+#endif
+    if( (h->mpeg_ts == 0) || (h->mpeg_ts == Hw0))
+    {   	    
+      	BITCLR(h->regs->TSRXCR, Hw17);      	
+    }
+	
 	BITSET(dma_regs->DMACTR.nREG, Hw29);				//enable continues
 	BITSET(dma_regs->DMACTR.nREG, Hw1);				//enable TSSEL
 	BITSET(dma_regs->DMACTR.nREG, Hw0);				//enable DMA
-    msleep(1);
 	BITSET(h->regs->TSRXCR, Hw31);
-
-#if 0    
-    if(h->mpeg_ts == 0)
+    if( h->mpeg_ts == 0)
     {
-        msleep(2000);
-        BITCLR(h->regs->TSRXCR, Hw5);
+        BITSET(h->regs->TSRXCR, Hw6);
     }
-#endif
-
 #ifdef DEBUG_INFO
 	printk("%s\n", __func__);
 #endif
@@ -616,6 +627,9 @@ static int tcc_tsif_dmastart(struct tcc_tsif_handle *h)
 static int tcc_tsif_dmastop(struct tcc_tsif_handle *h)
 {
 	volatile PTSIFDMA dma_regs;
+    if(!(h->regs->TSRXCR & Hw31))
+        return 1;    
+
 #ifdef DEBUG_INFO
 	printk("%s - in\n", __func__);
 #endif
@@ -624,7 +638,7 @@ static int tcc_tsif_dmastop(struct tcc_tsif_handle *h)
 	else					dma_regs = (volatile PTSIFDMA)tcc_p2v(HwTSIF_DMA2_BASE);
 
 	BITCLR(h->regs->TSRXCR, Hw31);
-    msleep(1);
+    tsif_delay(100);
 
 	BITCLR(dma_regs->DMACTR.nREG, Hw30); //disable DMA receive
 	BITSET(dma_regs->DMAICR.nREG, Hw29|Hw28);
@@ -656,15 +670,17 @@ static void tcc_tsif_hw_init(struct tcc_tsif_handle *h)
 	
 	BITCLR(h->regs->TSRXCR, Hw17);
 	reg_val = (TSIF_RXFIFO_THRESHOLD << 5) | Hw4;
-	BITCSET(h->regs->TSIC,(Hw32-Hw0), reg_val);
+	BITCSET(h->regs->TSIC,(Hw32-Hw0), reg_val|Hw1);
 
 #if defined(SUPPORT_PIDFILTER_INTERNAL)
     BITSET(h->regs->TSRXCR, Hw17);
 #endif	
+#if defined(SUPPORT_PIDFILTER_DMA)    
     //DMA Sync Delay Options
     //25: enable sync delay, 20-24 : Delay Value
     BITSET(h->regs->TSRXCR,Hw25|Hw24|Hw23|Hw21);
- 
+#endif
+
 	tcc_tsif_dma_init(h);
 	
 #ifdef DEBUG_INFO
@@ -687,6 +703,19 @@ static void tcc_tsif_hw_deinit(struct tcc_tsif_handle *h)
 #ifdef DEBUG_INFO
 	printk("%s\n", __func__);
 #endif
+}
+
+static int tcc_tsif_resync(struct tcc_tsif_handle *h)
+{
+#if 0
+    if(h->regs->TSIS & Hw1)
+    {
+        printk("%s:%d\n",__func__,__LINE__);
+    	BITCLR(h->regs->TSRXCR, Hw31);
+	    BITSET(h->regs->TSRXCR, Hw31);
+    }
+#endif    
+    return 0;
 }
 
 /******************************
@@ -729,6 +758,7 @@ int tca_tsif_init(struct tcc_tsif_handle *h,
 		h->tsif_set			= tcc_tsif_set;
 		h->tsif_isr			= tcc_tsif_isr;
     	h->hw_init          = tcc_tsif_hw_init;
+    	h->tsif_resync      = tcc_tsif_resync;
 
 		h->tea_dma_alloc 	= tea_dma_alloc;
 		h->tea_dma_free 	= tea_dma_free;
@@ -786,7 +816,7 @@ int tca_tsif_register_pids(struct tcc_tsif_handle *h, unsigned int *pids, unsign
                 BITSET(*PIDT, HwTSIF_PIDT_CH0<<tsif_channel);
                 printk("PIDT 0x%08X : 0x%08X\n", (unsigned int)PIDT, (unsigned int)*PIDT);
             }            
-            h->mpeg_ts = 1; //0:normal spi, 1:mpeg_ts
+            h->mpeg_ts = Hw0|Hw1;
         } 
 #endif
 #if defined(SUPPORT_PIDFILTER_INTERNAL)
@@ -809,7 +839,7 @@ int tca_tsif_register_pids(struct tcc_tsif_handle *h, unsigned int *pids, unsign
                     BITSET(h->regs->TSPID[reg_index], pids[i]&0x1FFF);
                     printk("PIDT %d-L : 0x%08X\n",reg_index, h->regs->TSPID[reg_index] & 0xFFFF);                   
                 }
-			    h->mpeg_ts = 1; //0:normal spi, 1:mpeg_ts
+                h->mpeg_ts = Hw0|Hw1;
             }            
         } 
 #endif

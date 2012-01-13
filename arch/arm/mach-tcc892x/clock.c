@@ -45,11 +45,7 @@
 ===========================================================================*/
 #define dbg(msg...)    if (0) { printk( "CLOCK: " msg); }
 
-#if defined (CONFIG_MACH_M805_892X)
 #define TCC_HDMI_LCDC1_USE
-#else
-#define TCC_HDMI_LCDC0_USE
-#endif
 
 static LIST_HEAD(clock_list);
 static DEFINE_SPINLOCK(clock_lock);
@@ -592,6 +588,7 @@ static struct clk clk_lcdsi1 = {
     .clock_idx      = PERI_LCDSI1,
     .clock          = tca_ckc_pclk_enable,
 };
+
 
 #if defined(TCC_HDMI_LCDC0_USE)
 static struct clk clk_hdmi_lcdc = {
@@ -1688,7 +1685,7 @@ static struct clk *onchip_clocks[] = {
     &clk_lcdsi0,
     &clk_lcdc1,
     &clk_lcdsi1,
-    &clk_hdmi_lcdc,
+//    &clk_hdmi_lcdc,
     &clk_lcd_timer,
     &clk_hdmi_audio,
     &clk_ddi,

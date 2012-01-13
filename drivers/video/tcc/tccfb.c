@@ -76,7 +76,6 @@
 #include "tcc_viqe_interface.h"
 #endif
 
-#define TCC_LCDC1_USE
 
 /* Debugging stuff */
 static int debug = 0;
@@ -3003,14 +3002,6 @@ static void tcc_fb_earlier_suspend(struct early_suspend *h)
 {
 	printk("%s:  \n", __FUNCTION__);
 
-#if 0
-	if(Output_SelectMode == TCC_OUTPUT_HDMI)
-	{
-		Output_SelectMode = TCC_OUTPUT_NONE;
-		TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_HDMI, EX_OUT_LCDC, 0);
-		TCC_FB_LCDC_NumSet(1, 0);
-	}
-#endif
 	tca_fb_earlier_suspend(h);
 }
 

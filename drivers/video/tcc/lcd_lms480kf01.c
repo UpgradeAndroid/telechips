@@ -29,14 +29,14 @@
 #include <linux/delay.h>
 static struct mutex panel_lock;
 
-extern void lcdc_initialize(struct lcd_panel *lcd_spec);
+extern void lcdc_initialize(struct lcd_panel *lcd_spec, unsigned int lcdc_num);
 
 static int lms480kf01_panel_init(struct lcd_panel *panel)
 {
 	return 0;
 }
 
-static int lms480kf01_set_power(struct lcd_panel *panel, int on)
+static int lms480kf01_set_power(struct lcd_panel *panel, int on, unsigned int lcd_num)
 {
 	struct lcd_platform_data *pdata = panel->dev->platform_data;
 	mutex_lock(&panel_lock);
@@ -45,7 +45,7 @@ static int lms480kf01_set_power(struct lcd_panel *panel, int on)
 		gpio_set_value(pdata->reset, 1);
 		msleep(2);
 		LCDC_IO_Set(1, panel->bus_width);
-		lcdc_initialize(panel);
+		lcdc_initialize(panel, lcd_num);
 		msleep(16);
 		gpio_set_value(pdata->display_on, 1);
 		msleep(16);

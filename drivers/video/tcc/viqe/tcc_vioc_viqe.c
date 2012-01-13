@@ -87,13 +87,12 @@ static int tcc_viqe_DI_excute_wrapper(VIQE_DI_TYPE *arg)
 	return 0;
 }
 
-static int tcc_viqe_DI_deinit_wrapper(VIQE_DI_TYPE *arg)
+static int tcc_viqe_DI_deinit_wrapper()
 {
 	VIQE_DI_TYPE viqe_arg;
 	
-	if(copy_from_user(&viqe_arg, arg, sizeof(VIQE_DI_TYPE)))
-		return -EINVAL;
 	TCC_VIQE_DI_DeInit();
+	
 	return 0;
 }
 
@@ -113,7 +112,7 @@ static long tcc_viqe_ioctl(struct file *filp, unsigned int cmd, unsigned long ar
 			break;
 
 		case IOCTL_VIQE_DEINITIALIZE:
-			tcc_viqe_DI_deinit_wrapper((VIQE_DI_TYPE *)arg);
+			tcc_viqe_DI_deinit_wrapper();
 			break;
 
 		default:

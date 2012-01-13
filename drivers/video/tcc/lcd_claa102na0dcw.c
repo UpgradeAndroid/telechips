@@ -37,7 +37,7 @@
 static struct mutex panel_lock;
 static char lcd_pwr_state;
 static unsigned int lcd_bl_level;
-extern void lcdc_initialize(struct lcd_panel *lcd_spec);
+extern void lcdc_initialize(struct lcd_panel *lcd_spec, unsigned int lcdc_num);
 
 static struct clk *lvds_clk;
 
@@ -47,7 +47,7 @@ static int claa102na0dcw_panel_init(struct lcd_panel *panel)
 	return 0;
 }
 
-static int claa102na0dcw_set_power(struct lcd_panel *panel, int on)
+static int claa102na0dcw_set_power(struct lcd_panel *panel, int on, unsigned int lcd_num)
 {
 	PDDICONFIG	pDDICfg;
 	unsigned int P, M, S, VSEL;
@@ -69,7 +69,7 @@ static int claa102na0dcw_set_power(struct lcd_panel *panel, int on)
 		// LVDS power on
 		clk_enable(lvds_clk);	
 		
-		lcdc_initialize(panel);
+		lcdc_initialize(panel, lcd_num);
 	
 		// LVDS reset
 		BITSET(pDDICfg->LVDS_CTRL, Hw1);	// reset

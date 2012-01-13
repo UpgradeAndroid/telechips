@@ -85,20 +85,12 @@ EXPORT_SYMBOL(tca_lcdc_interrupt_onoff);
 
 
 
-void lcdc_initialize(struct lcd_panel *lcd_spec)
+void lcdc_initialize(struct lcd_panel *lcd_spec, unsigned int lcdc_num)
 {
-	unsigned int lcdctrl_num;
-
-	#if defined(CONFIG_LCD_LCDC0_USE)
-		lcdctrl_num = 0; // default setting
-	#else
-		lcdctrl_num = 1;
-	#endif
-	
 	VIOC_DISP * pDISPBase;
 	VIOC_WMIX* pWIXBase;
-	
-	if(lcdctrl_num) // Set the address for LCDC0 or LCDC1
+
+	if(lcdc_num) // Set the address for LCDC0 or LCDC1
 	{
 		pDISPBase = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP1);
 		pWIXBase = (VIOC_WMIX*)tcc_p2v(HwVIOC_WMIX1);

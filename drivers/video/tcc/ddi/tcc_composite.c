@@ -55,7 +55,6 @@
 #include "tcc_composite_internal.h"
 #include <mach/tcc_composite_ioctl.h>
 
-#include "tccfb.h"
 #include <mach/tccfb_ioctrl.h>
 #include <mach/tca_fb_output.h>
 #include <mach/gpio.h>

@@ -242,7 +242,9 @@ typedef struct dec_ring_buffer_setting_in_t
 
 typedef struct dec_ring_buffer_status_out_t
 {
-	unsigned int m_iAvailableSpaceInRingBuffer;
+	unsigned long m_ulAvailableSpaceInRingBuffer;
+	codec_addr_t m_ptrReadAddr_PA;
+	codec_addr_t m_ptrWriteAddr_PA;
 } dec_ring_buffer_status_out_t;
 
 

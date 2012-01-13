@@ -878,6 +878,11 @@ static int __init tcc892x_init_devices(void)
         spi0_resources[2].start = 17; /* Port17 GPIO_G[0:3] */
         spi0_resources[2].end = 17;
     }
+    else if(system_rev == 0x1006)
+    {
+        spi0_resources[2].start = 12; /* Port12 GPIO_E[12:15] */
+        spi0_resources[2].end = 12;
+    }
     #endif
 #endif    
 
@@ -887,6 +892,11 @@ static int __init tcc892x_init_devices(void)
     {
         tsif_resources[2].start = 5; /* Port5 GPIO_B[0:3] */
         tsif_resources[2].end = 5;
+    }
+    else if(system_rev == 0x1006)
+    {
+        tsif_ex_resources[2].start = 0; /* Port0 GPIO_D[7:10] */
+        tsif_ex_resources[2].end = 0;
     }
     #endif
 #endif    

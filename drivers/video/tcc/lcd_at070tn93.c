@@ -40,7 +40,7 @@ static struct mutex panel_lock;
 static char lcd_pwr_state;
 static unsigned int lcd_bl_level;
 char lcdc_number;
-extern void lcdc_initialize(struct lcd_panel *lcd_spec);
+extern void lcdc_initialize(struct lcd_panel *lcd_spec, unsigned int lcdc_num);
 
 
 
@@ -67,7 +67,7 @@ static int at070tn93_set_power(struct lcd_panel *panel, int on, unsigned int lcd
 		gpio_set_value(pdata->reset, 1);
 		msleep(20);
 
-		lcdc_initialize(panel);
+		lcdc_initialize(panel, lcd_num);
 		LCDC_IO_Set(lcd_num, panel->bus_width);
 
 		if(lcd_bl_level)		{
@@ -106,7 +106,7 @@ static int at070tn93_set_backlight_level(struct lcd_panel *panel, int level)
 
 	struct lcd_platform_data *pdata = panel->dev->platform_data;
 
-	//printk("%s : %d\n", __func__, level);
+	printk("%s : %d\n", __func__, level);
 	
 	mutex_lock(&panel_lock);
 	lcd_bl_level = level;

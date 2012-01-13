@@ -35,7 +35,7 @@
 static struct mutex panel_lock;
 static char lcd_pwr_state;
 static unsigned int lcd_bl_level;
-extern void lcdc_initialize(struct lcd_panel *lcd_spec);
+extern void lcdc_initialize(struct lcd_panel *lcd_spec, unsigned int lcdc_num);
 
 
 
@@ -45,7 +45,7 @@ static int tm070rdh11_panel_init(struct lcd_panel *panel)
 	return 0;
 }
 
-static int tm070rdh11_set_power(struct lcd_panel *panel, int on)
+static int tm070rdh11_set_power(struct lcd_panel *panel, int on, unsigned int lcd_num)
 {
 	struct lcd_platform_data *pdata = panel->dev->platform_data;
 
@@ -63,7 +63,7 @@ static int tm070rdh11_set_power(struct lcd_panel *panel, int on)
 		gpio_set_value(pdata->reset, 1);
 		mdelay(20);
 
-		lcdc_initialize(panel);
+		lcdc_initialize(panel, lcd_num);
 		LCDC_IO_Set(1, panel->bus_width);
 
 		if(lcd_bl_level)		{

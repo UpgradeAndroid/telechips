@@ -277,7 +277,7 @@ EXPORT_SYMBOL(tca_lcdc_interrupt_onoff);
 
 
 
-void lcdc_initialize(struct lcd_panel *lcd_spec)
+void lcdc_initialize(struct lcd_panel *lcd_spec, unsigned int lcdc_num)
 {
 	unsigned int lcd_reg;
 
