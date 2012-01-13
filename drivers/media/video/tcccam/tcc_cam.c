@@ -1268,9 +1268,10 @@ void cif_scaler_calc(void)
 								data->cif_cfg.main_set.source_x, data->cif_cfg.main_set.source_y );
 	}
 #else
+	#if !defined(CONFIG_ARCH_TCC892X)
 	TDD_CIF_SetSensorOutImgSize(width, height);
-
 	cif_scaler_set(&data->cif_cfg.main_set, mode);
+	#endif
 #endif	
 }
 

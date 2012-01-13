@@ -41,8 +41,10 @@ static struct tcc_freq_table_t gtClockLimitTable[] = {
 //sync with gtJpegClockLimitTable
 const struct tcc_freq_table_t gtCameraClockLimitTable[] =
 {
-	{      0, 222860, 380710,      0,      0,      0,      0,      0,      0 },	// Core 1.10V
-	{      0, 222860, 500000,      0,      0,      0,      0,      0,      0 },	// Core 1.20V
+	//{      0, 222860, 380710,      0,      0,      0,      0,      0,      0 },	// Core 1.10V
+	//{      0, 222860, 500000,      0,      0,      0,      0,      0,      0 },	// Core 1.20V
+	{      0, 386880, 380710,      0,      0,      0,      0,      0,      0 },	// Core 1.30V
+	{      0, 386880, 500000,      0,      0,      0,      0,      0,      0 },	// Core 1.30V
 	{      0, 386880, 533000,      0,      0,      0,      0,      0,      0 },	// Core 1.30V
 };
 
