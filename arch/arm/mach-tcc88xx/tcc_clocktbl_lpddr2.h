@@ -63,6 +63,33 @@ const struct tcc_freq_table_t gtVpuNormalClockLimitTable[] =
 	{      0, 297000, 320000,      0,      0, 336000, 297000,      0,      0,      0 },	// Core 1.32V	// Not recommanded value
 };
 
+const struct tcc_freq_table_t gtVpu_480p_ClockLimitTable[] =
+{
+	/*  CPU /   DDI /   MEM /   GPU /    IO /  VBUS /  VCOD /   SMU /  HSIO /   CAM */
+	{      0,      0,      0,      0,      0,      0,      0,      0,      0,      0 },	// * 10Mbps, Core 1.05V
+	{      0,      0,      0,      0,      0,      0,      0,      0,      0,      0 },	// * 10Mbps, Core 1.05V
+	{      0,      0,      0,      0,      0,      0,      0,      0,      0,      0 },	// * 10Mbps, Core 1.05V
+	{      0,      0,      0,      0,      0,      0,      0,      0,      0,      0 },	// * 10Mbps, Core 1.05V
+};
+
+const struct tcc_freq_table_t gtVpu_720p_ClockLimitTable[] =
+{
+	/*  CPU /   DDI /   MEM /   GPU /    IO /  VBUS /  VCOD /   SMU /  HSIO /   CAM */
+	{      0,      0,      0,      0,      0,      0,      0,      0,      0,      0 },	// * 10Mbps, Core 1.05V
+	{      0,      0,      0,      0,      0,      0,      0,      0,      0,      0 },	// * 10Mbps, Core 1.05V
+	{      0,      0,      0,      0,      0,      0,      0,      0,      0,      0 },	// * 10Mbps, Core 1.05V
+	{      0,      0,      0,      0,      0,      0,      0,      0,      0,      0 },	// * 10Mbps, Core 1.05V
+};
+
+const struct tcc_freq_table_t gtVpu_1080p_ClockLimitTable[] =
+{
+	/*  CPU /   DDI /   MEM /   GPU /    IO /  VBUS /  VCOD /   SMU /  HSIO /   CAM */
+	{      0,      0,      0,      0,      0,      0,      0,      0,      0,      0 },	// * 10Mbps, Core 1.05V
+	{      0,      0,      0,      0,      0,      0,      0,      0,      0,      0 },	// * 10Mbps, Core 1.05V
+	{      0,      0,      0,      0,      0,      0,      0,      0,      0,      0 },	// * 10Mbps, Core 1.05V
+	{      0,      0,      0,      0,      0,      0,      0,      0,      0,      0 },	// * 10Mbps, Core 1.05V
+};
+
 const struct tcc_freq_table_t gtJpegClockLimitTable[]= {
 	{      0, 147000, 160000,      0,      0, 150000, 145000,      0,      0,      0 },	// Core 1.00V	// D1
 	{      0, 221000, 240000,      0,      0, 225000, 218000,      0,      0,      0 },	// Core 1.10V	// HD
@@ -141,6 +168,9 @@ const struct tcc_freq_table_t gtVoipClockLimitTable[] = {
 EXPORT_SYMBOL(gtCameraClockLimitTable);
 EXPORT_SYMBOL(gtISPCameraClockLimitTable);
 EXPORT_SYMBOL(gtVpuNormalClockLimitTable);
+EXPORT_SYMBOL(gtVpu_480p_ClockLimitTable);
+EXPORT_SYMBOL(gtVpu_720p_ClockLimitTable);
+EXPORT_SYMBOL(gtVpu_1080p_ClockLimitTable);
 EXPORT_SYMBOL(gtJpegClockLimitTable);
 EXPORT_SYMBOL(gtJpegMaxClockLimitTable);
 EXPORT_SYMBOL(gtHdmiClockLimitTable);

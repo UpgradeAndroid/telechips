@@ -54,9 +54,40 @@ const struct tcc_freq_table_t gtISPCameraClockLimitTable[] =
 
 const struct tcc_freq_table_t gtVpuNormalClockLimitTable[] =
 {
-	{      0,      0, 214290,      0, 140000, 197860, 197860,      0,      0 },	// Core 1.10V
-	{      0,      0, 300000,      0, 196000, 277000, 277000,      0,      0 },	// Core 1.10V
-	{ 800000,      0, 385700,      0, 243040, 343480, 343480,      0,      0 },	// Core 1.30V
+	/*  CPU /   DDI /   MEM /   GPU /    IO /  VBUS /  VCOD /   SMU /  HSIO */	
+	{ 343750, 189010, 322885,      0, 118735, 167800, 167800,      0,      0 },	// Core 1.05V
+	{ 401250, 267425, 380710,      0, 168000, 237425, 237425,      0,      0 },	// Core 1.15V
+	{ 625000, 386880, 533000,      0, 243040, 343480, 343480,      0,      0 },	// Core 1.30V
+};
+
+const struct tcc_freq_table_t gtVpu_480p_ClockLimitTable[] =
+{
+	/*  CPU /   DDI /   MEM /   GPU /    IO /  VBUS /  VCOD /   SMU /  HSIO */	
+//	{ 343750, 189010, 322885, 224140, 118735, 167800, 167800, 100000,      0 },
+	{ 343750,      0,      0,      0, 118735,      0,      0,      0,      0 },	// * ~ 10Mbps,  Core 1.05V
+	{ 401250,      0,      0,      0, 140000,      0,      0,      0,      0 },	//   10~20Mbps, Core 1.10V
+	{ 468750,      0,      0,      0, 168000,      0,      0,      0,      0 },	//   20~30Mbps, Core 1.15V
+	{ 546875,      0,      0,      0, 168000,      0,      0,      0,      0 },	//   30Mbps ~,  Core 1.15V
+};
+
+const struct tcc_freq_table_t gtVpu_720p_ClockLimitTable[] =
+{
+	/*  CPU /   DDI /   MEM /   GPU /    IO /  VBUS /  VCOD /   SMU /  HSIO */	
+//	{ 401250, 267425, 456860, 317140, 168000, 237425, 237425, 100000,      0 },
+	{ 401250,      0,      0,      0, 168000,      0,      0,      0,      0 }, //  ~ 10Mbps,  Core 1.15V
+	{ 468750,      0,      0,      0, 168000,      0,      0,      0,      0 }, // *10~20Mbps, Core 1.15V
+	{ 625000,      0,      0,      0, 219520, 237425, 237425,      0,      0 }, //  20~30Mbps, Core 1.25V
+	{ 812500, 386880, 533000,      0, 243040, 343480, 343480,      0,      0 },	//  30Mbps ~,  Core 1.30V
+};
+
+const struct tcc_freq_table_t gtVpu_1080p_ClockLimitTable[] =
+{
+	/*  CPU /   DDI /   MEM /   GPU /    IO /  VBUS /  VCOD /   SMU /  HSIO */	
+//	{ 625000, 386880, 533000, 458800, 243040, 343480, 343480, 100000,      0 },	
+	{ 468750,      0,      0, 414400,      0,      0,      0,      0,      0 }, // 	~ 10Mbps,  Core 1.30V
+	{ 625000,      0,      0, 414400,      0,      0,      0,      0,      0 }, // * 10~20Mbps, Core 1.30V
+	{ 718750,      0,      0, 458800,      0,      0,      0,      0,      0 }, //   20~30Mbps, Core 1.30V
+	{ 812500,      0,      0, 458800,      0,      0,      0,      0,      0 }, //   30Mbps ~,  Core 1.30V
 };
 
 const struct tcc_freq_table_t gtJpegClockLimitTable[]= {
@@ -122,6 +153,9 @@ const struct tcc_freq_table_t gtVoipClockLimitTable[] = {
 EXPORT_SYMBOL(gtCameraClockLimitTable);
 EXPORT_SYMBOL(gtISPCameraClockLimitTable);
 EXPORT_SYMBOL(gtVpuNormalClockLimitTable);
+EXPORT_SYMBOL(gtVpu_480p_ClockLimitTable);
+EXPORT_SYMBOL(gtVpu_720p_ClockLimitTable);
+EXPORT_SYMBOL(gtVpu_1080p_ClockLimitTable);
 EXPORT_SYMBOL(gtJpegClockLimitTable);
 EXPORT_SYMBOL(gtJpegMaxClockLimitTable);
 EXPORT_SYMBOL(gtHdmiClockLimitTable);

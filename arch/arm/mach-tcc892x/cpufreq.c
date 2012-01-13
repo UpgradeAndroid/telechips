@@ -376,7 +376,7 @@ static int tcc_cpufreq_set_clock_table(struct tcc_freq_table_t *curr_clk_tbl)
 #endif
 
 //	printk("cpufreq: cpu:%u, ddi:%u, mem:%u, gpu:%u, io:%u, vbu:%u\n", curr_clk_tbl->cpu_freq, curr_clk_tbl->ddi_freq, curr_clk_tbl->mem_freq, curr_clk_tbl->gpu_freq, curr_clk_tbl->io_freq, curr_clk_tbl->vbus_freq);
-//	printk("         vco:%u, hsio:%u, core:%d, tbl:%x\n", curr_clk_tbl->vcod_freq, curr_clk_tbl->hsio_freq, new_core_voltagetcc_limitclocktbl_flag);
+//	printk("         vco:%u, hsio:%u, core:%d, tbl:%x\n", curr_clk_tbl->vcod_freq, curr_clk_tbl->hsio_freq, new_core_voltage, tcc_limitclocktbl_flag);
 	
 	if (new_core_voltage > curr_core_voltage) {
 		ret = tcc_cpufreq_set_voltage(new_core_voltage);

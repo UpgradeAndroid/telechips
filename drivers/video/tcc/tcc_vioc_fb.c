@@ -72,13 +72,10 @@
 #include <mach/tca_lcdc.h>
 #include <linux/console.h>
 
-#if defined(CONFIG_LCD_LCDC0_USE)
-#define EX_OUT_LCDC		1
-#define LCD_LCDC_NUM		0
-#else
-#define EX_OUT_LCDC		0
-#define LCD_LCDC_NUM		1
-#endif
+
+static unsigned int EX_OUT_LCDC;
+static unsigned int LCD_LCDC_NUM;
+
 #define TCC_FB_DOUBLE
 
 /* Debugging stuff */
@@ -2519,13 +2516,17 @@ static struct platform_driver tccfb_driver = {
 		.owner	= THIS_MODULE,
 	},
 };
-
+extern unsigned int tca_get_lcd_lcdc_num(viod);
+extern unsigned int tca_get_hdmi_lcdc_num(viod);
 //int __devinit tccfb_init(void)
 static int __init tccfb_init(void)
 {
     printk(KERN_INFO " %s (built %s %s)\n", __func__, __DATE__, __TIME__);
 
 	fb_power_state = 1;
+
+	EX_OUT_LCDC = tca_get_hdmi_lcdc_num();
+	LCD_LCDC_NUM = tca_get_lcd_lcdc_num();
 
 	tca_fb_init();
 

@@ -38,7 +38,7 @@
 
 static struct mutex panel_lock;
 static char lcd_pwr_state;
-static unsigned int lcd_bl_level;
+
 char lcdc_number;
 extern void lcdc_initialize(struct lcd_panel *lcd_spec, unsigned int lcdc_num);
 
@@ -57,7 +57,7 @@ static int at070tn93_set_power(struct lcd_panel *panel, int on, unsigned int lcd
 	mutex_lock(&panel_lock);
 	lcd_pwr_state = on;
 
-	printk("%s : %d %d  lcd number = (%d) \n", __func__, on, lcd_bl_level, lcd_num);
+	printk("%s : %d %d  lcd number = (%d) \n", __func__, on, panel->bl_level, lcd_num);
 
 	if (on) {
 		
@@ -69,20 +69,7 @@ static int at070tn93_set_power(struct lcd_panel *panel, int on, unsigned int lcd
 
 		lcdc_initialize(panel, lcd_num);
 		LCDC_IO_Set(lcd_num, panel->bus_width);
-
-		if(lcd_bl_level)		{
-			msleep(80); 	
-		#if defined(CONFIG_ARCH_TCC892X)
-			if(system_rev == 0x1005 || system_rev == 0x1007)
-				tcc_gpio_config(pdata->bl_on, GPIO_FN(11));
-			else
-				tcc_gpio_config(pdata->bl_on, GPIO_FN(9));
-		#else
-			tcc_gpio_config(pdata->bl_on, GPIO_FN(2));
-		#endif
-		}else{
-			msleep(80);
-		}
+		msleep(80);
 	}
 	else 
 	{
@@ -94,6 +81,9 @@ static int at070tn93_set_power(struct lcd_panel *panel, int on, unsigned int lcd
 
 	}
 	mutex_unlock(&panel_lock);
+
+	if(on && panel->bl_level)
+		panel->set_backlight_level(panel , panel->bl_level);	
 
 	return 0;
 }
@@ -109,32 +99,38 @@ static int at070tn93_set_backlight_level(struct lcd_panel *panel, int level)
 	printk("%s : %d\n", __func__, level);
 	
 	mutex_lock(&panel_lock);
-	lcd_bl_level = level;
+	panel->bl_level = level;
 
-#if 1
-	if (level == 0) {
+ 	if (level == 0) {
 		tcc_gpio_config(pdata->bl_on, GPIO_FN(0));
 		gpio_set_value(pdata->bl_on, 0);
-	} else {
+	}
+	else 
+	{
 
 #if defined(CONFIG_ARCH_TCC892X)
-		if(lcd_pwr_state)
-			if(system_rev == 0x1005 || system_rev == 0x1007)
-				tcc_gpio_config(pdata->bl_on, GPIO_FN(11));
-			else
-				tcc_gpio_config(pdata->bl_on, GPIO_FN(9));
-
 		pTIMER	= (volatile PTIMER)tcc_p2v(HwTMR_BASE);
 
 		if(system_rev == 0x1005 || system_rev == 0x1007)
 		{
+			if(lcd_pwr_state)
+				tcc_gpio_config(pdata->bl_on, GPIO_FN(11));
+
 			pTIMER->TREF0.nREG = MAX_BL_LEVEL;
 			pTIMER->TCFG0.nREG	= 0x105;	
 			pTIMER->TMREF0.nREG = (level | 0x07);
 			pTIMER->TCFG0.nREG	= 0x105;
 		}
-		else
+		else if(system_rev == 0x1006)
 		{
+			if(lcd_pwr_state)
+		 		gpio_set_value(pdata->bl_on, 1);
+		}		
+		else
+		{		
+			if(lcd_pwr_state)
+				tcc_gpio_config(pdata->bl_on, GPIO_FN(9));
+
 			pTIMER->TREF1.nREG = MAX_BL_LEVEL;
 			pTIMER->TCFG1.nREG	= 0x105;	
 			pTIMER->TMREF1.nREG = (level | 0x07);
@@ -153,8 +149,8 @@ static int at070tn93_set_backlight_level(struct lcd_panel *panel, int level)
 #endif
 
 	}
-#endif//
-	mutex_unlock(&panel_lock);
+
+ 	mutex_unlock(&panel_lock);
 
 	return 0;
 }
