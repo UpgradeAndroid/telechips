@@ -228,7 +228,7 @@ int __init tcc8920_init_panel(void)
 	}
 	else if(system_rev == 0x1006){
 		lcd_pdata.display_on 	= TCC_GPB(28);
-		lcd_pdata.bl_on 		= TCC_GPE(16);
+		lcd_pdata.bl_on 		= TCC_GPG(5);
 		lcd_pdata.lcdc_num	= 0;	
 	}
 	
