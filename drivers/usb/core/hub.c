@@ -3259,6 +3259,7 @@ static void hub_port_connect_change(struct usb_hub *hub, int port1,
 		}
 
 		/* reset (non-USB 3.0 devices) and get descriptor */
+		msleep(500);
 		status = hub_port_init(hub, udev, port1, i);
 		if (status < 0)
 			goto loop;
