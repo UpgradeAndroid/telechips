@@ -471,7 +471,6 @@ static void tcc_gmac_set_clk_rate(struct tcc_gmac_priv *priv, unsigned int clk_r
 			priv->hw->clk_rate = GMII_CLK_RANGE_20_35M;
 			break;
 		default:
-			mClock = 1250000;
 			priv->hw->clk_rate = GMII_CLK_RANGE_100_150M;
 			break;
 	}
