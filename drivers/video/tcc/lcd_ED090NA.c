@@ -68,7 +68,8 @@ static int ed090na_set_power(struct lcd_panel *panel, int on, unsigned int lcd_n
 		gpio_set_value(pdata->reset, 1);
 		gpio_set_value(LVDS_STBY, 1);
 		gpio_set_value(pdata->display_on, 1);
-
+		mdelay(20);
+		
 		// LVDS power on
 		clk_enable(lvds_clk);	
 		
@@ -131,7 +132,7 @@ static int ed090na_set_power(struct lcd_panel *panel, int on, unsigned int lcd_n
 		// LVDS enable
 		BITSET(pDDICfg->LVDS_CTRL, Hw2);	// enable
 #endif		
-		msleep(16);
+		msleep(100);
 
 	}
 	else 
@@ -158,6 +159,10 @@ static int ed090na_set_power(struct lcd_panel *panel, int on, unsigned int lcd_n
 	}
 	mutex_unlock(&panel_lock);
 
+	if(lcd_pwr_state)
+		panel->set_backlight_level(panel , lcd_bl_level);
+
+
 	return 0;
 }
 
@@ -165,11 +170,19 @@ static int ed090na_set_backlight_level(struct lcd_panel *panel, int level)
 {
 	struct lcd_platform_data *pdata = panel->dev->platform_data;
 
+	//printk("### %s power =(%d) level = (%d) \n",__func__,lcd_pwr_state,level);
+
+	mutex_lock(&panel_lock);
+	lcd_bl_level = level;
+	
 	if (level == 0) {
 		gpio_set_value(pdata->bl_on, 0);
 	} else {
-		gpio_set_value(pdata->bl_on, 1);
+		if(lcd_pwr_state)
+			gpio_set_value(pdata->bl_on, 1);
 	}
+	mutex_unlock(&panel_lock);
+	
 	return 0;
 }
 
