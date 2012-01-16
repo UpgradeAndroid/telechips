@@ -199,6 +199,7 @@ void ths8200_power(int onoff)
 		else
 			BITCLR(pGPIO->GPDDAT, Hw6);
 	#elif defined(CONFIG_MACH_TCC8800ST)
+	#elif defined(CONFIG_MACH_TCC8920ST)
 	#else
 		/* THS8200 Power Control - GPIO_A5 */
 		BITCLR(pGPIO->GPAFN0, Hw24-Hw20);
@@ -214,7 +215,7 @@ void ths8200_power(int onoff)
 
 void ths8200_reset(void)
 {
-		dprintk("ths8200_reset \n");
+	dprintk("ths8200_reset \n");
 
 #if defined(CONFIG_ARCH_TCC93XX)
 	#if defined(CONFIG_MACH_TCC9300ST)
@@ -257,6 +258,16 @@ void ths8200_reset(void)
 		gpio_set_value(TCC_GPEXT3(10), 1);
 		udelay(100);
 	#endif		
+#elif defined(CONFIG_ARCH_TCC892X)
+	#if defined (CONFIG_MACH_TCC8920ST)
+		gpio_set_value(TCC_GPB(28), 1);
+		{volatile int ttt;for(ttt=0;ttt<500;ttt++);}
+		gpio_set_value(TCC_GPB(28), 0);
+		{volatile int ttt;for(ttt=0;ttt<500;ttt++);}
+		gpio_set_value(TCC_GPB(28), 1);
+		{volatile int ttt;for(ttt=0;ttt<500;ttt++);}
+	#else
+	#endif
 #else
 	GPIO *pGPIO = (volatile PGPIO)tcc_p2v(HwGPIO_BASE);
 	/* Reset: GPIO_D22 */

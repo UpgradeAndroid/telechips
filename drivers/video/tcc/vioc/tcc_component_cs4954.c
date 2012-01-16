@@ -192,12 +192,13 @@ void cs4954_reset(void)
 {
 	dprintk("%s\n", __func__);
 	
-#ifdef CONFIG_MACH_TCC9300
+#if defined(CONFIG_ARCH_TCC93XX)
 	gpio_set_value(CS4954_RST, 1);
 	{volatile int ttt;for(ttt=0;ttt<500;ttt++);}
 	gpio_set_value(CS4954_RST, 0);
 	{volatile int ttt;for(ttt=0;ttt<500;ttt++);}
 	gpio_set_value(CS4954_RST, 1);
+#elif defined(CONFIG_ARCH_TCC892X)
 #else
 	GPIO *pGPIO = (volatile PGPIO)tcc_p2v(HwGPIO_BASE);
 
