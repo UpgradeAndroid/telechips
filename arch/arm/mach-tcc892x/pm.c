@@ -358,7 +358,7 @@ static void sdram_init(void)
 
 	denali_phy(0x10) = 0x10680000; //Bruce_temp, 현재 ZQ Cal 동작 안되서 강제로 focing한 값을 사용함
 	denali_phy(0x0C) = 0x01801010;
-	denali_phy(0x1C) = 0x00300000|(MEMCTRL_TERM<<8)|(MEMCTRL_DDS<<4); //Bruce_temp, zq forcing valu (일단 이값을 사용해야함)
+	denali_phy(0x1C) = 0x00316000|(MEMCTRL_TERM<<8)|(MEMCTRL_DDS<<4); //Bruce_temp, zq forcing valu (일단 이값을 사용해야함)
 
 //--------------------------------------------------------------------------
 // DDR phy setting

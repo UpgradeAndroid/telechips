@@ -1047,10 +1047,11 @@ enum
 /*---------------------------------------------------------------------------
  DDR3 Configuation
 ---------------------------------------------------------------------------*/
-#define DDR3_PINMAP_TYPE                 0
 #if defined(CONFIG_DRAM_16BIT_USED) && defined(CONFIG_TCC_MEM_1024MB)
+#define DDR3_PINMAP_TYPE                 1
 #define DDR3_LOGICAL_CHIP_NUM            2
 #else
+#define DDR3_PINMAP_TYPE                 0
 #define DDR3_LOGICAL_CHIP_NUM            1
 #endif
 #define DDR3_MAX_SPEED           DDR3_1333
@@ -1112,10 +1113,11 @@ enum
 /*---------------------------------------------------------------------------
  DDR3 Configuation
 ---------------------------------------------------------------------------*/
-#define DDR3_PINMAP_TYPE                 0
 #if defined(CONFIG_DRAM_16BIT_USED) && defined(CONFIG_TCC_MEM_1024MB)
+#define DDR3_PINMAP_TYPE                 1
 #define DDR3_LOGICAL_CHIP_NUM            2
 #else
+#define DDR3_PINMAP_TYPE                 0
 #define DDR3_LOGICAL_CHIP_NUM            1
 #endif
 #define DDR3_MAX_SPEED           DDR3_1600
