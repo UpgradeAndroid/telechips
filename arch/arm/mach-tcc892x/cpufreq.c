@@ -133,11 +133,8 @@ extern int cpufreq_is_performace_governor(void);
 #define DEBUG_HIGHSPEED 0
 #define dbg_highspeed(msg...)	if (DEBUG_HIGHSPEED) { printk( "TCC_HIGHSPEED: " msg); }
 
-#define TCC_CPU_FREQ_HIGH_SPEED_REV0    800000
-#define TCC_CPU_FREQ_NORMAL_SPEED_REV0  600000
-
-#define TCC_CPU_FREQ_HIGH_SPEED        1200000
-#define TCC_CPU_FREQ_NORMAL_SPEED       996000
+#define TCC_CPU_FREQ_HIGH_SPEED         996000
+#define TCC_CPU_FREQ_NORMAL_SPEED       812500
 
 enum cpu_highspeed_status_t {
 	CPU_FREQ_PROCESSING_NORMAL = 0,
@@ -160,7 +157,7 @@ static struct work_struct cpufreq_work;
 static enum cpu_highspeed_status_t cpu_highspeed_status = CPU_FREQ_PROCESSING_NORMAL;
 static struct timer_list timer_highspeed;
 static int tcc_cpufreq_set_clock_table(struct tcc_freq_table_t *curr_clk_tbl);
-static unsigned int tcc_freq_curr_target_cpufreq = TCC_CPU_FREQ_HIGH_SPEED_REV0;
+static unsigned int tcc_freq_curr_target_cpufreq = TCC_CPU_FREQ_NORMAL_SPEED;
 
 extern int tcc_battery_get_charging_status(void);
 extern int tcc_battery_percentage(void);
@@ -169,18 +166,14 @@ extern int android_system_booting_finished;
 static int tcc_cpufreq_is_limit_highspeed_status(void)
 {
 	if ( 0
-#if !defined(CONFIG_MACH_M801_88) && !defined(CONFIG_MACH_M803)
 	  || tcc_battery_get_charging_status() == POWER_SUPPLY_STATUS_CHARGING 	/* check charging status */
 	  || tcc_battery_get_charging_status() == POWER_SUPPLY_STATUS_FULL		/* check charging status */
-#endif
 	  || tcc_freq_limit_table[TCC_FREQ_LIMIT_OVERCLOCK].usecount	/* check 3d gallery (from app.) */
 	  || tcc_freq_limit_table[TCC_FREQ_LIMIT_VPU_ENC].usecount		/* check video encoding status */
 	  || tcc_freq_limit_table[TCC_FREQ_LIMIT_VPU_DEC].usecount		/* check video decoding status */
 	  || tcc_freq_limit_table[TCC_FREQ_LIMIT_CAMERA].usecount		/* check camera active status */
-#if !defined(CONFIG_MACH_M801_88) && !defined(CONFIG_MACH_M803)
 	  || tcc_battery_percentage() < 50			/* check battery level */
-#endif
-	  || android_system_booting_finished == 0	/* check boot complete */
+//	  || android_system_booting_finished == 0	/* check boot complete */
 	  || cpu_highspeed_status == CPU_FREQ_PROCESSING_LIMIT_HIGHSPEED
 //	  || tcc_freq_limit_table[TCC_FREQ_LIMIT_FB].usecount == 0		/* lcd off status */
 	) {
@@ -538,18 +531,6 @@ static int tcc_cpufreq_target(struct cpufreq_policy *policy,
 		target_freq = policy->cpuinfo.min_freq;
 	if (target_freq < policy->min)
 		target_freq = policy->min;
-
-	if (tcc_freq_limit_table[TCC_FREQ_LIMIT_FB].usecount == 0) {
-		if (policy->cur < 200000 && target_freq >= 500000)
-			target_freq = 200000;
-		else 
-		if (policy->cur < 300000 && target_freq >= 500000)
-			target_freq = 300000;
-		else if (policy->cur < 400000 && target_freq >= 500000)
-			target_freq = 400000;
-		else if (policy->cur < 500000 && target_freq >= 500000)
-			target_freq = 500000;
-	}
 
 #if defined(CONFIG_CPU_HIGHSPEED)
 	if (target_freq > TCC_CPU_FREQ_NORMAL_SPEED) {
