@@ -33,7 +33,7 @@
 
 #include "tcc_cec_interface.h"
 
-#define CEC_INTERFACE_DEBUG 1
+#define CEC_INTERFACE_DEBUG 0
 
 #if CEC_INTERFACE_DEBUG
 #define DPRINTK(args...)    printk(args)
@@ -262,12 +262,6 @@ unsigned int TccCECInterface_ConvertKeyCode(unsigned int uiOpcode, unsigned int 
 	{
 		switch(uiData)
 		{
-			case CEC_USER_CONTROL_MODE_FAST_FORWARD:
-				uiKeyCode = SCAN_FF;
-				break;
-			case CEC_USER_CONTROL_MODE_REWIND:
-				uiKeyCode = SCAN_FB;
-				break;
 			case CEC_USER_CONTROL_MODE_SELECT:
 				uiKeyCode = SCAN_CENTER;
 				break;
@@ -286,6 +280,23 @@ unsigned int TccCECInterface_ConvertKeyCode(unsigned int uiOpcode, unsigned int 
 			case CEC_USER_CONTROL_MODE_EXIT:
 				uiKeyCode = SCAN_CANCEL;
 				break;
+			case CEC_USER_CONTROL_MODE_PLAY:
+				uiKeyCode = SCAN_PLAY;
+				break;
+			case CEC_USER_CONTROL_MODE_PAUSE:
+				uiKeyCode = SCAN_PAUSE;
+				break;
+			case CEC_USER_CONTROL_MODE_STOP:
+				uiKeyCode = SCAN_STOP;
+				break;
+			case CEC_USER_CONTROL_MODE_FORWARD:
+			case CEC_USER_CONTROL_MODE_FAST_FORWARD:
+				uiKeyCode = SCAN_FF;
+				break;
+			case CEC_USER_CONTROL_MODE_BACKWARD:
+			case CEC_USER_CONTROL_MODE_REWIND:
+				uiKeyCode = SCAN_FB;
+				break;
 			case CEC_USER_CONTROL_MODE_NUMBER_0:
 				uiKeyCode = SCAN_NUM_0;
 				break;
@@ -302,6 +313,9 @@ unsigned int TccCECInterface_ConvertKeyCode(unsigned int uiOpcode, unsigned int 
 				uiKeyCode = SCAN_NUM_4;
 				break;
 			case CEC_USER_CONTROL_MODE_NUMBER_5:
+				uiKeyCode = SCAN_NUM_5;
+				break;
+			case CEC_USER_CONTROL_MODE_NUMBER_6:
 				uiKeyCode = SCAN_NUM_6;
 				break;
 			case CEC_USER_CONTROL_MODE_NUMBER_7:
@@ -314,7 +328,8 @@ unsigned int TccCECInterface_ConvertKeyCode(unsigned int uiOpcode, unsigned int 
 				uiKeyCode = SCAN_NUM_9;
 				break;
 			case CEC_USER_CONTROL_MODE_DOT:
-				uiKeyCode = SCAN_NUM_MINUS;
+				//uiKeyCode = SCAN_NUM_MINUS;	//minus
+				uiKeyCode = SCAN_NUM_PREV;		//dot
 				break;
 			default:
 				uiKeyCode = 0;
