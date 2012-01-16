@@ -1448,7 +1448,7 @@ void tcc_output_starter_hdmi(unsigned char lcdc_num, unsigned char hdmi_resoluti
 	VIOC_RDMA_SetImageDisable(pRDMA);
 	pLCDC_CKC->bREG.EN = 0;
 			
-	pSC = (VIOC_SC *)tcc_p2v(HwVIOC_SC0);
+	pSC = (VIOC_SC *)tcc_p2v(HwVIOC_SC2);
 	
 	if(lcdc_num)	
 	{
@@ -1589,7 +1589,7 @@ void tcc_output_starter_composite(unsigned char lcdc_num, unsigned char type)
 	VIOC_RDMA_SetImageDisable(pRDMA);
 	pLCDC_CKC->bREG.EN = 0;
 
-	pSC = (VIOC_SC *)tcc_p2v(HwVIOC_SC0);
+	pSC = (VIOC_SC *)tcc_p2v(HwVIOC_SC2);
 
 	if(lcdc_num)	
 	{
@@ -1868,7 +1868,7 @@ void tcc_output_starter_component(unsigned char lcdc_num, unsigned char type)
 	VIOC_RDMA_SetImageDisable(pRDMA);
 	pLCDC_CKC->bREG.EN = 0;
 			
-	pSC = (VIOC_SC *)tcc_p2v(HwVIOC_SC0);
+	pSC = (VIOC_SC *)tcc_p2v(HwVIOC_SC2);
 	
 	if(lcdc_num)	
 	{

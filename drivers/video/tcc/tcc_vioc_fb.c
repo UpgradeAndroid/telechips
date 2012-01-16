@@ -1158,7 +1158,7 @@ void tccfb_output_starter(char output_type, char lcdc_num, struct lcdc_timimg_pa
 	{
 		case TCC_OUTPUT_HDMI:
  		 	TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_HDMI, lcdc_num, 1);
- 			TCC_HDMI_LCDC_Timing(EX_OUT_LCDC, lcdc_timing);
+ 			TCC_HDMI_LCDC_Timing(lcdc_num, lcdc_timing);
 			Output_SelectMode = TCC_OUTPUT_HDMI;
 			break;
 
@@ -1172,6 +1172,16 @@ void tccfb_output_starter(char output_type, char lcdc_num, struct lcdc_timimg_pa
 			Output_SelectMode = TCC_OUTPUT_COMPONENT;
 			break;
 	}
+
+	#if defined(TCC_VIDEO_DISPLAY_BY_VSYNC_INT)
+		memset( &tccvid_vsync, 0, sizeof( tccvid_vsync ) );
+		tccvid_vsync.overlayUsedFlag = -1;
+		tccvid_vsync.outputMode = -1;
+		tccvid_vsync.firstFrameFlag = 1;
+		tccvid_vsync.deinterlace_mode= -1;
+		tccvid_vsync.m2m_mode = -1;
+		tccvid_vsync.output_toMemory = -1;
+	#endif
 }
 
 static int tccfb_check_var(struct fb_var_screeninfo *var,
