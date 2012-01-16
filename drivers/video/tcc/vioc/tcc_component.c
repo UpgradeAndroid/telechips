@@ -53,7 +53,7 @@
 #endif
 #include "tcc_component.h"
 #include <mach/tcc_component_ioctl.h>
-#include "tccfb.h"
+#include "../tccfb.h"
 #include <mach/tccfb_ioctrl.h>
 #include <mach/tca_fb_output.h>
 #include <mach/tca_lcdc.h>

@@ -1152,23 +1152,26 @@ static void tccfb_ResetSyncTime(int currentTime)
 }
 #endif
 
-void tccfb_hdmi_starter(char hdmi_lcdc_num, struct lcdc_timimg_parms_t *lcdc_timing)
+void tccfb_output_starter(char output_type, char lcdc_num, struct lcdc_timimg_parms_t *lcdc_timing)
 {
-	TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_HDMI, hdmi_lcdc_num, 1);
+	switch(output_type)
+	{
+		case TCC_OUTPUT_HDMI:
+ 		 	TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_HDMI, lcdc_num, 1);
+ 			TCC_HDMI_LCDC_Timing(EX_OUT_LCDC, lcdc_timing);
+			Output_SelectMode = TCC_OUTPUT_HDMI;
+			break;
 
-	TCC_HDMI_LCDC_Timing(EX_OUT_LCDC, lcdc_timing);
-	Output_SelectMode = TCC_OUTPUT_HDMI;
+		case TCC_OUTPUT_COMPOSITE:
+ 		 	TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_COMPOSITE, lcdc_num, 1);
+			Output_SelectMode = TCC_OUTPUT_COMPOSITE;
+			break;
 
-	
-	#if defined(TCC_VIDEO_DISPLAY_BY_VSYNC_INT)
-	memset( &tccvid_vsync, 0, sizeof( tccvid_vsync ) ) ; 
-	tccvid_vsync.overlayUsedFlag = -1;
-	tccvid_vsync.outputMode = -1;
-	tccvid_vsync.firstFrameFlag = 1;
-	tccvid_vsync.deinterlace_mode= -1;
-	tccvid_vsync.m2m_mode = -1;
-	tccvid_vsync.output_toMemory = -1;
-	#endif
+		case TCC_OUTPUT_COMPONENT:
+ 		 	TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_COMPONENT, lcdc_num, 1);
+			Output_SelectMode = TCC_OUTPUT_COMPONENT;
+			break;
+	}
 }
 
 static int tccfb_check_var(struct fb_var_screeninfo *var,
