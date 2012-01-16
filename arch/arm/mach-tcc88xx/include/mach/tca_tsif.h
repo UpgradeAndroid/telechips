@@ -143,7 +143,9 @@ struct tcc_tsif_handle {
 	unsigned char sync_delay;
 	unsigned int dma_phy_addr;
 	unsigned int dma_phy_size;
-	unsigned int mpeg_ts;
+	unsigned int mpeg_ts; //0:spi mode, 1(bit0):mpeg_ts format sigal, 2(bit1):mpeg_ts siganl, use pid filtering & ts sync
+    unsigned int match_pids[32];
+    unsigned int match_pids_count;
 };
 
 extern int tca_tsif_init(struct tcc_tsif_handle *h, volatile struct tcc_tsif_regs *regs, 

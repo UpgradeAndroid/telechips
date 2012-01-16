@@ -17,7 +17,6 @@
 #include <mach/tca_tsif.h>
 
 //#define DEBUG_INFO
-
 static void tsif_delay(int m_sec)
 {
     mdelay(m_sec);
@@ -537,7 +536,6 @@ static void tcc_tsif_isr(struct tcc_tsif_handle *h)
 		BITSET(dma_regs->DMAICR.nREG, (Hw29|Hw28));
 		h->cur_q_pos = (int)(dma_regs->DMASTR.nREG >> 17);
 	}
-    h->tsif_resync(h);
 	return;
 }
 
@@ -609,6 +607,12 @@ static int tcc_tsif_dmastart(struct tcc_tsif_handle *h)
     {   	    
       	BITCLR(h->regs->TSRXCR, Hw17);      	
     }
+    else if(h->mpeg_ts == (Hw0|Hw1))
+    {
+#if defined(SUPPORT_PIDFILTER_INTERNAL)
+      	BITSET(h->regs->TSRXCR, Hw17);      	
+#endif      	
+    }
 	
 	BITSET(dma_regs->DMACTR.nREG, Hw29);				//enable continues
 	BITSET(dma_regs->DMACTR.nREG, Hw1);				//enable TSSEL
@@ -638,7 +642,7 @@ static int tcc_tsif_dmastop(struct tcc_tsif_handle *h)
 	else					dma_regs = (volatile PTSIFDMA)tcc_p2v(HwTSIF_DMA2_BASE);
 
 	BITCLR(h->regs->TSRXCR, Hw31);
-    tsif_delay(100);
+    tsif_delay(50);
 
 	BITCLR(dma_regs->DMACTR.nREG, Hw30); //disable DMA receive
 	BITSET(dma_regs->DMAICR.nREG, Hw29|Hw28);
@@ -812,6 +816,7 @@ int tca_tsif_register_pids(struct tcc_tsif_handle *h, unsigned int *pids, unsign
         if (count > 0) {
             for (i = 0; i < count; i++) {
                 PIDT = (volatile unsigned long *)tcc_p2v(HwTSIF_PIDT(i));
+                h->match_pids[i]=  pids[i];
                 *PIDT = pids[i] & 0x1FFFFFFF;
                 BITSET(*PIDT, HwTSIF_PIDT_CH0<<tsif_channel);
                 printk("PIDT 0x%08X : 0x%08X\n", (unsigned int)PIDT, (unsigned int)*PIDT);
@@ -827,6 +832,7 @@ int tca_tsif_register_pids(struct tcc_tsif_handle *h, unsigned int *pids, unsign
         if (count > 0) {
             for (i = 0; i < count; i++) {
                 int reg_index = i/2;
+                h->match_pids[i]=  pids[i];
                 if(i%2)
                 {
                     BITSET(h->regs->TSPID[reg_index], Hw29);
@@ -843,8 +849,10 @@ int tca_tsif_register_pids(struct tcc_tsif_handle *h, unsigned int *pids, unsign
             }            
         } 
 #endif
+        h->match_pids_count = count;
     }
     else {
+        h->match_pids_count = 0;
         printk("tsif: PID TABLE is so big !!!\n");
         ret = -EINVAL;
     }
