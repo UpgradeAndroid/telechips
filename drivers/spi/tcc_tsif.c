@@ -37,6 +37,7 @@
 #include <asm/dma.h>
 #include <asm/atomic.h>
 
+#include <mach/clock.h>
 #include <mach/bsp.h>
 #include <mach/gpio.h>
 #include <linux/spi/tcc_tsif.h>
@@ -227,13 +228,34 @@ static int tsif_get_readable_cnt(struct tcc_tsif_handle *H)
         int dma_pos = H->cur_q_pos;
         int q_pos = H->q_pos;
         int readable_cnt = 0;
-
         if (dma_pos > q_pos) {
             readable_cnt = dma_pos - q_pos;
         } else if (dma_pos < q_pos) {
             readable_cnt = H->dma_total_packet_cnt - q_pos;
             readable_cnt += dma_pos;
         } 
+
+        //check data validation
+        if(tsif_ex_handle.mpeg_ts == (Hw0|Hw1) && readable_cnt){
+            if(q_pos < H->dma_total_packet_cnt)
+            {
+                char *sync_byte = (char *)tsif_ex_handle.rx_dma.v_addr + q_pos * TSIF_PACKET_SIZE;
+                if( *sync_byte != 0x47){
+                    printk("tsif-resync !!!!\n");
+                    tsif_ex_handle.dma_stop(&tsif_ex_handle);
+                    clk_disable(tsif_clk);
+                    msleep(1);
+                    clk_enable(tsif_clk); 
+                    msleep(1);
+                    tsif_ex_handle.hw_init(&tsif_ex_handle);
+                    tsif_ex_handle.tsif_set(&tsif_ex_handle);
+                    tca_tsif_register_pids(&tsif_ex_handle, tsif_ex_handle.match_pids, tsif_ex_handle.match_pids_count);
+                    tsif_ex_handle.q_pos = tsif_ex_handle.cur_q_pos = 0;
+                    tsif_ex_handle.dma_start(&tsif_ex_handle);                           
+                    return 0;
+                }
+            }
+        }
         return readable_cnt;
     }
 	return 0;
@@ -297,7 +319,6 @@ static unsigned int tcc_tsif_poll(struct file *filp, struct poll_table_struct *w
     if (tsif_get_readable_cnt(&tsif_ex_handle) >= tsif_ex_handle.dma_intr_packet_cnt) {
 		return  (POLLIN | POLLRDNORM);
     }
-    tsif_ex_handle.tsif_resync(&tsif_ex_handle);
     return 0;
 }
 
@@ -327,7 +348,8 @@ static int tcc_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long arg
                 param.ts_total_packet_cnt = tsif_ex_handle.dma_total_size / TSIF_PACKET_SIZE;
             }
 
-            tsif_ex_handle.dma_stop(&tsif_ex_handle);
+            if(tsif_ex_handle.dma_stop(&tsif_ex_handle) == 0)
+                tsif_ex_handle.clear_fifo_packet(&tsif_ex_handle);
 
             if(param.dma_mode == 1)
                 tsif_ex_handle.mpeg_ts |= Hw0;
