@@ -215,6 +215,8 @@ int range_is_allowed(unsigned long pfn, unsigned long size)
 			return 1;
 		}
 	}
+
+	printk("Can't allow to mmap : size %d, 0x%x ~ 0x%x \n", size, request_start, request_end);
 	
 	return -1;
 }
