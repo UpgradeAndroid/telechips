@@ -100,7 +100,7 @@ static intr_data_t sc1_data;
 #define MAJOR_ID			201
 #define MINOR_ID			1
 
-static struct clk *m2m1_clk;
+static struct clk *m2m2_clk;
 #if !defined(CONFIG_ARCH_TCC892X)
 static struct clk *m2m1_ddi_cache;
 #endif // CONFIG_ARCH_TCC892X
@@ -693,7 +693,7 @@ int tccxxx_scaler1_release(struct inode *inode, struct file *filp)
 		sc1_data.block_operating = sc1_data.block_waiting = 0;
 		sc1_data.poll_count = sc1_data.cmd_count = 0;
 	}
-	clk_disable(m2m1_clk);
+	clk_disable(m2m2_clk);
 	#if !defined(CONFIG_ARCH_TCC892X)
 	clk_disable(m2m1_ddi_cache);
 	#endif // CONFIG_ARCH_TCC892X
@@ -710,7 +710,7 @@ int tccxxx_scaler1_open(struct inode *inode, struct file *filp)
 
 	dprintk("scaler1_open In!! %d'th, block(%d/%d), cmd(%d), irq(%d) \n", sc1_data.dev_opened, sc1_data.block_operating, sc1_data.block_waiting, sc1_data.cmd_count, sc1_data.irq_reged);
 
-	clk_enable(m2m1_clk);
+	clk_enable(m2m2_clk);
 	#if !defined(CONFIG_ARCH_TCC892X)
 	clk_enable(m2m1_ddi_cache);
 	#endif // CONFIG_ARCH_TCC892X
@@ -738,7 +738,7 @@ int tccxxx_scaler1_open(struct inode *inode, struct file *filp)
 		#endif // CONFIG_ARCH_TCC892X
 		
 		if (ret) {
-			clk_disable(m2m1_clk);
+			clk_disable(m2m2_clk);
 			#if !defined(CONFIG_ARCH_TCC892X)
 			clk_disable(m2m1_ddi_cache);
 			#endif // CONFIG_ARCH_TCC892X
@@ -773,7 +773,7 @@ void __exit
 tccxxx_scaler1_cleanup(void)
 {
 	unregister_chrdev(MAJOR_ID, DEVICE_NAME);
-	clk_put(m2m1_clk);
+	clk_put(m2m2_clk);
 
 	return;
 }
@@ -799,13 +799,13 @@ tccxxx_scaler1_init(void)
 	init_waitqueue_head(&(sc1_data.cmd_wq));
 
 	#if defined(CONFIG_ARCH_TCC892X)
-	m2m1_clk = clk_get(NULL, "ddi");
-	BUG_ON(m2m1_clk == NULL);
+	m2m2_clk = clk_get(NULL, "ddi");
+	BUG_ON(m2m2_clk == NULL);
 	
 	pM2MSCALER1 = (volatile PVIOC_SC)tcc_p2v((unsigned int)HwVIOC_SC2);
 	#else // CONFIG_ARCH_TCC892X
-	m2m1_clk = clk_get(NULL, "m2m1");
-	BUG_ON(m2m1_clk == NULL);
+	m2m2_clk = clk_get(NULL, "m2m1");
+	BUG_ON(m2m2_clk == NULL);
 
 	m2m1_ddi_cache = clk_get(NULL, "ddi_cache");
 	BUG_ON(m2m1_ddi_cache == NULL);

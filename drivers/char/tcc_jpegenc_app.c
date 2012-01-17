@@ -1609,9 +1609,10 @@ int TCCXXX_JPEG_Make_Header(unsigned int jpeg_BufferAddr, jpeg_encode_option_typ
 	*APP1_Header_Size_Address ++= APP1_SIZE>>8;
 	*APP1_Header_Size_Address ++= APP1_SIZE;
 
+	#if !defined(CONFIG_ARCH_TCC892X)
 	Enc_Info_Size = Make_JPEG_Enc_Info((uint32)Jpeg_Header, EncodeOption->ImageWidth, EncodeOption->ImageHeight, EncodeOption->Q_FactorValue);
-
 	Jpeg_Header += Enc_Info_Size;
+	#endif // CONFIG_ARCH_TCC892X
 
 	uiJpegHeaderSize = ((uint32)Jpeg_Header-JpegStartAddress);
 

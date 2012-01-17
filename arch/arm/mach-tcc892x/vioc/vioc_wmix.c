@@ -17,9 +17,14 @@
 *	---------	--------   ---------------       -----------------
 *    2011/08/10     0.1            created                      hskim
 *******************************************************************************/
+#include <linux/kernel.h>
+#include <mach/bsp.h>
+#include <mach/io.h>
+
 #include <mach/vioc_wmix.h>
 #include <mach/globals.h>
 #include <mach/tccfb_ioctrl.h>
+#include <mach/vioc_plugin_tcc892x.h>
 
 #define VIOC_WMIX_IREQ_MUPD_MASK		0x00000001UL
 #define VIOC_WMIX_IREQ_MEOFWF_MASK	0x00000002UL
@@ -484,4 +489,28 @@ void VIOC_API_WMIX_SetOverlayAlphaColorControl(VIOC_WMIX *pWMIX, unsigned int la
 	baseAddr = ((unsigned int)pWMIX + 40  + 0x10*layer );
 	VIOC_WMIX_ALPHA_SetColorControl((VIOC_WMIX_ALPHA *)baseAddr, region, ccon0, ccon1);
 }
+
+void VIOC_WMIX_SetSWReset(unsigned int WMIX, unsigned int RDMA, unsigned int WDMA)
+{
+	volatile PVIOC_IREQ_CONFIG pIREQConfig;
+	pIREQConfig = (volatile PVIOC_IREQ_CONFIG)tcc_p2v((unsigned int)HwVIOC_IREQ);
+
+	if(WMIX <= VIOC_WMIX6) {
+		BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<(10+WMIX)), (0x1<<(10+WMIX))); // wmix reset
+		BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<(10+WMIX)), (0x0<<(10+WMIX))); // wmix reset
+	}
+
+	if(RDMA <= VIOC_WMIX_RDMA_17) {
+		BITCSET(pIREQConfig->uSOFTRESET.nREG[0], (0x1<<RDMA), (0x1<<RDMA)); // rdma reset
+		BITCSET(pIREQConfig->uSOFTRESET.nREG[0], (0x1<<RDMA), (0x0<<RDMA)); // rdma reset
+	}
+
+	if(WDMA <= VIOC_WMIX_WDMA_08) {
+		BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<WDMA), (0x1<<WDMA)); // wdma reset
+		BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<WDMA), (0x0<<WDMA)); // wdma reset
+	}
+}
+
 /* EOF */
+
+

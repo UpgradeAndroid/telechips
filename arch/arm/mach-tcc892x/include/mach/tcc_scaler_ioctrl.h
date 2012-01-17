@@ -75,6 +75,6 @@ typedef struct
 	unsigned int		dest_winRight;
 	unsigned int		dest_winBottom;
 	unsigned int 		viqe_onthefly; 		// 0 : m to m , 0x1 : onthefly read  , 0x2 : onthefly write , 0x3 : read & write onthefly
-
 	unsigned int		interlaced;
+	unsigned char 		plugin_path;
 }SCALER_TYPE;

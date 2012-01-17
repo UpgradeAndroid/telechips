@@ -72,21 +72,14 @@
 #define dprintk(msg...)	 
 #endif
 
-
-#define VIOC_SCALER_PLUG_IN
-
-#ifdef VIOC_SCALER_PLUG_IN
-	#define FB_SCALE_MAX_WIDTH		1920
-	#define FB_SCALE_MAX_HEIGHT		1080
+#if (defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC93XX)|| defined(CONFIG_ARCH_TCC892X))// && defined(CONFIG_DRAM_DDR2)
+#define FB_SCALE_MAX_WIDTH		1920
+#define FB_SCALE_MAX_HEIGHT		1080
 #else
-	#if (defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC93XX)|| defined(CONFIG_ARCH_TCC892X))// && defined(CONFIG_DRAM_DDR2)
-	#define FB_SCALE_MAX_WIDTH		1920
-	#define FB_SCALE_MAX_HEIGHT		1080
-	#else
-	#define FB_SCALE_MAX_WIDTH		1280
-	#define FB_SCALE_MAX_HEIGHT		720
-	#endif
-#endif//
+#define FB_SCALE_MAX_WIDTH		1280
+#define FB_SCALE_MAX_HEIGHT		720
+#endif
+
 void grp_rotate_ctrl(G2D_BITBLIT_TYPE *g2d_p);
 
 static char *fb_scaler_pbuf0;
@@ -293,35 +286,52 @@ void TCC_OUTPUT_LCDC_Init(void)
  }
 
 extern unsigned int tca_get_hdmi_lcdc_num(viod);
-void TCC_OUTPUT_UPDATE_OnOff(char onoff)
+void TCC_OUTPUT_UPDATE_OnOff(char onoff, char type)
 {
-	unsigned int hdmi_lcdc_num;
+	unsigned int hdmi_lcdc_num, vioc_scaler_plug_in;	
 	dprintk(" %s \n", __func__);
 
 	hdmi_lcdc_num = tca_get_hdmi_lcdc_num();
 
-#ifdef VIOC_SCALER_PLUG_IN	
+	if( pDISP_OUTPUT[type].pVIOC_DispBase == (VIOC_DISP*)tcc_p2v(HwVIOC_DISP0))
+	{
+		if( !(pDISP_OUTPUT[type].pVIOC_DispBase->uCTRL.nREG & HwDISP_NI ))//interlace mode
+			vioc_scaler_plug_in = 0;
+		else
+			vioc_scaler_plug_in = 1;
+	}
+	else
+	{
+		vioc_scaler_plug_in = 1;
+	}
+
 	if(onoff)	
 	{
-		if(hdmi_lcdc_num)
-			VIOC_CONFIG_PlugIn (VIOC_SC2, VIOC_SC_RDMA_04);
+		if( vioc_scaler_plug_in )
+		{
+			if(hdmi_lcdc_num)
+				VIOC_CONFIG_PlugIn (VIOC_SC2, VIOC_SC_RDMA_04);
+			else
+				VIOC_CONFIG_PlugIn (VIOC_SC2, VIOC_SC_RDMA_00);
+		}
 		else
-			VIOC_CONFIG_PlugIn (VIOC_SC2, VIOC_SC_RDMA_00);
+		{
+			g2d_open((struct inode *)&g2d_inode, (struct file *)&g2d_filp);
+			scaler_open((struct inode *)&scaler_inode, (struct file *)&scaler_filp);
+		}
 	}
 	else 
 	{
-		VIOC_CONFIG_PlugOut (VIOC_SC2);
+		if( vioc_scaler_plug_in )
+		{
+			VIOC_CONFIG_PlugOut (VIOC_SC2);
+		}
+		else
+		{
+			scaler_release((struct inode *)&scaler_inode, (struct file *)&scaler_filp);
+			g2d_release((struct inode *)&g2d_inode, (struct file *)&g2d_filp);
+		}
 	}
-#else
-	if(onoff)	{
-		g2d_open((struct inode *)&g2d_inode, (struct file *)&g2d_filp);
-		scaler_open((struct inode *)&scaler_inode, (struct file *)&scaler_filp);
-	}
-	else 	{
-		scaler_release((struct inode *)&scaler_inode, (struct file *)&scaler_filp);
-		g2d_release((struct inode *)&g2d_inode, (struct file *)&g2d_filp);
-	}
-#endif//
 }
 
 #ifdef CONFIG_CPU_FREQ
@@ -369,7 +379,7 @@ void TCC_OUTPUT_LCDC_OnOff(char output_type, char output_lcdc_num, char onoff)
 		tcc_cpufreq_set_limit_table(&gtHdmiClockLimitTable, TCC_FREQ_LIMIT_HDMI, 1);
 		#endif//CONFIG_CPU_FREQ
 
-		TCC_OUTPUT_UPDATE_OnOff(1);
+		TCC_OUTPUT_UPDATE_OnOff(1, output_type);
 
 		tca_lcdc_interrupt_onoff(0, output_lcdc_num);
 		
@@ -419,7 +429,7 @@ void TCC_OUTPUT_LCDC_OnOff(char output_type, char output_lcdc_num, char onoff)
 			tcc_cpufreq_set_limit_table(&gtHdmiClockLimitTable, TCC_FREQ_LIMIT_HDMI, 0);
 		#endif//CONFIG_CPU_FREQ
 
-			TCC_OUTPUT_UPDATE_OnOff(0);
+			TCC_OUTPUT_UPDATE_OnOff(0, output_type);
 			dprintk("lcd disable time %d \n", i);
 			
 			if(output_lcdc_num)	{						
@@ -553,6 +563,7 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 	unsigned int img_width = 0, img_height = 0, ifmt = 0;
 	unsigned int  chromaR = 0, chromaG = 0, chromaB = 0;
 	unsigned int  chroma_en = 0, alpha_blending_en = 0, alpha_type = 0;
+	unsigned int vioc_scaler_plug_in = 0;
 
 	SCALER_TYPE fbscaler;
 	VIOC_SC *pSC;
@@ -598,6 +609,18 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 		ifmt = TCC_LCDC_IMG_FMT_RGB565;
 	}
 
+	if( pDISP_OUTPUT[type].pVIOC_DispBase == (VIOC_DISP*)tcc_p2v(HwVIOC_DISP0))
+	{
+		if( !(pDISP_OUTPUT[type].pVIOC_DispBase->uCTRL.nREG & HwDISP_NI ))//interlace mode
+			vioc_scaler_plug_in = 0;
+		else
+			vioc_scaler_plug_in = 1;
+	}
+	else
+	{
+		vioc_scaler_plug_in = 1;
+	}
+
 #if 0
 	if( !(pDISP_OUTPUT[type].pVIOC_DispBase->uCTRL.nREG & HwDISP_NI ))//interlace mode
 		interlace_output = 1;
@@ -605,17 +628,20 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 #endif /* 0 */
 		interlace_output = 0;
 
-	if(g2d_rotate_need || g2d_format_need 
-		#ifndef VIOC_SCALER_PLUG_IN
-		|| scaler_need  
-		#endif//
-	)
+	if( vioc_scaler_plug_in == 1 )
 	{
-		UseVSyncInterrupt = 0;
+		UseVSyncInterrupt = 1;
 	}
 	else
 	{
-		UseVSyncInterrupt = 1;
+		if(g2d_rotate_need || g2d_format_need || scaler_need )
+		{
+			UseVSyncInterrupt = 0;
+		}
+		else
+		{
+			UseVSyncInterrupt = 1;
+		}
 	}
 
 	img_width = width;
@@ -664,77 +690,80 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 
 		VIOC_WMIX_SetPosition(pDISP_OUTPUT[type].pVIOC_WMIXBase, 0, lcd_w_pos, lcd_h_pos);
 	}
-			
-#ifndef VIOC_SCALER_PLUG_IN
-	if(scaler_need)
+
+	if( vioc_scaler_plug_in == 0 )
 	{
-		//need to add scaler component
-		fbscaler.responsetype = SCALER_NOWAIT;
-		
-		fbscaler.src_Yaddr = (char *)FBimg_buf_addr;
-
-		if(ifmt == TCC_LCDC_IMG_FMT_YUV422SP)
-			fbscaler.src_fmt = SCALER_YUV422_sq0;
-		if(ifmt == TCC_LCDC_IMG_FMT_RGB888)
-			fbscaler.src_fmt = SCALER_ARGB8888;		
-		else
-			fbscaler.src_fmt = SCALER_RGB565;
-
-		fbscaler.src_ImgWidth = img_width;
-		fbscaler.src_ImgHeight = img_height;
-
-		fbscaler.src_winLeft = 0;
-		fbscaler.src_winTop = 0;
-		fbscaler.src_winRight = img_width;
-		fbscaler.src_winBottom = img_height;
-
-		if(buf_index)
-			fbscaler.dest_Yaddr = fb_scaler_pbuf0;	// destination image address
-		else
-			fbscaler.dest_Yaddr = fb_scaler_pbuf1;	// destination image address
-
-		buf_index = !buf_index;
-
-		if((lcd_width > FB_SCALE_MAX_WIDTH) && (!m2m_onthefly_use))
+		if(scaler_need)
 		{
-			m2m_onthefly_use = 0;
-			img_width = lcd_width / 2;
-		}
-		else	{
-			img_width = lcd_width;
-		}
+			//need to add scaler component
+			fbscaler.responsetype = SCALER_NOWAIT;
+			
+			fbscaler.src_Yaddr = (char *)FBimg_buf_addr;
 
-		if((lcd_height > FB_SCALE_MAX_HEIGHT) && (!m2m_onthefly_use)) 	{
-			m2m_onthefly_use = 0;
-			img_height = lcd_height/2;
-		}
-		else	{
-			img_height = lcd_height;
-		}
+			if(ifmt == TCC_LCDC_IMG_FMT_YUV422SP)
+				fbscaler.src_fmt = SCALER_YUV422_sq0;
+			if(ifmt == TCC_LCDC_IMG_FMT_RGB888)
+				fbscaler.src_fmt = SCALER_ARGB8888;		
+			else
+				fbscaler.src_fmt = SCALER_RGB565;
 
-		//ifmt = TCC_LCDC_IMG_FMT_RGB888;
-		fbscaler.dest_fmt = SCALER_ARGB8888;		// destination image format
-		fbscaler.dest_ImgWidth = img_width;		// destination image width
-		fbscaler.dest_ImgHeight = img_height; 	// destination image height
-		fbscaler.dest_winLeft = 0;
-		fbscaler.dest_winTop = 0;
-		fbscaler.dest_winRight = img_width;
-		fbscaler.dest_winBottom = img_height;
+			fbscaler.src_ImgWidth = img_width;
+			fbscaler.src_ImgHeight = img_height;
 
-		FBimg_buf_addr = fbscaler.dest_Yaddr;
-		
-		scaler_ioctl((struct inode *)&scaler_inode, (struct file *)&scaler_filp, TCC_SCALER_IOCTRL_KERENL, &fbscaler);
+			fbscaler.src_winLeft = 0;
+			fbscaler.src_winTop = 0;
+			fbscaler.src_winRight = img_width;
+			fbscaler.src_winBottom = img_height;
+
+			if(buf_index)
+				fbscaler.dest_Yaddr = fb_scaler_pbuf0;	// destination image address
+			else
+				fbscaler.dest_Yaddr = fb_scaler_pbuf1;	// destination image address
+
+			buf_index = !buf_index;
+
+			if((lcd_width > FB_SCALE_MAX_WIDTH) && (!m2m_onthefly_use))
+			{
+				m2m_onthefly_use = 0;
+				img_width = lcd_width / 2;
+			}
+			else	{
+				img_width = lcd_width;
+			}
+
+			if((lcd_height > FB_SCALE_MAX_HEIGHT) && (!m2m_onthefly_use)) 	{
+				m2m_onthefly_use = 0;
+				img_height = lcd_height/2;
+			}
+			else	{
+				img_height = lcd_height;
+			}
+
+			//ifmt = TCC_LCDC_IMG_FMT_RGB888;
+			fbscaler.dest_fmt = SCALER_ARGB8888;		// destination image format
+			fbscaler.dest_ImgWidth = img_width;		// destination image width
+			fbscaler.dest_ImgHeight = img_height; 	// destination image height
+			fbscaler.dest_winLeft = 0;
+			fbscaler.dest_winTop = 0;
+			fbscaler.dest_winRight = img_width;
+			fbscaler.dest_winBottom = img_height;
+
+			FBimg_buf_addr = fbscaler.dest_Yaddr;
+			
+			scaler_ioctl((struct inode *)&scaler_inode, (struct file *)&scaler_filp, TCC_SCALER_IOCTRL_KERENL, &fbscaler);
+		}
 	}
-#else
-	VIOC_SC_SetBypass (pSC, OFF);
-	VIOC_SC_SetSrcSize(pSC, width, height);
-	VIOC_SC_SetDstSize (pSC, lcd_width, lcd_height);			// set destination size in scaler
-	VIOC_SC_SetOutSize (pSC, lcd_width, lcd_height);			// set output size in scaer
+	else
+	{
+		VIOC_SC_SetBypass (pSC, OFF);
+		VIOC_SC_SetSrcSize(pSC, width, height);
+		VIOC_SC_SetDstSize (pSC, lcd_width, lcd_height);			// set destination size in scaler
+		VIOC_SC_SetOutSize (pSC, lcd_width, lcd_height);			// set output size in scaer
 
-	VIOC_SC_SetUpdate (pSC);				// Scaler update
-	VIOC_WMIX_SetUpdate (pDISP_OUTPUT[type].pVIOC_WMIXBase);			// WMIX update
-#endif//
-
+		VIOC_SC_SetUpdate (pSC);				// Scaler update
+		VIOC_WMIX_SetUpdate (pDISP_OUTPUT[type].pVIOC_WMIXBase);			// WMIX update
+	}
+			
 	// size
 	VIOC_RDMA_SetImageSize(pDISP_OUTPUT[type].pVIOC_RDMA_FB, img_width, img_height);
 

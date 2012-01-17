@@ -40,11 +40,8 @@ extern void lcdc_initialize(struct lcd_panel *lcd_spec, unsigned int lcdc_num);
 static struct clk *lvds_clk;
 
 
-#if defined(CONFIG_ARCH_TCC892X)
-#define LVDS_STBY 		TCC_GPE(27)
-#else
-#define LVDS_STBY 		TCC_GPC(24)
-#endif//
+unsigned int lvds_stby;
+
 static int ed090na_panel_init(struct lcd_panel *panel)
 {
 	printk("%s : %d\n", __func__, 0);
@@ -66,7 +63,7 @@ static int ed090na_set_power(struct lcd_panel *panel, int on, unsigned int lcd_n
 		gpio_set_value(pdata->power_on, 1);
 		udelay(20);
 		gpio_set_value(pdata->reset, 1);
-		gpio_set_value(LVDS_STBY, 1);
+		gpio_set_value(lvds_stby, 1);
 		gpio_set_value(pdata->display_on, 1);
 		mdelay(20);
 		
@@ -152,7 +149,7 @@ static int ed090na_set_power(struct lcd_panel *panel, int on, unsigned int lcd_n
 		
 		gpio_set_value(pdata->reset, 0);
 
-		gpio_set_value(LVDS_STBY, 0);
+		gpio_set_value(lvds_stby, 0);
 
 		gpio_set_value(pdata->power_on, 0);
 
@@ -227,20 +224,28 @@ static int ed090na_probe(struct platform_device *pdev)
 	printk("%s : %s\n", __func__,  pdev->name);
 	mutex_init(&panel_lock);
 	lcd_pwr_state = 1;
+#if defined(CONFIG_ARCH_TCC892X)
+	if(pdata->lcdc_num ==1)
+		lvds_stby = TCC_GPE(27);
+	else
+		lvds_stby = TCC_GPB(19);
+#else
+	lvds_stby  = TCC_GPC(24);
+#endif//
 
 	gpio_request(pdata->power_on, "lcd_on");
 	gpio_request(pdata->bl_on, "lcd_bl");
 	gpio_request(pdata->display_on, "lcd_display");
 	gpio_request(pdata->reset, "lcd_reset");
 
-	gpio_request(LVDS_STBY, "lcd_stbyb");
+	gpio_request(lvds_stby, "lcd_stbyb");
 
 	gpio_direction_output(pdata->power_on, 1);
 	gpio_direction_output(pdata->bl_on, 1);
 	gpio_direction_output(pdata->display_on, 1);
 	gpio_direction_output(pdata->reset, 1);
 
-	gpio_direction_output(LVDS_STBY, 1);
+	gpio_direction_output(lvds_stby, 1);
 
 
 	ed090na_panel.dev = &pdev->dev;
