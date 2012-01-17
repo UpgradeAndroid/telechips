@@ -34,6 +34,14 @@ typedef enum {
 } WMIXER_RESPONSE_TYPE;
 
 typedef enum {
+	WMIXER_LAYER0,
+	WMIXER_LAYER1,
+	WMIXER_LAYER2,
+	WMIXER_LAYER3,
+	WMIXER_LAYER_MAX
+} WMIXER_CHANNEL_TYPE;
+
+typedef enum {
 	SCALER_YUV422_sq0,
 	SCALER_YUV422_sq1,
 	SCALER_YUV422_sp,
@@ -49,7 +57,9 @@ typedef enum {
 } WMIXER_IMAGE_FORMAT_TYPE;
 
 typedef struct {
-	WMIXER_RESPONSE_TYPE 	rsp_type; 		// wmix response type
+	unsigned int 			rsp_type; 		// wmix response type
+	unsigned int 			wmix_channel; 	// wmix channel
+	unsigned int 			wmix_uv_change; // wmix v <-> v swap
 
 	unsigned int 			src_y_addr;		// source y address
 	unsigned int 			src_u_addr;		// source u address
@@ -72,8 +82,6 @@ typedef struct {
 	unsigned int 			dst_win_top;
 	unsigned int 			dst_win_right;
 	unsigned int 			dst_win_bottom;
-
-	// todo: 
 }WMIXER_INFO_TYPE;
 
 

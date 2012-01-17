@@ -111,95 +111,37 @@ static int tccxxx_wmixer_mmap(struct file *file, struct vm_area_struct *vma)
 
 char tccxxx_wmixer_ctrl(WMIXER_INFO_TYPE *wmix_info)
 {
-	int ret = 0, src_bpp, dst_bpp;
-	unsigned int pSrcBase0 = 0, pSrcBase1 = 0, pSrcBase2 = 0;
-	unsigned int pDstBase0 = 0, pDstBase1 = 0, pDstBase2 = 0;
-	unsigned int SrcHsize, SrcVsize;
-	unsigned int DstHsize, DstVsize;
-	unsigned int SrcImgType, DstImgType;
-	unsigned int ScaleRatV, ScaleRatH;
-	unsigned int SrcOff_Hsize, DstOff_Hsize;
-	unsigned char interleaved_mode = 0; // 0: CrCb, 1: CbCr
-	unsigned char interleaved_src = 0;
-	unsigned char interleaved_dst = 0;
-	unsigned int crop_width;
+	int ret = 0;
 	dprintk("TCC892X VIOC WMIXER: tccxxx_wmixer_ctrl(). \n");
 
-	#if(1)
 	spin_lock_irq(&(wmixer_data.cmd_lock));
 
-	// todo: 
+	// set to RDMA
+	VIOC_RDMA_SetImageFormat(pWMIX_rdma_base, wmix_info->src_img_fmt);
+	VIOC_RDMA_SetImageSize(pWMIX_rdma_base, wmix_info->src_img_width, wmix_info->src_img_height);
+	VIOC_RDMA_SetImageOffset(pWMIX_rdma_base, wmix_info->src_img_fmt, wmix_info->src_img_width);
+	VIOC_RDMA_SetImageBase(pWMIX_rdma_base, wmix_info->src_y_addr, wmix_info->src_u_addr, wmix_info->dst_v_addr);
+	//VIOC_RDMA_SetImageEnable(pWMIX_rdma_base);
+
+	// set to WMIX
+	VIOC_WMIX_SetPosition(pWMIX_wmix_base, wmix_info->wmix_channel, wmix_info->dst_win_left, wmix_info->dst_win_top);
+	VIOC_WMIX_SetSize(pWMIX_wmix_base, wmix_info->dst_img_width, wmix_info->dst_img_height);
+	VIOC_WMIX_SetUpdate(pWMIX_wmix_base);
+	VIOC_RDMA_SetImageEnable(pWMIX_rdma_base); // Soc guide info.
+
+	// set to WRMA
+	VIOC_WDMA_SetImageFormat(pWMIX_wdma_base, wmix_info->dst_fmt);
+	VIOC_WDMA_SetImageSize(pWMIX_wdma_base, wmix_info->dst_img_width, wmix_info->dst_img_height);
+	VIOC_WDMA_SetImageOffset(pWMIX_wdma_base, wmix_info->dst_fmt, wmix_info->dst_img_width);
+	if(wmix_info->wmix_uv_change) {
+		VIOC_WDMA_SetImageBase(pWMIX_wdma_base, wmix_info->dst_y_addr, wmix_info->dst_u_addr, wmix_info->dst_v_addr);
+	} else {
+		VIOC_WDMA_SetImageBase(pWMIX_wdma_base, wmix_info->dst_y_addr, wmix_info->dst_v_addr, wmix_info->dst_u_addr);
+	}
+	VIOC_WDMA_SetImageEnable(pWMIX_wdma_base, 0/*OFF*/);
+	pWMIX_wdma_base->uIRQSTS.nREG = 0xFFFFFFFF; // wdma status register all clear.
 
 	spin_unlock_irq(&(wmixer_data.cmd_lock));
-	#else
-	pSrcBase0 = (unsigned int)scale_img->src_Yaddr;
-	pSrcBase1 = (unsigned int)scale_img->src_Uaddr;
-	pSrcBase2 = (unsigned int)scale_img->src_Vaddr;
-
-	// address limitation!!
-	crop_width 				= scale_img->src_winRight - scale_img->src_winLeft;
-	scale_img->src_winLeft 	= (scale_img->src_winLeft>>3)<<3; 
-	scale_img->src_winRight = scale_img->src_winLeft + crop_width;
-	tccxxx_scaler_GetAddress(scale_img->src_fmt, (unsigned int)scale_img->src_Yaddr,
-								scale_img->src_ImgWidth, scale_img->src_ImgHeight,
-								scale_img->src_winLeft, scale_img->src_winTop,
-								&pSrcBase0, &pSrcBase1, &pSrcBase2);
-
-	pDstBase0 = (unsigned int)scale_img->dest_Yaddr;
-	pDstBase1 = (unsigned int)scale_img->dest_Uaddr;
-	pDstBase2 = (unsigned int)scale_img->dest_Vaddr;
-
-	// address limitation!!
-	crop_width 				 = scale_img->dest_winRight - scale_img->dest_winLeft;
-	scale_img->dest_winLeft  = (scale_img->dest_winLeft>>3)<<3; 
-	scale_img->dest_winRight = scale_img->dest_winLeft + crop_width;
-	tccxxx_scaler_GetAddress(scale_img->dest_fmt, (unsigned int)scale_img->dest_Yaddr, 
-								scale_img->dest_ImgWidth, scale_img->dest_ImgHeight, 
-								scale_img->dest_winLeft, scale_img->dest_winTop,
-								&pDstBase0, &pDstBase1, &pDstBase2);
-
-	spin_lock_irq(&(sc_data.cmd_lock));
-
-	// set to VRDMA switch path
-	VIOC_CONFIG_RDMA12PathCtrl(0 /* RDMA12 */);
-
-	// set to VRDMA
-	VIOC_RDMA_SetImageFormat(pRDMABase, scale_img->src_fmt);
-	VIOC_RDMA_SetImageSize(pRDMABase, scale_img->src_ImgWidth, scale_img->src_ImgHeight);
-	VIOC_RDMA_SetImageOffset(pRDMABase, scale_img->src_fmt, scale_img->src_ImgWidth);
-	VIOC_RDMA_SetImageBase(pRDMABase, pSrcBase0, pSrcBase1, pSrcBase2);
-	//VIOC_RDMA_SetImageEnable(pRDMABase);
-
-	// set to VIOC Scaler2
-	pScalerInfo.BYPASS 			= FALSE /* 0 */;
-	pScalerInfo.SRC_WIDTH 		= scale_img->src_ImgWidth;
-	pScalerInfo.SRC_HEIGHT 		= scale_img->src_ImgHeight;
-	pScalerInfo.DST_WIDTH 		= scale_img->dest_ImgWidth;
-	pScalerInfo.DST_HEIGHT 		= scale_img->dest_ImgHeight;
-	pScalerInfo.OUTPUT_POS_X 	= scale_img->dest_winLeft;
-	pScalerInfo.OUTPUT_POS_Y 	= scale_img->dest_winTop;
-	pScalerInfo.OUTPUT_WIDTH 	= (scale_img->dest_ImgWidth - scale_img->dest_winLeft);
-	pScalerInfo.OUTPUT_HEIGHT 	= (scale_img->dest_ImgHeight - scale_img->dest_winTop);
-	VIOC_API_SCALER_SetConfig(VIOC_SC1, &pScalerInfo);
-	VIOC_API_SCALER_SetPlugIn(VIOC_SC1, VIOC_SC_RDMA_12);
-	VIOC_API_SCALER_SetUpdate(VIOC_SC1);
-	VIOC_RDMA_SetImageEnable(pRDMABase); // SoC guide info.
-
-	// set to WMIX30  
-	//VIOC_CONFIG_WMIXPath(WMIX30, 0 /* by-pass */);
-	VIOC_WMIX_SetSize(pWIXBase, scale_img->dest_ImgWidth, scale_img->dest_ImgHeight);
-	VIOC_WMIX_SetUpdate(pWIXBase);
-
-	// set to VWRMA
-	VIOC_WDMA_SetImageFormat(pWDMABase, scale_img->dest_fmt);
-	VIOC_WDMA_SetImageSize(pWDMABase, scale_img->dest_ImgWidth, scale_img->dest_ImgHeight);
-	VIOC_WDMA_SetImageOffset(pWDMABase, scale_img->dest_fmt, scale_img->dest_ImgWidth);
-	VIOC_WDMA_SetImageBase(pWDMABase, pDstBase0, pDstBase1, pDstBase2);
-	VIOC_WDMA_SetImageEnable(pWDMABase, 0 /* OFF */);
-	pWDMABase->uIRQSTS.nREG = 0xFFFFFFFF; // wdma status register all clear.
-
-	spin_unlock_irq(&(sc_data.cmd_lock));
-	#endif
 
 	if(wmix_info->rsp_type == WMIXER_POLLING) {
 		ret = wait_event_interruptible_timeout(wmixer_data.poll_wq, wmixer_data.block_operating == 0, msecs_to_jiffies(500));
