@@ -106,7 +106,7 @@ VIOC_CONFIG_PATH_u *VIOC_CONFIG_GetPathStruct (unsigned int nType)
 int VIOC_CONFIG_PlugIn (unsigned int nType, unsigned int nValue)
 {
 	VIOC_CONFIG_PATH_u *pConfigPath = NULL;
-	unsigned int nStatus, loop = 100, tmp;
+	unsigned int nStatus, loop = 1000, tmp;
 
 	pConfigPath = VIOC_CONFIG_GetPathStruct(nType);
 	if(pConfigPath == NULL) {
@@ -131,7 +131,7 @@ int VIOC_CONFIG_PlugIn (unsigned int nType, unsigned int nValue)
 			printk("VIOC_CONFIG_PlugIn:  path configuration error(2). device is busy. \n");
 			return VIOC_DEVICE_BUSY;
 		} else {
-			//for(tmp=0; tmp < 100; tmp++);
+			for(tmp=0; tmp < 100; tmp++);
 		}
 	}
 
@@ -141,7 +141,7 @@ int VIOC_CONFIG_PlugIn (unsigned int nType, unsigned int nValue)
 int VIOC_CONFIG_PlugOut(unsigned int nType)
 {
 	VIOC_CONFIG_PATH_u *pConfigPath = NULL;
-	unsigned int nStatus, loop = 100, tmp;
+	unsigned int nStatus, loop = 1000, tmp;
 
 	pConfigPath = VIOC_CONFIG_GetPathStruct(nType);
 	if(pConfigPath == NULL) {
@@ -165,7 +165,7 @@ int VIOC_CONFIG_PlugOut(unsigned int nType)
 			printk("VIOC_CONFIG_PlugOut:  path configuration error(2). device is busy. \n");
 			return VIOC_DEVICE_BUSY;
 		} else {
-			//for(tmp=0; tmp < 100; tmp++);
+			for(tmp=0; tmp < 100; tmp++);
 		}
 	}
 
