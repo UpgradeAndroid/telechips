@@ -691,58 +691,6 @@ static irqreturn_t tccxxx_scaler0_handler(int irq, void *client_data/*, struct p
 	return IRQ_HANDLED;
 }
 
-#if defined(TEST_FEATURE)
-char *pSrc, *pDst, *pVDst;
-void test_scaler0_init(void)
-{
-	int ret = 0;
-	SCALER_TYPE scaler_v;
-	char *pVSrc;
-	pmap_t pmap_video;
-
-	pmap_get_info("video", &pmap_video);
-	pSrc = (char *)pmap_video.base;
-	pVSrc = (char *)ioremap_nocache(pmap_video.base, (1600*1200*2));
-	memcpy(pVSrc, tmp_img, (200*300*2));
-
-	// set to SCALER2
-	pM2MSCALER = (volatile PVIOC_SC)tcc_p2v((unsigned int)HwVIOC_SC1);
-
-	// set to VRDMA
-	pRDMABase = (volatile PVIOC_RDMA)tcc_p2v((unsigned int)HwVIOC_RDMA12);
-
-	// set to WMIX3
-	pWIXBase = (volatile PVIOC_WMIX)tcc_p2v((unsigned int)HwVIOC_WMIX3);
-
-	// set to VWDMA
-	pWDMABase = (volatile PVIOC_WDMA)tcc_p2v((unsigned int)HwVIOC_WDMA03);
-
-	VIOC_SC_SetSWReset(VIOC_SC1, 12/*RDMA12*/, 3/*WDMA03*/);
-	VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_ALL_MASK, 0x00000000UL);
-	ret = request_irq(INT_VIOC_WD3, tccxxx_scaler_handler, IRQF_SHARED, "scaler", &sc_data);
-
-	scaler_v.src_fmt 		= 10; // rgb565
-	scaler_v.src_ImgWidth 	= 200;
-	scaler_v.src_ImgHeight 	= 300;
-	scaler_v.src_Yaddr 		= pSrc;
-	scaler_v.src_Uaddr 		= NULL;
-	scaler_v.src_Vaddr 		= NULL;
-
-	pVDst = (char *)((unsigned int)pVSrc + (scaler_v.src_ImgWidth * scaler_v.src_ImgHeight * 2));
-	pDst = (char *)((unsigned int)pSrc + (scaler_v.src_ImgWidth * scaler_v.src_ImgHeight * 2));
-	scaler_v.dest_fmt 		= 10; // rgb565
-	scaler_v.dest_ImgWidth 	= 400;
-	scaler_v.dest_ImgHeight = 600;
-	scaler_v.dest_winLeft 	= 0;
-	scaler_v.dest_winTop 	= 0;
-	scaler_v.dest_Yaddr 	= pDst;
-	scaler_v.dest_Uaddr 	= NULL;
-	scaler_v.dest_Vaddr 	= NULL;
-	
-	ret = M2M_Scaler_Ctrl_Detail(&scaler_v);
-}
-#endif
-
 #if defined(CONFIG_ARCH_TCC892X)
 extern void tccxxx_convert_image_format(SCALER_TYPE *pScalerInfo);
 #endif // CONFIG_ARCH_TCC892X

@@ -163,6 +163,43 @@
 #define VIOC_PATH_CONNECTED   			(2)		// 
 #define VIOC_PATH_DISCONNECTING			(3)		// 
 
+#define VIOC_WMIX0 						(0)
+#define VIOC_WMIX1 						(1)
+#define VIOC_WMIX2 						(2)
+#define VIOC_WMIX3 						(3)
+#define VIOC_WMIX4 						(4)
+#define VIOC_WMIX5 						(5)
+#define VIOC_WMIX6 						(6)
+#define	VIOC_WMIX_RDMA_00		(00)
+#define	VIOC_WMIX_RDMA_01		(01)
+#define	VIOC_WMIX_RDMA_02		(02)
+#define	VIOC_WMIX_RDMA_03		(03)
+#define	VIOC_WMIX_RDMA_04		(04)
+#define	VIOC_WMIX_RDMA_05		(05)
+#define	VIOC_WMIX_RDMA_06		(06)
+#define	VIOC_WMIX_RDMA_07		(07)
+#define	VIOC_WMIX_RDMA_08		(08)
+#define	VIOC_WMIX_RDMA_09		(09)
+#define	VIOC_WMIX_RDMA_10		(10)
+#define	VIOC_WMIX_RDMA_11		(11)
+#define	VIOC_WMIX_RDMA_12		(12)
+#define	VIOC_WMIX_RDMA_13		(13)
+#define	VIOC_WMIX_RDMA_14		(14)
+#define	VIOC_WMIX_RDMA_15		(15)
+#define	VIOC_WMIX_VIN_00 		(16)
+#define	VIOC_WMIX_RDMA_16		(17)
+#define	VIOC_WMIX_VIN_01 		(18)
+#define	VIOC_WMIX_RDMA_17		(19)
+#define	VIOC_WMIX_WDMA_00		(20)
+#define	VIOC_WMIX_WDMA_01		(21)
+#define	VIOC_WMIX_WDMA_02		(22)
+#define	VIOC_WMIX_WDMA_03		(23)
+#define	VIOC_WMIX_WDMA_04		(24)
+#define	VIOC_WMIX_WDMA_05		(25)
+#define	VIOC_WMIX_WDMA_06		(26)
+#define	VIOC_WMIX_WDMA_07		(27)
+#define	VIOC_WMIX_WDMA_08		(28)
+
 //
 //	End of Plug-In/Out
 //
