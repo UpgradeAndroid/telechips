@@ -34,15 +34,17 @@ static struct tcc_freq_table_t gtClockLimitTable[] = {
 	{ 625000,      0, 500000,      0, 196000,      0,      0, 100000,      0 },	// Core 1.20V
 	{ 718750,      0, 533000,      0, 219520,      0,      0, 100000,      0 },	// Core 1.25V
 	{ 812500,      0, 533000,      0, 243040,      0,      0, 100000,      0 },	// Core 1.30V
-//	{ 996000,      0, 533000,      0, 220000,      0,      0, 100000,      0 },	// Core 1.50V
+#if defined(CONFIG_CPU_HIGHSPEED)
+	{ 996000,      0, 533000,      0, 243040,      0,      0, 100000,      0 },	// Core 1.50V
+#endif
 #endif
 };
 
 //sync with gtJpegClockLimitTable
 const struct tcc_freq_table_t gtCameraClockLimitTable[] =
 {
-	//{      0, 222860, 380710,      0,      0,      0,      0,      0,      0 },	// Core 1.10V
-	//{      0, 222860, 500000,      0,      0,      0,      0,      0,      0 },	// Core 1.20V
+//	{      0, 222860, 380710,      0,      0,      0,      0,      0,      0 },	// Core 1.10V
+//	{      0, 222860, 500000,      0,      0,      0,      0,      0,      0 },	// Core 1.20V
 	{      0, 386880, 380710,      0,      0,      0,      0,      0,      0 },	// Core 1.30V
 	{      0, 386880, 500000,      0,      0,      0,      0,      0,      0 },	// Core 1.30V
 	{      0, 386880, 533000,      0,      0,      0,      0,      0,      0 },	// Core 1.30V
@@ -93,7 +95,6 @@ const struct tcc_freq_table_t gtVpu_1080p_ClockLimitTable[] =
 	{ 718750,      0,      0, 458800,      0,      0,      0,      0,      0 }, //   20~30Mbps, Core 1.30V
 	{ 812500,      0,      0, 458800,      0,      0,      0,      0,      0 }, //   30Mbps ~,  Core 1.30V
 };
-
 
 const struct tcc_freq_table_t gtJpegClockLimitTable[]= {
 	{      0,      0, 380710,      0, 140000, 197860, 197860,      0,      0 },	// Core 1.10V

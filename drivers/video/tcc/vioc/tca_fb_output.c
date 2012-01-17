@@ -391,49 +391,49 @@ void TCC_OUTPUT_LCDC_OnOff(char output_type, char output_lcdc_num, char onoff)
 			VIOC_RDMA_SetImageDisable( pDISP_OUTPUT[output_type].pVIOC_RDMA_FB);
 			VIOC_RDMA_SetImageDisable( pDISP_OUTPUT[output_type].pVIOC_RDMA_Video);
 			VIOC_RDMA_SetImageDisable( pDISP_OUTPUT[output_type].pVIOC_RDMA_Mouse);
-		}
+
+			i = 0;
+			while(i < 0xF0000)
+			{
+				volatile unsigned int status;
+
+				//status = pLCDC_OUTPUT[output_type]->LSTATUS;
+				status = pDISP_OUTPUT[output_type].pVIOC_DispBase->uLSTATUS.nREG;
+				
+				if(status & HwLSTATUS_DD)	{
+					dprintk(" lcdc disabled ! \n");
+					break;
+				}
+				else	{
+					i++;
+				}
+			}
 	
-		i = 0;
-		while(i < 0xF0000)
-		{
-			volatile unsigned int status;
+			pDISP_OUTPUT[output_type].pVIOC_DispBase= NULL;
+			pDISP_OUTPUT[output_type].pVIOC_WMIXBase= NULL;	
+			pDISP_OUTPUT[output_type].pVIOC_RDMA_FB = NULL;
+			pDISP_OUTPUT[output_type].pVIOC_RDMA_Video = NULL;
+			pDISP_OUTPUT[output_type].pVIOC_RDMA_Mouse = NULL;
 
-			//status = pLCDC_OUTPUT[output_type]->LSTATUS;
-			status = pDISP_OUTPUT[output_type].pVIOC_DispBase->uLSTATUS.nREG;
+		#if defined(CONFIG_CPU_FREQ) && !defined(CONFIG_TCC_OUTPUT_DUAL_UI)
+			tcc_cpufreq_set_limit_table(&gtHdmiClockLimitTable, TCC_FREQ_LIMIT_HDMI, 0);
+		#endif//CONFIG_CPU_FREQ
+
+			TCC_OUTPUT_UPDATE_OnOff(0);
+			dprintk("lcd disable time %d \n", i);
 			
-			if(status & HwLSTATUS_DD)	{
-				dprintk(" lcdc disabled ! \n");
-				break;
+			if(output_lcdc_num)	{						
+				clk_disable(lcdc1_output_clk);
 			}
-			else	{
-				i++;
+			else {
+				clk_disable(lcdc0_output_clk);
 			}
+
+			if(output_lcdc_num)
+				free_irq(INT_VIOC_DEV1, TCC_OUTPUT_LCDC_Handler);
+			else
+				free_irq(INT_VIOC_DEV0, TCC_OUTPUT_LCDC_Handler);
 		}
-
-		pDISP_OUTPUT[output_type].pVIOC_DispBase= NULL;
-		pDISP_OUTPUT[output_type].pVIOC_WMIXBase= NULL;	
-		pDISP_OUTPUT[output_type].pVIOC_RDMA_FB = NULL;
-		pDISP_OUTPUT[output_type].pVIOC_RDMA_Video = NULL;
-		pDISP_OUTPUT[output_type].pVIOC_RDMA_Mouse = NULL;
-
-	#if defined(CONFIG_CPU_FREQ) && !defined(CONFIG_TCC_OUTPUT_DUAL_UI)
-		tcc_cpufreq_set_limit_table(&gtHdmiClockLimitTable, TCC_FREQ_LIMIT_HDMI, 0);
-	#endif//CONFIG_CPU_FREQ
-
-		TCC_OUTPUT_UPDATE_OnOff(0);
-		dprintk("lcd disable time %d \n", i);
-		
-		if(output_lcdc_num)	{						
-			clk_disable(lcdc1_output_clk);
-		}
-		else {
-			clk_disable(lcdc0_output_clk);
-		}
-
-		if(output_lcdc_num)
-			free_irq(INT_VIOC_DEV1, TCC_OUTPUT_LCDC_Handler);
-		else
-			free_irq(INT_VIOC_DEV0, TCC_OUTPUT_LCDC_Handler);
 	}
 
 	memset((void *)output_layer_ctrl, 0x00, sizeof(output_layer_ctrl));

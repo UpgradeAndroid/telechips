@@ -53,13 +53,19 @@
 #endif
 #include "tcc_component.h"
 #include <mach/tcc_component_ioctl.h>
-#include "tccfb.h"
+#include "../tccfb.h"
 #include <mach/tccfb_ioctrl.h>
 #include <mach/tca_fb_output.h>
 #include <mach/tca_lcdc.h>
 #include <mach/gpio.h>
 #include "tcc_component_cs4954.h"
 #include "tcc_component_ths8200.h"
+
+#if defined(CONFIG_ARCH_TCC892X)
+#include <mach/vioc_disp.h>
+#include <mach/vioc_wmix.h>
+#include <mach/vioc_rdma.h>
+#endif
 
 /*****************************************************************************
 
@@ -77,8 +83,15 @@ static int debug = 0;
 
 static int				Component_LCDC_Num = -1;
 static int				Component_Mode = -1;
+#if defined(CONFIG_ARCH_TCC892X)
+static PVIOC_DISP		pComponent_DISP;
+static PVIOC_WMIX		pComponent_WMIX;
+static PVIOC_RDMA		pComponent_RDMA_UI;
+static PVIOC_RDMA		pComponent_RDMA_VIDEO;
+#else
 static PLCDC			pComponent_HwLCDC = NULL;
 static PLCDC_CHANNEL	pComponent_HwLCDC_CH = NULL;
+#endif
 
 static int				Component_FID = 0;
 
@@ -150,7 +163,9 @@ extern void tcc_vsync_set_firstFrameFlag(int firstFrameFlag);
 ******************************************************************************/
 static irqreturn_t tcc_component_ext_handler(int irq, void *dev_id)
 {
+	#if defined(CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST)
 	PPIC pHwPIC = (volatile PPIC)tcc_p2v(HwVPIC_BASE);
+	#endif
 	
 	dprintk("%s, component_plugout_count=%d\n", __func__, component_plugout_count);
 
@@ -164,18 +179,20 @@ static irqreturn_t tcc_component_ext_handler(int irq, void *dev_id)
         BITCLR(pHwPIC->INTMSK0, COMPONENT_DETECT_EINT);
         BITCLR(pHwPIC->IEN0, COMPONENT_DETECT_EINT);
 		BITSET(pHwPIC->CLR0, COMPONENT_DETECT_EINT);
-	#else
+	#elif defined(CONFIG_MACH_TCC8800ST)
         BITCLR(pHwPIC->INTMSK1, COMPONENT_DETECT_EINT);
         BITCLR(pHwPIC->IEN1, COMPONENT_DETECT_EINT);
 		BITSET(pHwPIC->CLR1, COMPONENT_DETECT_EINT);
+	#elif defined(CONFIG_MACH_TCC8920ST)
 	#endif
 	}
 	else
 	{
 	#if defined(CONFIG_MACH_TCC9300ST)
 		BITSET(pHwPIC->CLR0, COMPONENT_DETECT_EINT);
-	#else
+	#elif defined(CONFIG_MACH_TCC8800ST)
 		BITSET(pHwPIC->CLR1, COMPONENT_DETECT_EINT);
+	#elif defined(CONFIG_MACH_TCC8920ST)
 	#endif
 	}
 
@@ -396,6 +413,8 @@ void tcc_component_lcdc_interrupt_set(char onoff)
 
 	dprintk("%s, onoff=%d\n", __func__, onoff);
 	
+	#if defined(CONFIG_ARCH_TCC892X)
+	#else
 	if(onoff)
 	{
 		tca_lcdc_interrupt_onoff(TRUE, Component_LCDC_Num);
@@ -412,6 +431,7 @@ void tcc_component_lcdc_interrupt_set(char onoff)
 		else
 			free_irq(IRQ_LCD0, tcc_component_lcdc_handler);
 	}
+	#endif
 }
 
 /*****************************************************************************
@@ -423,18 +443,34 @@ int tcc_component_set_lcdc(int lcdc_num)
 
 	if(lcdc_num == Component_LCDC_Num)
 		return FALSE;
-	
+
 	if(lcdc_num)
 	{
 		Component_LCDC_Num = 1;
-		pComponent_HwLCDC = (volatile PLCDC)tcc_p2v(HwLCDC1_BASE);
-		pComponent_HwLCDC_CH = (volatile PLCDC_CHANNEL)tcc_p2v(pComponent_HwLCDC->LI2C);
+
+		#if defined(CONFIG_ARCH_TCC892X)
+			pComponent_DISP = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP1);
+			pComponent_WMIX = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX1);
+			pComponent_RDMA_UI = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA04);
+			pComponent_RDMA_VIDEO = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA06);
+		#else
+			pComponent_HwLCDC = (volatile PLCDC)tcc_p2v(HwLCDC1_BASE);
+			pComponent_HwLCDC_CH = (volatile PLCDC_CHANNEL)tcc_p2v(pComponent_HwLCDC->LI2C);
+		#endif
 	}
 	else
 	{
 		Component_LCDC_Num = 0;
-		pComponent_HwLCDC = (volatile PLCDC)tcc_p2v(HwLCDC0_BASE);
-		pComponent_HwLCDC_CH = (volatile PLCDC_CHANNEL)tcc_p2v(pComponent_HwLCDC->LI0C);
+
+		#if defined(CONFIG_ARCH_TCC892X)
+			pComponent_DISP = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP0);
+			pComponent_WMIX = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX0);
+			pComponent_RDMA_UI = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA00);
+			pComponent_RDMA_VIDEO = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA02);
+		#else
+			pComponent_HwLCDC = (volatile PLCDC)tcc_p2v(HwLCDC0_BASE);
+			pComponent_HwLCDC_CH = (volatile PLCDC_CHANNEL)tcc_p2v(pComponent_HwLCDC->LI0C);
+		#endif
 	}
 	
 	return TRUE;
@@ -509,6 +545,24 @@ void tcc_component_get_spec(COMPONENT_MODE_TYPE mode, COMPONENT_SPEC_TYPE *spec)
 			spec->component_bus_width = 24;
 			spec->component_lcd_width = 1280;
 			spec->component_lcd_height = 720;
+			#if defined(CONFIG_ARCH_TCC892X)
+			spec->component_LPW = 9 - 1; 					// line pulse width
+			spec->component_LPC = 1280 - 1; 				// line pulse count (active horizontal pixel - 1)
+			spec->component_LSWC = 349 - 1;					// line start wait clock (the number of dummy pixel clock - 1)
+			spec->component_LEWC = 12 - 1;					// line end wait clock (the number of dummy pixel clock - 1)
+
+			spec->component_VDB = 0; 						// Back porch Vsync delay
+			spec->component_VDF = 0; 						// front porch of Vsync delay
+				
+			spec->component_FPW1 = 3 - 1;					// TFT/TV : Frame pulse width is the pulse width of frmae clock
+			spec->component_FLC1 = 720 - 1;					// frmae line count is the number of lines in each frmae on the screen
+			spec->component_FSWC1 = 4 - 1;					// frmae start wait cycle is the number of lines to insert at the end each frame
+			spec->component_FEWC1 = 29 - 1;					// frame start wait cycle is the number of lines to insert at the begining each frame
+			spec->component_FPW2 = 3 - 1;					// TFT/TV : Frame pulse width is the pulse width of frmae clock
+			spec->component_FLC2 = 720 - 1;					// frmae line count is the number of lines in each frmae on the screen
+			spec->component_FSWC2 = 4 - 1;					// frmae start wait cycle is the number of lines to insert at the end each frame
+			spec->component_FEWC2 = 29 - 1; 					// frame start wait cycle is the number of lines to insert at the begining each frame
+			#else
 			spec->component_LPW = 24 - 1; 					// line pulse width
 			spec->component_LPC = 1280 - 1; 				// line pulse count (active horizontal pixel - 1)
 			spec->component_LSWC = 325 - 1;					// line start wait clock (the number of dummy pixel clock - 1)
@@ -525,6 +579,7 @@ void tcc_component_get_spec(COMPONENT_MODE_TYPE mode, COMPONENT_SPEC_TYPE *spec)
 			spec->component_FLC2 = 720 - 1;					// frmae line count is the number of lines in each frmae on the screen
 			spec->component_FSWC2 = 26 - 1;					// frmae start wait cycle is the number of lines to insert at the end each frame
 			spec->component_FEWC2 = 1 - 1; 					// frame start wait cycle is the number of lines to insert at the begining each frame
+			#endif
 			break;
 
 		case COMPONENT_MODE_1080I:
@@ -532,6 +587,24 @@ void tcc_component_get_spec(COMPONENT_MODE_TYPE mode, COMPONENT_SPEC_TYPE *spec)
 			spec->component_bus_width = 24;
 			spec->component_lcd_width = 1920;
 			spec->component_lcd_height = 1080;
+			#if defined(CONFIG_ARCH_TCC892X)
+			spec->component_LPW = 24 - 1; 					// line pulse width
+			spec->component_LPC = 1920 - 1; 				// line pulse count (active horizontal pixel - 1)
+			spec->component_LSWC = 228 - 1;					// line start wait clock (the number of dummy pixel clock - 1)
+			spec->component_LEWC = 28 - 1;					// line end wait clock (the number of dummy pixel clock - 1)
+
+			spec->component_VDB = 0; 						// Back porch Vsync delay
+			spec->component_VDF = 0; 						// front porch of Vsync delay
+				
+			spec->component_FPW1 = 5*2 - 1;					// TFT/TV : Frame pulse width is the pulse width of frmae clock
+			spec->component_FLC1 = 540*2 - 1;				// frmae line count is the number of lines in each frmae on the screen
+			spec->component_FSWC1 = 1.5*2 - 1;				// frmae start wait cycle is the number of lines to insert at the end each frame
+			spec->component_FEWC1 = 16*2 - 1;				// frame start wait cycle is the number of lines to insert at the begining each frame
+			spec->component_FPW2 = 5*2 - 1;					// TFT/TV : Frame pulse width is the pulse width of frmae clock
+			spec->component_FLC2 = 540*2 - 1;				// frmae line count is the number of lines in each frmae on the screen
+			spec->component_FSWC2 = 1*2 - 1;				// frmae start wait cycle is the number of lines to insert at the end each frame
+			spec->component_FEWC2 = 16.5*2 - 1; 				// frame start wait cycle is the number of lines to insert at the begining each frame
+			#else
 			spec->component_LPW = 24 - 1; 					// line pulse width
 			spec->component_LPC = 1920 - 1; 				// line pulse count (active horizontal pixel - 1)
 			spec->component_LSWC = 254 - 1;					// line start wait clock (the number of dummy pixel clock - 1)
@@ -548,6 +621,7 @@ void tcc_component_get_spec(COMPONENT_MODE_TYPE mode, COMPONENT_SPEC_TYPE *spec)
 			spec->component_FLC2 = 540*2 - 1;					// frmae line count is the number of lines in each frmae on the screen
 			spec->component_FSWC2 = 15.5*2 - 1;					// frmae start wait cycle is the number of lines to insert at the end each frame
 			spec->component_FEWC2 = 2*2 - 1; 					// frame start wait cycle is the number of lines to insert at the begining each frame
+			#endif
 			break;
 	}
 }
@@ -560,21 +634,34 @@ void tcc_component_set_lcd2tv(COMPONENT_MODE_TYPE mode)
 	COMPONENT_SPEC_TYPE spec;
 	unsigned int lcd_ctrl = 0;
 	unsigned int lcd_peri = 0;
+	unsigned int output_width, output_height;
 	PDDICONFIG pDDICfg = (PDDICONFIG)tcc_p2v(HwDDI_CONFIG_BASE);
+#if defined(CONFIG_ARCH_TCC892X)
+	stLTIMING ComponentTiming;
+	stLCDCTR LcdCtrlParam;
+#endif
 
-	dprintk("%s\n", __func__);
+	dprintk("%s, mode=%d\n", __func__, mode);
 	
 	if(Component_LCDC_Num)
 	{
-		BITSET(pDDICfg->SWRESET, Hw3);	// LCDC1
-		BITCLR(pDDICfg->SWRESET, Hw3);	// LCDC1
-		lcd_peri = PERI_LCD1;
+		#if defined(CONFIG_ARCH_TCC892X)
+			lcd_peri = PERI_LCD1;
+		#else
+			BITSET(pDDICfg->SWRESET, Hw3);	// LCDC1
+			BITCLR(pDDICfg->SWRESET, Hw3);	// LCDC1
+			lcd_peri = PERI_LCD1;
+		#endif
 	}
 	else
 	{
-		BITSET(pDDICfg->SWRESET, Hw2);	// LCDC0
-		BITCLR(pDDICfg->SWRESET, Hw2);	// LCDC0
-		lcd_peri = PERI_LCD0;
+		#if defined(CONFIG_ARCH_TCC892X)
+			lcd_peri = PERI_LCD0;
+		#else
+			BITSET(pDDICfg->SWRESET, Hw2);	// LCDC0
+			BITCLR(pDDICfg->SWRESET, Hw2);	// LCDC0
+			lcd_peri = PERI_LCD0;
+		#endif
 	}
 		
 	tcc_component_get_spec(mode, &spec);
@@ -583,13 +670,14 @@ void tcc_component_set_lcd2tv(COMPONENT_MODE_TYPE mode)
 
 	#if (defined(CONFIG_CPU_FREQ_TCC92X) || defined (CONFIG_CPU_FREQ_TCC93XX)) && defined(CONFIG_CPU_FREQ)
 		tcc_cpufreq_set_limit_table(&gtTvClockLimitTable, TCC_FREQ_LIMIT_TV, 1);
-    
 	#endif
 
-	#if defined(CONFIG_ARCH_TCC88XX)
-		tca_ckc_setperi(lcd_peri,ENABLE,spec.component_clk,PCDIRECTPLL0);
+	#if defined(CONFIG_ARCH_TCC892X)
+		tca_ckc_setperi(lcd_peri, ENABLE, spec.component_clk);
+	#elif defined(CONFIG_ARCH_TCC88XX)
+		tca_ckc_setperi(lcd_peri, ENABLE, spec.component_clk, PCDIRECTPLL0);
 	#else
-		tca_ckc_setperi(lcd_peri,ENABLE,spec.component_clk,PCDIRECTPLL2);
+		tca_ckc_setperi(lcd_peri, ENABLE, spec.component_clk, PCDIRECTPLL2);
 	#endif
 
 	#if defined(CONFIG_ARCH_TCC92XX) && defined(CONFIG_TCC_OUTPUT_STARTER)
@@ -611,113 +699,195 @@ void tcc_component_set_lcd2tv(COMPONENT_MODE_TYPE mode)
 
 	dprintk("PLL2 Clock: %d KHz, LCDC0 Clock: %d KHz, LCDC1 Clock: %d KHz\n", tca_ckc_getpll(DIRECTPLL2)/10, tca_ckc_getperi(PERI_LCD0)/10, tca_ckc_getperi(PERI_LCD1)/10);
 
-	BITCSET(pComponent_HwLCDC->LCLKDIV, 0x00FF0000, 0<<16);
-	BITCSET(pComponent_HwLCDC->LCLKDIV, 0x000000FF, 0);
+	#if defined(CONFIG_ARCH_TCC892X)
+		output_width = spec.component_lcd_width;
+		output_height = spec.component_lcd_height;
 
-	BITCSET(pComponent_HwLCDC->LHTIME1, 0x0003FFFF, spec.component_LPC);
-	BITCSET(pComponent_HwLCDC->LHTIME1, 0x01FF0000, (spec.component_LPW << 16));
-	BITCSET(pComponent_HwLCDC->LHTIME2, 0x000001FF, spec.component_LEWC);
-	BITCSET(pComponent_HwLCDC->LHTIME2, 0x01FF0000, (spec.component_LSWC << 16));
+		ComponentTiming.lpw = spec.component_LPW;
+		ComponentTiming.lpc = spec.component_LPC + 1;
+		ComponentTiming.lswc = spec.component_LSWC + 1;
+		ComponentTiming.lewc = spec.component_LEWC + 1;
+		
+		ComponentTiming.vdb = spec.component_VDB;
+		ComponentTiming.vdf = spec.component_VDF;
+		ComponentTiming.fpw = spec.component_FPW1;
+		ComponentTiming.flc = spec.component_FLC1;
+		ComponentTiming.fswc = spec.component_FSWC1;
+		ComponentTiming.fewc = spec.component_FEWC1;
+		ComponentTiming.fpw2 = spec.component_FPW2;
+		ComponentTiming.flc2 = spec.component_FLC2;
+		ComponentTiming.fswc2 = spec.component_FSWC2;
+		ComponentTiming.fewc2 = spec.component_FEWC2;
+
+		VIOC_DISP_SetTimingParam(pComponent_DISP, &ComponentTiming);
+
+		memset(&LcdCtrlParam, NULL, sizeof(LcdCtrlParam));
 	
-	BITCSET(pComponent_HwLCDC->LVTIME1, 0x00003FFF, spec.component_FLC1);
-	BITCSET(pComponent_HwLCDC->LVTIME1, 0x003F0000, (spec.component_FPW1 << 16));
-	BITCSET(pComponent_HwLCDC->LVTIME1, 0x03C00000, (spec.component_VDF << 22));
-	BITCSET(pComponent_HwLCDC->LVTIME1, 0xF8000000, (spec.component_VDB << 27));
-	
-	BITCSET(pComponent_HwLCDC->LVTIME2, 0x01FF0000, (spec.component_FSWC1 << 16));
-	BITCSET(pComponent_HwLCDC->LVTIME2, 0x000001FF, spec.component_FEWC1);
-	
-	BITCSET(pComponent_HwLCDC->LVTIME3, 0x00003FFF, spec.component_FLC2);
-	BITCSET(pComponent_HwLCDC->LVTIME3, 0x003F0000, (spec.component_FPW2 << 16));
-	
-	BITCSET(pComponent_HwLCDC->LVTIME4, 0x01FF0000, (spec.component_FSWC2 << 16));
-	BITCSET(pComponent_HwLCDC->LVTIME4, 0x000001FF, spec.component_FEWC2);
-	
-	BITCSET(pComponent_HwLCDC->LDS, 0x0000FFFF, spec.component_lcd_width);
-	BITCSET(pComponent_HwLCDC->LDS, 0xFFFF0000, (spec.component_lcd_height << 16));
+		switch(mode)
+		{
+			case COMPONENT_MODE_NTSC_M:
+			case COMPONENT_MODE_NTSC_M_J:
+			case COMPONENT_MODE_PAL_M:
+			case COMPONENT_MODE_NTSC_443:
+			case COMPONENT_MODE_PSEUDO_PAL:
+			case COMPONENT_MODE_NTSC_N:
+			case COMPONENT_MODE_NTSC_N_J:
+			case COMPONENT_MODE_PAL_N:
+			case COMPONENT_MODE_PAL_B:
+			case COMPONENT_MODE_PAL_G:
+			case COMPONENT_MODE_PAL_H:
+			case COMPONENT_MODE_PAL_I:
+			case COMPONENT_MODE_PSEUDO_NTSC:
+				break;
 
-	switch(mode)
-	{
-		case COMPONENT_MODE_NTSC_M:
-		case COMPONENT_MODE_NTSC_M_J:
-		case COMPONENT_MODE_PAL_M:
-		case COMPONENT_MODE_NTSC_443:
-		case COMPONENT_MODE_PSEUDO_PAL:
-		case COMPONENT_MODE_NTSC_N:
-		case COMPONENT_MODE_NTSC_N_J:
-		case COMPONENT_MODE_PAL_N:
-		case COMPONENT_MODE_PAL_B:
-		case COMPONENT_MODE_PAL_G:
-		case COMPONENT_MODE_PAL_H:
-		case COMPONENT_MODE_PAL_I:
-		case COMPONENT_MODE_PSEUDO_NTSC:
-			BITCSET(lcd_ctrl, Hw29|Hw28, Hw29|Hw28);				// R2YMD - RGB to YCbCr Conversion Option
-			BITCSET(lcd_ctrl, Hw23, Hw23);							// CKG - Clock Gating Enable for Timing Generator
-			BITCSET(lcd_ctrl, Hw15, Hw15);							// ID - Inverted Data Enable
-			BITCSET(lcd_ctrl, Hw14, Hw14);							// IV - Inverted Vertical Sync
-			BITCSET(lcd_ctrl, Hw13, Hw13);							// IH - Inverted Horizontal Sync
-			BITCSET(lcd_ctrl, Hw12, Hw12);							// IP - Inverted Pixel Clock
-			BITCSET(lcd_ctrl, Hw10, Hw10);							// R2Y - RGB to YCbCr Converter Enable for OUPUT
-			BITCSET(lcd_ctrl, Hw7, Hw7);							// TV - TV mode
-			BITCSET(lcd_ctrl, Hw3|Hw2|Hw1, Hw3|Hw1);				// OVP
-			BITCSET(lcd_ctrl, Hw0, Hw0);							// LEN - LCD Controller Enable
-			#ifdef TCC_COMPONENT_CCIR656
-			BITCSET(lcd_ctrl, Hw24, Hw24);							// 656 - CCIR 656 Mode
-			BITCSET(lcd_ctrl, Hw19|Hw18|Hw17|Hw16, Hw19);			// PXDW - Pixel Data Width
-			BITCSET(lcd_ctrl, Hw9, Hw9);							// DP - Double Pixel Data
-			#else
-			BITCSET(lcd_ctrl, Hw19|Hw18|Hw17|Hw16, Hw18|Hw17);		// PXDW - Pixel Data Width
-			#endif
-			break;
+			case COMPONENT_MODE_720P:
+				LcdCtrlParam.r2ymd = 3;
+				LcdCtrlParam.ckg = 1;
+				LcdCtrlParam.id= 0;
+				LcdCtrlParam.iv = 1;
+				LcdCtrlParam.ih = 1;
+				LcdCtrlParam.ip = 0;
+				LcdCtrlParam.pxdw = 12;
+				LcdCtrlParam.ni = 1;
+				break;
 
-		case COMPONENT_MODE_720P:
-			BITCSET(lcd_ctrl, Hw29|Hw28, Hw29|Hw28);				// R2YMD - RGB to YCbCr Conversion Option
-			BITCSET(lcd_ctrl, Hw23, Hw23);							// CKG - Clock Gating Enable for Timing Generator
-			#if defined(CONFIG_MACH_TCC9300ST)
-//			BITCSET(lcd_ctrl, Hw15, Hw15);							// ID - Inverted Data Enable
-			BITCSET(lcd_ctrl, Hw14, Hw14);							// IV - Inverted Vertical Sync
-			BITCSET(lcd_ctrl, Hw13, Hw13);							// IH - Inverted Horizontal Sync
-//			BITCSET(lcd_ctrl, Hw12, Hw12);							// IP - Inverted Pixel Clock
-			#else
-			BITCSET(lcd_ctrl, Hw15, Hw15);							// ID - Inverted Data Enable
-			BITCSET(lcd_ctrl, Hw14, Hw14);							// IV - Inverted Vertical Sync
-//			BITCSET(lcd_ctrl, Hw13, Hw13);							// IH - Inverted Horizontal Sync
-			BITCSET(lcd_ctrl, Hw12, Hw12);							// IP - Inverted Pixel Clock
-			#endif
-			BITCSET(lcd_ctrl, Hw8, Hw8);							// NI - Non-interlace Mode
-			BITCSET(lcd_ctrl, Hw3|Hw2|Hw1, Hw3|Hw1);				// OVP
-			BITCSET(lcd_ctrl, Hw0, Hw0);							// LEN - LCD Controller Enable
-			#ifdef TCC_COMPONENT_16BPP_YCBCR
-			BITCSET(lcd_ctrl, Hw10, Hw10);							// R2Y - RGB to YCbCr Converter Enable for OUPUT
-			BITCSET(lcd_ctrl, Hw19|Hw18|Hw17|Hw16, Hw19);			// PXDW - Pixel Data Width
-			#else
-			BITCSET(lcd_ctrl, Hw19|Hw18|Hw17|Hw16, Hw19|Hw18);		// PXDW - Pixel Data Width
-			#endif
-			break;
+			case COMPONENT_MODE_1080I:
+				LcdCtrlParam.r2ymd = 3;
+				LcdCtrlParam.advi = 1;
+				LcdCtrlParam.ckg = 1;
+				LcdCtrlParam.id= 1;
+				LcdCtrlParam.iv = 1;
+				LcdCtrlParam.ih = 0;
+				LcdCtrlParam.ip = 1;
+				LcdCtrlParam.pxdw = 12;
+				LcdCtrlParam.ni = 0;
+				LcdCtrlParam.tv = 1;
+				break;
 
-		case COMPONENT_MODE_1080I:
-			BITCSET(lcd_ctrl, Hw29|Hw28, Hw29|Hw28);				// R2YMD - RGB to YCbCr Conversion Option
-			BITCSET(lcd_ctrl, Hw23, Hw23);							// CKG - Clock Gating Enable for Timing Generator
-//			BITCSET(lcd_ctrl, Hw15, Hw15);							// ID - Inverted Data Enable
-			BITCSET(lcd_ctrl, Hw14, Hw14);							// IV - Inverted Vertical Sync
-			BITCSET(lcd_ctrl, Hw13, Hw13);							// IH - Inverted Horizontal Sync
-//			BITCSET(lcd_ctrl, Hw12, Hw12);							// IP - Inverted Pixel Clock
-			BITCSET(lcd_ctrl, Hw7, Hw7);							// TV
-			BITCSET(lcd_ctrl, Hw3|Hw2|Hw1, Hw3|Hw1);				// OVP
-			BITCSET(lcd_ctrl, Hw0, Hw0);							// LEN - LCD Controller Enable
-			#ifdef TCC_COMPONENT_16BPP_YCBCR
-			BITCSET(lcd_ctrl, Hw10, Hw10);							// R2Y - RGB to YCbCr Converter Enable for OUPUT
-			BITCSET(lcd_ctrl, Hw19|Hw18|Hw17|Hw16, Hw19);			// PXDW - Pixel Data Width
-			#else
-			BITCSET(lcd_ctrl, Hw19|Hw18|Hw17|Hw16, Hw19|Hw18);		// PXDW - Pixel Data Width
-			#endif
-			break;
+			default:
+				break;
+		}
+		
+		VIOC_DISP_SetControlConfigure(pComponent_DISP, &LcdCtrlParam);
 
-		default:
-			break;
-	}
+		VIOC_DISP_SetSize(pComponent_DISP, output_width, output_height);
+		VIOC_DISP_SetBGColor(pComponent_DISP, 0, 0 , 0);
 
-	BITCSET(pComponent_HwLCDC->LCTRL, 0xFFFFFFFF, lcd_ctrl);
+		VIOC_WMIX_SetOverlayPriority(pComponent_WMIX, 0);
+		VIOC_WMIX_SetBGColor(pComponent_WMIX, 0x00, 0x00, 0x00, 0xff);
+		VIOC_WMIX_SetSize(pComponent_WMIX, output_width, output_height);
+		VIOC_WMIX_SetPosition(pComponent_WMIX, 0, 0, 0);
+		VIOC_WMIX_SetChromaKey(pComponent_WMIX, 0, 0, 0, 0, 0, 0xF8, 0xFC, 0xF8);
+		VIOC_WMIX_SetUpdate(pComponent_WMIX);
+	#else // defined(CONFIG_ARCH_TCC892X)
+		BITCSET(pComponent_HwLCDC->LCLKDIV, 0x00FF0000, 0<<16);
+		BITCSET(pComponent_HwLCDC->LCLKDIV, 0x000000FF, 0);
+
+		BITCSET(pComponent_HwLCDC->LHTIME1, 0x0003FFFF, spec.component_LPC);
+		BITCSET(pComponent_HwLCDC->LHTIME1, 0x01FF0000, (spec.component_LPW << 16));
+		BITCSET(pComponent_HwLCDC->LHTIME2, 0x000001FF, spec.component_LEWC);
+		BITCSET(pComponent_HwLCDC->LHTIME2, 0x01FF0000, (spec.component_LSWC << 16));
+		
+		BITCSET(pComponent_HwLCDC->LVTIME1, 0x00003FFF, spec.component_FLC1);
+		BITCSET(pComponent_HwLCDC->LVTIME1, 0x003F0000, (spec.component_FPW1 << 16));
+		BITCSET(pComponent_HwLCDC->LVTIME1, 0x03C00000, (spec.component_VDF << 22));
+		BITCSET(pComponent_HwLCDC->LVTIME1, 0xF8000000, (spec.component_VDB << 27));
+		
+		BITCSET(pComponent_HwLCDC->LVTIME2, 0x01FF0000, (spec.component_FSWC1 << 16));
+		BITCSET(pComponent_HwLCDC->LVTIME2, 0x000001FF, spec.component_FEWC1);
+		
+		BITCSET(pComponent_HwLCDC->LVTIME3, 0x00003FFF, spec.component_FLC2);
+		BITCSET(pComponent_HwLCDC->LVTIME3, 0x003F0000, (spec.component_FPW2 << 16));
+		
+		BITCSET(pComponent_HwLCDC->LVTIME4, 0x01FF0000, (spec.component_FSWC2 << 16));
+		BITCSET(pComponent_HwLCDC->LVTIME4, 0x000001FF, spec.component_FEWC2);
+		
+		BITCSET(pComponent_HwLCDC->LDS, 0x0000FFFF, spec.component_lcd_width);
+		BITCSET(pComponent_HwLCDC->LDS, 0xFFFF0000, (spec.component_lcd_height << 16));
+
+		switch(mode)
+		{
+			case COMPONENT_MODE_NTSC_M:
+			case COMPONENT_MODE_NTSC_M_J:
+			case COMPONENT_MODE_PAL_M:
+			case COMPONENT_MODE_NTSC_443:
+			case COMPONENT_MODE_PSEUDO_PAL:
+			case COMPONENT_MODE_NTSC_N:
+			case COMPONENT_MODE_NTSC_N_J:
+			case COMPONENT_MODE_PAL_N:
+			case COMPONENT_MODE_PAL_B:
+			case COMPONENT_MODE_PAL_G:
+			case COMPONENT_MODE_PAL_H:
+			case COMPONENT_MODE_PAL_I:
+			case COMPONENT_MODE_PSEUDO_NTSC:
+				BITCSET(lcd_ctrl, Hw29|Hw28, Hw29|Hw28);				// R2YMD - RGB to YCbCr Conversion Option
+				BITCSET(lcd_ctrl, Hw23, Hw23);							// CKG - Clock Gating Enable for Timing Generator
+				BITCSET(lcd_ctrl, Hw15, Hw15);							// ID - Inverted Data Enable
+				BITCSET(lcd_ctrl, Hw14, Hw14);							// IV - Inverted Vertical Sync
+				BITCSET(lcd_ctrl, Hw13, Hw13);							// IH - Inverted Horizontal Sync
+				BITCSET(lcd_ctrl, Hw12, Hw12);							// IP - Inverted Pixel Clock
+				BITCSET(lcd_ctrl, Hw10, Hw10);							// R2Y - RGB to YCbCr Converter Enable for OUPUT
+				BITCSET(lcd_ctrl, Hw7, Hw7);							// TV - TV mode
+				BITCSET(lcd_ctrl, Hw3|Hw2|Hw1, Hw3|Hw1);				// OVP
+				BITCSET(lcd_ctrl, Hw0, Hw0);							// LEN - LCD Controller Enable
+				#ifdef TCC_COMPONENT_CCIR656
+				BITCSET(lcd_ctrl, Hw24, Hw24);							// 656 - CCIR 656 Mode
+				BITCSET(lcd_ctrl, Hw19|Hw18|Hw17|Hw16, Hw19);			// PXDW - Pixel Data Width
+				BITCSET(lcd_ctrl, Hw9, Hw9);							// DP - Double Pixel Data
+				#else
+				BITCSET(lcd_ctrl, Hw19|Hw18|Hw17|Hw16, Hw18|Hw17);		// PXDW - Pixel Data Width
+				#endif
+				break;
+
+			case COMPONENT_MODE_720P:
+				BITCSET(lcd_ctrl, Hw29|Hw28, Hw29|Hw28);				// R2YMD - RGB to YCbCr Conversion Option
+				BITCSET(lcd_ctrl, Hw23, Hw23);							// CKG - Clock Gating Enable for Timing Generator
+				#if defined(CONFIG_MACH_TCC9300ST)
+				//BITCSET(lcd_ctrl, Hw15, Hw15);							// ID - Inverted Data Enable
+				BITCSET(lcd_ctrl, Hw14, Hw14);							// IV - Inverted Vertical Sync
+				BITCSET(lcd_ctrl, Hw13, Hw13);							// IH - Inverted Horizontal Sync
+				//BITCSET(lcd_ctrl, Hw12, Hw12);							// IP - Inverted Pixel Clock
+				#else
+				BITCSET(lcd_ctrl, Hw15, Hw15);							// ID - Inverted Data Enable
+				BITCSET(lcd_ctrl, Hw14, Hw14);							// IV - Inverted Vertical Sync
+				//BITCSET(lcd_ctrl, Hw13, Hw13);							// IH - Inverted Horizontal Sync
+				BITCSET(lcd_ctrl, Hw12, Hw12);							// IP - Inverted Pixel Clock
+				#endif
+				BITCSET(lcd_ctrl, Hw8, Hw8);							// NI - Non-interlace Mode
+				BITCSET(lcd_ctrl, Hw3|Hw2|Hw1, Hw3|Hw1);				// OVP
+				BITCSET(lcd_ctrl, Hw0, Hw0);							// LEN - LCD Controller Enable
+				#ifdef TCC_COMPONENT_16BPP_YCBCR
+				BITCSET(lcd_ctrl, Hw10, Hw10);							// R2Y - RGB to YCbCr Converter Enable for OUPUT
+				BITCSET(lcd_ctrl, Hw19|Hw18|Hw17|Hw16, Hw19);			// PXDW - Pixel Data Width
+				#else
+				BITCSET(lcd_ctrl, Hw19|Hw18|Hw17|Hw16, Hw19|Hw18);		// PXDW - Pixel Data Width
+				#endif
+				break;
+
+			case COMPONENT_MODE_1080I:
+				BITCSET(lcd_ctrl, Hw29|Hw28, Hw29|Hw28);				// R2YMD - RGB to YCbCr Conversion Option
+				BITCSET(lcd_ctrl, Hw23, Hw23);							// CKG - Clock Gating Enable for Timing Generator
+				//BITCSET(lcd_ctrl, Hw15, Hw15);							// ID - Inverted Data Enable
+				BITCSET(lcd_ctrl, Hw14, Hw14);							// IV - Inverted Vertical Sync
+				BITCSET(lcd_ctrl, Hw13, Hw13);							// IH - Inverted Horizontal Sync
+				//BITCSET(lcd_ctrl, Hw12, Hw12);							// IP - Inverted Pixel Clock
+				BITCSET(lcd_ctrl, Hw7, Hw7);							// TV
+				BITCSET(lcd_ctrl, Hw3|Hw2|Hw1, Hw3|Hw1);				// OVP
+				BITCSET(lcd_ctrl, Hw0, Hw0);							// LEN - LCD Controller Enable
+				#ifdef TCC_COMPONENT_16BPP_YCBCR
+				BITCSET(lcd_ctrl, Hw10, Hw10);							// R2Y - RGB to YCbCr Converter Enable for OUPUT
+				BITCSET(lcd_ctrl, Hw19|Hw18|Hw17|Hw16, Hw19);			// PXDW - Pixel Data Width
+				#else
+				BITCSET(lcd_ctrl, Hw19|Hw18|Hw17|Hw16, Hw19|Hw18);		// PXDW - Pixel Data Width
+				#endif
+				break;
+
+			default:
+				break;
+		}
+
+		BITCSET(pComponent_HwLCDC->LCTRL, 0xFFFFFFFF, lcd_ctrl);
+	#endif // defined(CONFIG_ARCH_TCC892X)
 }
 
 /*****************************************************************************
@@ -727,7 +897,11 @@ void tcc_component_get_lcdsize(unsigned int *width, unsigned int *height)
 {
 	unsigned int lcdsize;
 		
+	#if defined(CONFIG_ARCH_TCC892X)
+	lcdsize = pComponent_DISP->uLSIZE.nREG;
+	#else
 	lcdsize = pComponent_HwLCDC->LDS;
+	#endif
 
 	*width = lcdsize & 0x0000FFFF;
 	*height = lcdsize >>16;
@@ -826,22 +1000,36 @@ void tcc_component_set_imagebase(unsigned int type, unsigned int base0, unsigned
 {
 	switch (type) 
 	{
-		case	IMG_CH0 :
+	#if defined(CONFIG_ARCH_TCC892X)
+		case IMG_CH0:
+			break;
+
+		case IMG_CH1:
+			break;
+
+		case IMG_CH2:
+			break;
+
+		default:
+			break;
+	#else
+		case IMG_CH0:
 			BITCSET(pComponent_HwLCDC->LI0BA0, 0xFFFFFFFF, base0);
 			BITCSET(pComponent_HwLCDC->LI0BA1, 0xFFFFFFFF, base1);
 			BITCSET(pComponent_HwLCDC->LI0BA2, 0xFFFFFFFF, base2);			
 			break;
 
-		case	IMG_CH1 :
+		case IMG_CH1:
 			BITCSET(pComponent_HwLCDC->LI1BA0, 0xFFFFFFFF, base0);
 			break;
 
-		case	IMG_CH2 :
+		case IMG_CH2:
 			BITCSET(pComponent_HwLCDC->LI2BA0, 0xFFFFFFFF, base0);
 			break;
 
-		default	:
+		default:
 			break;
+	#endif
 	}
 }
 
@@ -916,7 +1104,17 @@ unsigned int tcc_component_set_imageinfo (unsigned int flag, unsigned int type, 
 	
 	switch (type) 
 	{
-		case IMG_CH0 :
+	#if defined(CONFIG_ARCH_TCC892X)
+		case IMG_CH0:
+			break;
+
+		case IMG_CH1:
+			break;
+
+		case IMG_CH2:
+			break;
+	#else
+		case IMG_CH0:
 			if(flag & SET_IMAGE_SIZE)
 			{
 				BITCSET(pComponent_HwLCDC->LI0S, 0xFFFF0000, (height << 16));
@@ -947,7 +1145,7 @@ unsigned int tcc_component_set_imageinfo (unsigned int flag, unsigned int type, 
 			}
 			break;
 			
-		case IMG_CH1 :
+		case IMG_CH1:
 			if(flag & SET_IMAGE_SIZE)
 			{
 				BITCSET(pComponent_HwLCDC->LI1S, 0xFFFF0000, (height << 16));
@@ -972,7 +1170,7 @@ unsigned int tcc_component_set_imageinfo (unsigned int flag, unsigned int type, 
 			}	
 			break;
 			
-		case IMG_CH2 :
+		case IMG_CH2:
 			if(flag & SET_IMAGE_SIZE)
 			{
 				BITCSET(pComponent_HwLCDC->LI2S, 0xFFFF0000, (height << 16));
@@ -996,6 +1194,7 @@ unsigned int tcc_component_set_imageinfo (unsigned int flag, unsigned int type, 
 				BITCSET(pComponent_HwLCDC->LI2SR, 0x000000F0, (vscale << 4));
 			}
 			break;
+	#endif
 
 		default	:
 			break;
@@ -1010,6 +1209,8 @@ void tcc_component_set_imagectrl(unsigned int flag, unsigned int type, COMPONENT
 {
 	unsigned int IMG_Ctrl_reg;
 	
+	#if defined(CONFIG_ARCH_TCC892X)
+	#else
 	switch (type) 
 	{
 		case IMG_CH0:
@@ -1100,6 +1301,7 @@ void tcc_component_set_imagectrl(unsigned int flag, unsigned int type, COMPONENT
 		default:
 			return;
 	}
+	#endif
 }
 
 /*****************************************************************************
@@ -1120,51 +1322,71 @@ void tcc_component_update(struct tcc_lcdc_image_update *update)
 	//printk("lcd_w : %d, lcd_h %d \n", lcd_w, lcd_h);
 	//printk("update->addr0 : %x, update->addr1 : %x, update->addr2  : %x \n",update->addr0, update->addr1, update->addr2 );
 
-	// Set LCD Image channel 0 
-	memset((void*)&ImgCtrl, NULL, sizeof(COMPONENT_LCDC_IMG_CTRL_TYPE));
-
-	if(Component_Mode == COMPONENT_MODE_720P)
- 		ImgCtrl.INTL = FALSE;
-	else
-	{
-	#if defined(CONFIG_TCC_EXCLUSIVE_UI_LAYER)
- 		if(component_exclusive_ui_param.interlace && !TCC_OUTPUT_EXCLUSIVE_UI_GetBypass())
-			ImgCtrl.INTL = FALSE;
+	#if defined(CONFIG_ARCH_TCC892X)
+		if(Component_Mode == COMPONENT_MODE_720P)
+			VIOC_RDMA_SetImageIntl(pComponent_RDMA_VIDEO, FALSE);
 		else
+			VIOC_RDMA_SetImageIntl(pComponent_RDMA_VIDEO, TRUE);
+
+		VIOC_RDMA_SetImageFormat(pComponent_RDMA_VIDEO, update->fmt);
+		
+		if(update->fmt >= TCC_LCDC_IMG_FMT_YUV420SP)
+		{
+			VIOC_RDMA_SetImageY2REnable(pComponent_RDMA_VIDEO, TRUE);
+			VIOC_RDMA_SetImageY2RMode(pComponent_RDMA_VIDEO, 0); /* Y2RMode Default 0 (Studio Color) */
+		}
+		
+		// image address
+		VIOC_RDMA_SetImageBase(pComponent_RDMA_VIDEO, (unsigned int)update->addr0, (unsigned int)update->addr1, (unsigned int)update->addr2);
+		// image offset
+		VIOC_RDMA_SetImageOffset(pComponent_RDMA_VIDEO, update->fmt, update->Frame_width);
+	#else
+		// Set LCD Image channel 0 
+		memset((void*)&ImgCtrl, NULL, sizeof(COMPONENT_LCDC_IMG_CTRL_TYPE));
+
+		if(Component_Mode == COMPONENT_MODE_720P)
+	 		ImgCtrl.INTL = FALSE;
+		else
+		{
+		#if defined(CONFIG_TCC_EXCLUSIVE_UI_LAYER)
+	 		if(component_exclusive_ui_param.interlace && !TCC_OUTPUT_EXCLUSIVE_UI_GetBypass())
+				ImgCtrl.INTL = FALSE;
+			else
+				ImgCtrl.INTL = TRUE;
+		#else
 			ImgCtrl.INTL = TRUE;
-	#else
-		ImgCtrl.INTL = TRUE;
-	#endif
-	}
-
-	ImgCtrl.IEN = update->enable;
-	ImgCtrl.FMT = update->fmt;
-
-	if(ImgCtrl.FMT >= TCC_LCDC_IMG_FMT_YUV420SP)
-		ImgCtrl.Y2R = TRUE;
-	else
-		ImgCtrl.Y2R = FALSE;
-
-	ImgCtrl.UPD = TRUE;
-	
-	#if defined(CONFIG_TCC_EXCLUSIVE_UI_LAYER)
-		/* Get the parameters for exclusive ui */
-		TCC_OUTPUT_EXCLUSIVE_UI_GetParam(&component_exclusive_ui_param);
-
-		if(component_exclusive_ui_param.enable && component_exclusive_ui_onthefly)
-		{
-			ImgCtrl.SRC = TRUE;
+		#endif
 		}
+
+		ImgCtrl.IEN = update->enable;
+		ImgCtrl.FMT = update->fmt;
+
+		if(ImgCtrl.FMT >= TCC_LCDC_IMG_FMT_YUV420SP)
+			ImgCtrl.Y2R = TRUE;
 		else
-		{
-			ImgCtrl.SRC = FALSE;
+			ImgCtrl.Y2R = FALSE;
+
+		ImgCtrl.UPD = TRUE;
+		
+		#if defined(CONFIG_TCC_EXCLUSIVE_UI_LAYER)
+			/* Get the parameters for exclusive ui */
+			TCC_OUTPUT_EXCLUSIVE_UI_GetParam(&component_exclusive_ui_param);
+
+			if(component_exclusive_ui_param.enable && component_exclusive_ui_onthefly)
+			{
+				ImgCtrl.SRC = TRUE;
+			}
+			else
+			{
+				ImgCtrl.SRC = FALSE;
+				tcc_component_set_imagebase(IMG_CH0, (unsigned int)update->addr0, (unsigned int)update->addr1, (unsigned int)update->addr2);
+			}
+			tcc_component_get_offset(ImgCtrl.FMT, update->Frame_width, &Y_offset, &UV_offset);
+			component_exclusive_ui_onthefly = FALSE;
+		#else
 			tcc_component_set_imagebase(IMG_CH0, (unsigned int)update->addr0, (unsigned int)update->addr1, (unsigned int)update->addr2);
-		}
-		tcc_component_get_offset(ImgCtrl.FMT, update->Frame_width, &Y_offset, &UV_offset);
-		component_exclusive_ui_onthefly = FALSE;
-	#else
-		tcc_component_set_imagebase(IMG_CH0, (unsigned int)update->addr0, (unsigned int)update->addr1, (unsigned int)update->addr2);
-		tcc_component_get_offset(ImgCtrl.FMT, update->Frame_width, &Y_offset, &UV_offset);
+			tcc_component_get_offset(ImgCtrl.FMT, update->Frame_width, &Y_offset, &UV_offset);
+		#endif
 	#endif
 	
 	if(update->Image_width > lcd_w)
@@ -1205,20 +1427,35 @@ void tcc_component_update(struct tcc_lcdc_image_update *update)
 
 	dprintk("%s, img_widht:%d, img_height:%d, win_offset_x:%d, win_offset_y:%d\n", __func__, img_width, img_height, win_offset_x, win_offset_y);
 	
-	lcd_ctrl_flag = SET_IMAGE_INTL |
-					SET_IMAGE_UPD |
-					SET_IMAGE_IEN |
-					SET_IMAGE_SRC |
-					SET_IMAGE_Y2R |
-					SET_IMAGE_FMT |
-					SET_IMAGE_CEN |
-					SET_IMAGE_AEN |
-					SET_IMAGE_ASEL;
+	#if defined(CONFIG_ARCH_TCC892X)
+		VIOC_RDMA_SetImageSize(pComponent_RDMA_VIDEO, img_width, img_height);
+		
+		// image position
+		VIOC_WMIX_SetPosition(pComponent_WMIX, 2, win_offset_x, win_offset_y);
 
-	tcc_component_set_imageinfo(SET_IMAGE_ALL, IMG_CH0, img_width, img_height, win_offset_x, win_offset_y, Y_offset, UV_offset, 0, 0);
-	tcc_component_set_imagectrl(lcd_ctrl_flag, IMG_CH0, &ImgCtrl);
+		// image enable
+		if(update->enable)
+			VIOC_RDMA_SetImageEnable(pComponent_RDMA_VIDEO);
+		else
+			VIOC_RDMA_SetImageDisable(pComponent_RDMA_VIDEO);
 
-	BITCSET(pComponent_HwLCDC->LCTRL, HwLCTRL_LEN, HwLCTRL_LEN);
+		VIOC_WMIX_SetUpdate(pComponent_WMIX);
+	#else
+		lcd_ctrl_flag = SET_IMAGE_INTL |
+						SET_IMAGE_UPD |
+						SET_IMAGE_IEN |
+						SET_IMAGE_SRC |
+						SET_IMAGE_Y2R |
+						SET_IMAGE_FMT |
+						SET_IMAGE_CEN |
+						SET_IMAGE_AEN |
+						SET_IMAGE_ASEL;
+
+		tcc_component_set_imageinfo(SET_IMAGE_ALL, IMG_CH0, img_width, img_height, win_offset_x, win_offset_y, Y_offset, UV_offset, 0, 0);
+		tcc_component_set_imagectrl(lcd_ctrl_flag, IMG_CH0, &ImgCtrl);
+
+		BITCSET(pComponent_HwLCDC->LCTRL, HwLCTRL_LEN, HwLCTRL_LEN);
+	#endif
 }
 
 #if defined(CONFIG_TCC_EXCLUSIVE_UI_LAYER)
@@ -1501,6 +1738,8 @@ void tcc_component_start(TCC_COMPONENT_MODE_TYPE mode)
 			BITSET(pGPIO->GPCEN, Hw29);
 			BITSET(pGPIO->GPCDAT, Hw29);			
 			#endif			
+		#elif defined(CONFIG_ARCH_TCC892X)					
+			tcc_gpio_config(TCC_GPE(27), GPIO_FN0|GPIO_OUTPUT|GPIO_HIGH);
 		#endif
 	}
 
@@ -1563,7 +1802,7 @@ static long tcc_component_ioctl(struct file *file, unsigned int cmd, void *arg)
 	{
 		case TCC_COMPONENT_IOCTL_START:
 			copy_from_user(&start,arg,sizeof(start));
-			#if !defined(CONFIG_ARCH_TCC93XX) && !defined(CONFIG_ARCH_TCC88XX) && !defined(CONFIG_TCC_OUTPUT_STARTER)
+			#if !defined(CONFIG_ARCH_TCC93XX) && !defined(CONFIG_ARCH_TCC88XX) && !defined(CONFIG_ARCH_TCC892X) && !defined(CONFIG_TCC_OUTPUT_STARTER)
 				if(start.lcdc == COMPONENT_LCDC_0)
 				{
 					TCC_FB_LCDC_NumSet(1, FALSE);
@@ -1581,12 +1820,12 @@ static long tcc_component_ioctl(struct file *file, unsigned int cmd, void *arg)
 				tcc_component_set_lcdc(start.lcdc);
 				tcc_component_clock_onoff(TRUE);
 			}
+
 			tcc_component_start(start.mode);
 			
 #ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
 			tca_vsync_video_display_enable();
 #endif
-			
 			break;
 
 		case TCC_COMPONENT_IOCTL_UPDATE:
@@ -1595,7 +1834,7 @@ static long tcc_component_ioctl(struct file *file, unsigned int cmd, void *arg)
 			break;
 			
 		case TCC_COMPONENT_IOCTL_END:
-			#if !defined(CONFIG_ARCH_TCC93XX) && !defined(CONFIG_ARCH_TCC88XX) && !defined(CONFIG_TCC_OUTPUT_STARTER)
+			#if !defined(CONFIG_ARCH_TCC93XX) && !defined(CONFIG_ARCH_TCC88XX) && !defined(CONFIG_ARCH_TCC892X) && !defined(CONFIG_TCC_OUTPUT_STARTER)
 				if(fb_power_state)	
 					TCC_FB_LCDC_NumSet(1, TRUE);
 			#endif
@@ -1607,7 +1846,10 @@ static long tcc_component_ioctl(struct file *file, unsigned int cmd, void *arg)
 			tcc_vsync_set_firstFrameFlag(1);
 #endif
 #if defined(TCC_VIDEO_DISPLAY_DEINTERLACE_MODE)
+			#if defined(CONFIG_ARCH_TCC892X)
+			#else
 			tcc_vsync_viqe_deinitialize();
+			#endif
 #endif /* TCC_VIDEO_DISPLAY_DEINTERLACE_MODE */
 			break;
 

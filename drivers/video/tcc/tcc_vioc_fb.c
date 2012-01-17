@@ -1152,22 +1152,35 @@ static void tccfb_ResetSyncTime(int currentTime)
 }
 #endif
 
-void tccfb_hdmi_starter(char hdmi_lcdc_num, struct lcdc_timimg_parms_t *lcdc_timing)
+void tccfb_output_starter(char output_type, char lcdc_num, struct lcdc_timimg_parms_t *lcdc_timing)
 {
-	TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_HDMI, hdmi_lcdc_num, 1);
+	switch(output_type)
+	{
+		case TCC_OUTPUT_HDMI:
+ 		 	TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_HDMI, lcdc_num, 1);
+ 			TCC_HDMI_LCDC_Timing(lcdc_num, lcdc_timing);
+			Output_SelectMode = TCC_OUTPUT_HDMI;
+			break;
 
-	TCC_HDMI_LCDC_Timing(EX_OUT_LCDC, lcdc_timing);
-	Output_SelectMode = TCC_OUTPUT_HDMI;
+		case TCC_OUTPUT_COMPOSITE:
+ 		 	TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_COMPOSITE, lcdc_num, 1);
+			Output_SelectMode = TCC_OUTPUT_COMPOSITE;
+			break;
 
-	
+		case TCC_OUTPUT_COMPONENT:
+ 		 	TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_COMPONENT, lcdc_num, 1);
+			Output_SelectMode = TCC_OUTPUT_COMPONENT;
+			break;
+	}
+
 	#if defined(TCC_VIDEO_DISPLAY_BY_VSYNC_INT)
-	memset( &tccvid_vsync, 0, sizeof( tccvid_vsync ) ) ; 
-	tccvid_vsync.overlayUsedFlag = -1;
-	tccvid_vsync.outputMode = -1;
-	tccvid_vsync.firstFrameFlag = 1;
-	tccvid_vsync.deinterlace_mode= -1;
-	tccvid_vsync.m2m_mode = -1;
-	tccvid_vsync.output_toMemory = -1;
+		memset( &tccvid_vsync, 0, sizeof( tccvid_vsync ) );
+		tccvid_vsync.overlayUsedFlag = -1;
+		tccvid_vsync.outputMode = -1;
+		tccvid_vsync.firstFrameFlag = 1;
+		tccvid_vsync.deinterlace_mode= -1;
+		tccvid_vsync.m2m_mode = -1;
+		tccvid_vsync.output_toMemory = -1;
 	#endif
 }
 
@@ -1539,6 +1552,50 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 			}
 			break;
 
+		case TCC_LCDC_COMPONENT_CHECK:
+			{
+				unsigned int component_detect;
+
+				#if defined(CONFIG_FB_TCC_COMPONENT)
+					component_detect = tcc_component_detect();
+				#endif
+
+				if (copy_to_user((void *)arg, &component_detect, sizeof(unsigned int)))
+					return -EFAULT;
+			}
+			break;
+			
+		case TCC_LCDC_COMPONENT_MODE_SET:
+			{
+				LCDC_COMPONENT_MODE component_mode;
+				if(copy_from_user((void *)&component_mode, (const void *)arg, sizeof(LCDC_COMPONENT_MODE))){
+					return -EFAULT;
+				}
+
+				if(component_mode == LCDC_COMPONENT_UI_MODE)
+				{
+					Output_SelectMode = TCC_OUTPUT_COMPONENT;
+
+					#ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
+				       spin_lock_irq(&vsync_lock);
+				       tccvid_vsync.outputMode = -1;
+				       spin_unlock_irq(&vsync_lock);
+					#endif
+
+					#if !defined(CONFIG_TCC_HDMI_UI_DISPLAY_OFF)
+						TCC_OUTPUT_FB_Update(fb_info->fb->var.xres, fb_info->fb->var.yres, fb_info->fb->var.bits_per_pixel, Output_BaseAddr, Output_SelectMode);
+						TCC_OUTPUT_FB_UpdateSync(Output_SelectMode);
+						TCC_OUTPUT_LCDC_OutputEnable(EX_OUT_LCDC, 1);
+					#endif /*CONFIG_TCC_HDMI_UI_DISPLAY_OFF*/
+
+					TCC_OUTPUT_FB_MouseShow(1, TCC_OUTPUT_COMPONENT);
+				}
+				else if(component_mode == LCDC_COMPONENT_NONE_MODE)
+				{
+					Output_SelectMode = TCC_OUTPUT_NONE;
+				}
+			}
+			break;
 
 		case TCC_LCDC_MOUSE_SHOW:
 			{

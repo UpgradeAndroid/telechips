@@ -34,17 +34,20 @@
 
 unsigned int tca_get_lcd_lcdc_num(viod)
 {
-
 	#ifdef CONFIG_LCD_LCDC0_USE
 		return 0;
 	#else
 		#ifdef CONFIG_ARCH_TCC892X
-		if(system_rev == 0x1006)
-			return 0;
-		else
-			return 1;			
-		#endif//
-	#endif//
+			#ifdef CONFIG_MACH_TCC8920ST
+				return 0;
+			#else
+				if(system_rev == 0x1006)
+					return 0;
+				else
+					return 1;			
+			#endif
+		#endif
+	#endif
 
 	//default LCDC number
 	return 1;
@@ -53,17 +56,20 @@ EXPORT_SYMBOL(tca_get_lcd_lcdc_num);
 
 unsigned int tca_get_hdmi_lcdc_num(viod)
 {
-
 	#ifdef CONFIG_LCD_LCDC0_USE
 		return 1;
 	#else
 		#ifdef CONFIG_ARCH_TCC892X
-		if(system_rev == 0x1006)
-			return 1;
-		else
-			return 0;			
-		#endif//
-	#endif//
+			#ifdef CONFIG_MACH_TCC8920ST
+				return 1;
+			#else
+				if(system_rev == 0x1006)
+					return 1;
+				else
+					return 0;			
+			#endif
+		#endif
+	#endif
 
 	//default HDMI LCDC number
 	return 0;
