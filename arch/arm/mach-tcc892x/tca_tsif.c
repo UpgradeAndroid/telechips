@@ -25,6 +25,11 @@ static void tsif_delay(int m_sec)
 
 static void tcc_tsif_clearfifopacket(struct tcc_tsif_handle *h)
 {
+    /* In order to clear fifo, we need to external clocks( tsif clock ).
+     * Without clock, it will go hang situation. Therefore 
+     * We remove clear fifo codes.
+     */
+#if 0    
 #ifdef DEBUG_INFO
 	printk("%s - in\n", __func__);
 #endif    
@@ -37,7 +42,8 @@ static void tcc_tsif_clearfifopacket(struct tcc_tsif_handle *h)
 	BITCLR(h->regs->TSRXCR, Hw30);
 #ifdef DEBUG_INFO
 	printk("%s\n", __func__);
-#endif 
+#endif
+#endif    
 }
 
 static int tca_tsif_set_port(struct tcc_tsif_handle *h)
@@ -553,8 +559,14 @@ static void tcc_tsif_dma_init(struct tcc_tsif_handle *h)
 
 	//BITCSET(dma_regs->PACKET.nREG, (Hw32-Hw0), MPEG_PACKET_SIZE);
 	//BITSET(dma_regs->PACKET.nREG, ((h->dma_total_size/MPEG_PACKET_SIZE)&0x1FFF)<<16);
-
+	BITCSET(dma_regs->RXBASE.nREG, (Hw32-Hw0), h->rx_dma.dma_addr);
+   	BITCLR(dma_regs->DMAICR.nREG, Hw20); //set RX interrupt
+	BITCLR(dma_regs->DMACTR.nREG, Hw0);
 	BITCLR(dma_regs->DMACTR.nREG, Hw28); //0:little endian, 1:Big endian
+	BITSET(dma_regs->DMACTR.nREG, Hw29); //enable continues
+	BITSET(dma_regs->DMACTR.nREG, Hw30); //enable recv DMA requeset 
+	BITSET(dma_regs->DMACTR.nREG, Hw1);	 //enable TSSEL
+
 }
 
 static int tcc_tsif_dmastart(struct tcc_tsif_handle *h)
@@ -570,29 +582,22 @@ static int tcc_tsif_dmastart(struct tcc_tsif_handle *h)
 #ifdef DEBUG_INFO
 	printk("%s - in\n", __func__);
 #endif
-
 	if(h->id == 0)			dma_regs = (volatile PTSIFDMA)tcc_p2v(HwTSIF_DMA0_BASE);
 	else if(h->id == 1)		dma_regs = (volatile PTSIFDMA)tcc_p2v(HwTSIF_DMA1_BASE);
 	else					dma_regs = (volatile PTSIFDMA)tcc_p2v(HwTSIF_DMA2_BASE);
 
-	BITCSET(dma_regs->RXBASE.nREG, (Hw32-Hw0), h->rx_dma.dma_addr);
+	BITSET(dma_regs->DMAICR.nREG, Hw29|Hw28);
+	BITCLR(dma_regs->DMACTR.nREG, Hw0);
 
 	dma_regs->PACKET.nREG = ( packet_cnt << 16) | packet_size;
 	BITCSET(dma_regs->DMAICR.nREG, 0x1FFF, intr_packet_cnt);	
 
-	BITSET(dma_regs->DMAICR.nREG, Hw16); 			//enable DMA packet interrupt
-	//BITSET(dma_regs->DMAICR.nREG, Hw17);				//enable DMA Done Interrupt
-	BITCLR(dma_regs->DMAICR.nREG, Hw20);				//set RX interrupt
 	BITSET(dma_regs->DMAICR.nREG, Hw16);
+	//BITSET(dma_regs->DMAICR.nREG, Hw17);				//enable DMA Done Interrupt
 
 	BITSET(dma_regs->DMACTR.nREG, Hw2);				//clear tx/rx packet counter
-	//BITCLR(dma_regs->DMACTR.nREG, Hw2);
-
-	BITSET(dma_regs->DMACTR.nREG, Hw30);				//enable recv DMA requeset 
-
     BITCLR(dma_regs->DMACTR.nREG, Hw19|Hw18);//disable PID & Sync Byte match
     BITCLR(dma_regs->DMACTR.nREG, Hw5|Hw4);	//00:normal mode, 01:MPEG2_TS mode
-
 #if defined(SUPPORT_PIDFILTER_DMA)
     if(h->mpeg_ts == Hw0)
     {
@@ -615,8 +620,6 @@ static int tcc_tsif_dmastart(struct tcc_tsif_handle *h)
 #endif      	
     }
 	
-	BITSET(dma_regs->DMACTR.nREG, Hw29);				//enable continues
-	BITSET(dma_regs->DMACTR.nREG, Hw1);				//enable TSSEL
 	BITSET(dma_regs->DMACTR.nREG, Hw0);				//enable DMA
 	BITSET(h->regs->TSRXCR, Hw31);
     if( h->mpeg_ts == 0)
@@ -641,14 +644,11 @@ static int tcc_tsif_dmastop(struct tcc_tsif_handle *h)
 	if(h->id == 0)			dma_regs = (volatile PTSIFDMA)tcc_p2v(HwTSIF_DMA0_BASE);
 	else if(h->id == 1)		dma_regs = (volatile PTSIFDMA)tcc_p2v(HwTSIF_DMA1_BASE);
 	else					dma_regs = (volatile PTSIFDMA)tcc_p2v(HwTSIF_DMA2_BASE);
-
 	BITCLR(h->regs->TSRXCR, Hw31);
-    tsif_delay(50);
+    BITCLR(dma_regs->DMAICR.nREG, Hw16);
+    BITCLR(dma_regs->DMAICR.nREG, Hw17);				//enable DMA Done Interrupt
 
-	BITCLR(dma_regs->DMACTR.nREG, Hw30); //disable DMA receive
-	BITSET(dma_regs->DMAICR.nREG, Hw29|Hw28);
-	BITCLR(dma_regs->DMACTR.nREG, Hw0);
-
+//	BITSET(dma_regs->DMAICR.nREG, Hw29|Hw28);
 #ifdef DEBUG_INFO
 	printk("%s\n", __func__);
 #endif
@@ -675,7 +675,7 @@ static void tcc_tsif_hw_init(struct tcc_tsif_handle *h)
 	
 	BITCLR(h->regs->TSRXCR, Hw17);
 	reg_val = (TSIF_RXFIFO_THRESHOLD << 5) | Hw4;
-	BITCSET(h->regs->TSIC,(Hw32-Hw0), reg_val|Hw1);
+	BITCSET(h->regs->TSIC,(Hw32-Hw0), reg_val);
 
 #if defined(SUPPORT_PIDFILTER_INTERNAL)
     BITSET(h->regs->TSRXCR, Hw17);

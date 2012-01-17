@@ -196,9 +196,9 @@ static irqreturn_t tsif_ex_dma_handler(int irq, void *dev_id)
 {
     tcc_tsif_handle_t *handle = (tcc_tsif_handle_t *)dev_id;
     struct tcc_tsif_pri_handle *h_pri = (struct tcc_tsif_pri_handle *)handle->private_data;
+    handle->tsif_isr(handle);
   	if (h_pri->open_cnt > 0) 
    	{
-        handle->tsif_isr(handle);
         //Check PCR & Make STC
         if(h_pri->pcr_pid < 0x1FFF )
         {	
@@ -400,7 +400,8 @@ static int tcc_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long arg
         }
         break;			
     case IOCTL_TSIF_DMA_STOP:
-            tsif_ex_handle.dma_stop(&tsif_ex_handle);
+            if(tsif_ex_handle.dma_stop(&tsif_ex_handle) == 0)
+                tsif_ex_handle.clear_fifo_packet(&tsif_ex_handle);
         break;			
     case IOCTL_TSIF_GET_MAX_DMA_SIZE:
         {
