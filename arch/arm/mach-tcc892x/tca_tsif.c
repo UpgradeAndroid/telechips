@@ -44,6 +44,7 @@ static int tca_tsif_set_port(struct tcc_tsif_handle *h)
 {
 	volatile unsigned long* TSIFPORT = (volatile unsigned long *)tcc_p2v(HwTSIF_TSCHS_BASE);
 	int ret = 0;
+    printk("%s : select port => %d\n", __func__, h->gpio_port);
 
 	switch (h->gpio_port) {
 		case 0:
@@ -560,7 +561,7 @@ static int tcc_tsif_dmastart(struct tcc_tsif_handle *h)
 {
 	volatile PTSIFDMA dma_regs;
 
-	unsigned int packet_cnt = (h->dma_total_packet_cnt & 0x1FFF) + 1;
+	unsigned int packet_cnt = (h->dma_total_packet_cnt & 0x1FFF) - 1;
 	unsigned int packet_size = (MPEG_PACKET_SIZE & 0x1FFF);
 	unsigned int intr_packet_cnt = (h->dma_intr_packet_cnt & 0x1FFF) - 1;
 
