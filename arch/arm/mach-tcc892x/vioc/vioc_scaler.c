@@ -22,6 +22,7 @@
 #include <mach/bsp.h>
 #include <mach/io.h>
 
+#include <mach/vioc_global.h>
 #include <mach/vioc_scaler.h>
 
 void VIOC_SC_SetBypass(PVIOC_SC pSCALER, unsigned int nOnOff)
@@ -145,13 +146,20 @@ void VIOC_SC_SetSWReset(unsigned int SC, unsigned int RDMA, unsigned int WDMA)
 	volatile PVIOC_IREQ_CONFIG pIREQConfig;
 	pIREQConfig = (volatile PVIOC_IREQ_CONFIG)tcc_p2v((unsigned int)HwVIOC_IREQ);
 
-	BITCSET(pIREQConfig->uSOFTRESET.nREG[0], (0x1<<(28+SC)), (0x1<<(28+SC))); // scaler reset
-	BITCSET(pIREQConfig->uSOFTRESET.nREG[0], (0x1<<RDMA), (0x1<<RDMA)); // rdma reset
-	BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<WDMA), (0x1<<WDMA)); // wdma reset
+	if(SC <= VIOC_SC2) {
+		BITCSET(pIREQConfig->uSOFTRESET.nREG[0], (0x1<<(28+SC)), (0x1<<(28+SC))); // scaler reset
+		BITCSET(pIREQConfig->uSOFTRESET.nREG[0], (0x1<<(28+SC)), (0x0<<(28+SC))); // scaler reset
+	}
 
-	BITCSET(pIREQConfig->uSOFTRESET.nREG[0], (0x1<<(28+SC)), (0x0<<(28+SC))); // scaler reset
-	BITCSET(pIREQConfig->uSOFTRESET.nREG[0], (0x1<<RDMA), (0x0<<RDMA)); // rdma reset
-	BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<WDMA), (0x00<<WDMA)); // wdma reset
+	if(RDMA <= VIOC_SC_RDMA_17) {
+		BITCSET(pIREQConfig->uSOFTRESET.nREG[0], (0x1<<RDMA), (0x1<<RDMA)); // rdma reset
+		BITCSET(pIREQConfig->uSOFTRESET.nREG[0], (0x1<<RDMA), (0x0<<RDMA)); // rdma reset
+	}
+
+	if(WDMA <= VIOC_SC_WDMA_08) {
+		BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<WDMA), (0x1<<WDMA)); // wdma reset
+		BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<WDMA), (0x00<<WDMA)); // wdma reset
+	}
 }
 
 

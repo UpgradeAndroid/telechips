@@ -52,6 +52,7 @@ obj-$(CONFIG_TELCLOCK)		+= tlclk.o
 
 obj-$(CONFIG_TCC_GRAPHIC)	+= tccgrp.o tcc_Gre2d.o tcc_Gre2d_api.o
 ifeq ($(CONFIG_ARCH_TCC892X), y)
+    obj-$(CONFIG_TCC_MEMSCALER)	 += tcc_scaler0.o 
     obj-$(CONFIG_TCC_MEMSCALER)	 += tcc_scaler.o 
     obj-$(CONFIG_TCC_MEMSCALER1) += tcc_scaler1.o
 else

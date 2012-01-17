@@ -38,10 +38,8 @@ void VIOC_API_SCALER_SetConfig(unsigned int scaler, VIOC_SCALER_INFO_Type * Info
 	volatile PVIOC_SC pScaler;
 	pScaler = (volatile PVIOC_SC)tcc_p2v((unsigned int)HwVIOC_SC0 + scaler*0x100);
 
-	if(Info->BYPASS == TRUE)
-		VIOC_SC_SetBypass(pScaler, TRUE);
-	else
-		VIOC_SC_SetBypass(pScaler, FALSE);
+	if(Info->BYPASS == TRUE) 	VIOC_SC_SetBypass(pScaler, TRUE);
+ 	else 						VIOC_SC_SetBypass(pScaler, FALSE);
 
 	//VIOC_SC_SetSrcSize((VIOC_SC *)baseAddr, Info->SRC_WIDTH, Info->SRC_HEIGHT);
 	VIOC_SC_SetDstSize(pScaler, Info->DST_WIDTH, Info->DST_HEIGHT);
