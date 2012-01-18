@@ -351,8 +351,47 @@ static struct i2c_board_info __initdata i2c_devices3[] = {
 		.platform_data = &cam_i2c_data1,
 	},
 	#endif // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
-	#endif // CONFIG_VIDEO_TCCXX_CAMERA
+	#endif // CONFIG_VIDEO_TCCXX_CAMERA	
 };
+
+static struct i2c_board_info __initdata i2c_devices_tcc8925_port1[] = {
+	#if defined(CONFIG_VIDEO_TCCXX_CAMERA)
+	#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
+	{
+		#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9P111) || defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9T111)
+			I2C_BOARD_INFO("tcc-cam-sensor-0", (0x7A>>1)), //20100716 ysseung   sign-up to sensor slave-id.
+		#endif
+		.platform_data = &cam_i2c_data1,
+	},
+	{
+		#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9M113)
+			I2C_BOARD_INFO("tcc-cam-sensor-1", (0x78>>1)), //20100716 ysseung   sign-up to sensor slave-id.
+		#endif
+		.platform_data = &cam_i2c_data1,
+	},
+	#else // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
+	{
+		I2C_BOARD_INFO("tcc-cam-sensor", SENSOR_I2C_SLAVE_ID), //20100716 ysseung   sign-up to sensor slave-id.
+		.platform_data = &cam_i2c_data1,
+	},
+	#endif // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
+	#endif // CONFIG_VIDEO_TCCXX_CAMERA
+
+	#if defined(CONFIG_TOUCHSCREEN_TCC_AK4183)
+	{
+		I2C_BOARD_INFO("tcc-ts-ak4183", 0x48),
+		.platform_data = NULL,
+	},	
+	#endif
+	
+	#if defined(CONFIG_TOUCHSCREEN_TCC_SITRONIX)
+	{
+		I2C_BOARD_INFO("tcc-ts-sitronix", 0x55),
+		.platform_data = NULL,
+	},	
+	#endif
+};
+	
 
 #if defined(CONFIG_I2C_TCC_CORE0)
 static struct tcc_i2c_platform_data tcc8920_core0_platform_data = {
@@ -710,10 +749,19 @@ static void __init tcc8920_init_machine(void)
 #endif
 
 	i2c_register_board_info(0, i2c_devices1, ARRAY_SIZE(i2c_devices1));
+	if(system_rev == 0x1006)
+	{
+		i2c_register_board_info(1, i2c_devices_tcc8925_port1, ARRAY_SIZE(i2c_devices_tcc8925_port1));
+	}
+	else
+	{
+		
 #if defined(CONFIG_TOUCHSCREEN_TCC_AK4183) || defined(CONFIG_TOUCHSCREEN_TCC_SITRONIX)
-	i2c_register_board_info(1, i2c_devices2, ARRAY_SIZE(i2c_devices2));
+		i2c_register_board_info(1, i2c_devices2, ARRAY_SIZE(i2c_devices2));
 #endif
-	i2c_register_board_info(2, i2c_devices3, ARRAY_SIZE(i2c_devices3));
+		i2c_register_board_info(2, i2c_devices3, ARRAY_SIZE(i2c_devices3));
+	}
+
 
 
 #if defined(CONFIG_TCC_BT_DEV)

@@ -818,6 +818,8 @@ long tccxxx_scaler_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	int ret = 0;
 	SCALER_TYPE scaler_v;
+	SCALER_PLUGIN_Type scaler_plugin;
+	VIOC_SCALER_INFO_Type pScalerInfo;
 	intr_data_t *msc_data = (intr_data_t *)file->private_data;
 
 	dprintk("scaler  ::cmd:0x%x block_operating(%d) - block_waiting(%d) - cmd_count(%d) - poll_count(%d)!!!\n",
@@ -827,7 +829,7 @@ long tccxxx_scaler_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	{
 		case TCC_SCALER_IOCTRL:			
 		case TCC_SCALER_IOCTRL_KERENL:
-			mutex_lock(&msc_data->io_mutex);			
+			mutex_lock(&msc_data->io_mutex);
 			if(msc_data->block_operating) {
 				msc_data->block_waiting = 1;
 				ret = wait_event_interruptible_timeout(msc_data->cmd_wq, msc_data->block_operating == 0, msecs_to_jiffies(200));
@@ -866,6 +868,33 @@ long tccxxx_scaler_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			return ret;
 
 		#if defined(CONFIG_ARCH_TCC892X)
+		case TCC_SCALER_VIOC_PLUGIN:
+			mutex_lock(&msc_data->io_mutex);
+
+			if(copy_from_user(&scaler_plugin,(SCALER_PLUGIN_Type *)arg, sizeof(SCALER_PLUGIN_Type))) {
+				printk(KERN_ALERT "Not Supported copy_from_user(%d)\n", cmd);
+				ret = -EFAULT;
+			}
+
+			// set to scaler & plug in.
+			pScalerInfo.BYPASS 			= scaler_plugin.bypass_mode;
+			pScalerInfo.SRC_WIDTH 		= scaler_plugin.src_width;
+			pScalerInfo.SRC_HEIGHT 		= scaler_plugin.src_height;
+			pScalerInfo.DST_WIDTH 		= scaler_plugin.dst_width;
+			pScalerInfo.DST_HEIGHT 		= scaler_plugin.dst_height;
+			pScalerInfo.OUTPUT_POS_X 	= scaler_plugin.dst_win_left;
+			pScalerInfo.OUTPUT_POS_Y 	= scaler_plugin.dst_win_top;
+			pScalerInfo.OUTPUT_WIDTH 	= (scaler_plugin.dst_width  - scaler_plugin.dst_win_left);
+			pScalerInfo.OUTPUT_HEIGHT 	= (scaler_plugin.dst_height - scaler_plugin.dst_win_top);
+
+			VIOC_SC_SetSWReset(scaler_plugin.scaler_no, 0xFF/*RDMA*/, 0xFF/*WDMA*/);
+			VIOC_API_SCALER_SetConfig(scaler_plugin.scaler_no, &pScalerInfo);
+			ret = VIOC_API_SCALER_SetPlugIn(scaler_plugin.scaler_no, scaler_plugin.plugin_path);
+			VIOC_API_SCALER_SetUpdate(scaler_plugin.scaler_no);
+			
+			mutex_unlock(&msc_data->io_mutex);
+			return ret;
+
 		case TCC_SCALER_VIOC_PLUGOUT:
 			VIOC_RDMA_SetImageIntl(pRDMABase, 0);
 			ret = VIOC_API_SCALER_SetPlugOut((unsigned int)arg);

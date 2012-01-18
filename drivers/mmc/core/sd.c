@@ -960,11 +960,19 @@ static int mmc_sd_init_card(struct mmc_host *host, u32 ocr,
 		/*
 		 * Attempt to change to high-speed (if supported)
 		 */
-		err = mmc_sd_switch_hs(card);
-		if (err > 0)
-			mmc_sd_go_highspeed(card);
-		else if (err)
-			goto free_card;
+		/*Telechips patch
+		 * Do not make a highspeed mode if card is low capacity(Currently < 2048(2GB))
+		*/
+		#if 1
+		if( ((card->csd.capacity << (card->csd.read_blkbits - 9)) >>11) > 2048 )
+		#endif
+		{
+			err = mmc_sd_switch_hs(card);
+			if (err > 0)
+				mmc_sd_go_highspeed(card);
+			else if (err)
+				goto free_card;
+		}
 
 		/*
 		 * Set bus speed.
