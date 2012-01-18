@@ -303,8 +303,8 @@ static void get_ddr_param(unsigned int mem_freq)
 		nCWL = 10;
 	}
 
-	CKC_CHANGE_ARG(DENALI_CTL_3) = get_cycle(tck, 20000, 1); //TRST_PWRON = 200us, 7 //Bruce_temp.. ns ?
-	CKC_CHANGE_ARG(DENALI_CTL_4) = get_cycle(tck, 50000, 1); //CKE_INACTIVE = 500us, 10 //Bruce_temp.. ns ?
+	CKC_CHANGE_ARG(DENALI_CTL_3) = get_cycle(tck, 20000000, 1); //TRST_PWRON = 200us, 7 //Bruce_temp.. ns ?
+	CKC_CHANGE_ARG(DENALI_CTL_4) = get_cycle(tck, 50000000, 1); //CKE_INACTIVE = 500us, 10 //Bruce_temp.. ns ?
 
 	//TBST_INT_INTERVAL[26:24] = 0x1, WL[20:16], CASLAT_LIN[13:8], CL half-cycle increment = 0, INITAREF[3:0] = 0x8
 	if(DDR3_AL == AL_DISABLED){ //nAL = 0;
@@ -324,7 +324,7 @@ static void get_ddr_param(unsigned int mem_freq)
 	CKC_CHANGE_ARG(DENALI_CTL_10) = (get_cycle(tck, DDR3_tWR_ps, DDR3_tWR_ck)<<24 | /*get_cycle(tck, DDR3_tRCD_ps, DDR3_tRCD_ck)*/nCL<<16 | 1<<8 | 1);
 	CKC_CHANGE_ARG(DENALI_CTL_11) = (1<<24 | DDR3_tDLLK_ck<<8 | (get_cycle(tck, DDR3_tWR_ps, DDR3_tWR_ck)+nCL));
 	CKC_CHANGE_ARG(DENALI_CTL_12) = (1<<16 | get_cycle(tck, DDR3_tFAW_ps, DDR3_tFAW_ck)<<8 | 3);
-	CKC_CHANGE_ARG(DENALI_CTL_13) = /*get_cycle(tck, DDR3_tRP_ps, DDR3_tRP_ck)*/nCL;
+	CKC_CHANGE_ARG(DENALI_CTL_13) = /*get_cycle(tck, DDR3_tRP_ps, DDR3_tRP_ck)*/nCL+1;
 	CKC_CHANGE_ARG(tRFC) = get_cycle(tck, DDR3_tRFC_ps, 1);
 	CKC_CHANGE_ARG(DENALI_CTL_15) = get_cycle(tck, DDR3_tREFI_ps, 1);
 	CKC_CHANGE_ARG(DENALI_CTL_16) = (get_cycle(tck, DDR3_tXPDLL_ps, DDR3_tXPDLL_ck)<<16 | get_cycle(tck, DDR3_tXP_ps, DDR3_tXP_ck)); // DDR3 Only
@@ -337,13 +337,13 @@ static void get_ddr_param(unsigned int mem_freq)
 // DFI Timing
 
 	if(DDR3_AL == AL_DISABLED){ //nAL = 0;
-		CKC_CHANGE_ARG(DENALI_CTL_101) = (0x1<<24|0x1<<16|nCWL<<8|(nCL+4));
+		CKC_CHANGE_ARG(DENALI_CTL_101) = (0x1<<24|0x1<<16|nCWL<<8|(nCL+5));
 	}
 	else if(DDR3_AL == AL_CL_MINUS_ONE){ //nAL = nCL - 1;
-		CKC_CHANGE_ARG(DENALI_CTL_101) = (0x1<<24|0x1<<16|(nCWL+nCL-1)<<8|(nCL+4));
+		CKC_CHANGE_ARG(DENALI_CTL_101) = (0x1<<24|0x1<<16|(nCWL+nCL-1)<<8|(nCL+5));
 	}	
 	else if(DDR3_AL == AL_CL_MINUS_TWO){ //nAL = nCL - 2;
-		CKC_CHANGE_ARG(DENALI_CTL_101) = (0x1<<24|0x1<<16|(nCWL+nCL-2)<<8|(nCL+4));
+		CKC_CHANGE_ARG(DENALI_CTL_101) = (0x1<<24|0x1<<16|(nCWL+nCL-2)<<8|(nCL+5));
 	}
 
 //--------------------------------------------------------------------------
