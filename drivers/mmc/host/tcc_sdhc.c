@@ -929,11 +929,36 @@ static void tcc_sdio_disable_card_int(struct mmc_host *mmc)
 	tcc_sdio_hw_disable_int(mmc, HwSDINT_EN_CDINT);
 }
 
+static void tcc_mmc_enable_cd_irq(int cd_irq)
+{
+	volatile PPIC pPIC = (volatile PPIC)tcc_p2v(HwPIC_BASE);
+
+#if defined(CONFIG_ARCH_TCC892X)
+	if(!(cd_irq<0))
+		pPIC->INTMSK0.nREG	|= 1<<cd_irq;
+#else
+	if(!(cd_irq<0))
+		pPIC->INTMSK0	|= 1<<cd_irq;
+#endif
+}
+
+static void tcc_mmc_disable_cd_irq(int cd_irq)
+{
+	volatile PPIC pPIC = (volatile PPIC)tcc_p2v(HwPIC_BASE);
+
+#if defined(CONFIG_ARCH_TCC892X)
+	if(!(cd_irq<0))
+		pPIC->INTMSK0.nREG &= ~(1<<cd_irq);
+#else
+	if(!(cd_irq<0))
+		pPIC->INTMSK0	&= ~(1<<cd_irq);
+#endif
+}
 
 static void tcc_mmc_check_status(struct tcc_mmc_host *host)
 {
 	unsigned int status;
-	
+
 	pr_debug("%s: cd detect\n",mmc_hostname(host->mmc));
 	// 1: insert  0:remove 
 	status=tcc_mmc_get_cd(host->mmc);
@@ -963,12 +988,20 @@ static void tcc_mmc_check_status(struct tcc_mmc_host *host)
 static irqreturn_t tcc_mmc_cd_irq(int irq, void *dev_id)
 {
 	struct tcc_mmc_host *host = (struct tcc_mmc_host *)dev_id;
-	
-	spin_lock(&host->lock);
+	unsigned long flags;
 
-	tcc_mmc_check_status(host);
+	if(host)
+	{
+		tcc_mmc_disable_cd_irq(host->cd_irq);
 
-	spin_unlock(&host->lock);
+		spin_lock_irqsave(&host->lock, flags);
+
+		tcc_mmc_check_status(host);
+
+		spin_unlock_irqrestore(&host->lock, flags);
+
+		tcc_mmc_enable_cd_irq(host->cd_irq);
+	}
 
 	return IRQ_HANDLED;
 }
@@ -1063,8 +1096,9 @@ static irqreturn_t tcc_mmc_interrupt_handler(int irq, void *dev_id)
 	irqreturn_t result;    
 	int cardint = 0;    
 	struct tcc_mmc_host *host = (struct tcc_mmc_host *) dev_id;
-	
-	spin_lock(&host->lock);
+	unsigned long flags;
+
+	spin_lock_irqsave(&host->lock, flags);
 
 	IntStatus = readl(host->iobase+TCCSDHC_INT_STATUS);
 
@@ -1111,7 +1145,7 @@ static irqreturn_t tcc_mmc_interrupt_handler(int irq, void *dev_id)
 	mmiowb();
 
 out:
-	spin_unlock(&host->lock);
+	spin_unlock_irqrestore(&host->lock, flags);
 
 	if (cardint) {
 		mmc_signal_sdio_irq(host->mmc);
@@ -1559,7 +1593,6 @@ static int tcc_mmc_remove(struct platform_device *pdev)
 static int tcc_mmc_suspend(struct platform_device *pdev, pm_message_t mesg)
 {
 	int ret = 0;
-	volatile PPIC pPIC = (volatile PPIC)tcc_p2v(HwPIC_BASE);	
 	struct tcc_mmc_host *host = platform_get_drvdata(pdev);
 
 	if (host && host->suspended)
@@ -1572,13 +1605,7 @@ static int tcc_mmc_suspend(struct platform_device *pdev, pm_message_t mesg)
 	}
 
 	//disable cd interrupt
-#if defined(CONFIG_ARCH_TCC892X)
-	if(!(host->cd_irq<0))
-		pPIC->INTMSK0.nREG &= ~(1<<host->cd_irq);
-#else
-	if(!(host->cd_irq<0))
-		pPIC->INTMSK0	&= ~(1<<host->cd_irq);
-#endif
+	tcc_mmc_disable_cd_irq(host->cd_irq);
  
 	if (host->pdata->suspend)
 		ret = host->pdata->suspend(&pdev->dev, host->id);	
@@ -1589,7 +1616,6 @@ static int tcc_mmc_suspend(struct platform_device *pdev, pm_message_t mesg)
 static int tcc_mmc_resume(struct platform_device *pdev)
 {
 	int ret = 0;
-	volatile PPIC pPIC = (volatile PPIC)tcc_p2v(HwPIC_BASE);		
 	struct tcc_mmc_host *host = platform_get_drvdata(pdev);
 
 	if (host->pdata->resume)
@@ -1607,13 +1633,7 @@ static int tcc_mmc_resume(struct platform_device *pdev)
 	}
 
 	//enable cd interrupt
-#if defined(CONFIG_ARCH_TCC892X)
-	if(!(host->cd_irq<0))
-		pPIC->INTMSK0.nREG	|= 1<<host->cd_irq;
-#else
-	if(!(host->cd_irq<0))
-		pPIC->INTMSK0	|= 1<<host->cd_irq;
-#endif
+	tcc_mmc_enable_cd_irq(host->cd_irq);
 
 	return ret;
 }
