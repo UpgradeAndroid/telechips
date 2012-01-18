@@ -183,13 +183,13 @@ static void sdram_init(void)
 	}
 
 	denali_ctl(6) = (time2cycle(DDR3_tRAS_ps,tCK)<<24 | time2cycle(DDR3_tRC_ps,tCK)<<16 | time2cycle(DDR3_tRRD_ps,tCK)<<8 | DDR3_tCCD_ck);
-	denali_ctl(7) = (DDR3_tMRD_ck<<24 | time2cycle(DDR3_tRTP_ps,tCK)<<16 | time2cycle(DDR3_tRP_ps,tCK)<<8 | (time2cycle(DDR3_tWTR_ps,tCK)+1));
+	denali_ctl(7) = (DDR3_tMRD_ck<<24 | time2cycle(DDR3_tRTP_ps,tCK)<<16 | /*time2cycle(DDR3_tRP_ps,tCK)*/nCL<<8 | (time2cycle(DDR3_tWTR_ps,tCK)+1));
 	denali_ctl(8) = (time2cycle(DDR3_tRAS_MAX_ps,tCK)<<8 | time2cycle(DDR3_tMOD_ps,tCK));
 	denali_ctl(9) = ((time2cycle(DDR3_tCKE_ps,tCK)+1)<<8 | time2cycle(DDR3_tCKE_ps,tCK));
-	denali_ctl(10) = (time2cycle(DDR3_tWR_ps,tCK)<<24 | time2cycle(DDR3_tRCD_ps,tCK)<<16 | 1<<8 | 1);
+	denali_ctl(10) = (time2cycle(DDR3_tWR_ps,tCK)<<24 | /*time2cycle(DDR3_tRCD_ps,tCK)*/nCL<<16 | 1<<8 | 1);
 	denali_ctl(11) = (1<<24 | DDR3_tDLLK_ck<<8 | (time2cycle(DDR3_tWR_ps,tCK)+nCL));
 	denali_ctl(12) = (1<<16 | time2cycle(DDR3_tFAW_ps,tCK)<<8 | 3);
-	denali_ctl(13) = time2cycle(DDR3_tRP_ps,tCK)+1;
+	denali_ctl(13) = /*time2cycle(DDR3_tRP_ps,tCK)*/nCL+1;
 	BITCSET(denali_ctl(14), 0x03FF0100, (time2cycle(DDR3_tRFC_ps,tCK)<<16 | 1<<8));
 	denali_ctl(15) = time2cycle(DDR3_tREFI_ps,tCK);
 	denali_ctl(16) = (time2cycle(DDR3_tXPDLL_ps,tCK)<<16 | time2cycle(DDR3_tXP_ps,tCK)); // DDR3 Only
