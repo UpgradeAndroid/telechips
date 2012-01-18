@@ -36,7 +36,7 @@
 
 #include <mach/bsp.h>
 #include <mach/gpio.h>
-#include <linux/spi/tcc_gpsb_tsif.h>
+#include <linux/spi/tcc_tsif.h>
 #include <mach/tca_spi.h>
 #include "tsdemux/TSDEMUX_sys.h"
 #define      SUPPORT_TSIF_BLOCK
@@ -465,7 +465,9 @@ static int tcc_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long arg
                 return -EFAULT;
             }
 		}
-		break;		
+		break;	
+    case IOCTL_TSIF_RESET:
+        break;
     default:
         printk("tsif: unrecognized ioctl (0x%X)\n", cmd);
         ret = -EINVAL;

@@ -49,6 +49,7 @@
 #include <mach/vioc_wmix.h>
 #include <mach/vioc_config.h>
 #include <mach/vioc_plugin_tcc892x.h>
+#include <mach/vioc_scaler.h>
 #include <mach/vioc_wmix.h>
 #include <mach/vioc_api.h>
 #endif // CONFIG_ARCH_TCC892X
@@ -112,31 +113,41 @@ static int tccxxx_wmixer_mmap(struct file *file, struct vm_area_struct *vma)
 char tccxxx_wmixer_ctrl(WMIXER_INFO_TYPE *wmix_info)
 {
 	int ret = 0;
+	unsigned int y_offset, uv_offset, crop_y_addr, crop_u_addr, crop_v_addr;
 	dprintk("TCC892X VIOC WMIXER: tccxxx_wmixer_ctrl(). \n");
+
+	y_offset = (wmix_info->src_img_width * wmix_info->dst_win_top) + wmix_info->dst_win_left;
+	if(wmix_info->src_img_fmt == SC_IMG_FMT_YCbCr422_SEP) {
+		uv_offset = (wmix_info->src_img_width * wmix_info->dst_win_top / 2) + wmix_info->dst_win_left;
+	} else {
+		uv_offset = (wmix_info->src_img_width * wmix_info->dst_win_top / 4) + wmix_info->dst_win_left;
+	}
+	crop_y_addr = wmix_info->src_y_addr + y_offset;
+	crop_u_addr = wmix_info->src_u_addr + uv_offset;
+	crop_v_addr = wmix_info->src_v_addr + uv_offset;
 
 	spin_lock_irq(&(wmixer_data.cmd_lock));
 
 	// set to RDMA
 	VIOC_RDMA_SetImageFormat(pWMIX_rdma_base, wmix_info->src_img_fmt);
-	VIOC_RDMA_SetImageSize(pWMIX_rdma_base, wmix_info->src_img_width, wmix_info->src_img_height);
+	VIOC_RDMA_SetImageSize(pWMIX_rdma_base, wmix_info->dst_win_right, wmix_info->dst_win_bottom);
 	VIOC_RDMA_SetImageOffset(pWMIX_rdma_base, wmix_info->src_img_fmt, wmix_info->src_img_width);
-	VIOC_RDMA_SetImageBase(pWMIX_rdma_base, wmix_info->src_y_addr, wmix_info->src_u_addr, wmix_info->dst_v_addr);
+	VIOC_RDMA_SetImageBase(pWMIX_rdma_base, crop_y_addr, crop_u_addr, crop_v_addr);
 	//VIOC_RDMA_SetImageEnable(pWMIX_rdma_base);
 
 	// set to WMIX
-	VIOC_WMIX_SetPosition(pWMIX_wmix_base, wmix_info->wmix_channel, wmix_info->dst_win_left, wmix_info->dst_win_top);
-	VIOC_WMIX_SetSize(pWMIX_wmix_base, wmix_info->dst_img_width, wmix_info->dst_img_height);
+	VIOC_WMIX_SetSize(pWMIX_wmix_base, wmix_info->dst_win_right, wmix_info->dst_win_bottom);
 	VIOC_WMIX_SetUpdate(pWMIX_wmix_base);
 	VIOC_RDMA_SetImageEnable(pWMIX_rdma_base); // Soc guide info.
 
 	// set to WRMA
 	VIOC_WDMA_SetImageFormat(pWMIX_wdma_base, wmix_info->dst_fmt);
-	VIOC_WDMA_SetImageSize(pWMIX_wdma_base, wmix_info->dst_img_width, wmix_info->dst_img_height);
-	VIOC_WDMA_SetImageOffset(pWMIX_wdma_base, wmix_info->dst_fmt, wmix_info->dst_img_width);
+	VIOC_WDMA_SetImageSize(pWMIX_wdma_base, wmix_info->dst_win_right, wmix_info->dst_win_bottom);
+	VIOC_WDMA_SetImageOffset(pWMIX_wdma_base, wmix_info->dst_fmt, wmix_info->dst_win_right);
 	if(wmix_info->wmix_uv_change) {
-		VIOC_WDMA_SetImageBase(pWMIX_wdma_base, wmix_info->dst_y_addr, wmix_info->dst_u_addr, wmix_info->dst_v_addr);
-	} else {
 		VIOC_WDMA_SetImageBase(pWMIX_wdma_base, wmix_info->dst_y_addr, wmix_info->dst_v_addr, wmix_info->dst_u_addr);
+	} else {
+		VIOC_WDMA_SetImageBase(pWMIX_wdma_base, wmix_info->dst_y_addr, wmix_info->dst_u_addr, wmix_info->dst_v_addr);
 	}
 	VIOC_WDMA_SetImageEnable(pWMIX_wdma_base, 0/*OFF*/);
 	pWMIX_wdma_base->uIRQSTS.nREG = 0xFFFFFFFF; // wdma status register all clear.
