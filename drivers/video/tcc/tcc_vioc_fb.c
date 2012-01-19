@@ -1160,6 +1160,7 @@ void tccfb_output_starter(char output_type, char lcdc_num, struct lcdc_timimg_pa
 		case TCC_OUTPUT_HDMI:
  		 	TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_HDMI, lcdc_num, 1);
  			TCC_HDMI_LCDC_Timing(lcdc_num, lcdc_timing);
+			TCC_OUTPUT_UPDATE_OnOff(1, TCC_OUTPUT_HDMI);
 			Output_SelectMode = TCC_OUTPUT_HDMI;
 			break;
 
@@ -1237,6 +1238,7 @@ static int tccfb_check_var(struct fb_var_screeninfo *var,
 */
 static int tccfb_pan_display(struct fb_var_screeninfo *var, struct fb_info *info)
 {
+	char output_type; 
 	char tcc_output_ret = 0;
 	unsigned int base_addr = 0;
 	struct tccfb_info *fbi =(struct tccfb_info *) info->par;
@@ -1252,19 +1254,24 @@ static int tccfb_pan_display(struct fb_var_screeninfo *var, struct fb_info *info
 
 	tca_fb_pan_display(var, info);
 
-	if(Output_SelectMode)
-	{
-		tcc_output_ret = TCC_OUTPUT_FB_Update(fbi->fb->var.xres, fbi->fb->var.yres, fbi->fb->var.bits_per_pixel, base_addr, Output_SelectMode);
-	}
+	#if defined(CONFIG_TCC_OUTPUT_DUAL_UI)
+		for(output_type=TCC_OUTPUT_COMPOSITE; output_type<TCC_OUTPUT_MAX; output_type++)
+		{
+			tcc_output_ret = TCC_OUTPUT_FB_Update(fbi->fb->var.xres, fbi->fb->var.yres, fbi->fb->var.bits_per_pixel, base_addr, output_type);
+			if(tcc_output_ret)
+				TCC_OUTPUT_FB_UpdateSync(output_type);
+		}
+	#else
+		if(Output_SelectMode)
+		{
+			tcc_output_ret = TCC_OUTPUT_FB_Update(fbi->fb->var.xres, fbi->fb->var.yres, fbi->fb->var.bits_per_pixel, base_addr, Output_SelectMode);
 
-
-#if !defined(CONFIG_TCC_HDMI_UI_DISPLAY_OFF)
-
-	if(tcc_output_ret )
-		TCC_OUTPUT_FB_UpdateSync(Output_SelectMode);
-
-#endif//CONFIG_TCC_HDMI_UI_DISPLAY_OFF
-
+			#if !defined(CONFIG_TCC_HDMI_UI_DISPLAY_OFF)
+				if(tcc_output_ret )
+					TCC_OUTPUT_FB_UpdateSync(Output_SelectMode);
+			#endif//CONFIG_TCC_HDMI_UI_DISPLAY_OFF
+		}
+	#endif
 
 	return 0;
 }
@@ -1358,8 +1365,9 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 					return -EFAULT;
 
 				TCC_HDMI_LCDC_Timing(EX_OUT_LCDC, &lcdc_timing);
+				TCC_OUTPUT_UPDATE_OnOff(1, TCC_OUTPUT_HDMI);
 				Output_SelectMode = TCC_OUTPUT_HDMI;
-
+		
 				#if !defined(CONFIG_TCC_HDMI_UI_DISPLAY_OFF)
 				TCC_OUTPUT_FB_Update(fb_info->fb->var.xres, fb_info->fb->var.yres, fb_info->fb->var.bits_per_pixel, Output_BaseAddr, Output_SelectMode);
 				TCC_OUTPUT_FB_UpdateSync(Output_SelectMode);

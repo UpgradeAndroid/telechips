@@ -35,6 +35,7 @@ obj-$(CONFIG_MACH_TCC8920ST)   += board-tcc8920st-mmc.o
 obj-$(CONFIG_MACH_TCC8920ST)   += board-tcc8920st-dxb.o
 obj-$(CONFIG_MACH_TCC8920ST)     += board-tcc8920st-hdmi.o
 obj-$(CONFIG_INPUT_TCC_REMOTE)   += board-tcc8920st-remocon.o
+obj-$(CONFIG_MACH_TCC8920ST)    += tcc_display.o
 obj-$(CONFIG_MACH_M805_892X)     += board-m805_892x.o board-m805_892x-gpio.o board-m805_892x-keypad.o board-m805_892x-power.o
 obj-$(CONFIG_MACH_M805_892X)     += board-m805_892x-panel.o
 obj-$(CONFIG_MACH_M805_892X)     += board-m805_892x-mmc.o

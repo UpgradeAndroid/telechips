@@ -569,6 +569,8 @@ void tcc_composite_set_lcd2tv(COMPOSITE_MODE_TYPE type)
 	{
 		VIOC_OUTCFG_SetOutConfig(VIOC_OUTCFG_SDVENC, VIOC_OUTCFG_DISP0);
 	}
+
+	TCC_OUTPUT_UPDATE_OnOff(1, TCC_OUTPUT_COMPOSITE);
 }
 
 /*****************************************************************************
