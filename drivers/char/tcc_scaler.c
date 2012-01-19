@@ -818,8 +818,10 @@ long tccxxx_scaler_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	int ret = 0;
 	SCALER_TYPE scaler_v;
+	#if defined(CONFIG_ARCH_TCC892X)
 	SCALER_PLUGIN_Type scaler_plugin;
 	VIOC_SCALER_INFO_Type pScalerInfo;
+	#endif
 	intr_data_t *msc_data = (intr_data_t *)file->private_data;
 
 	dprintk("scaler  ::cmd:0x%x block_operating(%d) - block_waiting(%d) - cmd_count(%d) - poll_count(%d)!!!\n",
