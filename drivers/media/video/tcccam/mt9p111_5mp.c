@@ -3732,7 +3732,18 @@ static int sensor_scene_mt9p111(int val)
 
 static int sensor_exposure_mt9p111(int val)
 {
-	return write_regs_mt9p111(sensor_reg_scene_mt9p111[val]);
+	int val2;
+	int val3;
+	if((val-20)>= 0)
+	{
+		val3 = 10;
+	}
+	else
+	{
+		val3 = -10;
+	}
+	val2 = (val-20)/val3;
+	return write_regs_mt9p111(sensor_reg_scene_mt9p111[val2]);
 }
 
 static int sensor_check_esd_mt9p111(int val)
