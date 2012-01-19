@@ -271,7 +271,7 @@ static unsigned int tca_rem_readcode(char ch)
 		Rem.BitCnt = Rem.Buf = 0;
 		Rem.Stat = STATUS1;
 
-		if(machine_is_tcc9300() || machine_is_tcc9300st() || machine_is_tcc9300cm() || machine_is_tcc8800() || machine_is_tcc8800st() machine_is_tcc8920() || machine_is_tcc8920st())
+		if(machine_is_tcc9300() || machine_is_tcc9300st() || machine_is_tcc9300cm() || machine_is_tcc8800() || machine_is_tcc8800st() || machine_is_tcc8920() || machine_is_tcc8920st())
 		{
 			if (ch == 'S')
 			{
