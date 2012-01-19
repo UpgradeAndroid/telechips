@@ -198,6 +198,7 @@ typedef struct{
 typedef struct {
 	tcc_vsync_buffer_t vsync_buffer;
 
+	int isVsyncRunning;
 	// for time sync
 	unsigned int unVsyncCnt ;
 	int baseTime;
@@ -259,7 +260,7 @@ inline static int tcc_vsync_push_buffer(tcc_vsync_buffer_t * buffer_t, struct tc
 
 	if(buffer_t->valid_buff_count >= buffer_t->max_buff_num || buffer_t->readable_buff_count >= buffer_t->max_buff_num)
 	{
-		printk("error: buffer full %d, max %d\n", buffer_t->valid_buff_count, buffer_t->max_buff_num);
+		printk("error: buffer full %d, max %d %d ts %d \n", buffer_t->valid_buff_count, buffer_t->max_buff_num,buffer_t->readable_buff_count,inputData->time_stamp);
 		return -1;
 	}
 
@@ -372,7 +373,7 @@ inline static int tcc_vsync_pop_all_buffer(tcc_vsync_buffer_t * buffer_t)
 
 	buffer_t->readIdx = buffer_t->clearIdx;
 	buffer_t->readable_buff_count = 0;
-	printk("tcc_vsync_pop_all_buffer valid_buff_count %d  \n", buffer_t->valid_buff_count);
+	printk("tcc_vsync_pop_all_buffer valid_buff_count %d last_cleared_buff_id %d  \n", buffer_t->valid_buff_count,buffer_t->last_cleared_buff_id);
 	return 0;
 }
 
@@ -858,7 +859,7 @@ static irqreturn_t tcc_vsync_timer_handler(int irq, void *dev_id)
 	//pTIMER_reg->TIREQ.nREG = 0x00000202;
 	pTIMER_reg->TIREQ.bREG.TI1 = 1;
 	pTIMER_reg->TIREQ.bREG.TF1 = 1;
-	printk("tcc_vsync_timer_handler \n");
+	//printk("tcc_vsync_timer_handler \n");
 //	tcc_vsync_timer_count +=55924;
 
 	return IRQ_HANDLED;	
@@ -989,7 +990,7 @@ inline static void tcc_vsync_set_time(int time)
 {
 #ifdef USE_VSYNC_TIMER
 	tccvid_vsync.baseTime = tcc_vsync_get_timer_clock() - time;
-	printk("set base time %d kernel time %d time %d \n",tccvid_vsync.baseTime,tcc_vsync_get_timer_clock(),time);
+	//printk("set base time %d kernel time %d time %d \n",tccvid_vsync.baseTime,tcc_vsync_get_timer_clock(),time);
 #else
 	tccvid_vsync.baseTime = time;
 #endif
@@ -1125,7 +1126,7 @@ static int tccfb_calculateSyncTime(int currentTime)
 		tccvid_vsync.timeGapIdx = 0;
 		tccvid_vsync.timeGapTotal = 0;
 		
-		printk("changed time base time %d kernel time %d time %d \n",tccvid_vsync.baseTime,tcc_vsync_get_timer_clock(),currentTime);
+		//printk("changed time base time %d kernel time %d time %d \n",tccvid_vsync.baseTime,tcc_vsync_get_timer_clock(),currentTime);
 		spin_lock_irq(&vsync_lock) ;
 		tcc_vsync_set_time(base_time+avgTime);
 		spin_unlock_irq(&vsync_lock) ;
@@ -1702,6 +1703,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 			#endif
 			tccvid_vsync.skipFrameStatus = 1;
 			tccvid_vsync.nTimeGapToNextField = 0;
+			tccvid_vsync.isVsyncRunning = 0;
 
 
 			if(Output_SelectMode == TCC_OUTPUT_NONE)
@@ -1820,6 +1822,12 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 			//				tccvid_vsync.vsync_buffer.valid_buff_count,
 			//				tccvid_vsync.vsync_buffer.max_buff_num,
 			//				input_image.time_stamp, input_image.sync_time, input_image.buffer_unique_id);
+			if(!tccvid_vsync.isVsyncRunning )
+			{
+				printk("vsync already ended !! %d\n",input_image.time_stamp);
+				input_image.time_stamp = 0;
+				return 0;
+			}
 
 			spin_lock_irq(&vsync_lock) ;
 			check_time = abs(tcc_vsync_get_time() - input_image.sync_time);
@@ -1827,7 +1835,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 
 			if(check_time> 200)
 			{
-				printk("reset time base time %d kernel time %d time %d",tccvid_vsync.baseTime,tcc_vsync_get_timer_clock(),input_image.sync_time);
+				printk("reset time base time %d kernel time %d time %d \n",tccvid_vsync.baseTime,tcc_vsync_get_timer_clock(),input_image.sync_time);
 				tccfb_ResetSyncTime(0);
 			}
 			
@@ -1894,7 +1902,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 			if(input_image.output_path)
 			{
 			
-			printk("### output_path \n");
+			printk("### output_path buffer_unique_id %d \n",input_image.buffer_unique_id);
 				spin_lock_irq(&vsync_lockDisp) ;
 				tcc_vsync_pop_all_buffer(&tccvid_vsync.vsync_buffer);
 				tccvid_vsync.vsync_buffer.last_cleared_buff_id = input_image.buffer_unique_id;
@@ -1985,7 +1993,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 			}
 			else if(input_image.time_stamp < input_image.sync_time)
 			{
-				if(input_image.time_stamp < 3000)
+				if(input_image.time_stamp < 2000)
 				{
 					vprintk("vsync push error 4: vtime: %d, sync_time: %d \n", input_image.time_stamp, input_image.sync_time);
 					error_type = 4;
@@ -2103,6 +2111,7 @@ TCC_VSYNC_PUSH_ERROR:
 	case TCC_LCDC_VIDEO_SKIP_FRAME_START:
 		{
 			vprintk("video fram skip start\n") ;
+			printk("TCC_LCDC_VIDEO_SKIP_FRAME_START \n") ;
 			tccvid_vsync.skipFrameStatus = 1;
 		}
 		break ;
@@ -2113,6 +2122,7 @@ TCC_VSYNC_PUSH_ERROR:
 			spin_lock_irq(&vsync_lock) ;
 			tcc_vsync_pop_all_buffer(&tccvid_vsync.vsync_buffer);
 			spin_unlock_irq(&vsync_lock);
+			printk("TCC_LCDC_VIDEO_SKIP_FRAME_END \n") ;
 
 			tccvid_vsync.skipFrameStatus = 0;
 			tccfb_ResetSyncTime(0);
@@ -2123,7 +2133,7 @@ TCC_VSYNC_PUSH_ERROR:
 		{
 			spin_lock_irq(&vsync_lockDisp) ;
 			printk("TCC_LCDC_VIDEO_SKIP_ONE_FRAME arg %d\n",arg) ;
-			tccvid_vsync.vsync_buffer.last_cleared_buff_id = arg;
+			//tccvid_vsync.vsync_buffer.last_cleared_buff_id = arg;
 			spin_unlock_irq(&vsync_lockDisp) ;
 		}
 		break ;
