@@ -406,7 +406,12 @@ void TCC_DVBUS_Control(dwc_otg_core_if_t *_core_if, int on)
 	} else if (machine_is_m805_892x()) {
 		int gpio_otg0_vbus_en;
 
-		gpio_otg0_vbus_en = TCC_GPF(12);
+		if(system_rev == 0x2002) {
+			gpio_otg0_vbus_en = TCC_GPD(3);
+		}
+		else {
+			gpio_otg0_vbus_en = TCC_GPF(12);
+		}
 		gpio_request(gpio_otg0_vbus_en, "otg0_vbus_en");
 		gpio_direction_output(gpio_otg0_vbus_en, (on)?1:0);
 	}

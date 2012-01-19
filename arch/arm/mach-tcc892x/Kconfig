@@ -26,11 +26,31 @@ config MACH_M805_892X
 	  have such a device.
 endchoice
 
-config TCC8923_0XA
+choice
+	prompt "M805S_TCC892x Chipset Type"
+	default TCC8923_0XA
+	depends on MACH_M805_892X
+	help
+	  Select M805S_TCC892x Chipset type.
+
+config M805S_8923_0XX
+	bool "TCC8923_0XX Chipset"
+	depends on MACH_M805_892X
+	help
+	  Support for the TCC8923-0XX chipset.
+
+config M805S_8923_0XA
 	bool "TCC8923_0XA Chipset"
 	depends on MACH_M805_892X
 	help
-	  Support for the TCC8923-0XA revision chipset.
+	  Support for the TCC8923-0XA chipset.
+
+config M805S_8925_0XX
+	bool "TCC8925_0XX Chipset"
+	depends on MACH_M805_892X
+	help
+	  Support for the TCC8925-0XX chipset.
+endchoice
 	  
 config CPU_HIGHSPEED
     bool "CPU high-speed clock"

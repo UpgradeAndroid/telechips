@@ -727,7 +727,10 @@ static void shutdown(void)
 // ZQ/VDDQ Power OFF
 
 	#if defined(CONFIG_MACH_M805_892X)
-	BITCLR(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
+	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
+		BITCLR(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<6); //GPIO D 6
+	else
+		BITCLR(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
 	#elif defined(CONFIG_MACH_TCC8920)
 	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1005 || *(volatile unsigned long *)SRAM_STACK_ADDR == 0x1007)
 	{
@@ -813,15 +816,29 @@ static void shutdown(void)
 
 	/* Power Key */
 #if defined(CONFIG_MACH_M805_892X)
-	//set wake-up polarity
-	((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_D09 = 1; //power key - Active Low
-	//set wake-up source
-	((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D09 = 1; //power key
-
+	if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
+	{
+		//set wake-up polarity
+		((PPMU)HwPMU_BASE)->PMU_WKPOL1.bREG.GPIO_E27 = 1; //power key - Active Low
+		//set wake-up source
+		((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E27 = 1; //power key
+	}
+	else
+	{
+		//set wake-up polarity
+		((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_D09 = 1; //power key - Active Low
+		//set wake-up source
+		((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D09 = 1; //power key
+	}
 	#if defined(CONFIG_MMC_TCC_SDHC)	// Wakeup for SD Insert->Remove in Suspend.
 	#if defined(CONFIG_TCC8923_0XA)
 	if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1)		// SD Insert -> Remove in suspend : Active High
-		((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E13 = 1;	// PMU WakeUp Enable
+	{
+		if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
+			((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E28 = 1;	// PMU WakeUp Enable
+		else
+			((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E13 = 1;	// PMU WakeUp Enable
+	}
 	#endif
 	#endif
 #elif defined(CONFIG_MACH_TCC8920ST)
@@ -927,7 +944,10 @@ static void wakeup(void)
 // ZQ/VDDQ Power ON
 
 	#if defined(CONFIG_MACH_M805_892X)
-	BITSET(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
+	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
+		BITSET(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<6); //GPIO D 6
+	else
+		BITSET(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
 	#elif defined(CONFIG_MACH_TCC8920)
 	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1005 || *(volatile unsigned long *)SRAM_STACK_ADDR == 0x1007)
 	{
@@ -1257,7 +1277,10 @@ static void sleep(void)
 // ZQ/VDDQ Power OFF
 
 	#if defined(CONFIG_MACH_M805_892X)
-	BITCLR(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
+	if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
+		BITCLR(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<6); //GPIO D 6
+	else
+		BITCLR(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
 	#elif defined(CONFIG_MACH_TCC8920)
 	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1005 || *(volatile unsigned long *)SRAM_STACK_ADDR == 0x1007)
 	{
@@ -1337,15 +1360,29 @@ static void sleep(void)
 
 	/* Power Key */
 #if defined(CONFIG_MACH_M805_892X)
-	//set wake-up polarity
-	((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_D09 = 1; //power key - Active Low
-	//set wake-up source
-	((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D09 = 1; //power key
-
+	if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
+	{
+		//set wake-up polarity
+		((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_E27 = 1; //power key - Active Low
+		//set wake-up source
+		((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_E27 = 1; //power key
+	}
+	else
+	{
+		//set wake-up polarity
+		((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_D09 = 1; //power key - Active Low
+		//set wake-up source
+		((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D09 = 1; //power key
+	}
 	#if defined(CONFIG_MMC_TCC_SDHC)	// Wakeup for SD Insert->Remove in Suspend.
 	#if defined(CONFIG_TCC8923_0XA)
 	if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1)		// SD Insert -> Remove in suspend : Active High
-		((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E13 = 1;	// PMU WakeUp Enable
+	{
+		if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
+			((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E27 = 1;	// PMU WakeUp Enable
+		else
+			((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E13 = 1;	// PMU WakeUp Enable
+	}
 	#endif
 	#endif
 #elif defined(CONFIG_MACH_TCC8920ST)
@@ -1429,7 +1466,10 @@ static void sleep(void)
 // ZQ/VDDQ Power ON
 
 	#if defined(CONFIG_MACH_M805_892X)
-	BITSET(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
+	if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
+		BITSET(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<6); //GPIO D 6
+	else
+		BITSET(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
 	#elif defined(CONFIG_MACH_TCC8920)
 	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1005 || *(volatile unsigned long *)SRAM_STACK_ADDR == 0x1007)
 	{
@@ -1790,25 +1830,30 @@ static void tcc_pm_power_off(void)
 #endif
 
 #if defined(CONFIG_REGULATOR_AXP192)
-        extern void axp192_power_off(void);
-        axp192_power_off();
+	extern void axp192_power_off(void);
+	axp192_power_off();
 #endif
 
-        if(machine_is_m801_88() || machine_is_m803()){
-                gpio_set_value(TCC_GPA(4), 0);  // LCD_BLCTL
-		   gpio_set_value(TCC_GPG(2), 0);   // LCD_PWREN
-                gpio_set_value(TCC_GPF(26), 0); // SHDN
-        }
-	  else if(machine_is_m805_892x())
-	  {
-                gpio_set_value(TCC_GPD(10), 0);  // LCD_BLCTL
-		   gpio_set_value(TCC_GPD(18), 0);   // LCD_PWREN
-                gpio_set_value(TCC_GPE(7), 0); // SHDN
-	  }
+	if(machine_is_m801_88() || machine_is_m803()){
+		gpio_set_value(TCC_GPA(4), 0);  // LCD_BLCTL
+		gpio_set_value(TCC_GPG(2), 0);  // LCD_PWREN
+		gpio_set_value(TCC_GPF(26), 0); // SHDN
+	}
+	else if(machine_is_m805_892x())
+	{
+		if (system_rev == 0x2002) {
+			gpio_set_value(TCC_GPC(0), 0); // LCD_BLCTL
+			gpio_set_value(TCC_GPE(24), 0); // LCD_PWREN
+			//gpio_set_value(TCC_GPE(7), 0);  // SHDN
 
-        while(1);
+		} else {
+			gpio_set_value(TCC_GPD(10), 0); // LCD_BLCTL
+			gpio_set_value(TCC_GPD(18), 0); // LCD_PWREN
+			gpio_set_value(TCC_GPE(7), 0);  // SHDN
+		}
+	}
 
-
+	while(1);
 }
 
 /*===========================================================================
