@@ -39,7 +39,7 @@ int m805_892x_hdmi_power(struct device *dev, tcc_hdmi_power_s pwr)
 		switch(pwr)
 		{
 			case TCC_HDMI_PWR_INIT:
-#if defined(CONFIG_REGULATOR)
+				#if defined(CONFIG_REGULATOR)
 				if (vdd_hdmi_osc == NULL)
 				{
 					vdd_hdmi_osc = regulator_get(NULL, "vdd_sata33");	//vdd_sata33 == vdd_hdmi_osc
@@ -48,24 +48,36 @@ int m805_892x_hdmi_power(struct device *dev, tcc_hdmi_power_s pwr)
 						vdd_hdmi_osc = NULL;
 					}
 				}
-#endif				
-				gpio_request(TCC_GPF(15), "hdmi_on");						
-				gpio_direction_output(TCC_GPF(15), 1);
+				#endif
+				if (system_rev == 0x2002) {
+					gpio_request(TCC_GPE(26), "hdmi_on");					
+					gpio_direction_output(TCC_GPE(26), 1);
+				} else {
+					gpio_request(TCC_GPF(15), "hdmi_on");
+					gpio_direction_output(TCC_GPF(15), 1);
+				}
 				break;
 				
 			case TCC_HDMI_PWR_ON:	
-#if defined(CONFIG_REGULATOR)
+				#if defined(CONFIG_REGULATOR)
 				if (vdd_hdmi_osc)
 					regulator_enable(vdd_hdmi_osc);
-#endif
-				gpio_set_value(TCC_GPF(15), 1);
+				#endif
+				if (system_rev == 0x2002)
+					gpio_set_value(TCC_GPE(26), 1);
+				else
+					gpio_set_value(TCC_GPF(15), 1);
 				break;
+
 			case TCC_HDMI_PWR_OFF:
-#if defined(CONFIG_REGULATOR)
+				#if defined(CONFIG_REGULATOR)
 				if (vdd_hdmi_osc)
 					regulator_disable(vdd_hdmi_osc);
-#endif
-				gpio_set_value(TCC_GPF(15), 0);
+				#endif
+				if (system_rev == 0x2002)
+					gpio_set_value(TCC_GPE(26), 0);
+				else
+					gpio_set_value(TCC_GPF(15), 0);
 				break;
 		}		
 	}
