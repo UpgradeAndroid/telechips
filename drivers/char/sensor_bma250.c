@@ -929,7 +929,6 @@ static void tcc_sensor_attr_set_enable_by_client(struct bmasensor_data *sensor_d
 	
 	if (enableDisable) {
 		if (pre_enable ==0) {
-			//TODO : set the sensor mode to normal mode
 			#ifdef SENSOR_TUNING
 			schedule_delayed_work(&sensor_data->work,
 					msecs_to_jiffies(atomic_read(&sensor_data->realDelay)));
@@ -943,8 +942,7 @@ static void tcc_sensor_attr_set_enable_by_client(struct bmasensor_data *sensor_d
 	} else {
 		pre_enable = pre_enable&(~what);
 		if (pre_enable ==0) {
-			//TODO : set the sensor mode to suspend mode
-			cancel_delayed_work_sync(&sensor_data->work);
+			// cancel_delayed_work_sync(&sensor_data->work);
 		}
 		atomic_set(&sensor_data->enable, pre_enable);
 	}
@@ -1181,7 +1179,10 @@ static void tcc_sensor_work_func(struct work_struct *work)
 	unsigned long delay = msecs_to_jiffies(atomic_read(&sensor_data->delay));
 	#endif			
 	struct i2c_client *client = sensor_data->i2cClient;
+
+	mutex_lock(&sensor_data->enable_mutex);
 	int sensorWhat = atomic_read(&sensor_data->enable);
+	mutex_unlock(&sensor_data->enable_mutex);
 
 	if(sensorWhat & SENSOR_G_MASK){
 		tcc_sensor_read_accel_xyz(client, &acc);
@@ -1231,7 +1232,10 @@ static void tcc_sensor_work_func(struct work_struct *work)
 set_schedule:
 	mutex_lock(&sensor_data->enable_mutex);
 	pre_enable = atomic_read(&sensor_data->enable);
-	schedule_delayed_work(&sensor_data->work, delay);
+
+	if(pre_enable != 0){
+		schedule_delayed_work(&sensor_data->work, delay);
+	}
 	mutex_unlock(&sensor_data->enable_mutex);
 }
 

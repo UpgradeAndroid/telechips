@@ -1148,7 +1148,10 @@ static int tcc_serial_suspend(struct platform_device *dev, pm_message_t state)
 #elif defined(CONFIG_MACH_M805_892X)
                 if(machine_is_m805_892x())
                 {
-                    gpio_set_value(TCC_GPC(6), 0);
+                	if (system_rev == 0x2002)
+						gpio_set_value(TCC_GPE(14), 0);
+                	else
+                    	gpio_set_value(TCC_GPC(6), 0);
                 }
 #endif
             }
@@ -1210,7 +1213,10 @@ static int tcc_serial_resume(struct platform_device *dev)
 #elif defined(CONFIG_MACH_M805_892X)
                     if(machine_is_m805_892x())
                     {
-                        gpio_set_value(TCC_GPC(6), 1);
+						if (system_rev == 0x2002)
+							gpio_set_value(TCC_GPE(14), 1);
+						else
+                        	gpio_set_value(TCC_GPC(6), 1);
                     }
 #endif      
             }

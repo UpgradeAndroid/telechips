@@ -1,3 +1,7 @@
+#
+# Automatically generated make config: don't edit
+# Linux/arm 3.0.8 Kernel Configuration
+#
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
 CONFIG_GENERIC_GPIO=y
@@ -299,10 +303,11 @@ CONFIG_DDR3_H5TQ1G83BFR_H9C=y
 # TCC Board Type
 #
 # CONFIG_MACH_TCC8920 is not set
-# CONFIG_MACH_TCC8923 is not set
-# CONFIG_MACH_TCC8925 is not set
 # CONFIG_MACH_TCC8920ST is not set
 CONFIG_MACH_M805_892X=y
+# CONFIG_M805S_8923_0XX is not set
+CONFIG_M805S_8923_0XA=y
+# CONFIG_M805S_8925_0XX is not set
 # CONFIG_CPU_HIGHSPEED is not set
 # CONFIG_TCC_STB_MODE is not set
 # CONFIG_TCC_OUTPUT_STARTER is not set

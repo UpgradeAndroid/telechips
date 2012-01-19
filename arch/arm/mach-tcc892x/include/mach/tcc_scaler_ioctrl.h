@@ -14,29 +14,28 @@
  */
 
 
-#define TCC_SCALER_IOCTRL 			0x1
-#define TCC_SCALER_IOCTRL_KERENL 	0x10
-#define TCC_SCALER_VIOC_PLUGOUT 	0x100
-
+#define TCC_SCALER_IOCTRL 					0x1
+#define TCC_SCALER_IOCTRL_KERENL 			0x10
+#define TCC_SCALER_VIOC_PLUGIN 				0x100
+#define TCC_SCALER_VIOC_PLUGOUT 			0x101
 
 #ifndef ADDRESS_ALIGNED
 #define ADDRESS_ALIGNED
-#define ALIGN_BIT (0x8-1)
-#define BIT_0 3
+#define ALIGN_BIT 							(0x8-1)
+#define BIT_0 								3
 #define GET_ADDR_YUV42X_spY(Base_addr) 		(((((unsigned int)Base_addr) + ALIGN_BIT)>> BIT_0)<<BIT_0)
-#define GET_ADDR_YUV42X_spU(Yaddr, x, y) 		(((((unsigned int)Yaddr+(x*y)) + ALIGN_BIT)>> BIT_0)<<BIT_0)
-#define GET_ADDR_YUV422_spV(Uaddr, x, y) 		(((((unsigned int)Uaddr+(x*y/2)) + ALIGN_BIT) >> BIT_0)<<BIT_0)
-#define GET_ADDR_YUV420_spV(Uaddr, x, y) 		(((((unsigned int)Uaddr+(x*y/4)) + ALIGN_BIT) >> BIT_0)<<BIT_0)
+#define GET_ADDR_YUV42X_spU(Yaddr, x, y) 	(((((unsigned int)Yaddr+(x*y)) + ALIGN_BIT)>> BIT_0)<<BIT_0)
+#define GET_ADDR_YUV422_spV(Uaddr, x, y) 	(((((unsigned int)Uaddr+(x*y/2)) + ALIGN_BIT) >> BIT_0)<<BIT_0)
+#define GET_ADDR_YUV420_spV(Uaddr, x, y) 	(((((unsigned int)Uaddr+(x*y/4)) + ALIGN_BIT) >> BIT_0)<<BIT_0)
 #endif
 
-typedef enum
-{
+typedef enum {
 	SCALER_POLLING,
 	SCALER_INTERRUPT,
 	SCALER_NOWAIT
 } Scaler_ResponseType;
 
-typedef enum{
+typedef enum {
 	SCALER_YUV422_sq0,
 	SCALER_YUV422_sq1,
 	SCALER_YUV422_sp,
@@ -51,8 +50,7 @@ typedef enum{
 	SCALER_FMT_MAX
 } SCALER_DATA_FM;
 
-typedef struct
-{
+typedef struct {
 	Scaler_ResponseType responsetype; 	//scaler response type
 	char 				*src_Yaddr;		// source address
 	char 				*src_Uaddr;		// source address
@@ -78,3 +76,25 @@ typedef struct
 	unsigned int		interlaced;
 	unsigned char 		plugin_path;
 }SCALER_TYPE;
+
+typedef struct {
+	unsigned short 	scaler_no; 		// scaler number : 0, 1, 2
+	unsigned short 	bypass_mode; 	// scaler bypass option
+	unsigned short 	plugin_path; 	// scaler plug-in path
+
+	unsigned short 	src_width; 	 	// scaler input data width
+	unsigned short 	src_height; 	// scaler input data height
+	unsigned short 	src_win_left;
+	unsigned short	src_win_top;
+	unsigned short	src_win_right;
+	unsigned short	src_win_bottom;
+
+	unsigned short 	dst_width; 		// scaler output data width
+	unsigned short 	dst_height; 	// scaler output data height
+	unsigned short 	dst_win_left;
+	unsigned short	dst_win_top;
+	unsigned short	dst_win_right;
+	unsigned short	dst_win_bottom;
+} SCALER_PLUGIN_Type;
+
+

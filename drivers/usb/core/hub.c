@@ -2879,6 +2879,8 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
 				(udev->config) ? "reset" : "new", speed, type,
 				devnum, udev->bus->controller->driver->name);
 
+	msleep(500);	// telechips, for usb wifi
+
 	/* Set up TT records, if needed  */
 	if (hdev->tt) {
 		udev->tt = hdev->tt;
@@ -3259,9 +3261,6 @@ static void hub_port_connect_change(struct usb_hub *hub, int port1,
 		}
 
 		/* reset (non-USB 3.0 devices) and get descriptor */
-#if defined(CONFIG_MACH_M805_892X)
-		msleep(500);
-#endif
 		status = hub_port_init(hub, udev, port1, i);
 		if (status < 0)
 			goto loop;

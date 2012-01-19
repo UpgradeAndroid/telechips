@@ -63,6 +63,7 @@ struct tcc_tsif_pri_handle {
 	u32 pcr_pid;
 	u32 bus_num;
 	u32 irq_no;
+	u32 resync_count;
 	const char *name;
 };
 
@@ -192,6 +193,22 @@ static int tea_alloc_dma_linux(struct tea_dma_buf *tdma, unsigned int size)
     return ret;
 } 
 
+static int tsif_resync(struct tcc_tsif_handle *H)
+{
+    printk("%s\n",__func__);
+    tsif_ex_handle.dma_stop(&tsif_ex_handle);
+    clk_disable(tsif_clk);
+    //msleep(1);
+    clk_enable(tsif_clk); 
+    //msleep(1);
+    H->hw_init(H);
+    H->tsif_set(H);
+    tca_tsif_register_pids(H, H->match_pids, H->match_pids_count);
+    H->q_pos = H->cur_q_pos = 0;
+    H->dma_start(H);   
+    return 0;
+}
+
 static irqreturn_t tsif_ex_dma_handler(int irq, void *dev_id)
 {
     tcc_tsif_handle_t *handle = (tcc_tsif_handle_t *)dev_id;
@@ -236,23 +253,33 @@ static int tsif_get_readable_cnt(struct tcc_tsif_handle *H)
         } 
 
         //check data validation
-        if(tsif_ex_handle.mpeg_ts == (Hw0|Hw1) && readable_cnt){
-            if(q_pos < H->dma_total_packet_cnt)
-            {
+        if(readable_cnt){
+            if(q_pos < H->dma_total_packet_cnt){
                 char *sync_byte = (char *)tsif_ex_handle.rx_dma.v_addr + q_pos * TSIF_PACKET_SIZE;
-                if( *sync_byte != 0x47){
-                    printk("tsif-resync !!!!\n");
-                    tsif_ex_handle.dma_stop(&tsif_ex_handle);
-                    clk_disable(tsif_clk);
-                    msleep(1);
-                    clk_enable(tsif_clk); 
-                    msleep(1);
-                    tsif_ex_handle.hw_init(&tsif_ex_handle);
-                    tsif_ex_handle.tsif_set(&tsif_ex_handle);
-                    tca_tsif_register_pids(&tsif_ex_handle, tsif_ex_handle.match_pids, tsif_ex_handle.match_pids_count);
-                    tsif_ex_handle.q_pos = tsif_ex_handle.cur_q_pos = 0;
-                    tsif_ex_handle.dma_start(&tsif_ex_handle);                           
-                    return 0;
+                if(tsif_ex_handle.mpeg_ts == (Hw0|Hw1))
+                {
+                    if( *sync_byte != 0x47){                                  
+                        printk("call tsif-resync, readable[%d] !!!!\n", readable_cnt);
+                        tsif_resync(H);
+                        return 0;
+                    }
+                }
+                else if(tsif_ex_handle.mpeg_ts == Hw0)
+                {             
+                    if( *sync_byte != 0x15){
+                        /* In case of tcc351x, 0x15 is sync byte at tdmb.
+                         * But all packet doen't have 0x15. but it must show
+                         * within 4kbyte. max 8k/188 = 44
+                         */ 
+                        if(++tsif_ex_pri.resync_count >= 44){
+                            printk("call tsif-resync, readable[%d] !!!!\n", readable_cnt);
+                            tsif_ex_pri.resync_count = 0;
+                            tsif_resync(H);
+                            return 0;
+                        }
+                    }
+                    else
+                        tsif_ex_pri.resync_count = 0;
                 }
             }
         }
@@ -345,8 +372,10 @@ static int tcc_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long arg
             if (((TSIF_PACKET_SIZE * param.ts_total_packet_cnt) > tsif_ex_handle.dma_total_size)
                 || (param.ts_total_packet_cnt <= 0)) {
                 printk("so big ts_total_packet_cnt !!! \n");
-                param.ts_total_packet_cnt = tsif_ex_handle.dma_total_size / TSIF_PACKET_SIZE;
+                param.ts_total_packet_cnt = tsif_ex_handle.dma_total_size /(TSIF_PACKET_SIZE*param.ts_intr_packet_cnt);
             }
+            if(param.ts_total_packet_cnt > 0x1fff) //Max packet is 0x1fff(13bit)
+                param.ts_total_packet_cnt = 0x1fff;
 
             if(tsif_ex_handle.dma_stop(&tsif_ex_handle) == 0)
                 tsif_ex_handle.clear_fifo_packet(&tsif_ex_handle);
@@ -447,6 +476,9 @@ static int tcc_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long arg
             }
         }
         break;
+    case IOCTL_TSIF_RESET:
+        tsif_resync(&tsif_ex_handle);
+        break;
     default:
         printk("tcc-tsif : unrecognized ioctl (0x%X)\n", cmd);
         ret = -EINVAL;
@@ -535,6 +567,7 @@ static int tcc_tsif_open(struct inode *inode, struct file *filp)
     clk_enable(tsif_clk); 
     mutex_lock(&(tsif_ex_pri.mutex));
 	tsif_ex_pri.pcr_pid = 0xFFFF;
+	tsif_ex_pri.resync_count = 0;
 	tcc_tsif_init();
     mutex_unlock(&(tsif_ex_pri.mutex));
 	return ret;

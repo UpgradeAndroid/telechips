@@ -1533,7 +1533,7 @@ void tcc_output_starter_hdmi(unsigned char lcdc_num, unsigned char hdmi_resoluti
 
 void tcc_output_starter_composite(unsigned char lcdc_num, unsigned char type)
 {
-#if 0
+#ifdef CONFIG_FB_TCC_COMPOSITE
 	unsigned int lcd_reg = 0;
 	unsigned int width, height;
 	COMPOSITE_SPEC_TYPE spec;
@@ -1553,10 +1553,19 @@ void tcc_output_starter_composite(unsigned char lcdc_num, unsigned char type)
 	PNTSCPAL 				pTVE = (PNTSCPAL)tcc_p2v(HwNTSCPAL_BASE);
 	PNTSCPAL_ENCODER_CTRL 	pTVE_VEN = (PNTSCPAL_ENCODER_CTRL)tcc_p2v(HwNTSCPAL_ENC_CTRL_BASE);
 
-
-	struct clk *lcdc_clk, *dac_clk;
+	struct clk *clock;
 	
 	printk("%s\n", __func__);
+
+	if(type == STARTER_COMPOSITE_NTSC)
+		tcc_composite_get_spec(NTSC_M, &spec);
+	else
+		tcc_composite_get_spec(PAL_B, &spec);
+	
+	BITSET(pDDICfg->PWDN.nREG, Hw1);		// PWDN - TVE
+	BITCLR(pDDICfg->SWRESET.nREG, Hw1);		// SWRESET - TVE
+	BITSET(pDDICfg->SWRESET.nREG, Hw1);		// SWRESET - TVE	
+	BITSET(pDDICfg->NTSCPAL_EN.nREG, Hw0);	// NTSCPAL_EN	
 
 	if(lcdc_num)	
 	{
@@ -1564,6 +1573,7 @@ void tcc_output_starter_composite(unsigned char lcdc_num, unsigned char type)
 		pWMIX  = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX1);
 		pRDMA  = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA04);
 		pLCDC_CKC = (PCLK_XXX_TYPE *)((&pCKC->PCLKCTRL00)+PERI_LCD1);
+		VIOC_OUTCFG_SetOutConfig(VIOC_OUTCFG_SDVENC, VIOC_OUTCFG_DISP1);
   	}
 	else
 	{
@@ -1571,41 +1581,37 @@ void tcc_output_starter_composite(unsigned char lcdc_num, unsigned char type)
 		pWMIX  = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX0); 
 		pRDMA  = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA00);
 		pLCDC_CKC = (PCLK_XXX_TYPE *)((&pCKC->PCLKCTRL00)+PERI_LCD0);
+		VIOC_OUTCFG_SetOutConfig(VIOC_OUTCFG_SDVENC, VIOC_OUTCFG_DISP0);
   	}
-
-	//if(type == STARTER_COMPOSITE_NTSC)
-		tcc_composite_get_spec(NTSC_M, &spec);
-	//else
-	//	tcc_composite_get_spec(PAL_B, &spec);
-	
-#if 1
-	BITSET(pDDICfg->PWDN.nREG, Hw1);		// PWDN - TVE
-	BITCLR(pDDICfg->SWRESET.nREG, Hw1);		// SWRESET - TVE
-	BITSET(pDDICfg->SWRESET.nREG, Hw1);		// SWRESET - TVE	
-	BITSET(pDDICfg->NTSCPAL_EN.nREG, Hw0);	// NTSCPAL_EN	
-#endif /* 0 */
 
 	VIOC_DISP_TurnOff(pDISP);
 	VIOC_RDMA_SetImageDisable(pRDMA);
 	pLCDC_CKC->bREG.EN = 0;
+
+	tca_ckc_setippwdn(PMU_ISOL_VDAC, 0);
 
 	pSC = (VIOC_SC *)tcc_p2v(HwVIOC_SC2);
 
 	if(lcdc_num)	
 	{
 		tca_ckc_setperi(PERI_LCD1, ENABLE, 270000);
+
+		clock = clk_get(0, "lcdc1");
+		clk_enable(clock);
 	}
 	else
 	{
 		tca_ckc_setperi(PERI_LCD0, ENABLE, 270000);
- 	}
- 
-	tca_ckc_setippwdn(PMU_ISOL_VDAC, 0);
 
-	lcdc_clk = clk_get(0, "lcdc1");
-	clk_enable(lcdc_clk);
-	dac_clk = clk_get(0, "vdac_phy");
-	clk_enable(dac_clk);
+		clock = clk_get(0, "lcdc0");
+		clk_enable(clock);
+ 	}
+
+	clock = clk_get(0, "vdac_phy");
+	clk_enable(clock);
+
+	clock = clk_get(0, "ntscpal");
+	clk_enable(clock);
 
 	image_width = 1280;
 	image_height = 720;
@@ -1625,15 +1631,10 @@ void tcc_output_starter_composite(unsigned char lcdc_num, unsigned char type)
 		printk("%s paddr=0x%08x laddr=0x%08x\n", __func__, pmap_fb.base, pBaseAddr);
 	}
 
-	//TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_COMPOSITE, lcdc_num, 1);
-	tccfb_output_starter(TCC_OUTPUT_COMPOSITE, 1);
+	tccfb_output_starter(TCC_OUTPUT_COMPOSITE, lcdc_num, NULL);
 
 	output_width = spec.composite_lcd_width;
 	output_height = spec.composite_lcd_height;
-
-	//TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_COMPOSITE, lcdc_num, 1);
-	
-	//LCDC_IO_Set(lcdc_num, spec.composite_bus_width);
 	 	
 	width = spec.composite_lcd_width;
 	height = spec.composite_lcd_height;
@@ -1685,17 +1686,6 @@ void tcc_output_starter_composite(unsigned char lcdc_num, unsigned char type)
 	VIOC_WMIX_SetSize(pWMIX, width, height);
 	VIOC_WMIX_SetUpdate (pWMIX);
 
-#if 0
-	if(lcdc_num)	
-	{
- 		VIOC_OUTCFG_SetOutConfig(VIOC_OUTCFG_SDVENC, VIOC_OUTCFG_DISP1);
-	}
-	else
-	{
-		VIOC_OUTCFG_SetOutConfig(VIOC_OUTCFG_SDVENC, VIOC_OUTCFG_DISP0);
- 	}
-#endif /* 0 */
- 
 	VIOC_SC_SetBypass(pSC, OFF);
 	VIOC_SC_SetSrcSize(pSC, image_width, image_height);			// set source size in scaler
 	VIOC_SC_SetDstSize(pSC, output_width, output_height);		// set destination size in scaler
@@ -1798,10 +1788,7 @@ void tcc_output_starter_composite(unsigned char lcdc_num, unsigned char type)
 	#endif
 	BITCLR(pTVE->ECMDA.nREG, HwTVECMDA_PWDENC_PD);
 
-
 	VIOC_DISP_TurnOn(pDISP);
-
-	//while(1);
 #endif /* 0 */
 }
 
@@ -1912,7 +1899,6 @@ void tcc_output_starter_component(unsigned char lcdc_num, unsigned char type)
 
 	tcc_output_starter_setport(lcdc_num, component_spec.component_bus_width);
 
-	//TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_COMPONENT, lcdc_num, 1);
 	tccfb_output_starter(TCC_OUTPUT_COMPONENT, 1, NULL);
 
 	tcc_component_set_lcdc(lcdc_num);

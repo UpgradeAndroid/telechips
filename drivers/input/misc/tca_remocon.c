@@ -19,8 +19,6 @@
 #include <asm/mach-types.h>
 #include "tcc_remocon.h"
 
-//#define USE_PBUS_CLOCK
-
 //======================================================
 // REMOCON initialize
 //======================================================
@@ -65,7 +63,7 @@ void    RemoconConfigure (void)
 	PREMOTECON      pRcu = (volatile PREMOTECON)tcc_p2v(HwREMOTE_BASE);
 
 	#if defined(CONFIG_ARCH_TCC892X)
-		#ifdef USE_PBUS_CLOCK
+		#ifdef CONFIG_PBUS_DIVIDE_CLOCK
 			BITCLR(pRcu->INPOL.nREG, Hw8);
 		#else
 			BITSET(pRcu->INPOL.nREG, Hw8);
@@ -78,7 +76,7 @@ void    RemoconConfigure (void)
 			BITSET(pRcu->INPOL, Hw1);             // polarity enable
 		}
 		else {
-			#ifdef USE_PBUS_CLOCK
+			#ifdef CONFIG_PBUS_DIVIDE_CLOCK
 				BITCLR(pRcu->INPOL, Hw8);
 			#else
 				BITSET(pRcu->INPOL, Hw8);
@@ -112,10 +110,16 @@ void    RemoconStatus (void)
 void    RemoconDivide (void)
 {
 	PREMOTECON      pRcu = (volatile PREMOTECON)tcc_p2v(HwREMOTE_BASE);
+	unsigned int    uiclock = tca_ckc_getfbusctrl(FBUS_IO);
+
+	unsigned int    uidiv   = (unsigned int)(uiclock/32768)*100;
+
+	//printk("+++++++++++++++++++++++++++++++++++++[%d][%d]", uiclock, uidiv);
 
 	#if defined(CONFIG_ARCH_TCC892X)
-		#ifdef USE_PBUS_CLOCK
-			pRcu->CLKDIV.nREG = ((500*10)*Hw14)|(1*Hw0);
+		#ifdef CONFIG_PBUS_DIVIDE_CLOCK
+			//pRcu->CLKDIV.nREG = ((500*10)*Hw14)|(1*Hw0);
+			pRcu->CLKDIV.nREG = (uidiv*Hw14)|(1*Hw0);
 		#else
 			pRcu->CLKDIV.nREG = (1*Hw0);
 		#endif
@@ -126,7 +130,7 @@ void    RemoconDivide (void)
 			pRcu->CLKDIV = ((500*24)*Hw14)|(1*Hw0);
 		}
 		else{
-			#ifdef USE_PBUS_CLOCK
+			#ifdef CONFIG_PBUS_DIVIDE_CLOCK
 				pRcu->CLKDIV = ((500*30)*Hw14)|(1*Hw0);
 			#else
 				pRcu->CLKDIV = (1*Hw0);

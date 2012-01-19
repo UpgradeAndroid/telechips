@@ -70,7 +70,10 @@ static int gps_gpio_open (struct inode *inode, struct file *filp)
 #elif defined(CONFIG_MACH_M805_892X)
     if(machine_is_m805_892x())
     {
-        gpio_set_value(TCC_GPC(6), 0);
+		if (system_rev == 0x2002)
+			gpio_set_value(TCC_GPE(14), 0);
+		else
+        	gpio_set_value(TCC_GPC(6), 0);
     }
 #else
 
@@ -106,7 +109,10 @@ static int gps_gpio_release (struct inode *inode, struct file *filp)
 #elif defined(CONFIG_MACH_M805_892X)
     if(machine_is_m805_892x())
     {
-        gpio_set_value(TCC_GPC(6), 0);
+    	if (system_rev == 0x2002)
+    		gpio_set_value(TCC_GPC(14), 0);
+    	else
+        	gpio_set_value(TCC_GPC(6), 0);
     }    
 #endif
     gps_dbg("tcc92xx : gps_gpio_close\n");
@@ -171,15 +177,21 @@ static long gps_gpio_ioctl (struct file *filp, unsigned int cmd, void *arg)
             gps_k_flag = 1;
             if(machine_is_m805_892x())
             {
-                gpio_set_value(TCC_GPC(6), 1);
+            	if (system_rev == 0x2002)
+                	gpio_set_value(TCC_GPE(14), 1);
+                else
+                	gpio_set_value(TCC_GPC(6), 1);
             }
             gps_dbg("tccxxxx : gps_gpio_on\n");
             break;	 
         case 1 : // GPS_Off
-            gps_k_flag = 0;   
+            gps_k_flag = 0;
             if(machine_is_m805_892x())
             {
-                gpio_set_value(TCC_GPC(6), 0);
+				if (system_rev == 0x2002)
+                	gpio_set_value(TCC_GPE(14), 0);
+                else
+                	gpio_set_value(TCC_GPC(6), 0);
             }
             gps_dbg("tccxxxx : gps_gpio_off\n");
             break;
@@ -282,9 +294,16 @@ static int __init gps_gpio_init(void)
     if(machine_is_m805_892x())
     {
         gps_dbg("GPS_PWREN on\n");
-        tcc_gpio_config(TCC_GPC(6), GPIO_FN(0));
-        gpio_request(TCC_GPC(6), "GPIO_PWREN");
-        gpio_direction_output(TCC_GPC(6), 0);
+		if (system_rev == 0x2002) {
+			tcc_gpio_config(TCC_GPE(14), GPIO_FN(0));
+			gpio_request(TCC_GPE(14), "GPIO_PWREN");
+			gpio_direction_output(TCC_GPE(14), 0);
+
+		} else {
+			tcc_gpio_config(TCC_GPC(6), GPIO_FN(0));
+			gpio_request(TCC_GPC(6), "GPIO_PWREN");
+			gpio_direction_output(TCC_GPC(6), 0);
+        }
     }
 #endif
 
@@ -331,7 +350,10 @@ static void __exit gps_gpio_exit(void)
     gps_dbg("GPS_PWREN off");
     if(machine_is_m805_892x())
     {
-        gpio_set_value(TCC_GPC(6), 0);
+		if (system_rev == 0x2002)
+			gpio_set_value(TCC_GPE(14), 0);
+		else
+			gpio_set_value(TCC_GPC(6), 0);
     }
 #endif
     gps_dbg("GPS driver unloaded");

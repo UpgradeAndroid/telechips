@@ -167,9 +167,9 @@ static void sdram_init(void)
 	}
 
 	denali_ctl(0) = 0x20410600; //DRAM_CLASS[11:8] = 6:DDR3, 4:DDR2
-	denali_ctl(2) = 0x00000004; //TINIT[23:0] = 0x4
-	denali_ctl(3) = time2cycle(20000,tCK); //TRST_PWRON = 200us, 7 //Bruce_temp.. ns ?
-	denali_ctl(4) = time2cycle(50000,tCK); //CKE_INACTIVE = 500us, 10 //Bruce_temp.. ns ?
+	denali_ctl(2) = 0x00000006; //TINIT[23:0] = 0x4 -==> 0x6
+	denali_ctl(3) = time2cycle(20000000,tCK); //TRST_PWRON = 200us, 7 //Bruce_temp.. ns ?
+	denali_ctl(4) = time2cycle(50000000,tCK); //CKE_INACTIVE = 500us, 10 //Bruce_temp.. ns ?
 
 	//TBST_INT_INTERVAL[26:24] = 0x1, WL[20:16], CASLAT_LIN[13:8], CL half-cycle increment = 0, INITAREF[3:0] = 0x8
 	if(DDR3_AL == AL_DISABLED){ //nAL = 0;
@@ -183,13 +183,13 @@ static void sdram_init(void)
 	}
 
 	denali_ctl(6) = (time2cycle(DDR3_tRAS_ps,tCK)<<24 | time2cycle(DDR3_tRC_ps,tCK)<<16 | time2cycle(DDR3_tRRD_ps,tCK)<<8 | DDR3_tCCD_ck);
-	denali_ctl(7) = (DDR3_tMRD_ck<<24 | time2cycle(DDR3_tRTP_ps,tCK)<<16 | /*time2cycle(DDR3_tRP_ps,tCK)*/nCL<<8 | (time2cycle(DDR3_tWTR_ps,tCK)+1));
+	denali_ctl(7) = (DDR3_tMRD_ck<<24 | time2cycle(DDR3_tRTP_ps,tCK)<<16 | time2cycle(DDR3_tRP_ps,tCK)<<8 | (time2cycle(DDR3_tWTR_ps,tCK)+1));
 	denali_ctl(8) = (time2cycle(DDR3_tRAS_MAX_ps,tCK)<<8 | time2cycle(DDR3_tMOD_ps,tCK));
 	denali_ctl(9) = ((time2cycle(DDR3_tCKE_ps,tCK)+1)<<8 | time2cycle(DDR3_tCKE_ps,tCK));
-	denali_ctl(10) = (time2cycle(DDR3_tWR_ps,tCK)<<24 | /*time2cycle(DDR3_tRCD_ps,tCK)*/nCL<<16 | 1<<8 | 1);
+	denali_ctl(10) = (time2cycle(DDR3_tWR_ps,tCK)<<24 | time2cycle(DDR3_tRCD_ps,tCK)<<16 | 1<<8 | 1);
 	denali_ctl(11) = (1<<24 | DDR3_tDLLK_ck<<8 | (time2cycle(DDR3_tWR_ps,tCK)+nCL));
 	denali_ctl(12) = (1<<16 | time2cycle(DDR3_tFAW_ps,tCK)<<8 | 3);
-	denali_ctl(13) = /*time2cycle(DDR3_tRP_ps,tCK)*/nCL;
+	denali_ctl(13) = time2cycle(DDR3_tRP_ps,tCK)+1;
 	BITCSET(denali_ctl(14), 0x03FF0100, (time2cycle(DDR3_tRFC_ps,tCK)<<16 | 1<<8));
 	denali_ctl(15) = time2cycle(DDR3_tREFI_ps,tCK);
 	denali_ctl(16) = (time2cycle(DDR3_tXPDLL_ps,tCK)<<16 | time2cycle(DDR3_tXP_ps,tCK)); // DDR3 Only
@@ -329,20 +329,20 @@ static void sdram_init(void)
 	// tPHY_WRLAT(RO) : Write Command <=> DFI_WRDATA_EN    : WRLAT_ADJ(min. 1) + REG_DIMM_ENABLE - 1
 	// tRDDATA_EN     : Read Command  <=> DFI_RDDATA_EN    : RDLAT_ADJ(min. 2) + REG_DIMM_ENABLE - 1
 	// tPHY_WRDATA    : DFI_WRDATA    <=> DFI_WRDATA_EN
-	BITCSET(denali_ctl(95), 0x3F000000, 0x2<<24); //TDFI_PHY_RDLAT = 0x2
+	BITCSET(denali_ctl(95), 0x3F000000, 0x8<<24); //TDFI_PHY_RDLAT = 0x8
 	BITCLR(denali_ctl(96), 0x3<<8); //DRAM_CLK_DISABLE[9:8] = [CS1, CS0] = 0x0
 	denali_ctl(97) = 0x200<<16|0x50E; //TDFI_CTRLUPD_MAX = 0x50e, TDFI_PHYUPD_TYPE0 = 0x200
 	denali_ctl(98) = 0x200<<16|0x200; //TDFI_PHYUPD_TYPE1 = 0x200, TDFI_PHYUPD_TYPE2 = 0x200
 	denali_ctl(99) = 0x50E<<16|0x200; //TDFI_PHYUPD_TYPE3 = 0x200, TDFI_PHYUPD_RESP = 0x50e
 	denali_ctl(100) = 0x1946; //TDFI_CTRLUPD_INTERVAL = 0x1946
 	if(DDR3_AL == AL_DISABLED){ //nAL = 0;
-		denali_ctl(101) = (0x1<<24|0x1<<16|nCWL<<8|(nCL+4));
+		denali_ctl(101) = (0x1<<24|0x1<<16|nCWL<<8|(nCL+5));
 	}
 	else if(DDR3_AL == AL_CL_MINUS_ONE){ //nAL = nCL - 1;
-		denali_ctl(101) = (0x1<<24|0x1<<16|(nCWL+nCL-1)<<8|(nCL+4));
+		denali_ctl(101) = (0x1<<24|0x1<<16|(nCWL+nCL-1)<<8|(nCL+5));
 	}	
 	else if(DDR3_AL == AL_CL_MINUS_TWO){ //nAL = nCL - 2;
-		denali_ctl(101) = (0x1<<24|0x1<<16|(nCWL+nCL-2)<<8|(nCL+4));
+		denali_ctl(101) = (0x1<<24|0x1<<16|(nCWL+nCL-2)<<8|(nCL+5));
 	}
 	denali_ctl(102) = 0x3<<24|0x8000<<8|0x1; //TDFI_DRAM_CLK_ENABLE = 0x1, DFI_WRLVL_MAX_DELAY = 0x8000, TDFI_WRLVL_EN = 0x3
 	denali_ctl(103) = 0x4<<16|0x7<<8|0x3; //TDFI_WRLVL_DLL = 0x3, TDFI_WRLVL_LOAD = 0x7, TDFI_WRLVL_RESPLAT = 0x4
@@ -388,7 +388,8 @@ static void sdram_init(void)
 	while(!(denali_ctl(46)&0x20));
 
 	//denali_ctl(47) |= 0x20;
-	denali_phy(0x1C) = 0x00316001|(MEMCTRL_TERM<<8)|(MEMCTRL_DDS<<4);
+	denali_phy(0x1C) = 0x00316000|(MEMCTRL_TERM<<8)|(MEMCTRL_DDS<<4);
+	denali_phy(0x14) = 0x0A0A0A0A;		// Denali Phy Control Reg_02
 
 //--------------------------------------------------------------------------
 
@@ -726,7 +727,10 @@ static void shutdown(void)
 // ZQ/VDDQ Power OFF
 
 	#if defined(CONFIG_MACH_M805_892X)
-	BITCLR(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
+	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
+		BITCLR(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<6); //GPIO D 6
+	else
+		BITCLR(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
 	#elif defined(CONFIG_MACH_TCC8920)
 	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1005 || *(volatile unsigned long *)SRAM_STACK_ADDR == 0x1007)
 	{
@@ -812,15 +816,29 @@ static void shutdown(void)
 
 	/* Power Key */
 #if defined(CONFIG_MACH_M805_892X)
-	//set wake-up polarity
-	((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_D09 = 1; //power key - Active Low
-	//set wake-up source
-	((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D09 = 1; //power key
-
+	if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
+	{
+		//set wake-up polarity
+		((PPMU)HwPMU_BASE)->PMU_WKPOL1.bREG.GPIO_E27 = 1; //power key - Active Low
+		//set wake-up source
+		((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E27 = 1; //power key
+	}
+	else
+	{
+		//set wake-up polarity
+		((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_D09 = 1; //power key - Active Low
+		//set wake-up source
+		((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D09 = 1; //power key
+	}
 	#if defined(CONFIG_MMC_TCC_SDHC)	// Wakeup for SD Insert->Remove in Suspend.
 	#if defined(CONFIG_TCC8923_0XA)
 	if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1)		// SD Insert -> Remove in suspend : Active High
-		((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E13 = 1;	// PMU WakeUp Enable
+	{
+		if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
+			((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E28 = 1;	// PMU WakeUp Enable
+		else
+			((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E13 = 1;	// PMU WakeUp Enable
+	}
 	#endif
 	#endif
 #elif defined(CONFIG_MACH_TCC8920ST)
@@ -926,7 +944,10 @@ static void wakeup(void)
 // ZQ/VDDQ Power ON
 
 	#if defined(CONFIG_MACH_M805_892X)
-	BITSET(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
+	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
+		BITSET(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<6); //GPIO D 6
+	else
+		BITSET(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
 	#elif defined(CONFIG_MACH_TCC8920)
 	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1005 || *(volatile unsigned long *)SRAM_STACK_ADDR == 0x1007)
 	{
@@ -1256,7 +1277,10 @@ static void sleep(void)
 // ZQ/VDDQ Power OFF
 
 	#if defined(CONFIG_MACH_M805_892X)
-	BITCLR(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
+	if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
+		BITCLR(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<6); //GPIO D 6
+	else
+		BITCLR(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
 	#elif defined(CONFIG_MACH_TCC8920)
 	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1005 || *(volatile unsigned long *)SRAM_STACK_ADDR == 0x1007)
 	{
@@ -1336,15 +1360,29 @@ static void sleep(void)
 
 	/* Power Key */
 #if defined(CONFIG_MACH_M805_892X)
-	//set wake-up polarity
-	((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_D09 = 1; //power key - Active Low
-	//set wake-up source
-	((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D09 = 1; //power key
-
+	if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
+	{
+		//set wake-up polarity
+		((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_E27 = 1; //power key - Active Low
+		//set wake-up source
+		((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_E27 = 1; //power key
+	}
+	else
+	{
+		//set wake-up polarity
+		((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_D09 = 1; //power key - Active Low
+		//set wake-up source
+		((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D09 = 1; //power key
+	}
 	#if defined(CONFIG_MMC_TCC_SDHC)	// Wakeup for SD Insert->Remove in Suspend.
 	#if defined(CONFIG_TCC8923_0XA)
 	if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1)		// SD Insert -> Remove in suspend : Active High
-		((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E13 = 1;	// PMU WakeUp Enable
+	{
+		if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
+			((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E27 = 1;	// PMU WakeUp Enable
+		else
+			((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E13 = 1;	// PMU WakeUp Enable
+	}
 	#endif
 	#endif
 #elif defined(CONFIG_MACH_TCC8920ST)
@@ -1428,7 +1466,10 @@ static void sleep(void)
 // ZQ/VDDQ Power ON
 
 	#if defined(CONFIG_MACH_M805_892X)
-	BITSET(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
+	if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
+		BITSET(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<6); //GPIO D 6
+	else
+		BITSET(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
 	#elif defined(CONFIG_MACH_TCC8920)
 	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1005 || *(volatile unsigned long *)SRAM_STACK_ADDR == 0x1007)
 	{
@@ -1789,25 +1830,30 @@ static void tcc_pm_power_off(void)
 #endif
 
 #if defined(CONFIG_REGULATOR_AXP192)
-        extern void axp192_power_off(void);
-        axp192_power_off();
+	extern void axp192_power_off(void);
+	axp192_power_off();
 #endif
 
-        if(machine_is_m801_88() || machine_is_m803()){
-                gpio_set_value(TCC_GPA(4), 0);  // LCD_BLCTL
-		   gpio_set_value(TCC_GPG(2), 0);   // LCD_PWREN
-                gpio_set_value(TCC_GPF(26), 0); // SHDN
-        }
-	  else if(machine_is_m805_892x())
-	  {
-                gpio_set_value(TCC_GPD(10), 0);  // LCD_BLCTL
-		   gpio_set_value(TCC_GPD(18), 0);   // LCD_PWREN
-                gpio_set_value(TCC_GPE(7), 0); // SHDN
-	  }
+	if(machine_is_m801_88() || machine_is_m803()){
+		gpio_set_value(TCC_GPA(4), 0);  // LCD_BLCTL
+		gpio_set_value(TCC_GPG(2), 0);  // LCD_PWREN
+		gpio_set_value(TCC_GPF(26), 0); // SHDN
+	}
+	else if(machine_is_m805_892x())
+	{
+		if (system_rev == 0x2002) {
+			gpio_set_value(TCC_GPC(0), 0); // LCD_BLCTL
+			gpio_set_value(TCC_GPE(24), 0); // LCD_PWREN
+			//gpio_set_value(TCC_GPE(7), 0);  // SHDN
 
-        while(1);
+		} else {
+			gpio_set_value(TCC_GPD(10), 0); // LCD_BLCTL
+			gpio_set_value(TCC_GPD(18), 0); // LCD_PWREN
+			gpio_set_value(TCC_GPE(7), 0);  // SHDN
+		}
+	}
 
-
+	while(1);
 }
 
 /*===========================================================================

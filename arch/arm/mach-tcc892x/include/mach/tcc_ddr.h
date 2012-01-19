@@ -879,6 +879,10 @@ enum
 ---------------------------------------------------------------------------*/
 #define DDR3_tRFC_ps                160000
 #define DDR3_tREFI_ps              7800000
+#define DDR3_tRCD_ps                 13750
+#define DDR3_tRCD_ck                     1
+#define DDR3_tRP_ps                  13750
+#define DDR3_tRP_ck                      1
 #define DDR3_tRC_ps                  48750
 #define DDR3_tRC_ck                      1
 #define DDR3_tRAS_ps                 35000
@@ -940,6 +944,10 @@ enum
 ---------------------------------------------------------------------------*/
 #define DDR3_tRFC_ps                110000
 #define DDR3_tREFI_ps              7800000
+#define DDR3_tRCD_ps                 13500
+#define DDR3_tRCD_ck                     1
+#define DDR3_tRP_ps                  13500
+#define DDR3_tRP_ck                      1
 #define DDR3_tRC_ps                  49500
 #define DDR3_tRC_ck                      1
 #define DDR3_tRAS_ps                 36000
@@ -1005,6 +1013,10 @@ enum
 ---------------------------------------------------------------------------*/
 #define DDR3_tRFC_ps                160000
 #define DDR3_tREFI_ps              7800000
+#define DDR3_tRCD_ps                 13500
+#define DDR3_tRCD_ck                     1
+#define DDR3_tRP_ps                  13500
+#define DDR3_tRP_ck                      1
 #define DDR3_tRC_ps                  49500
 #define DDR3_tRC_ck                      1
 #define DDR3_tRAS_ps                 36000
@@ -1070,6 +1082,10 @@ enum
 ---------------------------------------------------------------------------*/
 #define DDR3_tRFC_ps                160000
 #define DDR3_tREFI_ps              7800000
+#define DDR3_tRCD_ps                 13750
+#define DDR3_tRCD_ck                     1
+#define DDR3_tRP_ps                  13750
+#define DDR3_tRP_ck                      1
 #define DDR3_tRC_ps                  48750
 #define DDR3_tRC_ck                      1
 #define DDR3_tRAS_ps                 35000
@@ -1136,6 +1152,10 @@ enum
 ---------------------------------------------------------------------------*/
 #define DDR3_tRFC_ps                160000
 #define DDR3_tREFI_ps              7800000
+#define DDR3_tRCD_ps                 13500
+#define DDR3_tRCD_ck                     1
+#define DDR3_tRP_ps                  13500
+#define DDR3_tRP_ck                      1
 #define DDR3_tRC_ps                  49500
 #define DDR3_tRC_ck                      1
 #define DDR3_tRAS_ps                 36000
@@ -1202,6 +1222,10 @@ enum
 ---------------------------------------------------------------------------*/
 #define DDR3_tRFC_ps                160000
 #define DDR3_tREFI_ps              7800000
+#define DDR3_tRCD_ps                 13750
+#define DDR3_tRCD_ck                     1
+#define DDR3_tRP_ps                  13750
+#define DDR3_tRP_ck                      1
 #define DDR3_tRC_ps                  48750
 #define DDR3_tRC_ck                      1
 #define DDR3_tRAS_ps                 35000
@@ -1263,6 +1287,10 @@ enum
 ---------------------------------------------------------------------------*/
 #define DDR3_tRFC_ps                110000
 #define DDR3_tREFI_ps              7800000
+#define DDR3_tRCD_ps                 13500
+#define DDR3_tRCD_ck                     1
+#define DDR3_tRP_ps                  13500
+#define DDR3_tRP_ck                      1
 #define DDR3_tRC_ps                  49500
 #define DDR3_tRC_ck                      1
 #define DDR3_tRAS_ps                 36000

@@ -92,8 +92,11 @@ static int ed090na_set_power(struct lcd_panel *panel, int on, unsigned int lcd_n
 		BITCSET(pDDICfg->LVDS_CTRL.nREG, 0x00FFFFF0, (VSEL<<4)|(S<<5)|(M<<8)|(P<<15)); //LCDC1
 
 		// LVDS Select LCDC 1
-		BITCSET(pDDICfg->LVDS_CTRL.nREG, 0x3 << 30 , 0x1 << 30);
-
+		if(lcd_num)
+			BITCSET(pDDICfg->LVDS_CTRL.nREG, 0x3 << 30 , 0x1 << 30);
+		else
+			BITCSET(pDDICfg->LVDS_CTRL.nREG, 0x3 << 30 , 0x0 << 30);
+		
 	    	pDDICfg->LVDS_CTRL.bREG.RST = 1;	//  reset
 	  	pDDICfg->LVDS_CTRL.bREG.EN = 1;   // enable
 #else

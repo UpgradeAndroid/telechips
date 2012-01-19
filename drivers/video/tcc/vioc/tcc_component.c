@@ -1323,10 +1323,14 @@ void tcc_component_update(struct tcc_lcdc_image_update *update)
 	//printk("update->addr0 : %x, update->addr1 : %x, update->addr2  : %x \n",update->addr0, update->addr1, update->addr2 );
 
 	#if defined(CONFIG_ARCH_TCC892X)
+		#if 0
 		if(Component_Mode == COMPONENT_MODE_720P)
 			VIOC_RDMA_SetImageIntl(pComponent_RDMA_VIDEO, FALSE);
 		else
 			VIOC_RDMA_SetImageIntl(pComponent_RDMA_VIDEO, TRUE);
+		#else
+			VIOC_RDMA_SetImageIntl(pComponent_RDMA_VIDEO, FALSE);
+		#endif
 
 		VIOC_RDMA_SetImageFormat(pComponent_RDMA_VIDEO, update->fmt);
 		

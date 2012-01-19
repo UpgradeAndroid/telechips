@@ -44,6 +44,7 @@ struct tcc_tsif_pid_param {
 #define IOCTL_TSIF_DXB_POWER		_IO(TSIF_DEV_IOCTL, 5)
 #define IOCTL_TSIF_SET_PCRPID		_IO(TSIF_DEV_IOCTL, 6)
 #define IOCTL_TSIF_GET_STC			_IO(TSIF_DEV_IOCTL, 7)
+#define IOCTL_TSIF_RESET			_IO(TSIF_DEV_IOCTL, 8)
 
 
 #endif /*__TCC_TSIF_H__*/
