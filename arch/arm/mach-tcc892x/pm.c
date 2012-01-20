@@ -726,6 +726,7 @@ static void shutdown(void)
 // -------------------------------------------------------------------------
 // ZQ/VDDQ Power OFF
 
+#if defined(TCC_PM_MEMQ_PWR_CTRL)
 	#if defined(CONFIG_MACH_M805_892X)
 	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
 		BITCLR(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<6); //GPIO D 6
@@ -745,6 +746,7 @@ static void shutdown(void)
 		BITCLR(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
 	}
 	#endif
+#endif
 
 // -------------------------------------------------------------------------
 // SRAM Retention
@@ -943,6 +945,7 @@ static void wakeup(void)
 // -------------------------------------------------------------------------
 // ZQ/VDDQ Power ON
 
+#if defined(TCC_PM_MEMQ_PWR_CTRL)
 	#if defined(CONFIG_MACH_M805_892X)
 	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
 		BITSET(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<6); //GPIO D 6
@@ -962,6 +965,7 @@ static void wakeup(void)
 		BITSET(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
 	}
 	#endif
+#endif
 
 // -------------------------------------------------------------------------
 // BUS Power On
@@ -1276,6 +1280,7 @@ static void sleep(void)
 // -------------------------------------------------------------------------
 // ZQ/VDDQ Power OFF
 
+#if defined(TCC_PM_MEMQ_PWR_CTRL)
 	#if defined(CONFIG_MACH_M805_892X)
 	if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
 		BITCLR(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<6); //GPIO D 6
@@ -1295,6 +1300,7 @@ static void sleep(void)
 		BITCLR(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
 	}
 	#endif
+#endif
 
 // -------------------------------------------------------------------------
 // SRAM Retention
@@ -1465,6 +1471,7 @@ static void sleep(void)
 // -------------------------------------------------------------------------
 // ZQ/VDDQ Power ON
 
+#if defined(TCC_PM_MEMQ_PWR_CTRL)
 	#if defined(CONFIG_MACH_M805_892X)
 	if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
 		BITSET(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<6); //GPIO D 6
@@ -1484,6 +1491,7 @@ static void sleep(void)
 		BITSET(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
 	}
 	#endif
+#endif
 
 // -------------------------------------------------------------------------
 // BUS Power On
