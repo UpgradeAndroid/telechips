@@ -84,6 +84,7 @@ typedef enum{
 ******************************************************************************/
 
 extern void TCC_OUTPUT_LCDC_Init(void);
+extern void TCC_OUTPUT_UPDATE_OnOff(char onoff, char type);
 extern void TCC_OUTPUT_LCDC_OnOff(char output_type, char output_lcdc_num, char onoff);
 extern void TCC_OUTPUT_LCDC_CtrlLayer(char output_type, char interlace, char format);
 extern void TCC_OUTPUT_LCDC_CtrlChroma(lcdc_chroma_params lcdc_chroma);

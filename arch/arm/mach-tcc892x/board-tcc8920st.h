@@ -34,6 +34,31 @@
 #define GPIO_LCD_DISPLAY	TCC_GPG(4)
 
 // DxB
+//#define SUPPORT_TSIF_INTERFACE
+#ifdef  SUPPORT_TSIF_INTERFACE
+////////////////////////////////////////
+#define GPIO_DXB_ON		    TCC_GPD(6)
+
+#define GPIO_DXB0_PD		TCC_GPD(2)
+#define GPIO_DXB1_PD		TCC_GPD(3)
+
+#define GPIO_DXB0_RST		TCC_GPD(4)
+#define GPIO_DXB1_RST		TCC_GPD(5)
+#define INT_DXB0_IRQ		TCC_GPD(0)
+#define INT_DXB1_IRQ		TCC_GPD(1)
+
+#define GPIO_DXB0_SFRM		TCC_GPD(9)
+#define GPIO_DXB0_SCLK		TCC_GPD(8)
+#define GPIO_DXB0_SDI		TCC_GPD(7)
+#define GPIO_DXB0_SDO		TCC_GPD(10)
+
+#define GPIO_DXB1_SFRM		TCC_GPB(11)
+#define GPIO_DXB1_SCLK		TCC_GPB(13)
+#define GPIO_DXB1_SDI		TCC_GPB(14)
+#define GPIO_DXB1_SDO		TCC_GPB(12)
+////////////////////////////////////////
+#else
+////////////////////////////////////////
 #define GPIO_DXB_ON		    TCC_GPD(15)
 
 #define GPIO_DXB0_PD		TCC_GPF(4)
@@ -53,7 +78,8 @@
 #define GPIO_DXB1_SCLK		TCC_GPB(13)
 #define GPIO_DXB1_SDI		TCC_GPB(14)
 #define GPIO_DXB1_SDO		TCC_GPB(12)
-
+////////////////////////////////////////
+#endif
 
 
 

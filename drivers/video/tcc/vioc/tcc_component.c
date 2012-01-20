@@ -779,6 +779,8 @@ void tcc_component_set_lcd2tv(COMPONENT_MODE_TYPE mode)
 		VIOC_WMIX_SetPosition(pComponent_WMIX, 0, 0, 0);
 		VIOC_WMIX_SetChromaKey(pComponent_WMIX, 0, 0, 0, 0, 0, 0xF8, 0xFC, 0xF8);
 		VIOC_WMIX_SetUpdate(pComponent_WMIX);
+
+		TCC_OUTPUT_UPDATE_OnOff(1, TCC_OUTPUT_COMPOSITE);
 	#else // defined(CONFIG_ARCH_TCC892X)
 		BITCSET(pComponent_HwLCDC->LCLKDIV, 0x00FF0000, 0<<16);
 		BITCSET(pComponent_HwLCDC->LCLKDIV, 0x000000FF, 0);

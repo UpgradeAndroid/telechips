@@ -38,7 +38,8 @@ typedef struct {
 static sfPLL pIO_CKC_PLL[] = {
     {FPLL_t(3, 300,  0,  0)},       // 1200 MHz
     {FPLL_t(3, 275,  0,  0)},       // 1100 MHz
-    {FPLL_t(3, 251,  0,  0)},       // 1004 MHz
+    //{FPLL_t(3, 251,  0,  0)},       // 1004 MHz
+    {FPLL_t(3, 502,  1,  1)},       // 1004 MHz
     {FPLL_t(3, 498,  1,  1)},       // 996 MHz
     {FPLL_t(3, 494,  1,  1)},       // 988 MHz
     {FPLL_t(3, 490,  1,  1)},       // 980 MHz
