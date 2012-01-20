@@ -1830,12 +1830,12 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 			//				tccvid_vsync.vsync_buffer.valid_buff_count,
 			//				tccvid_vsync.vsync_buffer.max_buff_num,
 			//				input_image.time_stamp, input_image.sync_time, input_image.buffer_unique_id);
-			if(!tccvid_vsync.isVsyncRunning )
+			/*if(!tccvid_vsync.isVsyncRunning )
 			{
 				printk("vsync already ended !! %d\n",input_image.time_stamp);
 				input_image.time_stamp = 0;
 				return 0;
-			}
+			}*/
 
 			spin_lock_irq(&vsync_lock) ;
 			check_time = abs(tcc_vsync_get_time() - input_image.sync_time);
@@ -1843,7 +1843,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 
 			if(check_time> 200)
 			{
-				printk("reset time base time %d kernel time %d time %d \n",tccvid_vsync.baseTime,tcc_vsync_get_timer_clock(),input_image.sync_time);
+				vprintk("reset time base time %d kernel time %d time %d \n",tccvid_vsync.baseTime,tcc_vsync_get_timer_clock(),input_image.sync_time);
 				tccfb_ResetSyncTime(0);
 			}
 			
@@ -2016,7 +2016,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 
 			if(error_type > 0)
 			{
-				printk("vsync push error : %d buffer_unique_id %d\n", error_type,input_image.buffer_unique_id);
+				vprintk("vsync push error : %d buffer_unique_id %d\n", error_type,input_image.buffer_unique_id);
 				spin_lock_irq(&vsync_lockDisp) ;
 				tccvid_vsync.vsync_buffer.last_cleared_buff_id = input_image.buffer_unique_id;
 				spin_unlock_irq(&vsync_lockDisp) ;
