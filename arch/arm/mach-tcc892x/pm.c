@@ -1840,6 +1840,9 @@ static void tcc_pm_power_off(void)
 #if defined(CONFIG_REGULATOR_AXP192)
 	extern void axp192_power_off(void);
 	axp192_power_off();
+#elif defined(CONFIG_REGULATOR_RN5T614)
+	extern void rn5t614_power_off(void);
+	rn5t614_power_off();
 #endif
 
 	if(machine_is_m801_88() || machine_is_m803()){
