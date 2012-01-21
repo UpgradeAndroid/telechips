@@ -210,11 +210,20 @@ static struct axp192_subdev_data axp192_subdev[] = {
 
 static int axp192_irq_init(void)
 {
-	tcc_gpio_config(TCC_GPD(9), GPIO_FN(0)|GPIO_PULL_DISABLE);  // GPIOE[31]: input mode, disable pull-up/down
-	tcc_gpio_config_ext_intr(PMIC_IRQ, EXTINT_GPIOD_09);
+	if(system_rev == 0x2002) {
+		tcc_gpio_config(TCC_GPE(27), GPIO_FN(0)|GPIO_PULL_DISABLE);  // GPIOE[31]: input mode, disable pull-up/down
+		tcc_gpio_config_ext_intr(PMIC_IRQ, EXTINT_GPIOE_27);
 
-	gpio_request(TCC_GPD(9), "PMIC_IRQ");
-	gpio_direction_input(TCC_GPD(9));
+		gpio_request(TCC_GPE(27), "PMIC_IRQ");
+		gpio_direction_input(TCC_GPE(27));
+	}
+	else {
+		tcc_gpio_config(TCC_GPD(9), GPIO_FN(0)|GPIO_PULL_DISABLE);  // GPIOE[31]: input mode, disable pull-up/down
+		tcc_gpio_config_ext_intr(PMIC_IRQ, EXTINT_GPIOD_09);
+
+		gpio_request(TCC_GPD(9), "PMIC_IRQ");
+		gpio_direction_input(TCC_GPD(9));
+	}
 
 	return 0;
 }
