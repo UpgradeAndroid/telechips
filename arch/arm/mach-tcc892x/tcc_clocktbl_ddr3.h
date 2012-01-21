@@ -31,15 +31,15 @@ static struct tcc_freq_table_t gtClockLimitTable[] = {
 	{ 401250,      0, 322885,      0, 118735,      0,      0, 100000,      0 },	// Core 1.05V
 	{ 468750,      0, 380710,      0, 140000,      0,      0, 100000,      0 },	// Core 1.10V
 	{ 546875,      0, 456860,      0, 168000,      0,      0, 100000,      0 },	// Core 1.15V
-	#if defined(CONFIG_MACH_M805_892X) //bscho_20120120
+#if defined(CONFIG_MACH_M805_892X) //bscho_20120120
 	{ 625000,      0, 500000,      0, 196000,      0,      0, 100000,      0 },	// Core 1.20V
 	{ 718750,      0, 533000,      0, 219520,      0,      0, 100000,      0 },	// Core 1.25V
 	{ 812500,      0, 533000,      0, 243040,      0,      0, 100000,      0 },	// Core 1.30V
-	#else
+#else
 	{ 625000,      0, 533000,      0, 196000,      0,      0, 100000,      0 },	// Core 1.20V
 	{ 718750,      0, 533000,      0, 219520,      0,      0, 100000,      0 },	// Core 1.25V
 	{ 812500,      0, 600000,      0, 243040,      0,      0, 100000,      0 },	// Core 1.30V
-	#endif
+#endif
 #if defined(CONFIG_CPU_HIGHSPEED)
 	{ 996000,      0, 600000,      0, 243040,      0,      0, 100000,      0 },	// Core 1.50V
 #endif
@@ -117,7 +117,11 @@ const struct tcc_freq_table_t gtHdmiClockLimitTable = {
 };
 
 const struct tcc_freq_table_t gtMaliClockLimitTable = {
+#if defined(CONFIG_MACH_M805_892X) //bscho_20120120
+	       0,      0, 500000, 370000,      0,      0,      0,      0,      0	// Core 1.20V
+#else
 	       0,      0, 533000, 370000,      0,      0,      0,      0,      0	// Core 1.20V
+#endif
 };
 
 const struct tcc_freq_table_t stFBClockLimitTable = {
