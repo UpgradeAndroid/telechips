@@ -38,7 +38,7 @@ typedef enum {
 #define HwINT1_SD2	 				Hw1 					// R/W, SD/MMC 2 Interrupt enable
 #define HwINT1_SD3		 			Hw0 					// R/W, SD/MMC 3 Interrupt enable
 
-#if defined(CONFIG_TCC8923_0XA)
+#if defined(CONFIG_M805S_8923_0XA)
 #define TFCD_EXT_INT		EXTINT_GPIOE_13
 #define TFCD_GPIO_PORT		TCC_GPE(13)
 #else

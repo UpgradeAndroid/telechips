@@ -83,7 +83,7 @@ static void spk_mute(void)
 		if(system_rev == 0x2002) {
 			gpio_set_value(TCC_GPE(18), 0);
 		} else {	
-			#if defined(CONFIG_TCC8923_0XA)
+			#if defined(CONFIG_M805S_8923_0XA)
 			gpio_set_value(TCC_GPG(11), 0);
 			#else
 			gpio_set_value(TCC_GPF(27), 0);
@@ -105,7 +105,7 @@ static void spk_un_mute(void)
 		if(system_rev == 0x2002) {
 			gpio_set_value(TCC_GPE(18), 1);
 		} else {
-			#if defined(CONFIG_TCC8923_0XA)
+			#if defined(CONFIG_M805S_8923_0XA)
 			gpio_set_value(TCC_GPG(11), 1);
 			#else
 			gpio_set_value(TCC_GPF(27), 1);
@@ -564,7 +564,7 @@ static int __init tcc_init_es8388(void)
 			gpio_direction_output(TCC_GPE(17), 1);	 // HeadPhone mute
 		}
 		else {
-			#if defined(CONFIG_TCC8923_0XA)
+			#if defined(CONFIG_M805S_8923_0XA)
 			tcc_gpio_config(TCC_GPG(11), GPIO_FN(0));
 			gpio_request(TCC_GPG(11), "SPK_MUTE_CTL");
 			gpio_direction_output(TCC_GPG(11), 0);	 // Speaker mute

@@ -50,7 +50,7 @@ void tca_i2c_setgpio(int core, int ch)
 				}
 				else
 				{
-					#if defined(CONFIG_TCC8923_0XA)
+					#if defined(CONFIG_M805S_8923_0XA)
 					//I2C[22] - GPIOG[2][3]
 					//i2c_portcfg->PCFG0.bREG.MASTER0 = 22;
 					BITCSET(((PI2CPORTCFG)io_p2v(HwI2C_PORTCFG_BASE))->PCFG0.nREG, 0x000000FF, 22);
@@ -95,7 +95,7 @@ void tca_i2c_setgpio(int core, int ch)
 			}
 			else
 			{
-				#if defined(CONFIG_TCC8923_0XA)
+				#if defined(CONFIG_M805S_8923_0XA)
 				//I2C[21] - GPIOF[27][28]
 				//i2c_portcfg->PCFG0.bREG.MASTER1 = 21;
 				BITCSET(((PI2CPORTCFG)io_p2v(HwI2C_PORTCFG_BASE))->PCFG0.nREG, 0x0000FF00, 21<<8);

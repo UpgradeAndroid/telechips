@@ -833,7 +833,7 @@ static void shutdown(void)
 		((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D09 = 1; //power key
 	}
 	#if defined(CONFIG_MMC_TCC_SDHC)	// Wakeup for SD Insert->Remove in Suspend.
-	#if defined(CONFIG_TCC8923_0XA)
+	#if defined(CONFIG_M805S_8923_0XA)
 	if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1)		// SD Insert -> Remove in suspend : Active High
 	{
 		if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
@@ -1381,7 +1381,7 @@ static void sleep(void)
 		((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D09 = 1; //power key
 	}
 	#if defined(CONFIG_MMC_TCC_SDHC)	// Wakeup for SD Insert->Remove in Suspend.
-	#if defined(CONFIG_TCC8923_0XA)
+	#if defined(CONFIG_M805S_8923_0XA)
 	if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1)		// SD Insert -> Remove in suspend : Active High
 	{
 		if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)

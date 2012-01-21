@@ -99,7 +99,7 @@ unsigned int tca_tcc_initport(void)
 			tcc_gpio_config(TCC_GPG(10), GPIO_FN1);
 		}
 		else {
-			#if defined(CONFIG_TCC8923_0XA)
+			#if defined(CONFIG_M805S_8923_0XA)
 			tcc_gpio_config(TCC_GPG(6), GPIO_FN1);
 			tcc_gpio_config(TCC_GPG(7), GPIO_FN1);
 			tcc_gpio_config(TCC_GPG(8), GPIO_FN1);
