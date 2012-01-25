@@ -27,7 +27,7 @@
 *******************************************************************/
 static const struct gpio_event_direct_entry m805_892x_gpio_keymap[] = {
 #if !defined(CONFIG_REGULATOR_AXP192_PEK)
-	{ GPIO_PWR_KEY,	KEY_POWER },
+//	{ GPIO_PWR_KEY,	KEY_POWER },
 #endif
 #if (CONFIG_M805S_8925_0XX)
 	{ TCC_GPC(18),	KEY_MENU },       // menu
