@@ -32,6 +32,9 @@
 
 #include <mach/bsp.h>
 
+#define nop_delay(x) for(cnt=0 ; cnt<x ; cnt++){ \
+					__asm__ __volatile__ ("nop\n"); }
+
 static inline void arch_idle(void)
 {
 	cpu_do_idle();
@@ -41,17 +44,30 @@ static inline void arch_reset(char mode, const char *cmd)
 {
 	volatile PPMU pPMU = (volatile PPMU)(tcc_p2v(HwPMU_BASE));
 	volatile PIOBUSCFG pIOBUSCFG = (volatile PIOBUSCFG)(tcc_p2v(HwIOBUSCFG_BASE));
+	volatile unsigned int cnt = 0;
 
 	/* remap to internal ROM */
 	pPMU->PMU_CONFIG.bREG.REMAP = 0;
 
 	/* PMU is not initialized with WATCHDOG */
 	pPMU->PMU_ISOL.nREG = 0x00000000;
+	nop_delay(100000);
 	pPMU->PWRUP_MBUS.bREG.DATA = 0;
+	nop_delay(100000);
 	pPMU->PWRUP_VBUS.bREG.DATA = 0;
+	nop_delay(100000);
 	pPMU->PWRUP_GBUS.bREG.DATA = 0;
+	nop_delay(100000);
 	pPMU->PWRUP_DBUS.bREG.DATA = 0;
+	nop_delay(100000);
 	pPMU->PWRUP_HSBUS.bREG.DATA = 0;
+	nop_delay(100000);
+
+	pPMU->PMU_SYSRST.bREG.VB = 1;
+	pPMU->PMU_SYSRST.bREG.GB = 1;
+	pPMU->PMU_SYSRST.bREG.DB = 1;
+	pPMU->PMU_SYSRST.bREG.HSB = 1;
+	nop_delay(100000);
 
 	pIOBUSCFG->HCLKEN0.nREG = 0xFFFFFFFF;	// clock enable
 	pIOBUSCFG->HCLKEN1.nREG = 0xFFFFFFFF;	// clock enable
