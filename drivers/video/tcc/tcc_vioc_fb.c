@@ -1889,11 +1889,11 @@ static void tcc_fb_early_suspend(struct early_suspend *h)
 	console_lock();
 	fb_power_state = 0;
 
-	tca_fb_early_suspend(h);
-
 	if (lcd_panel->set_power)
 		lcd_panel->set_power(lcd_panel, 0, LCD_LCDC_NUM);
 
+	tca_fb_early_suspend(h);
+	
 	console_unlock();
 	printk("%s: finish \n", __FUNCTION__);
 

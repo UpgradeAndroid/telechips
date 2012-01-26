@@ -19,6 +19,7 @@
 #include <linux/gpio.h>
 #include <mach/gpio.h>
 #include <asm/mach-types.h>
+#include <linux/cpufreq.h>
 
 #ifndef ON
 #define ON 		1
@@ -36,6 +37,10 @@ typedef struct {
 	int TMP1;
 	int TMP2;
 } tcc_bt_info_t;
+
+#if defined(CONFIG_CPU_FREQ)
+extern struct tcc_freq_table_t gtBtClockLimitTable;
+#endif
 
 #ifdef CONFIG_TCC_RDA_587X_MODULE_SUPPORT
 #if 0
@@ -318,10 +323,17 @@ int tcc_bt_dev_ioctl(struct file *file,
 	        // GPIO Control
 	        break;
 	        
-		case IOCTL_BT_DEV_SPECIFIC:
+	     case IOCTL_BT_DEV_SPECIFIC:
 			printk("[## BT ##] IOCTL_BT_DEV_SPECIFIC cmd[%x]\n", cmd);
 			tcc_bt_get_info((tcc_bt_info_t*)arg);
 			break;
+
+             case IOCTL_BT_DEV_CLOCK_LIMIT:
+		parm1 = (int*)arg;
+		printk("[## BT ##] IOCTL_BT_SET_LIMIT_CLOCK cmd[%x] parm1[%x]\n", cmd, *parm1);
+        	tcc_cpufreq_set_limit_table(&gtBtClockLimitTable, TCC_FREQ_LIMIT_BT, *parm1);
+		break;
+
         
 	    default :
     		printk("[## BT ##] tcc_bt_dev_ioctl cmd[%x]\n", cmd);

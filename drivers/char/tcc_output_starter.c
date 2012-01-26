@@ -2674,7 +2674,7 @@ int __init tcc_output_starter_init(void)
 				#if defined(TCC_COMPONENT_IC_CS4954)
 					tcc_output_starter_component(lcdc_1st, STARTER_COMPONENT_480I_NTSC);
 				#else
-					tcc_output_starter_component(lcdc_1st, STARTER_COMPONENT_720P);
+					tcc_output_starter_component(lcdc_1st, STARTER_COMPONENT_720P+tcc_display_data.component_resolution);
 				#endif
 				break;
 			default:
