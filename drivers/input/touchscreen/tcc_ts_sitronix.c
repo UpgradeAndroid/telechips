@@ -479,8 +479,8 @@ static void sitronix_ts_work(struct work_struct *work)
 		sync_count = 0;
 		//printk("pen release\n");
 		input_report_key(priv->input, BTN_TOUCH, 0);
-		input_report_abs(priv->input, ABS_MT_TOUCH_MAJOR, 0);
-		input_report_abs(priv->input, ABS_MT_WIDTH_MAJOR, 0);
+		//input_report_abs(priv->input, ABS_MT_TOUCH_MAJOR, 0);
+		//input_report_abs(priv->input, ABS_MT_WIDTH_MAJOR, 0);
 		input_mt_sync(priv->input);
 		input_sync(priv->input);
 #if TS_TIMER_SUPPORT		

@@ -664,8 +664,8 @@ COORDINATE_POLL:
 	else
 	{
 		input_report_key(ts->input_dev, BTN_TOUCH, 0);
-		input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0);
-		input_report_abs(ts->input_dev, ABS_MT_WIDTH_MAJOR, 0);
+		//input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0);
+		//input_report_abs(ts->input_dev, ABS_MT_WIDTH_MAJOR, 0);
 		input_mt_sync(ts->input_dev);
 	}
 
