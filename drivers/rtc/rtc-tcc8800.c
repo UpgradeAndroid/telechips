@@ -86,19 +86,6 @@ static struct clk *_rtc_clk;
 #define tcc_writew(v,a)	(*(volatile unsigned short *)(a) = (v))
 #define tcc_writel(v,a)	(*(volatile unsigned int   *)(a) = (v))
 
-#if 0
-#pragma pack(push, 4)
-struct tcc_rtc_regs {
-    volatile unsigned long RTCCON, INTCON, RTCALM,
-             ALMSEC, ALMMIN, ALMHOUR, ALMDATE, ALMDAY, ALMMON, ALMYEAR,
-             BCDSEC, BCDMIN, BCDHOUR, BCDDATE, BCDDAY, BCDMON, BCDYEAR,
-             RTCIM, RTCPEND;
-};
-#pragma pack(pop)
-
-volatile struct tcc_rtc_regs *rtc_regs;
-#endif
-
 static void __iomem *rtc_base;
 static int tcc_rtc_alarmno = NO_IRQ;
 
@@ -106,14 +93,14 @@ static int tcc_rtc_alarmno = NO_IRQ;
 
 static irqreturn_t tcc_rtc_alarmirq(int irq, void *id)
 {
-	printk("[tcc_rtc_alarmirq]\n");
+	printk("[tcc_rtc_alarmirq][%u]\n", irq);
 
-	local_irq_disable();
+	//local_irq_disable();
 
 	tcc_writel( tcc_readl(rtc_base + RTCCON) | Hw1, rtc_base + RTCCON);	// RTC Register write enabled
-	tcc_writel( tcc_readl(rtc_base + INTCON) | Hw0, rtc_base + INTCON); // Interrupt Block Write Enable
+	tcc_writel( tcc_readl(rtc_base + INTCON) | Hw0, rtc_base + INTCON);	// Interrupt Block Write Enable
 
-	//    tcc_writel( tcc_readl(rtc_base + RTCIM) & ~(Hw3|Hw1|Hw0), rtc_base + RTCIM); // INTMODE-DISABLE ALARM INTRRUPT & Operation mode - normal
+	//tcc_writel( tcc_readl(rtc_base + RTCIM) & ~(Hw3|Hw1|Hw0), rtc_base + RTCIM); // INTMODE-DISABLE ALARM INTRRUPT & Operation mode - normal
 	tcc_writel( 0x04, rtc_base + RTCIM); // INTMODE - Reset Value - 110106, hjbae
 
 	tcc_writel( 0, rtc_base + RTCPEND); // PEND bit is cleared.
@@ -131,7 +118,7 @@ static irqreturn_t tcc_rtc_alarmirq(int irq, void *id)
 	tcc_writel( tcc_readl(rtc_base + INTCON) & ~Hw0, rtc_base + INTCON); // Interrupt Block Write disable
 	tcc_writel( tcc_readl(rtc_base + RTCCON) & ~Hw1, rtc_base + RTCCON); // RTC Register write disable
 
-	local_irq_enable();
+	//local_irq_enable();
 
 	//tca_alarm_setint((unsigned int)rtc_base);	//forTEST
 
@@ -412,7 +399,8 @@ static int tcc_rtc_probe(struct platform_device *pdev)
 
 	ulINTCON = tcc_readl(rtc_base + INTCON);
 
-	while( (ulINTCON & 0x0000B700) != 0x00009000 && iLoop > 0 )
+	while( (ulINTCON & 0x0000B700) != 0x00009000 && iLoop > 0 )	// 32.768KHz(3.3V)
+//	while( (ulINTCON & 0x0000B700) != 0x00008000 && iLoop > 0 )	// 32.768KHz (1.8V)
 	{
 		// to clear PROT
 		//   - RTCWR == 1 && INTWREN == 1 && STARTB == 1
@@ -422,8 +410,8 @@ static int tcc_rtc_probe(struct platform_device *pdev)
 		printk("OLD INTCON[0x%x] iLoop [%d] RTCCON[0x%x]=================================\n", ulINTCON, iLoop, tcc_readl(rtc_base + RTCCON));
 
 		ulINTCON = tcc_readl(rtc_base + INTCON);
-		ulINTCON &= ~0x00003700;  //  START XDRV[13:12] 00 - 32K(1.8V)  FSEL[10:8] 32.768Mhz - 000
-		ulINTCON |= 0x00001000;   //  START XDRV[13:12] 01 - 32k(3.3v)  FSEL[10:8] 32.768Mhz - 000
+		ulINTCON &= ~0x00003700;  //  START XDRV[13:12] 00 - 32.768KHz (1.8V)  /  FSEL[10:8] 32.768KHz - 000
+		ulINTCON |= 0x00001000;   //  START XDRV[13:12] 01 - 32.768KHz(3.3V)  /  FSEL[10:8] 32.768KHz - 000
 
 		tcc_writel( ulINTCON, rtc_base + INTCON); // Write XDRV
 		tcc_writel( tcc_readl(rtc_base + INTCON) | Hw15, rtc_base + INTCON); // protect bit - enable
@@ -443,6 +431,15 @@ static int tcc_rtc_probe(struct platform_device *pdev)
 		tcc_writel( tcc_readl(rtc_base + INTCON) | Hw15, rtc_base + INTCON); // protect bit - enable
 	}
 
+	//Start : Disable the RTC Alarm - 120125, hjbae
+	// Disable - Wake Up Interrupt Output(Hw7), Alarm Interrupt Output(Hw6)
+	tcc_writel( tcc_readl(rtc_base + RTCCON) & ~(Hw7|Hw6), rtc_base + RTCCON);
+	// Disable - Alarm Control
+	tcc_writel(0x00, rtc_base + RTCALM);
+	// Power down mode, Active HIGH, Disable alarm interrupt
+	tcc_writel(Hw3|Hw2, rtc_base + RTCIM);
+	//End
+
 	// printk("CUR INTCON[0x%x]\n", tcc_readl(rtc_base + INTCON));
 
 	tcc_writel( tcc_readl(rtc_base + RTCCON) & ~Hw0, rtc_base + RTCCON); // RTC Start Bit - RUN
@@ -455,16 +452,16 @@ static int tcc_rtc_probe(struct platform_device *pdev)
 		rtctime pTime;
 
 		// Invalied Time
-		printk("RTC Invalied Time, Set 2011.12.07\n");
+		printk("RTC Invalied Time, Set 2012.01.26\n");
 
 		// temp init;
-		pTime.wDay      = 7;
-		pTime.wMonth    = 12;
-		pTime.wDayOfWeek= 3;
+		pTime.wDay      = 26;
+		pTime.wMonth    = 1;
+		pTime.wDayOfWeek= 4;
 		pTime.wHour     = 2;
 		pTime.wMinute   = 30;
 		pTime.wSecond   = 0;
-		pTime.wYear     = 2011;
+		pTime.wYear     = 2012;
 
 		tca_rtc_settime((unsigned int)rtc_base, &pTime);
 	}
@@ -489,10 +486,12 @@ static int tcc_rtc_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, rtc);
 
-    if(request_irq(tcc_rtc_alarmno, tcc_rtc_alarmirq, IRQF_DISABLED, DRV_NAME, rtc)) {
-        printk("%s: RTC timer interrupt IRQ%d already claimed\n", pdev->name, tcc_rtc_alarmno);
-        return 0;
-    }
+	//Use threaded IRQ, remove IRQ enable in interrupt handler - 120126, hjbae
+//    if(request_irq(tcc_rtc_alarmno, tcc_rtc_alarmirq, IRQF_DISABLED, DRV_NAME, rtc)) {
+	if(request_threaded_irq(tcc_rtc_alarmno, NULL, tcc_rtc_alarmirq, IRQF_ONESHOT, DRV_NAME, rtc)) {
+		printk("%s: RTC timer interrupt IRQ%d already claimed\n", pdev->name, tcc_rtc_alarmno);
+		return 0;
+	}
 
 	return 0;
 
@@ -534,7 +533,7 @@ static struct platform_driver tcc_rtc_driver = {
 	},
 };
 
-static char __initdata banner[] = "TCC RTC, (c) 2011, Telechips \n";
+static char __initdata banner[] = "TCC RTC, (c) 2012, Telechips \n";
 
 static int __init tcc_rtc_init(void)
 {

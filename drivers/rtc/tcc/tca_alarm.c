@@ -127,7 +127,7 @@ volatile void tca_alarm_settime(unsigned int rtcbaseaddress, rtctime *pTime)
 {
 	unsigned	uCON;
 	PRTC	pRTC = (PRTC)rtcbaseaddress;
-#if defined(CONFIG_ARCH_TCC93XX)
+#if defined(CONFIG_ARCH_TCC93XX)||defined(CONFIG_ARCH_TCC892X)
 	PPIC	pPIC = (PPIC)tcc_p2v(HwPIC_BASE);
 #endif
 
@@ -245,6 +245,10 @@ volatile void tca_alarm_settime(unsigned int rtcbaseaddress, rtctime *pTime)
 	//HwPIC->MODE1 |= HwINT1_RTC; // Level-triggered
 	//HwPIC->POL1
 	//HwPIC->WKEN1 |= HwINT1_RTC;
+#elif defined(CONFIG_ARCH_TCC892X)
+	pPIC->CLR1.bREG.RTC		= 1;
+	pPIC->SEL1.bREG.RTC		= 1;
+	pPIC->IEN1.bREG.RTC		= 1;
 #endif
 	#endif
 }
@@ -347,9 +351,9 @@ volatile void tca_alarm_setpmwkup(unsigned int rtcbaseaddress,unsigned int vicba
 	pPIC->MSTS1 		|= HwINT1_RTC;
 	pPIC->SEL1		|= HwINT1_RTC;
 #elif defined(CONFIG_ARCH_TCC892X)
-	pPIC->CLR1.bREG.RTC 		= 1;
-	pPIC->MSTS1.bREG.RTC 		|= 1;
-	pPIC->SEL1.bREG.RTC		|= 1;
+	pPIC->CLR1.bREG.RTC		= 1;
+	pPIC->MSTS1.bREG.RTC		= 1;
+	pPIC->SEL1.bREG.RTC		= 1;
 #endif
 
 	BITSET(pRTC->RTCCON, Hw1);// Enable RTCEN
