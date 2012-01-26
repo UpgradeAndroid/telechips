@@ -244,17 +244,18 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 		
 	// position
 	//if(ISZERO(pLCDC->LCTRL, HwLCTRL_NI)) //--
-	if(1)//pDISPBase->uCTRL.nREG & HwDISP_NI)
-	{
-		VIOC_RDMA_SetImageIntl(pRDMABase, 0);
-		VIOC_WMIX_SetPosition(pWMIXBase, ImageInfo->Lcdc_layer, ImageInfo->offset_x, ImageInfo->offset_y);
-	}
-	else
+#if defined(CONFIG_TCC_VIDEO_DISPLAY_BY_VSYNC_INT) || defined(TCC_VIDEO_DISPLAY_BY_VSYNC_INT)
+	if(ImageInfo->deinterlace_mode == 1 && ImageInfo->output_toMemory == 0)
 	{
 		VIOC_RDMA_SetImageIntl(pRDMABase, 1);
 		VIOC_WMIX_SetPosition(pWMIXBase, ImageInfo->Lcdc_layer,  ImageInfo->offset_x, (ImageInfo->offset_y/2) );
 	}
-
+	else
+#endif		
+	{
+		VIOC_RDMA_SetImageIntl(pRDMABase, 0);
+		VIOC_WMIX_SetPosition(pWMIXBase, ImageInfo->Lcdc_layer, ImageInfo->offset_x, ImageInfo->offset_y);
+	}
 	// image address
 	VIOC_RDMA_SetImageBase(pRDMABase, ImageInfo->addr0, ImageInfo->addr1, ImageInfo->addr2);
 
