@@ -41,6 +41,9 @@ typedef enum {
 #if defined(CONFIG_M805S_8923_0XA)
 #define TFCD_EXT_INT		EXTINT_GPIOE_13
 #define TFCD_GPIO_PORT		TCC_GPE(13)
+#elif defined(CONFIG_M805S_8925_0XX)
+#define TFCD_EXT_INT		EXTINT_GPIOE_28
+#define TFCD_GPIO_PORT		TCC_GPE(28)
 #else
 #define TFCD_EXT_INT		EXTINT_GPIOD_17
 #define TFCD_GPIO_PORT		TCC_GPD(17)
@@ -53,6 +56,27 @@ typedef enum {
 	TCC_MMC_TYPE_MAX
 } tcc_mmc_type;
 
+#if defined(CONFIG_M805S_8925_0XX)
+static struct mmc_port_config mmc_ports[] = {
+	[TCC_MMC_TYPE_SD] = {
+		.data0	= TCC_GPF(26),
+		.data1	= TCC_GPF(25),
+		.data2	= TCC_GPF(24),
+		.data3	= TCC_GPF(23),
+		.data4	= TCC_MMC_PORT_NULL,
+		.data5	= TCC_MMC_PORT_NULL,
+		.data6	= TCC_MMC_PORT_NULL,
+		.data7	= TCC_MMC_PORT_NULL,
+		.cmd	= TCC_GPF(27),
+		.clk	= TCC_GPF(28),
+		.func	= GPIO_FN(3),
+		.width	= TCC_MMC_BUS_WIDTH_4,
+
+		.cd 	= TFCD_GPIO_PORT,
+		.pwr	= TCC_MMC_PORT_NULL,
+	},
+};
+#else
 static struct mmc_port_config mmc_ports[] = {
 	[TCC_MMC_TYPE_SD] = {
 		.data0  = TCC_GPC(2),
@@ -72,6 +96,7 @@ static struct mmc_port_config mmc_ports[] = {
 		.pwr    = TCC_MMC_PORT_NULL,
 	},
 };
+#endif
 
 int m805_892x_mmc_init(struct device *dev, int id)
 {
@@ -172,7 +197,31 @@ int tcc892x_sd_card_detect(void)
 //End
 
 struct tcc_mmc_platform_data tcc8920_mmc_platform_data[] = {
-
+#if defined(CONFIG_M805S_8925_0XX)
+	[TCC_MMC_TYPE_SD] = {
+		.slot	= 6,
+		.caps	= MMC_CAP_SDIO_IRQ | MMC_CAP_4_BIT_DATA
+			/* MMC_CAP_8_BIT_DATA */
+			| MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED,
+		.f_min	= 100000,
+		.f_max	= 48000000, /* support highspeed mode */
+		.ocr_mask = MMC_VDD_32_33 | MMC_VDD_33_34,
+		.init	= m805_892x_mmc_init,
+		.card_detect = m805_892x_mmc_card_detect,
+		.cd_int_config = m805_892x_mmc_cd_int_config,
+		.suspend = m805_892x_mmc_suspend,
+		.resume = m805_892x_mmc_resume,
+		.set_power = m805_892x_mmc_set_power,
+		.set_bus_width = m805_892x_mmc_set_bus_width,
+	
+		.cd_int_num = HwINT0_EI4,
+		.cd_irq_num = INT_EI4,
+		.cd_ext_irq = TFCD_EXT_INT,
+		.peri_name = PERI_SDMMC2,
+		.io_name = RB_SDMMC2CONTROLLER,
+		.pic = HwINT1_SD2,
+	},
+#else
 	[TCC_MMC_TYPE_SD] = {
 		.slot	= 0,
 		.caps	= MMC_CAP_SDIO_IRQ | MMC_CAP_4_BIT_DATA
@@ -196,6 +245,7 @@ struct tcc_mmc_platform_data tcc8920_mmc_platform_data[] = {
 		.io_name = RB_SDMMC0CONTROLLER,
 		.pic = HwINT1_SD0,
 	},
+#endif
 };
 
 static int __init m805_892x_init_mmc(void)
