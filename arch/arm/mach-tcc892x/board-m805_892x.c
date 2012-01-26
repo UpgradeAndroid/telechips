@@ -285,7 +285,7 @@ static int rn5t614_port_init(int irq_num)
 	if (irq_num) {
 		if(system_rev == 0x2002) {
 			tcc_gpio_config(TCC_GPE(27), GPIO_FN(0)|GPIO_PULL_DISABLE);  // GPIOE[31]: input mode, disable pull-up/down
-			tcc_gpio_config_ext_intr(PMIC_IRQ, EXTINT_GPIOE_27);
+			tcc_gpio_config_ext_intr(irq_num, EXTINT_GPIOE_27);
 		
 			gpio_request(TCC_GPE(27), "PMIC_IRQ");
 			gpio_direction_input(TCC_GPE(27));
@@ -303,7 +303,7 @@ static int rn5t614_port_init(int irq_num)
 }
 
 static struct rn5t614_platform_data rn5t614_info = {
-	.num_subdevs = 2,
+	.num_subdevs = 1,
 	.subdevs     = rn5t614_subdev,
 	.init_port   = rn5t614_port_init,
 };
