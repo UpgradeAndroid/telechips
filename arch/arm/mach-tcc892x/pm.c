@@ -78,6 +78,8 @@ typedef void (*FuncPtr)(void);
 
 #define L2CACHE_BASE   0xFA000000
 
+#define LOG_NDEBUG 0
+
 /*===========================================================================
 FUNCTION
 ===========================================================================*/
@@ -1401,6 +1403,19 @@ static void sleep(void)
 	if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1)		// SD Insert -> Remove in suspend : Active High
 		((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D12 = 1;	// PMU WakeUp Enable
 	#endif
+
+  #if defined(TCC_PM_SLEEP_WFI_USED)
+	((PPIC)HwPIC_BASE)->IEN0.nREG = 0;
+	((PPIC)HwPIC_BASE)->IEN1.nREG = 0;
+
+	((PPIC)HwPIC_BASE)->IEN0.bREG.EINT0 = 1;
+	((PGPIO)HwGPIO_BASE)->EINTSEL0.bREG.EINT00SEL = 105;
+	((PPIC)HwPIC_BASE)->POL0.bREG.EINT0 = 1;
+	((PPIC)HwPIC_BASE)->MODE0.bREG.EINT0 = 1;
+	((PPIC)HwPIC_BASE)->INTMSK0.bREG.EINT0 = 1;
+
+	((PPIC)HwPIC_BASE)->IEN1.bREG.REMOCON = 1;
+  #endif
 #else
 	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1005 || *(volatile unsigned long *)SRAM_STACK_ADDR == 0x1007)
 	{
@@ -1449,7 +1464,12 @@ static void sleep(void)
 // -------------------------------------------------------------------------
 // Enter Sleep !!
 ////////////////////////////////////////////////////////////////////////////
+#ifdef TCC_PM_SLEEP_WFI_USED
+	asm("dsb");
+	asm("wfi");
+#else
 	BITSET(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG, 1<<0); //SSTL_RTO : SSTL I/O retention mode =0
+#endif
 ////////////////////////////////////////////////////////////////////////////
 
 // -------------------------------------------------------------------------
@@ -1629,6 +1649,11 @@ VARIABLE
 ===========================================================================*/
 static TCC_REG RegRepo;
 
+#if defined(TCC_PM_SLEEP_WFI_USED)
+static unsigned int uiRegBackup0;
+static unsigned int uiRegBackup1;
+#endif
+
 /*===========================================================================
 FUNCTION
 ===========================================================================*/
@@ -1650,6 +1675,11 @@ static void sleep_mode(void)
 	--------------------------------------------------------------*/
 	memcpy(&RegRepo.pmu, (PPMU)tcc_p2v(HwPMU_BASE), sizeof(PMU));
 	memcpy(&RegRepo.ckc, (PCKC)tcc_p2v(HwCKC_BASE), sizeof(CKC));
+
+#if defined(TCC_PM_SLEEP_WFI_USED)
+	uiRegBackup0 = ((PPIC)tcc_p2v(HwPIC_BASE))->IEN0.nREG;
+	uiRegBackup1 = ((PPIC)tcc_p2v(HwPIC_BASE))->IEN1.nREG;
+#endif
 
 #ifdef CONFIG_CACHE_L2X0
 	/*--------------------------------------------------------------
@@ -1678,6 +1708,11 @@ static void sleep_mode(void)
 	pFunc();
 	/////////////////////////////////////////////////////////////////
 	IO_ARM_RestoreStackSRAM(stack);
+
+#if defined(TCC_PM_SLEEP_WFI_USED)
+	((PPIC)tcc_p2v(HwPIC_BASE))->IEN0.nREG = uiRegBackup0;
+	((PPIC)tcc_p2v(HwPIC_BASE))->IEN1.nREG = uiRegBackup1;
+#endif
 
 	/*--------------------------------------------------------------
 	 CKC & PMU
@@ -1796,8 +1831,15 @@ FUNCTION
 static int tcc_pm_enter(suspend_state_t state)
 {
 	unsigned long flags;
-//	unsigned reg_backup[20];
+#if defined(TCC_PM_SLEEP_WFI_USED)
+  #if LOG_NDEBUG
+    volatile PPIC pPIC = (volatile PPIC)tcc_p2v(HwPIC_BASE);
+    unsigned reg_backup[20];
 
+    reg_backup[0] = pPIC->STS0.nREG;
+    reg_backup[1] = pPIC->STS1.nREG;
+  #endif
+#endif
 // -------------------------------------------------------------------------
 // disable interrupt
 	local_irq_save(flags);
@@ -1822,6 +1864,16 @@ static int tcc_pm_enter(suspend_state_t state)
 // -------------------------------------------------------------------------
 // enable interrupt
 	local_irq_restore(flags);
+
+#if defined(TCC_PM_SLEEP_WFI_USED)
+  #if LOG_NDEBUG
+    reg_backup[2] = pPIC->STS0.nREG;
+    reg_backup[3] = pPIC->STS1.nREG;
+
+    printk("WOW %08X %08X\n", reg_backup[0], reg_backup[1]);
+    printk("WOW %08X %08X\n", reg_backup[2], reg_backup[3]);
+  #endif
+#endif
 
 	return 0;
 }

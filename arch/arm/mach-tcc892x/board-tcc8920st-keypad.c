@@ -29,7 +29,7 @@ static const struct gpio_event_direct_entry tcc8920_gpio_keymap[] = {
 #if defined(CONFIG_STB_BOARD_HDB892S) || defined(CONFIG_STB_BOARD_DONGLE)
 
 #else
-	{ GPIO_PWR_KEY,	KEY_END },
+	{ GPIO_PWR_KEY,	KEY_POWER },
 #endif
 };
 
