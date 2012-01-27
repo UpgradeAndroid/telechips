@@ -33,6 +33,7 @@
 
 //#define TCC_PM_PMU_CTRL
 //#define TCC_PM_MEMQ_PWR_CTRL
+#define TCC_PM_SSTLIO_CTRL
 
 #if defined(CONFIG_SHUTDOWN_MODE)
 /*===========================================================================
