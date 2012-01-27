@@ -1374,6 +1374,11 @@ static void sleep(void)
 		((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_E27 = 1; //power key - Active Low
 		//set wake-up source
 		((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_E27 = 1; //power key
+
+		#if defined(CONFIG_MMC_TCC_SDHC)	// Wakeup for SD Insert->Remove in Suspend.
+		if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1) 	// SD Insert -> Remove in suspend : Active High
+			((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E28 = 1;	// PMU WakeUp Enable
+		#endif
 	}
 	else
 	{
@@ -1381,18 +1386,12 @@ static void sleep(void)
 		((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_D09 = 1; //power key - Active Low
 		//set wake-up source
 		((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D09 = 1; //power key
-	}
-	#if defined(CONFIG_MMC_TCC_SDHC)	// Wakeup for SD Insert->Remove in Suspend.
-	#if defined(CONFIG_M805S_8923_0XA)
-	if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1)		// SD Insert -> Remove in suspend : Active High
-	{
-		if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
-			((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E27 = 1;	// PMU WakeUp Enable
-		else
+
+		#if defined(CONFIG_MMC_TCC_SDHC)	// Wakeup for SD Insert->Remove in Suspend.
+		if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1) 	// SD Insert -> Remove in suspend : Active High
 			((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E13 = 1;	// PMU WakeUp Enable
+		#endif
 	}
-	#endif
-	#endif
 #elif defined(CONFIG_MACH_TCC8920ST)
 	//set wake-up polarity
 	((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_D14 = 1; //power key - Active Low
