@@ -7,7 +7,7 @@
 
 #define BASE_ADDR_PIC       HwPIC_BASE
 
-#if defined(CONFIG_M805S_8923_0XA)
+#if defined(CONFIG_M805S_8923_0XA) || defined(CONFIG_M805S_8925_0XX)
 #undef CONFIG_MACH_M805_892X
 #endif
 
