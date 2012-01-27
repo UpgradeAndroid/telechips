@@ -17,6 +17,7 @@
 #include <linux/notifier.h>
 #include <linux/usb.h>
 #include <linux/spinlock.h>
+#include <linux/clk.h>
 #include <mach/bsp.h>
 #if defined(CONFIG_ARCH_TCC92XX)
 #include <mach/TCC92x_Structures.h>
@@ -338,6 +339,8 @@ static unsigned long tcc_read_adc(void)
 {
 	unsigned long adcValue = 0;
 	int i=0;
+	struct clk *cpu_clk;
+	struct clk *ddi_clk;
 	
 	struct tcc_adc_client *client = tcc_batt_info.client;
 	
@@ -362,6 +365,27 @@ static unsigned long tcc_read_adc(void)
                         adcValue = tcc_adc_start(client, adc_channel, 0);
 #endif
 		}
+
+		// temporary compensation
+		//########################################################
+
+		cpu_clk = clk_get(0, "cpu");
+		ddi_clk = clk_get(0, "ddi");
+
+		//printk("cpu = %d\n",clk_get_rate(cpu_clk));
+		//printk("ddi = %d\n",clk_get_rate(ddi_clk));
+		if(clk_get_rate(cpu_clk) > 800000000 || clk_get_rate(ddi_clk) > 380000000)
+			adcValue += 90;
+		else if (clk_get_rate(cpu_clk) > 700000000 || clk_get_rate(ddi_clk) > 340000000)
+			adcValue += 70;
+		else if (clk_get_rate(cpu_clk) > 600000000 || clk_get_rate(ddi_clk) > 310000000)
+			adcValue += 50;
+		else if (clk_get_rate(cpu_clk) > 500000000 || clk_get_rate(ddi_clk) > 260000000)
+			adcValue += 30;
+		else if (clk_get_rate(cpu_clk) > 400000000 || clk_get_rate(ddi_clk) > 220000000)
+			adcValue += 10;
+		//########################################################
+		
 
 		if( adcValue < EMPTLIMIT) {
             if( machine_is_m57te() || machine_is_m801()) {
