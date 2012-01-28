@@ -725,13 +725,6 @@ config TCC_GRAPHIC
 	help
 	  TCC 2D graphic engine driver.
 
-#config TCC_MEMSCALER0
-#	tristate "TCC Memory Scaler0 Driver"
-#	default y
-#	depends on ARCH_TCC892X
-#	help
-#	  TCC Memory Scaler0 Driver.
-
 config TCC_MEMSCALER
 	tristate "TCC Memory Scaler Driver"
 	default y
@@ -745,6 +738,13 @@ config TCC_MEMSCALER1
 	depends on (ARCH_TCC88XX || ARCH_TCC92XX || ARCH_TCC93XX || ARCH_TCC892X)
 	help
 	  TCC Memory Scaler1 Driver.
+
+config TCC_MEMSCALER2
+	tristate "TCC Memory Scaler2 Driver"
+	default y
+	depends on ARCH_TCC892X
+	help
+	  TCC892x scaler device driver
 
 config TCC_WMIXER
 	tristate "TCC WMIXER Driver"
