@@ -212,7 +212,7 @@ config INPUT_TCC_REMOTE
 if INPUT_TCC_REMOTE
 
 choice
-	prompt "remocon controller"
+	prompt "Remocon Controller Select"
 	depends on INPUT_TCC_REMOTE
 	default CS_2000_IR_X_CANVAS
 	help
@@ -240,6 +240,23 @@ config SAMSUNG_42BIT
 
 config HDS892S
 	bool "HDS892S"
+    help 
+
+endchoice
+
+choice
+	prompt "Remocon Core Clock Select "
+	depends on INPUT_TCC_REMOTE
+	default XTIN_CLOCK
+	help
+	  select what you want to support the remocon core clock
+
+config PBUS_DIVIDE_CLOCK
+	bool "PBUS divide Clock"
+    help 
+
+config XTIN_CLOCK
+	bool "XTIN Clock"
     help 
 
 endchoice

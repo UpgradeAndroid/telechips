@@ -95,6 +95,10 @@ typedef struct
 #define V_FILL_RING_BUFFER_AUTO_RESULT	30
 #define V_DEC_UPDATE_RINGBUF_WP_RESULT	31
 #define V_GET_INITIAL_INFO_FOR_STREAMING_MODE_ONLY_RESULT 32
+
+#define V_GET_VPU_VERSION					33
+#define V_GET_VPU_VERSION_RESULT			34
+
 typedef struct {
 	int result;
 	codec_handle_t gsVpuDecHandle;
@@ -134,6 +138,12 @@ typedef struct {
 	int iCopiedSize;
 	int iFlushBuf;
 }VDEC_RINGBUF_SETBUF_PTRONLY_t;
+
+typedef struct {
+	int result;
+	char ** pszVersion;
+	char ** pszBuildData;
+}VDEC_GET_VERSION_t;
 ////////////////////////////////////////////////////////////////////////////////////////
 /* VPU ENCODER */
 #define V_ENC_INIT					10	//!< init

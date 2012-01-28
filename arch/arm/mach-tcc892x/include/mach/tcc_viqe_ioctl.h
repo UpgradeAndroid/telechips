@@ -28,6 +28,3 @@ typedef struct
 	unsigned int dstAddr;
 }VIQE_DI_TYPE;
 
-
-static long tcc_viqe_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
-

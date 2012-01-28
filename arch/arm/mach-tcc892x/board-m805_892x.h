@@ -22,18 +22,53 @@
 **************************************************************/
 
 // PWR KEY
-#define GPIO_PWR_KEY		TCC_GPG(16)
+#define GPIO_PWR_KEY		0xFFFFFFFF
 
 // Nand
 #define GPIO_NAND_RDY0		TCC_GPA(16)
-//#define GPIO_NAND_RDY1		TCC_GPD(11)
+#define GPIO_NAND_RDY1		0xFFFFFFFF
+#if defined(CONFIG_M805S_8925_0XX)
+#define GPIO_NAND_WP		TCC_GPD(0)
+#else
 #define GPIO_NAND_WP		TCC_GPD(8)
+#endif
 
 // LCD
-#define GPIO_LCD_BL			TCC_GPD(10)
-//#define GPIO_LCD_DISPLAY	TCC_GPG(4)
+#if defined(CONFIG_M805S_8925_0XX)
+#define GPIO_LCD_ON 		TCC_GPE(24)
+#define GPIO_LCD_BL 		TCC_GPC(0)
+#define GPIO_LCD_RESET		TCC_GPB(29)
+#else
+#define GPIO_LCD_ON 		TCC_GPD(18)
+#define GPIO_LCD_BL 		TCC_GPD(10)
+#define GPIO_LCD_RESET		TCC_GPB(29)
+#endif
+#define GPIO_LCD_DISPLAY	0xFFFFFFFF
 
 // DxB
+#if defined(CONFIG_M805S_8925_0XX)
+#define GPIO_DXB0_SFRM		0xFFFFFFFF
+#define GPIO_DXB0_SCLK		0xFFFFFFFF
+#define INT_DXB0_IRQ		0xFFFFFFFF
+#define GPIO_DXB0_SDI		0xFFFFFFFF
+#define GPIO_DXB0_SDO		0xFFFFFFFF
+#define GPIO_DXB1_SFRM		0xFFFFFFFF
+#define GPIO_DXB1_SCLK		0xFFFFFFFF
+#define GPIO_DXB1_SDI		0xFFFFFFFF
+#define GPIO_DXB1_SDO		0xFFFFFFFF
+#define GPIO_DXB1_RST		
+#define INT_DXB1_IRQ		
+
+#define GPIO_DXB_PWDN		TCC_GPC(5)
+#define GPIO_DXB_PWREN		TCC_GPC(7)
+#define GPIO_DXB0_RST		TCC_GPC(6)
+#define GPIO_RFSW_CTL0		TCC_GPE(8)
+
+#define GPIO_RFSW_CTL3		0xFFFFFFFF
+#define GPIO_RFSW_CTL2		0xFFFFFFFF
+#define GPIO_RFSW_CTL1		0xFFFFFFFF
+
+#else
 #define GPIO_DXB0_SFRM		TCC_GPC(11)
 #define GPIO_DXB0_SCLK		TCC_GPC(10)
 #define INT_DXB0_IRQ		TCC_GPE(9)
@@ -51,20 +86,14 @@
 #define GPIO_DXB0_RST		TCC_GPC(8)
 #define GPIO_RFSW_CTL0		TCC_GPE(11)
 
-#define GPIO_RFSW_CTL3		TCC_GPC(20)
-#define GPIO_RFSW_CTL2		TCC_GPD(16)
-#define GPIO_RFSW_CTL1		TCC_GPD(17)
+#define GPIO_RFSW_CTL3		0xFFFFFFFF
+#define GPIO_RFSW_CTL2		0xFFFFFFFF
+#define GPIO_RFSW_CTL1		0xFFFFFFFF
+#endif
 
-
-#define GPIO_LCD_ON 		TCC_GPD(18)
-#define GPIO_LCD_BL 		TCC_GPD(10)
-#define GPIO_LCD_DISPLAY	0xFFFFFFFF
-#define GPIO_LCD_RESET		TCC_GPB(29)
 
 #define GPIO_V_5P0_EN		0xFFFFFFFF
 
-
-#define GPIO_SD1_ON 		TCC_GPE(3)
 
 
 #if (0)

@@ -779,6 +779,8 @@ void tcc_component_set_lcd2tv(COMPONENT_MODE_TYPE mode)
 		VIOC_WMIX_SetPosition(pComponent_WMIX, 0, 0, 0);
 		VIOC_WMIX_SetChromaKey(pComponent_WMIX, 0, 0, 0, 0, 0, 0xF8, 0xFC, 0xF8);
 		VIOC_WMIX_SetUpdate(pComponent_WMIX);
+
+		TCC_OUTPUT_UPDATE_OnOff(1, TCC_OUTPUT_COMPONENT);
 	#else // defined(CONFIG_ARCH_TCC892X)
 		BITCSET(pComponent_HwLCDC->LCLKDIV, 0x00FF0000, 0<<16);
 		BITCSET(pComponent_HwLCDC->LCLKDIV, 0x000000FF, 0);
@@ -1323,10 +1325,14 @@ void tcc_component_update(struct tcc_lcdc_image_update *update)
 	//printk("update->addr0 : %x, update->addr1 : %x, update->addr2  : %x \n",update->addr0, update->addr1, update->addr2 );
 
 	#if defined(CONFIG_ARCH_TCC892X)
+		#if 0
 		if(Component_Mode == COMPONENT_MODE_720P)
 			VIOC_RDMA_SetImageIntl(pComponent_RDMA_VIDEO, FALSE);
 		else
 			VIOC_RDMA_SetImageIntl(pComponent_RDMA_VIDEO, TRUE);
+		#else
+			VIOC_RDMA_SetImageIntl(pComponent_RDMA_VIDEO, FALSE);
+		#endif
 
 		VIOC_RDMA_SetImageFormat(pComponent_RDMA_VIDEO, update->fmt);
 		

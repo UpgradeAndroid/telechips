@@ -59,7 +59,7 @@
 
 
 #define WMIXER_DEBUG 		0
-#define dprintk(msg...) 	if(WMIXER_DEBUG) { printk("tcc_scaler0: " msg); }
+#define dprintk(msg...) 	if(WMIXER_DEBUG) { printk("WMIXER: " msg); }
 
 volatile PVIOC_RDMA 	pWMIX_rdma_base;
 volatile PVIOC_WMIX 	pWMIX_wmix_base;
@@ -113,42 +113,33 @@ static int tccxxx_wmixer_mmap(struct file *file, struct vm_area_struct *vma)
 char tccxxx_wmixer_ctrl(WMIXER_INFO_TYPE *wmix_info)
 {
 	int ret = 0;
-	unsigned int y_offset, uv_offset, crop_y_addr, crop_u_addr, crop_v_addr;
-	dprintk("TCC892X VIOC WMIXER: tccxxx_wmixer_ctrl(). \n");
 
-	y_offset = (wmix_info->src_img_width * wmix_info->dst_win_top) + wmix_info->dst_win_left;
-	if(wmix_info->src_img_fmt == SC_IMG_FMT_YCbCr422_SEP) {
-		uv_offset = (wmix_info->src_img_width * wmix_info->dst_win_top / 2) + wmix_info->dst_win_left;
-	} else {
-		uv_offset = (wmix_info->src_img_width * wmix_info->dst_win_top / 4) + wmix_info->dst_win_left;
-	}
-	crop_y_addr = wmix_info->src_y_addr + y_offset;
-	crop_u_addr = wmix_info->src_u_addr + uv_offset;
-	crop_v_addr = wmix_info->src_v_addr + uv_offset;
+	dprintk("%s \n", __func__);
+	dprintk("Src  : addr:0x%x 0x%x 0x%x  fmt:%d \n", wmix_info->src_y_addr, wmix_info->src_u_addr, wmix_info->src_v_addr, wmix_info->src_fmt);
+	dprintk("Dest: addr:0x%x 0x%x 0x%x  fmt:%d \n", wmix_info->dst_y_addr, wmix_info->dst_u_addr, wmix_info->dst_v_addr, wmix_info->dst_fmt);
+	dprintk("Size : W:%d  H:%d \n", wmix_info->img_width, wmix_info->img_height);
+
 
 	spin_lock_irq(&(wmixer_data.cmd_lock));
 
 	// set to RDMA
-	VIOC_RDMA_SetImageFormat(pWMIX_rdma_base, wmix_info->src_img_fmt);
-	VIOC_RDMA_SetImageSize(pWMIX_rdma_base, wmix_info->dst_win_right, wmix_info->dst_win_bottom);
-	VIOC_RDMA_SetImageOffset(pWMIX_rdma_base, wmix_info->src_img_fmt, wmix_info->src_img_width);
-	VIOC_RDMA_SetImageBase(pWMIX_rdma_base, crop_y_addr, crop_u_addr, crop_v_addr);
-	//VIOC_RDMA_SetImageEnable(pWMIX_rdma_base);
+	VIOC_RDMA_SetImageFormat(pWMIX_rdma_base, wmix_info->src_fmt);
+	VIOC_RDMA_SetImageSize(pWMIX_rdma_base, wmix_info->img_width, wmix_info->img_height);
+	VIOC_RDMA_SetImageOffset(pWMIX_rdma_base, wmix_info->src_fmt, wmix_info->img_width);
+	VIOC_RDMA_SetImageBase(pWMIX_rdma_base, wmix_info->src_y_addr, wmix_info->src_u_addr,  wmix_info->src_v_addr);
+
 
 	// set to WMIX
-	VIOC_WMIX_SetSize(pWMIX_wmix_base, wmix_info->dst_win_right, wmix_info->dst_win_bottom);
+	VIOC_WMIX_SetSize(pWMIX_wmix_base, wmix_info->img_width, wmix_info->img_height);
 	VIOC_WMIX_SetUpdate(pWMIX_wmix_base);
 	VIOC_RDMA_SetImageEnable(pWMIX_rdma_base); // Soc guide info.
 
 	// set to WRMA
 	VIOC_WDMA_SetImageFormat(pWMIX_wdma_base, wmix_info->dst_fmt);
-	VIOC_WDMA_SetImageSize(pWMIX_wdma_base, wmix_info->dst_win_right, wmix_info->dst_win_bottom);
-	VIOC_WDMA_SetImageOffset(pWMIX_wdma_base, wmix_info->dst_fmt, wmix_info->dst_win_right);
-	if(wmix_info->wmix_uv_change) {
-		VIOC_WDMA_SetImageBase(pWMIX_wdma_base, wmix_info->dst_y_addr, wmix_info->dst_v_addr, wmix_info->dst_u_addr);
-	} else {
-		VIOC_WDMA_SetImageBase(pWMIX_wdma_base, wmix_info->dst_y_addr, wmix_info->dst_u_addr, wmix_info->dst_v_addr);
-	}
+	VIOC_WDMA_SetImageSize(pWMIX_wdma_base, wmix_info->img_width, wmix_info->img_height);
+	VIOC_WDMA_SetImageOffset(pWMIX_wdma_base, wmix_info->dst_fmt, wmix_info->img_width);
+
+	VIOC_WDMA_SetImageBase(pWMIX_wdma_base, wmix_info->dst_y_addr, wmix_info->dst_u_addr, wmix_info->dst_v_addr);
 	VIOC_WDMA_SetImageEnable(pWMIX_wdma_base, 0/*OFF*/);
 	pWMIX_wdma_base->uIRQSTS.nREG = 0xFFFFFFFF; // wdma status register all clear.
 
@@ -191,12 +182,15 @@ static irqreturn_t tccxxx_wmixer_handler(int irq, void *client_data)
 		dprintk("WDMA Interrupt is VIOC_WDMA_IREQ_EOFR_MASK. \n");
 		pWMIX_wdma_base->uIRQSTS.nREG = 0xFFFFFFFF;   // wdma status register all clear.
 	}
+		dprintk("WDMA Interrupt is VIOC_WDMA_IREQ_EOFR_MASK. \n");
 
-	if(wmix_data->block_operating >= 1) 	wmix_data->block_operating = 0;
+	if(wmix_data->block_operating >= 1) 	
+		wmix_data->block_operating = 0;
 		
 	wake_up_interruptible(&(wmix_data->poll_wq));
 
-	if(wmix_data->block_waiting) 	wake_up_interruptible(&wmix_data->cmd_wq);
+	if(wmix_data->block_waiting) 	
+		wake_up_interruptible(&wmix_data->cmd_wq);
 
 	return IRQ_HANDLED;
 }
@@ -217,7 +211,7 @@ long tccxxx_wmixer_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				ret = wait_event_interruptible_timeout(wmix_data->cmd_wq, wmix_data->block_operating == 0, msecs_to_jiffies(200));
 				if(ret <= 0) {
 					wmix_data->block_operating = 0;
-					printk("[%d]: scaler 0 timed_out block_operation:%d!! cmd_count:%d \n", ret, wmix_data->block_waiting, wmix_data->cmd_count);
+					printk("[%d]: wmixer 0 timed_out block_operation:%d!! cmd_count:%d \n", ret, wmix_data->block_waiting, wmix_data->cmd_count);
 				}
 				ret = 0;
 			}
@@ -267,11 +261,11 @@ int tccxxx_wmixer_release(struct inode *inode, struct file *filp)
 		}
 
 		if(wmixer_data.irq_reged) {
-			free_irq(INT_VIOC_WD8, &wmixer_data);
+			free_irq(INT_VIOC_WD4, &wmixer_data);
 			wmixer_data.irq_reged = 0;
 		}
 
-		VIOC_WMIX_SetSWReset(VIOC_WMIX6, VIOC_WMIX_RDMA_17, VIOC_WMIX_WDMA_08);
+		VIOC_WMIX_SetSWReset(VIOC_WMIX4, VIOC_WMIX_RDMA_14, VIOC_WMIX_WDMA_04);
 
 		wmixer_data.block_operating = wmixer_data.block_waiting = 0;
 		wmixer_data.poll_count = wmixer_data.cmd_count = 0;
@@ -294,17 +288,18 @@ int tccxxx_wmixer_open(struct inode *inode, struct file *filp)
 
 	if(!wmixer_data.irq_reged) {
 		// set to RDMA
-		pWMIX_rdma_base = (volatile PVIOC_RDMA)tcc_p2v((unsigned int)HwVIOC_RDMA17);
+		pWMIX_rdma_base = (volatile PVIOC_RDMA)tcc_p2v((unsigned int)HwVIOC_RDMA14);
 
 		// set to WMIX
-		pWMIX_wmix_base = (volatile PVIOC_WMIX)tcc_p2v((unsigned int)HwVIOC_WMIX6);
+		pWMIX_wmix_base = (volatile PVIOC_WMIX)tcc_p2v((unsigned int)HwVIOC_WMIX4);
 
 		// set to WDMA
-		pWMIX_wdma_base = (volatile PVIOC_WDMA)tcc_p2v((unsigned int)HwVIOC_WDMA08);
+		pWMIX_wdma_base = (volatile PVIOC_WDMA)tcc_p2v((unsigned int)HwVIOC_WDMA04);
 
-		VIOC_WMIX_SetSWReset(VIOC_WMIX6, VIOC_WMIX_RDMA_17, VIOC_WMIX_WDMA_08);
+		VIOC_WMIX_SetSWReset(VIOC_WMIX4, VIOC_WMIX_RDMA_14, VIOC_WMIX_WDMA_04);
 		VIOC_WDMA_SetIreqMask(pWMIX_wdma_base, VIOC_WDMA_IREQ_EOFR_MASK, 0x0);
-		ret = request_irq(INT_VIOC_WD8, tccxxx_wmixer_handler, IRQF_SHARED, "wmixer", &wmixer_data);
+
+		ret = request_irq(INT_VIOC_WD4, tccxxx_wmixer_handler, IRQF_SHARED, "wmixer", &wmixer_data);
 		
 		if(ret) {
 			clk_disable(wmixer_clk);

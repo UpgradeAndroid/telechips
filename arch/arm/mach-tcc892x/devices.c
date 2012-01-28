@@ -807,9 +807,14 @@ static struct resource tsif_ex_resources[] = {
 		.flags = IORESOURCE_IRQ,
 	},
 	[2] = {
-	    .name   = "tsif0",
+        .name   = "tsif0",
+#if   defined(CONFIG_MACH_TCC8920ST)		        
+   		.start	= 0,/* Port0 GPIO_D[7:10] */
+		.end	= 0,
+#else        	  
    		.start	= 1,/* Port1 GPIO_B[0:3] */
 		.end	= 1,
+#endif		
 		.flags	= IORESOURCE_IO,
 	}
 };

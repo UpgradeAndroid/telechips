@@ -225,11 +225,11 @@ static int tcc_i2c_doxfer(struct tcc_i2c *i2c, struct i2c_msg *msgs, int num)
 		if (i2c->msg->flags & I2C_M_RD) {
 			ret = recv_i2c(i2c);
 			if (ret != 1)
-				printk("recv_i2c failed\n");
+				printk("recv_i2c failed! - addr(0x%02X)\n", i2c->msg->addr);
 		} else {
 			ret = send_i2c(i2c);
 			if (ret != 1)
-				printk("send_i2c failed\n");
+				printk("send_i2c failed! - addr(0x%02X)\n", i2c->msg->addr);
 		}
 	}
 	
@@ -282,34 +282,34 @@ static int tcc_i2c_init(struct tcc_i2c *i2c)
 	unsigned int prescale;
     volatile struct tcc_i2c_regs *i2c_reg = i2c->regs;
 
-	if (!i2c->smu_i2c_flag) {
-
-        /* I2C clock Enable */
-        if(i2c->pclk == NULL) {
-            i2c->pclk = clk_get(NULL, i2c->core_clk_name);
-    		if (IS_ERR(i2c->pclk)) {
+	if (!i2c->smu_i2c_flag)
+	{
+		/* I2C clock Enable */
+		if(i2c->pclk == NULL) {
+			i2c->pclk = clk_get(NULL, i2c->core_clk_name);
+			if (IS_ERR(i2c->pclk)) {
 				i2c->pclk = NULL;
-    			dev_err(&i2c->dev, "can't get i2c clock\n");
-    			return -1;
-    		}
-        }
+				dev_err(i2c->dev, "can't get i2c clock\n");
+				return -1;
+			}
+		}
 		if(clk_enable(i2c->pclk) != 0) {
-            dev_err(&i2c->dev, "can't do i2c clock enable\n");
-            return -1;
-        }
+			dev_err(i2c->dev, "can't do i2c clock enable\n");
+			return -1;
+		}
 
-        /* Set i2c core clock to 4MHz */
-        clk_set_rate(i2c->pclk, i2c->core_clk_rate);
+		/* Set i2c core clock to 4MHz */
+		clk_set_rate(i2c->pclk, i2c->core_clk_rate);
 
-    	prescale = ((clk_get_rate(i2c->pclk) / 1000) / (i2c->i2c_clk_rate * 5)) - 1;
-    	writel(prescale, &i2c_reg->PRES);
-    	writel(Hw7 | Hw6 | HwZERO, &i2c_reg->CTRL);		// start enable, stop enable, 8bit mode
-    	writel(Hw0 | readl(&i2c_reg->CMD), &i2c_reg->CMD);	// clear pending interrupt
+		prescale = ((clk_get_rate(i2c->pclk) / 1000) / (i2c->i2c_clk_rate * 5)) - 1;
+		writel(prescale, &i2c_reg->PRES);
+		writel(Hw7 | Hw6 | HwZERO, &i2c_reg->CTRL);		// start enable, stop enable, 8bit mode
+		writel(Hw0 | readl(&i2c_reg->CMD), &i2c_reg->CMD);	// clear pending interrupt
 
 		/* I2C GPIO setting */
 		tca_i2c_setgpio(i2c->core, i2c->ch);
 
-        msleep(100);    // Why does it need ?
+		msleep(100);    // Why does it need ?
 	} 
 	else
 	{
@@ -321,7 +321,7 @@ static int tcc_i2c_init(struct tcc_i2c *i2c)
 		BITSET(i2c->regs->CTRL, Hw7|Hw6);
 	}
 
-    return 0;
+	return 0;
 }
 
 /* tcc83xx_i2c_probe
@@ -330,7 +330,7 @@ static int tcc_i2c_init(struct tcc_i2c *i2c)
 */
 static int tcc_i2c_probe(struct platform_device *pdev)
 {
-	int i, ret;
+	int i, ret = 0;
 	struct tcc_i2c *i2c;
     struct tcc_i2c_platform_data *tcc_platform_data = pdev->dev.platform_data;
 	struct resource *resource[I2C_NUM_OF_CH];

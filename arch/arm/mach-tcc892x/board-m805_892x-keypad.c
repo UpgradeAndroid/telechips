@@ -27,13 +27,21 @@
 *******************************************************************/
 static const struct gpio_event_direct_entry m805_892x_gpio_keymap[] = {
 #if !defined(CONFIG_REGULATOR_AXP192_PEK)
-	{ GPIO_PWR_KEY,	KEY_POWER },
+//	{ GPIO_PWR_KEY,	KEY_POWER },
 #endif
-	{ TCC_GPD(12),	KEY_MENU }, // menu
-	{ TCC_GPD(13),	KEY_BACK }, // back
-	{ TCC_GPE(27),	KEY_HOMEPAGE }, // home
-	{ TCC_GPE(26),	KEY_VOLUMEDOWN }, // home
-	{ TCC_GPE(12),	KEY_VOLUMEUP }, // home
+#if (CONFIG_M805S_8925_0XX)
+	{ TCC_GPE(19),	KEY_MENU },       // menu
+	{ TCC_GPE(20),	KEY_BACK },       // back
+	{ TCC_GPE(21),	KEY_VOLUMEUP },   // volume +
+	{ TCC_GPE(22),	KEY_VOLUMEDOWN }, // volume -
+	{ TCC_GPE(23),	KEY_HOMEPAGE },   // home
+#else
+	{ TCC_GPD(12),	KEY_MENU },       // menu
+	{ TCC_GPD(13),	KEY_BACK },       // back
+	{ TCC_GPE(27),	KEY_HOMEPAGE },   // home
+	{ TCC_GPE(26),	KEY_VOLUMEDOWN }, // volume -
+	{ TCC_GPE(12),	KEY_VOLUMEUP },   // volume +
+#endif
 };
 
 static struct gpio_event_input_info m805_892x_gpio_key_input_info = {

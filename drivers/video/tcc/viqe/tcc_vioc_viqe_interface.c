@@ -79,7 +79,6 @@ int VIOC_API_VIQE_SetPlugOut(unsigned int viqe)
 void TCC_VIQE_DI_Init(int scalerCh, unsigned int srcWidth, unsigned int srcHeight,
 						int crop_top, int crop_bottom, int crop_left, int crop_right)
 {
-	int iResult = VIOC_DRIVER_NOERR;
 	unsigned int deintl_dma_base0, deintl_dma_base1, deintl_dma_base2, deintl_dma_base3;
 	unsigned int framebufWidth, framebufHeight;
 	int RDMA_reg, RDMA_num;
@@ -97,10 +96,15 @@ void TCC_VIQE_DI_Init(int scalerCh, unsigned int srcWidth, unsigned int srcHeigh
 		RDMA_reg = HwVIOC_RDMA12;
 		RDMA_num = VIOC_VIQE_RDMA_12;
 	}
-	else
+	else if(scalerCh == 1)
 	{
 		RDMA_reg = HwVIOC_RDMA14;
 		RDMA_num = VIOC_VIQE_RDMA_14;
+	}
+	else
+	{
+		RDMA_reg = HwVIOC_RDMA06;
+		RDMA_num = VIOC_VIQE_RDMA_06;
 	}
 		
 	gPMEM_VIQE_BASE = PA_VIQE_BASE_ADDR;
@@ -154,26 +158,27 @@ void TCC_VIQE_DI_Init(int scalerCh, unsigned int srcWidth, unsigned int srcHeigh
 
 	gFrmCnt= 0;
 	gbfield =0;
-	
-	return iResult;
 }
 
 
 void TCC_VIQE_DI_Run(int scalerCh, unsigned int srcWidth, unsigned int srcHeight,	
 						int crop_top, int crop_bottom, int crop_left, int crop_right)
 {
-	unsigned int pBase0, pBase1, pBase2;
-	unsigned int pBase3, pBase4, pBase5;
 	int RDMA_reg, RDMA_num;
 	if(scalerCh == 0)
 	{
 		RDMA_reg = HwVIOC_RDMA12;
 		RDMA_num = VIOC_VIQE_RDMA_12;
 	}
-	else
+	else if(scalerCh == 1)
 	{
 		RDMA_reg = HwVIOC_RDMA14;
 		RDMA_num = VIOC_VIQE_RDMA_14;
+	}
+	else
+	{
+		RDMA_reg = HwVIOC_RDMA06;
+		RDMA_num = VIOC_VIQE_RDMA_06;
 	}
 
 	// This description's are represent to YUV420 Interleaved format.
@@ -183,6 +188,9 @@ void TCC_VIQE_DI_Run(int scalerCh, unsigned int srcWidth, unsigned int srcHeight
 
 
 #if 0
+{
+	unsigned int pBase0, pBase1, pBase2;
+	unsigned int pBase3, pBase4, pBase5;
 	pBase0 = address[0] + (crop_top * srcWidth + crop_left);
 	pBase1 = address[1] + (crop_top / 2 * srcWidth + crop_left);
 	pBase2 = address[2] + (crop_top / 2 * srcWidth + crop_left);
@@ -190,6 +198,7 @@ void TCC_VIQE_DI_Run(int scalerCh, unsigned int srcWidth, unsigned int srcHeight
 	pBase3 = address[3] + (crop_top * srcWidth + crop_left);
 	pBase4 = address[4] + (crop_top / 2 * srcWidth + crop_left);
 	pBase5 = address[5] + (crop_top / 2 * srcWidth + crop_left);
+}	
 #endif
 
 	if(gFrmCnt == 0)
@@ -217,11 +226,11 @@ void TCC_VIQE_DI_Run(int scalerCh, unsigned int srcWidth, unsigned int srcHeight
 
 void TCC_VIQE_DI_DeInit(void)
 {
-	printk("TCC_VIQE_DI_DeInit\n");
 	VIOC_VIQE_DEINTL_MODE DI_mode = VIOC_VIQE_DEINTL_MODE_2D;
 	volatile PVIOC_IREQ_CONFIG pIREQConfig;
 	pIREQConfig = (volatile PVIOC_IREQ_CONFIG)tcc_p2v((unsigned int)HwVIOC_IREQ);
 
+	printk("TCC_VIQE_DI_DeInit\n");
 	if(DI_mode == VIOC_VIQE_DEINTL_S)
 	{
 		VIOC_API_VIQE_SetPlugOut(VIOC_DEINTLS);

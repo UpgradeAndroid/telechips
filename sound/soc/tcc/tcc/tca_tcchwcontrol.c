@@ -91,19 +91,28 @@ unsigned int tca_tcc_initport(void)
 {
 	if(machine_is_m805_892x())
 	{
-		#if defined(CONFIG_TCC8923_0XA)
-		tcc_gpio_config(TCC_GPG(6), GPIO_FN1);
-		tcc_gpio_config(TCC_GPG(7), GPIO_FN1);
-		tcc_gpio_config(TCC_GPG(8), GPIO_FN1);
-		tcc_gpio_config(TCC_GPG(9), GPIO_FN1);
-		tcc_gpio_config(TCC_GPG(10), GPIO_FN1);
-		#else
-		tcc_gpio_config(TCC_GPG(0), GPIO_FN1);
-		tcc_gpio_config(TCC_GPG(1), GPIO_FN1);
-		tcc_gpio_config(TCC_GPG(2), GPIO_FN1);
-		tcc_gpio_config(TCC_GPG(3), GPIO_FN1);
-		tcc_gpio_config(TCC_GPG(4), GPIO_FN1);
-		#endif
+		if(system_rev == 0x2002) {
+			tcc_gpio_config(TCC_GPG(6), GPIO_FN1);
+			tcc_gpio_config(TCC_GPG(7), GPIO_FN1);
+			tcc_gpio_config(TCC_GPG(8), GPIO_FN1);
+			tcc_gpio_config(TCC_GPG(9), GPIO_FN1);
+			tcc_gpio_config(TCC_GPG(10), GPIO_FN1);
+		}
+		else {
+			#if defined(CONFIG_M805S_8923_0XA)
+			tcc_gpio_config(TCC_GPG(6), GPIO_FN1);
+			tcc_gpio_config(TCC_GPG(7), GPIO_FN1);
+			tcc_gpio_config(TCC_GPG(8), GPIO_FN1);
+			tcc_gpio_config(TCC_GPG(9), GPIO_FN1);
+			tcc_gpio_config(TCC_GPG(10), GPIO_FN1);
+			#else
+			tcc_gpio_config(TCC_GPG(0), GPIO_FN1);
+			tcc_gpio_config(TCC_GPG(1), GPIO_FN1);
+			tcc_gpio_config(TCC_GPG(2), GPIO_FN1);
+			tcc_gpio_config(TCC_GPG(3), GPIO_FN1);
+			tcc_gpio_config(TCC_GPG(4), GPIO_FN1);
+			#endif
+		}
 	}
 	else {
 	    /* SPDIF Tx */

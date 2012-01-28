@@ -26,7 +26,11 @@
 		TCC GPIO KEY
 *******************************************************************/
 static const struct gpio_event_direct_entry tcc8920_gpio_keymap[] = {
-	{ GPIO_PWR_KEY,	KEY_END },
+#if defined(CONFIG_STB_BOARD_HDB892S) || defined(CONFIG_STB_BOARD_DONGLE)
+
+#else
+	{ GPIO_PWR_KEY,	KEY_POWER },
+#endif
 };
 
 static struct gpio_event_input_info tcc8920_gpio_key_input_info = {

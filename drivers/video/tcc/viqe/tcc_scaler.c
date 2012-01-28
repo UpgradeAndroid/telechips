@@ -127,14 +127,15 @@ void tcc_scaler_Disable(M2M_CHANNEL ch)
 		pM2MScaler = (volatile PM2MSCALER)tcc_p2v(HwM2MSCALER1_BASE);
 
 	BITCLR(pM2MScaler->MSCCTR, HwMSC_CTRL_EN );
-	uiMscStatus = pM2MScaler->MSCSTR;
 	do
 	{
+		uiMscStatus = pM2MScaler->MSCSTR;
+
 		mdelay(1);
 		if( uiMscStatus & HwMSC_STATUS_RDY)
 			break;
 		delay_cnt++;
-		if( delay_cnt > 100 )
+		if( delay_cnt > 17 )
 			break;
 
 	}while(uiMscStatus & HwMSC_STATUS_BUSY );
@@ -203,15 +204,17 @@ void tcc_scaler_SWReset(M2M_CHANNEL ch)
 	else
 		pM2MScaler = (volatile PM2MSCALER)tcc_p2v(HwM2MSCALER1_BASE);
 
-	BITCLR(pM2MScaler->MSCCTR, HwMSC_CTRL_EN );
+
 	uiMscStatus = pM2MScaler->MSCSTR;
 	do
 	{
 		mdelay(1);
+
+		BITCLR(pM2MScaler->MSCCTR, HwMSC_CTRL_EN );
 		if( uiMscStatus & HwMSC_STATUS_RDY)
 			break;
 		delay_cnt++;
-		if( delay_cnt > 100 )
+		if( delay_cnt > 17 )
 			break;
 
 	}while(uiMscStatus & HwMSC_STATUS_BUSY );

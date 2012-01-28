@@ -26,12 +26,58 @@ config MACH_M805_892X
 	  have such a device.
 endchoice
 
-config TCC8923_0XA
+choice
+	prompt "M805S_TCC892x Chipset Type"
+	default TCC8923_0XA
+	depends on MACH_M805_892X
+	help
+	  Select M805S_TCC892x Chipset type.
+
+config M805S_8923_0XX
+	bool "TCC8923_0XX Chipset"
+	depends on MACH_M805_892X
+	help
+	  Support for the TCC8923-0XX chipset.
+
+config M805S_8923_0XA
 	bool "TCC8923_0XA Chipset"
 	depends on MACH_M805_892X
 	help
-	  Support for the TCC8923-0XA revision chipset.
+	  Support for the TCC8923-0XA chipset.
+
+config M805S_8925_0XX
+	bool "TCC8925_0XX Chipset"
+	depends on MACH_M805_892X
+	help
+	  Support for the TCC8925-0XX chipset.
+endchoice
 	  
+choice
+	prompt "TCC892x STB Board"
+	default STB_BOARD_EV
+	depends on MACH_TCC8920ST
+	help
+	  Select TCC892x STB Board Type.
+
+config STB_BOARD_EV
+	bool "TCC8920 STB evalution board"
+	depends on MACH_TCC8920ST
+	help
+	  Support for TCC8920 STB Base Board.
+
+config STB_BOARD_HDB892S
+	bool "TCC8920 HDB892S board"
+	depends on MACH_TCC8920ST
+	help
+	  Support for TCC8920 HD892S Board.
+
+config STB_BOARD_DONGLE
+	bool "TCC8925 HDMI dongle board"
+	depends on MACH_TCC8920ST
+	help
+	  Support for TCC8925 HDMI Dongle Board.
+endchoice
+
 config CPU_HIGHSPEED
     bool "CPU high-speed clock"
     depends on ARCH_TCC892X
@@ -51,7 +97,7 @@ config TCC_STB_MODE
 	bool "TCC STB Mode"
         default n
 	help
-	  Support for the TCC93/88/8910 demo board, Say Y here if you STB
+	  Support for the TCC93/88/8920 demo board, Say Y here if you STB
 	  It change the memory configuration
 
 config TCC_OUTPUT_STARTER
@@ -59,7 +105,7 @@ config TCC_OUTPUT_STARTER
         depends on ARCH_TCC892X
         default n
         help
-          Support for the TCC93/88/8910 demo board, Say Y here if you want
+          Support for the TCC93/88/8920 demo board, Say Y here if you want
           to show boot logo by using HDMI/CVBS/Component output
 
 endif

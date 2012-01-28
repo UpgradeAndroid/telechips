@@ -33,55 +33,22 @@ typedef enum {
 	WMIXER_NOWAIT
 } WMIXER_RESPONSE_TYPE;
 
-typedef enum {
-	WMIXER_LAYER0,
-	WMIXER_LAYER1,
-	WMIXER_LAYER2,
-	WMIXER_LAYER3,
-	WMIXER_LAYER_MAX
-} WMIXER_CHANNEL_TYPE;
-
-typedef enum {
-	SCALER_YUV422_sq0,
-	SCALER_YUV422_sq1,
-	SCALER_YUV422_sp,
-	SCALER_YUV420_sp,
-	SCALER_YUV422_inter,
-	SCALER_YUV420_inter,
-	SCALER_RGB565,
-	SCALER_RGB555,
-	SCALER_RGB454,
-	SCALER_RGB444,
-	SCALER_ARGB8888,
-	SCALER_FMT_MAX
-} WMIXER_IMAGE_FORMAT_TYPE;
 
 typedef struct {
 	unsigned int 			rsp_type; 		// wmix response type
-	unsigned int 			wmix_channel; 	// wmix channel
-	unsigned int 			wmix_uv_change; // wmix v <-> v swap
 
 	unsigned int 			src_y_addr;		// source y address
 	unsigned int 			src_u_addr;		// source u address
 	unsigned int 			src_v_addr;		// source v address
-	unsigned int 			src_img_fmt; 	// source image format
-	unsigned int 			src_img_width; 	// source image width
-	unsigned int 			src_img_height; // source image height
-	//unsigned int 			src_win_left;
-	//unsigned int 			src_win_top;
-	//unsigned int 			src_win_right;
-	//unsigned int 			src_win_bottom;
-	
+	unsigned int 			src_fmt; 	// source image format
+
 	unsigned int 			dst_y_addr; 	// destination image address
 	unsigned int 			dst_u_addr; 	// destination image address
 	unsigned int 			dst_v_addr; 	// destination image address
 	unsigned int 			dst_fmt;		// destination image format
-	//unsigned int 			dst_img_width; 	// destination image width
-	//unsigned int 			dst_img_height; // destination image height
-	unsigned int 			dst_win_left;
-	unsigned int 			dst_win_top;
-	unsigned int 			dst_win_right;
-	unsigned int 			dst_win_bottom;
+
+	unsigned int 			img_width; 	// source image width
+	unsigned int 			img_height; // source image height
 }WMIXER_INFO_TYPE;
 
 

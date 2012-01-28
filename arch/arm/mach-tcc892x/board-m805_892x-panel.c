@@ -161,6 +161,14 @@ static struct platform_device ed090na_lcd= {
 };
 #endif//
 
+#ifdef CONFIG_LCD_KR080PA2S
+static struct platform_device kr080pa2s_lcd = {
+	.name	= "kr080pa2s_lcd",
+	.dev	= {
+		.platform_data	= &lcd_pdata,
+	},
+};
+#endif
 
 static void m805_892x_brightness_set(struct led_classdev *led_cdev, enum led_brightness value)
 {
@@ -178,16 +186,15 @@ static struct led_classdev m805_892x_backlight_led = {
 
 static int m805_892x_backlight_probe(struct platform_device *pdev)
 {
+	gpio_request(lcd_pdata.power_on, "lcd_on");
+	gpio_request(lcd_pdata.bl_on, "lcd_bl");
+	gpio_request(lcd_pdata.display_on, "lcd_display");
+	gpio_request(lcd_pdata.reset, "lcd_reset");
 
-	gpio_request(GPIO_LCD_ON, "lcd_on");
-	gpio_request(GPIO_LCD_BL, "lcd_bl");
-	gpio_request(GPIO_LCD_DISPLAY, "lcd_display");
-	gpio_request(GPIO_LCD_RESET, "lcd_reset");
-
-	gpio_direction_output(GPIO_LCD_ON, 1);
-	gpio_direction_output(GPIO_LCD_BL, 1);
-	gpio_direction_output(GPIO_LCD_DISPLAY, 1);
-	gpio_direction_output(GPIO_LCD_RESET, 1);
+	gpio_direction_output(lcd_pdata.power_on, 1);
+	gpio_direction_output(lcd_pdata.bl_on, 1);
+	gpio_direction_output(lcd_pdata.display_on, 1);
+	gpio_direction_output(lcd_pdata.reset, 1);
 	
 	return led_classdev_register(&pdev->dev, &m805_892x_backlight_led);
 }
@@ -217,7 +224,13 @@ int __init m805_892x_init_panel(void)
 	if (!machine_is_m805_892x())
 		return 0;
 
-	printk("supported LCD panel type %d\n", tcc_panel_id);
+	lcd_pdata.lcdc_num	= 1;	
+	if(system_rev == 0x2002){
+		lcd_pdata.bl_on 		= TCC_GPC(0);
+		lcd_pdata.lcdc_num	= 0;	
+	}
+	
+	printk("supported LCD panel type %d  system_rev:0x%x \n", tcc_panel_id, system_rev);
 
 	switch (tcc_panel_id) {
 #ifdef CONFIG_LCD_LMS350DF01
@@ -295,6 +308,12 @@ int __init m805_892x_init_panel(void)
 #ifdef CONFIG_LCD_ED090NA
 	case PANEL_ID_ED090NA:
 		platform_device_register(&ed090na_lcd);
+		break;
+#endif//
+
+#ifdef CONFIG_LCD_KR080PA2S
+	case PANEL_ID_KR080PA2S:
+		platform_device_register(&kr080pa2s_lcd);
 		break;
 #endif//
 
