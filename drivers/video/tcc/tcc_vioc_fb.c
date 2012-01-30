@@ -1616,6 +1616,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 					tccvid_vsync.nDeinterProcCount =0;
 				else
 				{
+					/*
 					switch(Output_SelectMode)
 					{
 						case TCC_OUTPUT_NONE:
@@ -1637,10 +1638,14 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 						default:
 							break;
 					}
+					*/
+
+				input_image.time_stamp = 0;
+					return tccvid_vsync.vsync_buffer.writeIdx;
+
 				}
 
 				input_image.time_stamp = 0;
-
 				goto PUSH_VIDEO_FORCE;
 			}
 			
