@@ -496,8 +496,8 @@ void VIOC_WMIX_SetSWReset(unsigned int WMIX, unsigned int RDMA, unsigned int WDM
 	pIREQConfig = (volatile PVIOC_IREQ_CONFIG)tcc_p2v((unsigned int)HwVIOC_IREQ);
 
 	if(WMIX <= VIOC_WMIX6) {
-		BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<(10+WMIX)), (0x1<<(10+WMIX))); // wmix reset
-		BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<(10+WMIX)), (0x0<<(10+WMIX))); // wmix reset
+		BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<(9+WMIX)), (0x1<<(9+WMIX))); // wmix reset
+		BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<(9+WMIX)), (0x0<<(9+WMIX))); // wmix reset
 	}
 
 	if(RDMA <= VIOC_WMIX_RDMA_17) {

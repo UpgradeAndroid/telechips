@@ -120,7 +120,7 @@
 ******************************************************************************/
 static SCANCODE_MAPPING key_mapping[] = 
 {
-	{SCAN_PWR, 			REM_HOME}, //REM_POWER},
+	{SCAN_PWR, 			REM_POWER},
 	{SCAN_MUTE, 		REM_MUTE},
 
 	{SCAN_NUM_1,		REM_1},

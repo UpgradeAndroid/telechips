@@ -33,6 +33,7 @@
 
 //#define TCC_PM_PMU_CTRL
 //#define TCC_PM_MEMQ_PWR_CTRL
+#define TCC_PM_SSTLIO_CTRL
 
 #if defined(CONFIG_SHUTDOWN_MODE)
 /*===========================================================================
@@ -105,9 +106,21 @@ typedef struct _TCC_REG_{
 	IOBUSCFG iobuscfg;
 	MEMBUSCFG membuscfg;
 	unsigned L2_aux;
+
+	UART	uart;
+	UARTPORTCFG uartportcfg;
 } TCC_REG, *PTCC_REG;
 
 #elif defined(CONFIG_SLEEP_MODE)
+
+/*===========================================================================
+
+                                  MODE
+
+===========================================================================*/
+
+#define TCC_PM_SLEEP_WFI_USED
+
 /*===========================================================================
 
                               Sleep MAP

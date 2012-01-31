@@ -141,8 +141,8 @@ typedef struct {
 
 typedef struct {
 	int result;
-	char ** pszVersion;
-	char ** pszBuildData;
+	char * pszVersion;
+	char * pszBuildData;
 }VDEC_GET_VERSION_t;
 ////////////////////////////////////////////////////////////////////////////////////////
 /* VPU ENCODER */

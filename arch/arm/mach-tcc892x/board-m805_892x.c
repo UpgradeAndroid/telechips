@@ -253,12 +253,12 @@ static struct regulator_init_data rn5t614_dcdc1_info = {
 };
 
 static struct regulator_consumer_supply rn5t614_consumer_hdmi_osc = {
-	.supply = "vdd_hdmi_osc",
+	.supply = "vdd_sata33",
 };
 
 static struct regulator_init_data rn5t614_ldo7_info = {
 	.constraints = {
-		.name = "vdd_hdmi_osc",
+		.name = "vdd_sata33",
 		.min_uV = 3300000,
 		.max_uV = 3300000,
 		.valid_ops_mask = REGULATOR_CHANGE_STATUS,
@@ -274,7 +274,7 @@ static struct rn5t614_subdev_data rn5t614_subdev[] = {
 		.platform_data = &rn5t614_dcdc1_info,
 	},
 	{
-		.name = "vdd_hdmi_osc",
+		.name = "vdd_sata33",
 		.id   = RN5T614_ID_LDO7,
 		.platform_data = &rn5t614_ldo7_info,
 	}
@@ -283,18 +283,27 @@ static struct rn5t614_subdev_data rn5t614_subdev[] = {
 static int rn5t614_port_init(int irq_num)
 {
 	if (irq_num) {
-		tcc_gpio_config(TCC_GPF(24), GPIO_FN(0)|GPIO_PULL_DISABLE);
-		tcc_gpio_config_ext_intr(irq_num, EXTINT_GPIOF_24);
+		if(system_rev == 0x2002) {
+			tcc_gpio_config(TCC_GPE(27), GPIO_FN(0)|GPIO_PULL_DISABLE);  // GPIOE[31]: input mode, disable pull-up/down
+			tcc_gpio_config_ext_intr(irq_num, EXTINT_GPIOE_27);
+		
+			gpio_request(TCC_GPE(27), "PMIC_IRQ");
+			gpio_direction_input(TCC_GPE(27));
+		}
+		else {
+			tcc_gpio_config(TCC_GPF(24), GPIO_FN(0)|GPIO_PULL_DISABLE);
+			tcc_gpio_config_ext_intr(irq_num, EXTINT_GPIOF_24);
 
-		gpio_request(TCC_GPF(24), "PMIC_IRQ");
-		gpio_direction_input(TCC_GPF(24));
+			gpio_request(TCC_GPF(24), "PMIC_IRQ");
+			gpio_direction_input(TCC_GPF(24));
+		}
 	}
 
 	return 0;
 }
 
 static struct rn5t614_platform_data rn5t614_info = {
-	.num_subdevs = 2,
+	.num_subdevs = 1,
 	.subdevs     = rn5t614_subdev,
 	.init_port   = rn5t614_port_init,
 };

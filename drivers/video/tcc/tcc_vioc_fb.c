@@ -1616,6 +1616,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 					tccvid_vsync.nDeinterProcCount =0;
 				else
 				{
+					/*
 					switch(Output_SelectMode)
 					{
 						case TCC_OUTPUT_NONE:
@@ -1637,10 +1638,14 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 						default:
 							break;
 					}
+					*/
+
+				input_image.time_stamp = 0;
+					return tccvid_vsync.vsync_buffer.writeIdx;
+
 				}
 
 				input_image.time_stamp = 0;
-
 				goto PUSH_VIDEO_FORCE;
 			}
 			
@@ -1889,11 +1894,11 @@ static void tcc_fb_early_suspend(struct early_suspend *h)
 	console_lock();
 	fb_power_state = 0;
 
-	tca_fb_early_suspend(h);
-
 	if (lcd_panel->set_power)
 		lcd_panel->set_power(lcd_panel, 0, LCD_LCDC_NUM);
 
+	tca_fb_early_suspend(h);
+	
 	console_unlock();
 	printk("%s: finish \n", __FUNCTION__);
 

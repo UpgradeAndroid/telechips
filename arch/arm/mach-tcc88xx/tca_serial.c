@@ -116,12 +116,11 @@ struct tcc_uart_port tcc_serial_ports[NR_PORTS] = {
 * Parameter     : int nCh, int nPort, unsigned long* pvGpioAddr, unsigned long* pvPortMuxAddr
 * Return        : None
 ******************************************************************************/
-void tca_serial_portinit(int nCh, int nPort)
+void tca_serial_portinit(int nFlag_fc, int nPort)
 {
-	tca_serial_gpio_setting(nCh, nPort);
+	tca_serial_gpio_setting(nFlag_fc, nPort);
 }
-
-void tca_serial_gpio_setting(int nCh, int nPort)
+void tca_serial_gpio_setting(int nFlag_fc, int nPort)
 {
 	volatile PUARTPORTMUX pPortmux = (volatile PUARTPORTMUX)tcc_p2v(HwUART_PORTMUX_BASE);
 	volatile PGPIO pGPIO = (volatile PGPIO)tcc_p2v(HwGPIO_BASE);
@@ -130,7 +129,7 @@ void tca_serial_gpio_setting(int nCh, int nPort)
 	if (nPort > 5)
 		return;
 
-	if (nPort == 0)
+	if (nFlag_fc == 0)
 		hw_flow_ctrl = 0;
 	else
 		hw_flow_ctrl = 1;

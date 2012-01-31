@@ -68,6 +68,25 @@ static struct mmc_port_config mmc_ports[] = {
 		.pwr	= GPIO_SD0_ON,
 	},
 	#if defined(TCC_MMC_SDIO_WIFI_USED)
+	#if defined(CONFIG_STB_BOARD_DONGLE)
+	[TCC_MMC_TYPE_WIFI] = {
+		.data0	= TCC_GPD(18),
+		.data1	= TCC_GPD(17),
+		.data2	= TCC_GPD(16),
+		.data3	= TCC_GPD(15),
+		.data4	= TCC_MMC_PORT_NULL,
+		.data5	= TCC_MMC_PORT_NULL,
+		.data6	= TCC_MMC_PORT_NULL,
+		.data7	= TCC_MMC_PORT_NULL,
+		.cmd	= TCC_GPD(19),
+		.clk	= TCC_GPD(20),
+		.func	= GPIO_FN(2),
+		.width	= TCC_MMC_BUS_WIDTH_4,
+
+		.cd	= TCC_MMC_PORT_NULL,
+		.pwr	= TCC_GPD(21),
+	},
+	#else
 	[TCC_MMC_TYPE_WIFI] = {
 		.data0	= TCC_GPB(2),
 		.data1	= TCC_GPB(3),
@@ -86,6 +105,7 @@ static struct mmc_port_config mmc_ports[] = {
 		.pwr	= GPIO_SD1_ON,
 	},
 	#endif
+	#endif
 };
 
 int tcc8920_mmc_init(struct device *dev, int id)
@@ -96,6 +116,16 @@ int tcc8920_mmc_init(struct device *dev, int id)
 		gpio_request(mmc_ports[id].pwr, "sd_power");
 
 	#if defined(TCC_MMC_SDIO_WIFI_USED)
+	#if defined(CONFIG_STB_BOARD_DONGLE)
+	if(id == TCC_MMC_TYPE_WIFI)
+	{
+		gpio_request(TCC_GPD(20), "wifi_pre_power");
+		gpio_direction_output(TCC_GPD(20), 0);
+		msleep(100);
+		gpio_direction_output(TCC_GPD(20), 1);
+
+	}
+	#else
 	if(id == TCC_MMC_TYPE_WIFI)
 	{
 		gpio_request(GPIO_SD1_ON, "wifi_pre_power");
@@ -104,6 +134,7 @@ int tcc8920_mmc_init(struct device *dev, int id)
 		gpio_direction_output(GPIO_SD1_ON, 1);
 
 	}
+	#endif
 	#endif
 
 	tcc_gpio_config(mmc_ports[id].data0, mmc_ports[id].func | GPIO_CD(1));
@@ -214,7 +245,11 @@ struct tcc_mmc_platform_data tcc8920_mmc_platform_data[] = {
 		.slot	= 5,
 		.caps	= MMC_CAP_SDIO_IRQ | MMC_CAP_4_BIT_DATA
 			/* MMC_CAP_8_BIT_DATA */
+#if defined(CONFIG_STB_BOARD_DONGLE)
+			,
+#else
 			| MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED,
+#endif
 		.f_min	= 100000,
 		.f_max	= 48000000,	/* support highspeed mode */
 		.ocr_mask = MMC_VDD_32_33 | MMC_VDD_33_34,
@@ -234,6 +269,29 @@ struct tcc_mmc_platform_data tcc8920_mmc_platform_data[] = {
 		.pic = HwINT1_SD1,
 	},
 	#if defined(TCC_MMC_SDIO_WIFI_USED)
+	#if defined(CONFIG_STB_BOARD_DONGLE)
+	[TCC_MMC_TYPE_WIFI] = {
+		.slot	= 4,
+		.caps	= MMC_CAP_SDIO_IRQ | MMC_CAP_4_BIT_DATA
+			/*| MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED*/,		// SD1 Slot
+		.f_min	= 100000,
+//		.f_max	= 48000000,	/* support highspeed mode */
+		.f_max	= 24000000,	// Only Atheros WiFi(AR6102)
+		.ocr_mask = MMC_VDD_32_33 | MMC_VDD_33_34,
+		.init	= tcc8920_mmc_init,
+		.card_detect = tcc8920_mmc_card_detect,
+		.cd_int_config = tcc8920_mmc_cd_int_config,
+		.suspend = tcc8920_mmc_suspend,
+		.resume	= tcc8920_mmc_resume,
+		.set_power = tcc8920_mmc_set_power,
+		.set_bus_width = tcc8920_mmc_set_bus_width,
+
+		.cd_int_num = -1, 
+		.peri_name = PERI_SDMMC0,
+		.io_name = RB_SDMMC0CONTROLLER,
+		.pic = HwINT1_SD0,
+	},
+	#else
 	[TCC_MMC_TYPE_WIFI] = {
 		.slot	= 2,
 		.caps	= MMC_CAP_SDIO_IRQ | MMC_CAP_4_BIT_DATA
@@ -255,6 +313,7 @@ struct tcc_mmc_platform_data tcc8920_mmc_platform_data[] = {
 		.io_name = RB_SDMMC2CONTROLLER,
 		.pic = HwINT1_SD2,
 	},
+	#endif
 	#endif
 
 	#if 0	//for Example

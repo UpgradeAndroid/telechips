@@ -174,10 +174,6 @@ static DECLARE_WORK(work_queue, kerneltimer_timeover);
 #define rx_enabled(port)	((port)->unused[1])
 #define port_used(port)		((port)->unused1)
 
-#if defined(CONFIG_CPU_FREQ)
-extern struct tcc_freq_table_t gtBtClockLimitTable;
-#endif
-
 #if defined(CONFIG_GPS)
 extern int gps_k_flag;
 #endif 
@@ -641,9 +637,6 @@ static void tcc_serial_shutdown(struct uart_port *port)
        #if defined(CONFIG_BT)
 	bt_used = 0;
        #endif
-#if defined(CONFIG_CPU_FREQ)
-        tcc_cpufreq_set_limit_table(&gtBtClockLimitTable, TCC_FREQ_LIMIT_BT, 0);
-#endif
     }
 
     dbg("%s\n", __func__);
@@ -699,11 +692,6 @@ static int tcc_serial_startup(struct uart_port *port)
     port_used(port) = 1;	// for suspend/resume
 
     // clock control for BT
-#if defined(CONFIG_CPU_FREQ)
-    if(tcc_port->bt_use) {
-        tcc_cpufreq_set_limit_table(&gtBtClockLimitTable, TCC_FREQ_LIMIT_BT, 1);
-    }
-#endif
 
 #if defined(CONFIG_TCC_BT_DEV)
     if(tcc_port->bt_suspend != 1){

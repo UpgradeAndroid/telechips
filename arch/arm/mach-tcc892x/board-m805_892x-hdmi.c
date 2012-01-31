@@ -34,7 +34,7 @@ int m805_892x_hdmi_power(struct device *dev, tcc_hdmi_power_s pwr)
 	
  	if (machine_is_m805_892x()) 
 	{
-		printk("%s  tcc88xx  pwr:%d system_rev:0x%x \n", __func__, pwr, system_rev);
+		printk("%s  m805s_892x pwr:%d system_rev:0x%x \n", __func__, pwr, system_rev);
 
 		switch(pwr)
 		{

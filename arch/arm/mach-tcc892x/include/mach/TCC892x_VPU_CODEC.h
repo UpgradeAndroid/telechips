@@ -19,7 +19,7 @@
  * \file
  *		TCC892x_VPU_CODEC.h
  * \date
- *		2011/12/16
+ *		2012/01/20
  * \author
  *		AV algorithm group(AValgorithm@telechips.com) 
  * \brief
@@ -64,7 +64,8 @@
 
 
 #define CODE_BUF_SIZE		(256*1024)
-#define TEMP_BUF_SIZE		(204*1024)
+//#define TEMP_BUF_SIZE		(204*1024)
+#define TEMP_BUF_SIZE		(512*1024)
 #define WORK_BUF_SIZE		(48*1024)
 #define PARA_BUF_SIZE		(10*1024)
 #define SEC_AXI_BUF_SIZE	(128*1024)
@@ -246,6 +247,7 @@ typedef struct dec_ring_buffer_setting_in_t
 	codec_addr_t m_OnePacketBufferAddr;
 	unsigned int m_iOnePacketBufferSize;
 } dec_ring_buffer_setting_in_t;
+
 
 typedef struct dec_ring_buffer_status_out_t
 {

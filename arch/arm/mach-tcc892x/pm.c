@@ -78,6 +78,8 @@ typedef void (*FuncPtr)(void);
 
 #define L2CACHE_BASE   0xFA000000
 
+#define LOG_NDEBUG 0
+
 /*===========================================================================
 FUNCTION
 ===========================================================================*/
@@ -393,6 +395,56 @@ static void sdram_init(void)
 
 //--------------------------------------------------------------------------
 
+#ifdef TCC_PM_SSTLIO_CTRL
+//--------------------------------------------------------------------------
+//enter self-refresh
+
+	BITSET(denali_phy(0x34), 0x1<<10); //lp_ext_req=1
+	while(!(denali_phy(0x34)&(0x1<<27))); //until lp_ext_ack==1
+	BITCSET(denali_phy(0x34), 0x000000FF, (2<<2)|(1<<1)|(0));
+	BITSET(denali_phy(0x34), 0x1<<8); //lp_ext_cmd_strb=1
+	while((denali_phy(0x34)&(0x007F0000)) !=0x00450000); //until lp_ext_state==0x45 : check self-refresh state
+	BITCLR(denali_phy(0x34), 0x1<<8); //lp_ext_cmd_strb=0
+	BITCLR(denali_phy(0x34), 0x1<<10); //lp_ext_req=0
+	while(denali_phy(0x34)&(0x1<<27)); //until lp_ext_ack==0
+	BITSET(denali_ctl(96), 0x3<<8); //DRAM_CLK_DISABLE[9:8] = [CS1, CS0] = 0x3
+	BITCLR(denali_ctl(0),0x1); //START[0] = 0
+	BITSET(denali_phy(0x0C), 0x1<<22); //ctrl_cmosrcv[22] = 0x1
+	BITCSET(denali_phy(0x0C), 0x001F0000, 0x1F<<16); //ctrl_pd[20:16] = 0x1f
+	BITCSET(denali_phy(0x20), 0x000000FF, 0xF<<4|0xF); //ctrl_pulld_dq[7:4] = 0xf, ctrl_pulld_dqs[3:0] = 0xf
+
+// -------------------------------------------------------------------------
+// SSTL Retention Disable
+
+	while(!(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG&(1<<8))){
+		BITSET(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG, 1<<8); //SSTL_RTO : SSTL I/O retention mode disable=1
+	}
+
+//--------------------------------------------------------------------------
+// Exit self-refresh
+
+	BITCLR(denali_phy(0x0C), 0x1<<22); //ctrl_cmosrcv[22] = 0x0
+	BITCLR(denali_phy(0x0C), 0x001F0000); //ctrl_pd[20:16] = 0x0
+	BITCLR(denali_phy(0x20), 0x000000FF); //ctrl_pulld_dq[7:4] = 0x0, ctrl_pulld_dqs[3:0] = 0x0
+	while(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG&(1<<8)){
+		BITCLR(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG, 1<<8); //SSTL_RTO : SSTL I/O retention mode =0
+	}
+	*(volatile unsigned long *)addr_mem(0x810004) &= ~(1<<2); //PHY=0
+	*(volatile unsigned long *)addr_mem(0x810004) |= (1<<2); //PHY=1
+	while(!(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG&(1<<8))){
+		BITSET(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG, 1<<8); //SSTL_RTO : SSTL I/O retention mode disable=1
+	}
+	BITCLR(denali_ctl(96), 0x3<<8); //DRAM_CLK_DISABLE[9:8] = [CS1, CS0] = 0x0
+	BITSET(denali_ctl(0),0x1); //START[0] = 1
+//	while(!(denali_ctl(46)&(0x20000)));
+//	BITSET(denali_ctl(47), 0x20000);
+	BITCSET(denali_ctl(20), 0xFF000000, ((2<<2)|(0<<1)|(1))<<24);
+	while(!(denali_ctl(46)&(0x40)));
+	BITSET(denali_ctl(47), 0x40);
+#endif
+
+//--------------------------------------------------------------------------
+
 #elif defined(CONFIG_DRAM_DDR2)
 
 	volatile int i;
@@ -638,6 +690,39 @@ static void sdram_init(void)
 #endif
 }
 
+#if defined(CONFIG_PM_CONSOLE_NOT_SUSPEND)
+void tcc_pm_uart_suspend(UART *pBackupUART, UARTPORTCFG *pBackupUARTPORTCFG)
+{	
+	UART *pHwUART = (UART *)tcc_p2v(HwUART0_BASE);
+
+	pBackupUART->REG2.nREG = pHwUART->REG2.nREG;	//0x04 : IER
+	pHwUART->REG2.IER.ELSI = 0;	//disable interrupt : ELSI
+	pBackupUART->LCR.nREG = pHwUART->LCR.nREG;	//0x0C : LCR
+	pHwUART->LCR.bREG.DLAB = 1;	// DLAB = 1
+	pBackupUART->REG1.nREG = pHwUART->REG1.nREG;	//0x00 : DLL
+	pBackupUART->REG2.nREG = pHwUART->REG2.nREG;	//0x04 : DLM
+	pBackupUART->MCR.nREG = pHwUART->MCR.nREG;	//0x10 : MCR
+	pBackupUART->AFT.nREG = pHwUART->AFT.nREG;	//0x20 : AFT
+	pBackupUART->UCR.nREG= pHwUART->UCR.nREG;	//0x24 : UCR
+}
+
+void tcc_pm_uart_resume(UART *pBackupUART, UARTPORTCFG *pBackupUARTPORTCFG)
+{
+	UART *pHwUART = (UART *)tcc_p2v(HwUART0_BASE);
+
+	pHwUART->REG2.IER.ELSI = 0;	//disable interrupt	
+	pHwUART->LCR.bREG.DLAB = 1;	// DLAB = 1
+	pHwUART->REG3.nREG = Hw2 + Hw1 + Hw0;	//0x08 : FCR
+	pHwUART->REG1.nREG	= pBackupUART->REG1.nREG;	//0x00 : DLL
+	pHwUART->REG2.nREG	= pBackupUART->REG2.nREG;	//0x04 : DLM
+	pHwUART->MCR.nREG	= pBackupUART->MCR.nREG;	//0x10 : MCR
+	pHwUART->AFT.nREG	= pBackupUART->AFT.nREG;	//0x20 : AFT
+	pHwUART->UCR.nREG	= pBackupUART->UCR.nREG;	//0x24 : UCR
+	pHwUART->LCR.nREG	= pBackupUART->LCR.nREG;	//0x0C : LCR
+	pHwUART->REG2.nREG	= pBackupUART->REG2.nREG;	//0x04 : IER
+}
+#endif
+
 #if defined(CONFIG_SHUTDOWN_MODE)
 /*===========================================================================
 
@@ -700,7 +785,7 @@ static void shutdown(void)
 	#error "not selected"
 #endif
 
-	nop_delay(5);
+	nop_delay(1000);
 
 // -------------------------------------------------------------------------
 // Clock <- XIN, PLL <- OFF
@@ -824,6 +909,11 @@ static void shutdown(void)
 		((PPMU)HwPMU_BASE)->PMU_WKPOL1.bREG.GPIO_E27 = 1; //power key - Active Low
 		//set wake-up source
 		((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E27 = 1; //power key
+
+		#if defined(CONFIG_MMC_TCC_SDHC)	// Wakeup for SD Insert->Remove in Suspend.
+		if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1) 	// SD Insert -> Remove in suspend : Active High
+			((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E28 = 1;	// PMU WakeUp Enable
+		#endif
 	}
 	else
 	{
@@ -831,18 +921,12 @@ static void shutdown(void)
 		((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_D09 = 1; //power key - Active Low
 		//set wake-up source
 		((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D09 = 1; //power key
-	}
-	#if defined(CONFIG_MMC_TCC_SDHC)	// Wakeup for SD Insert->Remove in Suspend.
-	#if defined(CONFIG_M805S_8923_0XA)
-	if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1)		// SD Insert -> Remove in suspend : Active High
-	{
-		if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
-			((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E28 = 1;	// PMU WakeUp Enable
-		else
+
+		#if defined(CONFIG_MMC_TCC_SDHC)	// Wakeup for SD Insert->Remove in Suspend.
+		if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1) 	// SD Insert -> Remove in suspend : Active High
 			((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E13 = 1;	// PMU WakeUp Enable
+		#endif
 	}
-	#endif
-	#endif
 #elif defined(CONFIG_MACH_TCC8920ST)
 	//set wake-up polarity
 	((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_D14 = 1; //power key - Active Low
@@ -935,9 +1019,11 @@ static void wakeup(void)
 // -------------------------------------------------------------------------
 // SSTL & IO Retention Disable
 
+#ifndef TCC_PM_SSTLIO_CTRL
 	while(!(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG&(1<<8))){
 		BITSET(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG, 1<<8); //SSTL_RTO : SSTL I/O retention mode disable=1
 	}
+#endif
 	while(!(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG&(1<<4))){
 		BITSET(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG, 1<<4); //IO_RTO : I/O retention mode disable=1
 	}
@@ -1022,6 +1108,14 @@ static void shutdown_mode(void)
 	memcpy((void*)SHUTDOWN_FUNC_ADDR,   (void*)shutdown,   SHUTDOWN_FUNC_SIZE);
 	memcpy((void*)WAKEUP_FUNC_ADDR,     (void*)wakeup,     WAKEUP_FUNC_SIZE);
 	memcpy((void*)SDRAM_INIT_FUNC_ADDR, (void*)sdram_init, SDRAM_INIT_FUNC_SIZE);
+
+	/*--------------------------------------------------------------
+	 UART block suspend
+	--------------------------------------------------------------*/
+#ifdef CONFIG_PM_CONSOLE_NOT_SUSPEND
+	tcc_pm_uart_suspend(&RegRepo.uart, &RegRepo.uartportcfg);
+#endif
+	memcpy(&RegRepo.uartportcfg, (UARTPORTCFG *)tcc_p2v(HwUART_PORTCFG_BASE), sizeof(UARTPORTCFG));
 
 	/*--------------------------------------------------------------
 	 BUS Config
@@ -1172,6 +1266,16 @@ static void shutdown_mode(void)
 	memcpy((PMEMBUSCFG)tcc_p2v(HwMBUSCFG_BASE), &RegRepo.membuscfg, sizeof(MEMBUSCFG));
 
 	/*--------------------------------------------------------------
+	 UART block resume
+	--------------------------------------------------------------*/
+	memcpy((UARTPORTCFG *)tcc_p2v(HwUART_PORTCFG_BASE), &RegRepo.uartportcfg, sizeof(UARTPORTCFG));
+#ifdef CONFIG_PM_CONSOLE_NOT_SUSPEND
+	tcc_pm_uart_resume(&RegRepo.uart, &RegRepo.uartportcfg);
+
+	printk("Wake up !!\n");
+#endif
+
+	/*--------------------------------------------------------------
 	 cpu re-init for VFP
 	--------------------------------------------------------------*/
 	__cpu_early_init();
@@ -1255,7 +1359,7 @@ static void sleep(void)
 	#error "not selected"
 #endif
 
-	nop_delay(5);
+	nop_delay(1000);
 
 // -------------------------------------------------------------------------
 // Clock <- XIN, PLL <- OFF
@@ -1369,9 +1473,14 @@ static void sleep(void)
 	if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
 	{
 		//set wake-up polarity
-		((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_E27 = 1; //power key - Active Low
+		((PPMU)HwPMU_BASE)->PMU_WKPOL1.bREG.GPIO_E27 = 1; //power key - Active Low
 		//set wake-up source
-		((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_E27 = 1; //power key
+		((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E27 = 1; //power key
+
+		#if defined(CONFIG_MMC_TCC_SDHC)	// Wakeup for SD Insert->Remove in Suspend.
+		if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1) 	// SD Insert -> Remove in suspend : Active High
+			((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E28 = 1;	// PMU WakeUp Enable
+		#endif
 	}
 	else
 	{
@@ -1379,18 +1488,12 @@ static void sleep(void)
 		((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_D09 = 1; //power key - Active Low
 		//set wake-up source
 		((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D09 = 1; //power key
-	}
-	#if defined(CONFIG_MMC_TCC_SDHC)	// Wakeup for SD Insert->Remove in Suspend.
-	#if defined(CONFIG_M805S_8923_0XA)
-	if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1)		// SD Insert -> Remove in suspend : Active High
-	{
-		if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
-			((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E27 = 1;	// PMU WakeUp Enable
-		else
+
+		#if defined(CONFIG_MMC_TCC_SDHC)	// Wakeup for SD Insert->Remove in Suspend.
+		if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1) 	// SD Insert -> Remove in suspend : Active High
 			((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E13 = 1;	// PMU WakeUp Enable
+		#endif
 	}
-	#endif
-	#endif
 #elif defined(CONFIG_MACH_TCC8920ST)
 	//set wake-up polarity
 	((PPMU)HwPMU_BASE)->PMU_WKPOL0.bREG.GPIO_D14 = 1; //power key - Active Low
@@ -1401,6 +1504,19 @@ static void sleep(void)
 	if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1)		// SD Insert -> Remove in suspend : Active High
 		((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D12 = 1;	// PMU WakeUp Enable
 	#endif
+
+  #if defined(TCC_PM_SLEEP_WFI_USED)
+	((PPIC)HwPIC_BASE)->IEN0.nREG = 0;
+	((PPIC)HwPIC_BASE)->IEN1.nREG = 0;
+
+	((PPIC)HwPIC_BASE)->IEN0.bREG.EINT0 = 1;
+	((PGPIO)HwGPIO_BASE)->EINTSEL0.bREG.EINT00SEL = 105;
+	((PPIC)HwPIC_BASE)->POL0.bREG.EINT0 = 1;
+	((PPIC)HwPIC_BASE)->MODE0.bREG.EINT0 = 1;
+	((PPIC)HwPIC_BASE)->INTMSK0.bREG.EINT0 = 1;
+
+	((PPIC)HwPIC_BASE)->IEN1.bREG.REMOCON = 1;
+  #endif
 #else
 	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1005 || *(volatile unsigned long *)SRAM_STACK_ADDR == 0x1007)
 	{
@@ -1449,7 +1565,12 @@ static void sleep(void)
 // -------------------------------------------------------------------------
 // Enter Sleep !!
 ////////////////////////////////////////////////////////////////////////////
-	BITSET(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG, 1<<0); //SSTL_RTO : SSTL I/O retention mode =0
+#ifdef TCC_PM_SLEEP_WFI_USED
+	asm("dsb");
+	asm("wfi");
+#else
+	BITSET(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG, 1<<0);
+#endif
 ////////////////////////////////////////////////////////////////////////////
 
 // -------------------------------------------------------------------------
@@ -1461,9 +1582,11 @@ static void sleep(void)
 // -------------------------------------------------------------------------
 // SSTL & IO Retention Disable
 
+#ifndef TCC_PM_SSTLIO_CTRL
 	while(!(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG&(1<<8))){
 		BITSET(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG, 1<<8); //SSTL_RTO : SSTL I/O retention mode disable=1
 	}
+#endif
 	while(!(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG&(1<<4))){
 		BITSET(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG, 1<<4); //IO_RTO : I/O retention mode disable=1
 	}
@@ -1629,6 +1752,11 @@ VARIABLE
 ===========================================================================*/
 static TCC_REG RegRepo;
 
+#if defined(TCC_PM_SLEEP_WFI_USED)
+static unsigned int uiRegBackup0;
+static unsigned int uiRegBackup1;
+#endif
+
 /*===========================================================================
 FUNCTION
 ===========================================================================*/
@@ -1650,6 +1778,11 @@ static void sleep_mode(void)
 	--------------------------------------------------------------*/
 	memcpy(&RegRepo.pmu, (PPMU)tcc_p2v(HwPMU_BASE), sizeof(PMU));
 	memcpy(&RegRepo.ckc, (PCKC)tcc_p2v(HwCKC_BASE), sizeof(CKC));
+
+#if defined(TCC_PM_SLEEP_WFI_USED)
+	uiRegBackup0 = ((PPIC)tcc_p2v(HwPIC_BASE))->IEN0.nREG;
+	uiRegBackup1 = ((PPIC)tcc_p2v(HwPIC_BASE))->IEN1.nREG;
+#endif
 
 #ifdef CONFIG_CACHE_L2X0
 	/*--------------------------------------------------------------
@@ -1678,6 +1811,11 @@ static void sleep_mode(void)
 	pFunc();
 	/////////////////////////////////////////////////////////////////
 	IO_ARM_RestoreStackSRAM(stack);
+
+#if defined(TCC_PM_SLEEP_WFI_USED)
+	((PPIC)tcc_p2v(HwPIC_BASE))->IEN0.nREG = uiRegBackup0;
+	((PPIC)tcc_p2v(HwPIC_BASE))->IEN1.nREG = uiRegBackup1;
+#endif
 
 	/*--------------------------------------------------------------
 	 CKC & PMU
@@ -1796,8 +1934,15 @@ FUNCTION
 static int tcc_pm_enter(suspend_state_t state)
 {
 	unsigned long flags;
-//	unsigned reg_backup[20];
+#if defined(TCC_PM_SLEEP_WFI_USED)
+	#if LOG_NDEBUG
+	volatile PPIC pPIC = (volatile PPIC)tcc_p2v(HwPIC_BASE);
+	unsigned reg_backup[20];
 
+	reg_backup[0] = pPIC->STS0.nREG;
+	reg_backup[1] = pPIC->STS1.nREG;
+	#endif
+#endif
 // -------------------------------------------------------------------------
 // disable interrupt
 	local_irq_save(flags);
@@ -1822,6 +1967,16 @@ static int tcc_pm_enter(suspend_state_t state)
 // -------------------------------------------------------------------------
 // enable interrupt
 	local_irq_restore(flags);
+
+#if defined(TCC_PM_SLEEP_WFI_USED)
+	#if LOG_NDEBUG
+	reg_backup[2] = pPIC->STS0.nREG;
+	reg_backup[3] = pPIC->STS1.nREG;
+
+	printk("WOW %08X %08X\n", reg_backup[0], reg_backup[1]);
+	printk("WOW %08X %08X\n", reg_backup[2], reg_backup[3]);
+	#endif
+#endif
 
 	return 0;
 }
