@@ -51,16 +51,16 @@
                      0x700  ------------------
                            |      Stack       | 0x100
                      0x800  ------------------
-                           |     Shutdown     | 0x400
-                     0xC00  ------------------
+                           |     Shutdown     | 0x600
+                     0xE00  ------------------
                            |     Wake-up      | 0x400
-                    0x1000  ------------------
+                    0x1200  ------------------
                            |    SDRAM Init    | 0x700
-                    0x1700  ------------------
+                    0x1900  ------------------
                            |   GPIO Storage   | 0x300
-                    0x1A00  ------------------
+                    0x1C00  ------------------
                            |   cpu_reg/mmu data | 0x100
-                    0x1B00  ------------------
+                    0x1D00  ------------------
 
 ---------------------------------------------------------------------------*/
 
@@ -71,18 +71,18 @@
 #define SRAM_STACK_SIZE          0x00000100
 
 #define SHUTDOWN_FUNC_ADDR       0xF0000800
-#define SHUTDOWN_FUNC_SIZE       0x00000400
+#define SHUTDOWN_FUNC_SIZE       0x00000600
 
-#define WAKEUP_FUNC_ADDR         0xF0000C00
+#define WAKEUP_FUNC_ADDR         0xF0000E00
 #define WAKEUP_FUNC_SIZE         0x00000400
 
-#define SDRAM_INIT_FUNC_ADDR     0xF0001000
+#define SDRAM_INIT_FUNC_ADDR     0xF0001200
 #define SDRAM_INIT_FUNC_SIZE     0x00000700
 
-#define GPIO_REPOSITORY_ADDR     0xF0001700
+#define GPIO_REPOSITORY_ADDR     0xF0001900
 #define GPIO_REPOSITORY_SIZE     0x00000300
 
-#define CPU_DATA_REPOSITORY_ADDR 0xF0001A00
+#define CPU_DATA_REPOSITORY_ADDR 0xF0001C00
 #define CPU_DATA_REPOSITORY_SIZE 0x00000100
 
 /*-------------------------------------------------------------------------*/

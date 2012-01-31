@@ -268,15 +268,15 @@ ENTRY(SRAM_Boot)
 
 	//; Jump to wakeup()
 	mov lr, pc
-	ldr pc, =0xF0000C00 //;WAKEUP_FUNC_ADDR
+	ldr pc, =0xF0000E00 //;WAKEUP_FUNC_ADDR
 
 	//; Jump to sdram_init()
 	mov lr, pc
-	ldr pc, =0xF0001000 //;SDRAM_INIT_FUNC_ADDR
+	ldr pc, =0xF0001200 //;SDRAM_INIT_FUNC_ADDR
 
 	//; Check whether Shutdown is enabled or not.
 	//; cpu_reg/mmu data backup address
-	ldr r12, =0xF0001A00 //; CPU_DATA_REPOSITORY_ADDR
+	ldr r12, =0xF0001C00 //; CPU_DATA_REPOSITORY_ADDR
 	ldr r1, [r12]
 	ldr r2, =0x18C818C8
 	cmp r1, r2
@@ -403,7 +403,7 @@ finished:
 ENTRY(resore_cpu_reg)
 
 	//; cpu_reg/mmu data backup address
-	ldr r3, =0xF0001A00 //; CPU_DATA_REPOSITORY_ADDR
+	ldr r3, =0xF0001C00 //; CPU_DATA_REPOSITORY_ADDR
 
 	//; restore fiq_reg
 	mov r1, #Mode_FIQ | NOINT
