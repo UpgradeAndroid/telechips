@@ -106,6 +106,9 @@ typedef struct _TCC_REG_{
 	IOBUSCFG iobuscfg;
 	MEMBUSCFG membuscfg;
 	unsigned L2_aux;
+
+	UART	uart;
+	UARTPORTCFG uartportcfg;
 } TCC_REG, *PTCC_REG;
 
 #elif defined(CONFIG_SLEEP_MODE)

@@ -690,6 +690,39 @@ static void sdram_init(void)
 #endif
 }
 
+#if defined(CONFIG_PM_CONSOLE_NOT_SUSPEND)
+void tcc_pm_uart_suspend(UART *pBackupUART, UARTPORTCFG *pBackupUARTPORTCFG)
+{	
+	UART *pHwUART = (UART *)tcc_p2v(HwUART0_BASE);
+
+	pBackupUART->REG2.nREG = pHwUART->REG2.nREG;	//0x04 : IER
+	pHwUART->REG2.IER.ELSI = 0;	//disable interrupt : ELSI
+	pBackupUART->LCR.nREG = pHwUART->LCR.nREG;	//0x0C : LCR
+	pHwUART->LCR.bREG.DLAB = 1;	// DLAB = 1
+	pBackupUART->REG1.nREG = pHwUART->REG1.nREG;	//0x00 : DLL
+	pBackupUART->REG2.nREG = pHwUART->REG2.nREG;	//0x04 : DLM
+	pBackupUART->MCR.nREG = pHwUART->MCR.nREG;	//0x10 : MCR
+	pBackupUART->AFT.nREG = pHwUART->AFT.nREG;	//0x20 : AFT
+	pBackupUART->UCR.nREG= pHwUART->UCR.nREG;	//0x24 : UCR
+}
+
+void tcc_pm_uart_resume(UART *pBackupUART, UARTPORTCFG *pBackupUARTPORTCFG)
+{
+	UART *pHwUART = (UART *)tcc_p2v(HwUART0_BASE);
+
+	pHwUART->REG2.IER.ELSI = 0;	//disable interrupt	
+	pHwUART->LCR.bREG.DLAB = 1;	// DLAB = 1
+	pHwUART->REG3.nREG = Hw2 + Hw1 + Hw0;	//0x08 : FCR
+	pHwUART->REG1.nREG	= pBackupUART->REG1.nREG;	//0x00 : DLL
+	pHwUART->REG2.nREG	= pBackupUART->REG2.nREG;	//0x04 : DLM
+	pHwUART->MCR.nREG	= pBackupUART->MCR.nREG;	//0x10 : MCR
+	pHwUART->AFT.nREG	= pBackupUART->AFT.nREG;	//0x20 : AFT
+	pHwUART->UCR.nREG	= pBackupUART->UCR.nREG;	//0x24 : UCR
+	pHwUART->LCR.nREG	= pBackupUART->LCR.nREG;	//0x0C : LCR
+	pHwUART->REG2.nREG	= pBackupUART->REG2.nREG;	//0x04 : IER
+}
+#endif
+
 #if defined(CONFIG_SHUTDOWN_MODE)
 /*===========================================================================
 
@@ -1077,6 +1110,14 @@ static void shutdown_mode(void)
 	memcpy((void*)SDRAM_INIT_FUNC_ADDR, (void*)sdram_init, SDRAM_INIT_FUNC_SIZE);
 
 	/*--------------------------------------------------------------
+	 UART block suspend
+	--------------------------------------------------------------*/
+#ifdef CONFIG_PM_CONSOLE_NOT_SUSPEND
+	tcc_pm_uart_suspend(&RegRepo.uart, &RegRepo.uartportcfg);
+#endif
+	memcpy(&RegRepo.uartportcfg, (UARTPORTCFG *)tcc_p2v(HwUART_PORTCFG_BASE), sizeof(UARTPORTCFG));
+
+	/*--------------------------------------------------------------
 	 BUS Config
 	--------------------------------------------------------------*/
 	memcpy(&RegRepo.membuscfg, (PMEMBUSCFG)tcc_p2v(HwMBUSCFG_BASE), sizeof(MEMBUSCFG));
@@ -1223,6 +1264,16 @@ static void shutdown_mode(void)
 	--------------------------------------------------------------*/
 	memcpy((PIOBUSCFG)tcc_p2v(HwIOBUSCFG_BASE), &RegRepo.iobuscfg, sizeof(IOBUSCFG));
 	memcpy((PMEMBUSCFG)tcc_p2v(HwMBUSCFG_BASE), &RegRepo.membuscfg, sizeof(MEMBUSCFG));
+
+	/*--------------------------------------------------------------
+	 UART block resume
+	--------------------------------------------------------------*/
+	memcpy((UARTPORTCFG *)tcc_p2v(HwUART_PORTCFG_BASE), &RegRepo.uartportcfg, sizeof(UARTPORTCFG));
+#ifdef CONFIG_PM_CONSOLE_NOT_SUSPEND
+	tcc_pm_uart_resume(&RegRepo.uart, &RegRepo.uartportcfg);
+
+	printk("Wake up !!\n");
+#endif
 
 	/*--------------------------------------------------------------
 	 cpu re-init for VFP
@@ -1884,13 +1935,13 @@ static int tcc_pm_enter(suspend_state_t state)
 {
 	unsigned long flags;
 #if defined(TCC_PM_SLEEP_WFI_USED)
-  #if LOG_NDEBUG
-    volatile PPIC pPIC = (volatile PPIC)tcc_p2v(HwPIC_BASE);
-    unsigned reg_backup[20];
+	#if LOG_NDEBUG
+	volatile PPIC pPIC = (volatile PPIC)tcc_p2v(HwPIC_BASE);
+	unsigned reg_backup[20];
 
-    reg_backup[0] = pPIC->STS0.nREG;
-    reg_backup[1] = pPIC->STS1.nREG;
-  #endif
+	reg_backup[0] = pPIC->STS0.nREG;
+	reg_backup[1] = pPIC->STS1.nREG;
+	#endif
 #endif
 // -------------------------------------------------------------------------
 // disable interrupt
@@ -1918,13 +1969,13 @@ static int tcc_pm_enter(suspend_state_t state)
 	local_irq_restore(flags);
 
 #if defined(TCC_PM_SLEEP_WFI_USED)
-  #if LOG_NDEBUG
-    reg_backup[2] = pPIC->STS0.nREG;
-    reg_backup[3] = pPIC->STS1.nREG;
+	#if LOG_NDEBUG
+	reg_backup[2] = pPIC->STS0.nREG;
+	reg_backup[3] = pPIC->STS1.nREG;
 
-    printk("WOW %08X %08X\n", reg_backup[0], reg_backup[1]);
-    printk("WOW %08X %08X\n", reg_backup[2], reg_backup[3]);
-  #endif
+	printk("WOW %08X %08X\n", reg_backup[0], reg_backup[1]);
+	printk("WOW %08X %08X\n", reg_backup[2], reg_backup[3]);
+	#endif
 #endif
 
 	return 0;
