@@ -1582,11 +1582,9 @@ static void sleep(void)
 // -------------------------------------------------------------------------
 // SSTL & IO Retention Disable
 
-#ifndef TCC_PM_SSTLIO_CTRL
 	while(!(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG&(1<<8))){
 		BITSET(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG, 1<<8); //SSTL_RTO : SSTL I/O retention mode disable=1
 	}
-#endif
 	while(!(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG&(1<<4))){
 		BITSET(((PPMU)HwPMU_BASE)->PWRDN_XIN.nREG, 1<<4); //IO_RTO : I/O retention mode disable=1
 	}
