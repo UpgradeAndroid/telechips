@@ -789,7 +789,11 @@ static void __init m805_892x_init_machine(void)
 #if defined(CONFIG_TOUCHSCREEN_TCC_AK4183) || defined(CONFIG_TOUCHSCREEN_TCC_SITRONIX)
 	i2c_register_board_info(1, i2c_devices2, ARRAY_SIZE(i2c_devices2));
 #endif
-	i2c_register_board_info(0, i2c_devices3, ARRAY_SIZE(i2c_devices3));
+	#if	defined(CONFIG_M805S_8925_0XX)
+		i2c_register_board_info(2, i2c_devices3, ARRAY_SIZE(i2c_devices3));
+	#else
+		i2c_register_board_info(0, i2c_devices3, ARRAY_SIZE(i2c_devices3));
+	#endif
 
 
 #if defined(CONFIG_TCC_BT_DEV)

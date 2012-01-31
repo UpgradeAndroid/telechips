@@ -93,8 +93,12 @@ void TDD_CIF_Initialize()
 	#if defined(CONFIG_MACH_M805_892X)
 		printk("m805_892x port configuration!!\n");
 		// Change to Functional GPIO that GPIO_D
-		BITCSET(pGPIO_F->GPFN0.nREG, 0xFFFFFFFF, 0x11111111);  
-		BITCSET(pGPIO_F->GPFN1.nREG, 0x0000FFFF, 0x0000B111);	
+		BITCSET(pGPIO_F->GPFN0.nREG, 0xFFFFFFFF, 0x11111111); 
+		#if defined(CONFIG_M805S_8925_0XX)
+			BITCSET(pGPIO_F->GPFN1.nREG, 0x000FFFFF, 0x0001B111);
+		#else
+			BITCSET(pGPIO_F->GPFN1.nREG, 0x0000FFFF, 0x0000B111);
+		#endif
 	#else
 		if(system_rev == 0x1005 || system_rev == 0x1007){
 			BITCSET(pGPIO_F->GPEN.nREG, 0x4100FFFF, 0x4100FFFF);

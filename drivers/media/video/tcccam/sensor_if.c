@@ -969,7 +969,7 @@ int sensor_if_init(struct v4l2_pix_format *pix)
 		#if defined(CONFIG_MACH_M805_892X)
 			// Power doesn't need it.
 
-			if(system_rev == 0x2002) {
+			#if	defined(CONFIG_M805S_8925_0XX)
 				// Powerdown
 				gpio_request(TCC_GPD(1), NULL);
 				gpio_direction_output(TCC_GPD(1), 1);
@@ -977,16 +977,27 @@ int sensor_if_init(struct v4l2_pix_format *pix)
 				// Reset
 				gpio_request(TCC_GPF(15), NULL);
 				gpio_direction_output(TCC_GPF(15), 0);
-			}
-			else {
-				// Powerdown
-				gpio_request(TCC_GPE(22), NULL);
-				gpio_direction_output(TCC_GPE(22), 1);
 
-				// Reset
-				gpio_request(TCC_GPE(10), NULL);
-				gpio_direction_output(TCC_GPE(10), 0);
-			}
+			#else
+				if(system_rev == 0x2002) {
+					// Powerdown
+					gpio_request(TCC_GPD(1), NULL);
+					gpio_direction_output(TCC_GPD(1), 1);
+					
+					// Reset
+					gpio_request(TCC_GPF(15), NULL);
+					gpio_direction_output(TCC_GPF(15), 0);
+				}
+				else {
+					// Powerdown
+					gpio_request(TCC_GPE(22), NULL);
+					gpio_direction_output(TCC_GPE(22), 1);
+
+					// Reset
+					gpio_request(TCC_GPE(10), NULL);
+					gpio_direction_output(TCC_GPE(10), 0);
+				}
+			#endif
 		#else
 
 			if(system_rev == 0x1005 || system_rev == 0x1007){
@@ -1963,10 +1974,14 @@ void sensor_powerdown_enable(void)
 	}
 	#elif defined(CONFIG_ARCH_TCC892X)
 		#if defined(CONFIG_MACH_M805_892X)
-			if(system_rev == 0x2002)
+			#if defined(CONFIG_M805S_8925_0XX)
 				gpio_set_value(TCC_GPD(1), 1); 
-			else
-				gpio_set_value(TCC_GPE(22), 1);	
+			#else
+				if(system_rev == 0x2002)
+					gpio_set_value(TCC_GPD(1), 1); 
+				else
+					gpio_set_value(TCC_GPE(22), 1);	
+			#endif
 		#else
 			if(system_rev == 0x1005 || system_rev == 0x1007){
 				#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
@@ -2165,10 +2180,14 @@ void sensor_powerdown_disable(void)
 	}
 	#elif defined(CONFIG_ARCH_TCC892X)
 		#if defined(CONFIG_MACH_M805_892X)
-			if(system_rev == 0x2002)
-				gpio_set_value(TCC_GPD(1), 0);
-			else
-				gpio_set_value(TCC_GPE(22), 0);
+			#if defined(CONFIG_M805S_8925_0XX)
+				gpio_set_value(TCC_GPD(1), 0); 
+			#else
+				if(system_rev == 0x2002)
+					gpio_set_value(TCC_GPD(1), 0);
+				else
+					gpio_set_value(TCC_GPE(22), 0);
+			#endif
 		#else
 			if(system_rev == 0x1005 || system_rev == 0x1007){
 				#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
@@ -2364,10 +2383,14 @@ void sensor_reset_high(void)
 	}
 	#elif defined(CONFIG_ARCH_TCC892X)
 		#if defined(CONFIG_MACH_M805_892X)
-			if(system_rev == 0x2002)
+			#if defined(CONFIG_M805S_8925_0XX)
 				gpio_set_value(TCC_GPF(15), 1);
-			else
-				gpio_set_value(TCC_GPE(10), 1);
+			#else
+				if(system_rev == 0x2002)
+					gpio_set_value(TCC_GPF(15), 1);
+				else
+					gpio_set_value(TCC_GPE(10), 1);
+			#endif
 		#else
 			if(system_rev == 0x1006){
 				#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
@@ -2528,10 +2551,14 @@ void sensor_reset_low(void)
 	}
 	#elif defined(CONFIG_ARCH_TCC892X)
 		#if defined(CONFIG_MACH_M805_892X)
-			if(system_rev == 0x2002)
+			#if defined(CONFIG_M805S_8925_0XX)
 				gpio_set_value(TCC_GPF(15), 0);
-			else
-				gpio_set_value(TCC_GPE(10), 0);
+			#else
+				if(system_rev == 0x2002)
+					gpio_set_value(TCC_GPF(15), 0);
+				else
+					gpio_set_value(TCC_GPE(10), 0);
+			#endif
 		#else
 			if(system_rev == 0x1006){
 				#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
