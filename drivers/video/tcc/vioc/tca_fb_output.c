@@ -985,6 +985,7 @@ int TCC_OUTPUT_FB_MouseMove(unsigned int width, unsigned int height, tcc_mouse *
 	VIOC_RDMA * pRDMABase;
 	
 	unsigned int lcd_width, lcd_height, lcd_w_pos,lcd_h_pos, mouse_x, mouse_y;
+	unsigned int interlace_output, display_width, display_height;
 
 	if(pDISP_OUTPUT[type].pVIOC_DispBase == NULL)
 	{
@@ -996,6 +997,18 @@ int TCC_OUTPUT_FB_MouseMove(unsigned int width, unsigned int height, tcc_mouse *
 	pWMIXBase = pDISP_OUTPUT[type].pVIOC_WMIXBase;
 	pRDMABase = pDISP_OUTPUT[type].pVIOC_RDMA_Mouse;
 
+	if( pDISPBase == (VIOC_DISP*)tcc_p2v(HwVIOC_DISP0))
+	{
+		if( !(pDISPBase->uCTRL.nREG & HwDISP_NI ))//interlace mode
+			interlace_output = 1;
+		else
+			interlace_output = 0;
+	}
+	else
+	{
+		interlace_output = 0;
+	}
+
 	dprintk("%s pRDMA:0x%08x, pWMIX:0x%08x, pDISP:0x%08x\n", __func__, pRDMABase, pWMIXBase, pDISPBase);
 
 	VIOC_DISP_GetSize(pDISPBase, &lcd_width, &lcd_height);
@@ -1003,11 +1016,30 @@ int TCC_OUTPUT_FB_MouseMove(unsigned int width, unsigned int height, tcc_mouse *
 	if((!lcd_width) || (!lcd_height))
 		return;
 
+	lcd_width -= uiOutputResizeMode << 4;
+	lcd_height -= uiOutputResizeMode << 3;
+
 	mouse_x = (unsigned int)(lcd_width * mouse->x / width);
 	mouse_y = (unsigned int)(lcd_height *mouse->y / height);
 
+	if( mouse_x > lcd_width - mouse_cursor_width )
+		display_width = lcd_width - mouse_x;
+	else
+		display_width = mouse_cursor_width;
+
+	if( mouse_y > lcd_height - mouse_cursor_height )
+		display_height = lcd_height - mouse_y;
+	else
+		display_height = mouse_cursor_height;
+
 	VIOC_RDMA_SetImageOffset(pRDMABase, TCC_LCDC_IMG_FMT_RGB888, mouse_cursor_width);
 	VIOC_RDMA_SetImageFormat(pRDMABase, TCC_LCDC_IMG_FMT_RGB888);
+
+	mouse_x += uiOutputResizeMode << 3;
+	if( interlace_output )
+		mouse_y += uiOutputResizeMode << 1;
+	else
+		mouse_y += uiOutputResizeMode << 2;
 
 	lcd_w_pos = mouse_x;
 	lcd_h_pos = mouse_y;
@@ -1021,19 +1053,19 @@ int TCC_OUTPUT_FB_MouseMove(unsigned int width, unsigned int height, tcc_mouse *
 	// scale
 	VIOC_RDMA_SetImageScale(pRDMABase, 0, 0);
 	
-	VIOC_RDMA_SetImageSize(pRDMABase, mouse_cursor_width, mouse_cursor_height);
+	VIOC_RDMA_SetImageSize(pRDMABase, display_width, display_height);
 		
 	// position
 	//if(ISZERO(pLCDC->LCTRL, HwLCTRL_NI)) //--
-	if(pDISPBase->uCTRL.nREG & HwDISP_NI)
-	{
-		VIOC_RDMA_SetImageIntl(pRDMABase, 0);
-		VIOC_WMIX_SetPosition(pWMIXBase, 3, lcd_w_pos, lcd_h_pos);
-	}
-	else
+	if(interlace_output)
 	{
 		VIOC_RDMA_SetImageIntl(pRDMABase, 1);
 		VIOC_WMIX_SetPosition(pWMIXBase, 3,  lcd_w_pos, (lcd_h_pos/2) );
+	}
+	else
+	{
+		VIOC_RDMA_SetImageIntl(pRDMABase, 0);
+		VIOC_WMIX_SetPosition(pWMIXBase, 3, lcd_w_pos, lcd_h_pos);
 	}
 
 	// alpha & chroma key color setting

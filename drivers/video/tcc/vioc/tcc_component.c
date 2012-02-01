@@ -1428,8 +1428,12 @@ void tcc_component_update(struct tcc_lcdc_image_update *update)
 			win_offset_y =  update->offset_y; 
 	#endif
 	
+	#if defined(CONFIG_ARCH_TCC892X)
+	
+	#else
 	if(Component_Mode == COMPONENT_MODE_1080I)
 		win_offset_y = win_offset_y/2;
+	#endif
 
 	dprintk("%s, img_widht:%d, img_height:%d, win_offset_x:%d, win_offset_y:%d\n", __func__, img_width, img_height, win_offset_x, win_offset_y);
 	

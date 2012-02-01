@@ -1324,11 +1324,9 @@ int __init tcc_composite_init(void)
 	tcc_composite_class = class_create(THIS_MODULE, DEVICE_NAME);
 	device_create(tcc_composite_class, NULL, MKDEV(MAJOR_ID, MINOR_ID), NULL, DEVICE_NAME);
 
-#if 0
 	tcc_composite_clock_onoff(1);
 	internal_tve_enable(0, 0);
 	tcc_composite_clock_onoff(0);
-#endif /* 0 */
 
 	#if defined (CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST)
 		#if defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION)
