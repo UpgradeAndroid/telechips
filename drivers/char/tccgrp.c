@@ -240,26 +240,26 @@ int grp_overlaymixer_ctrl(G2D_BITBLIT_TYPE_1 *g2d_p)
 	
 	dest_addr = g2d_p->tgt0;
 
-	GRP_DBG("src_addr0:0x%X, src_img(x:%d, y:%d), crop_img(%d:%d:%d:%d) fmt:%d, using:%d !!!\n",  
+	GRP_DBG("src_addr0:0x%X, src_img(x:%d, y:%d), crop_img(%d:%d:%d:%d) fmt:%d, dev_opened:%d !!!\n",  
 				src_addr0, 
 				g2d_p->src0_imgx, g2d_p->src0_imgy, 
 				g2d_p->src0_crop_offx, g2d_p->src0_crop_offy,  
 				g2d_p->src0_crop_imgx, g2d_p->src0_crop_imgy, 
-				g2d_p->src0_fmt, g2d_struct.count);
+				g2d_p->src0_fmt, g2d_struct.dev_opened);
 
-	GRP_DBG("src_addr1:0x%X, src_img(x:%d, y:%d), crop_img(%d:%d:%d:%d) fmt:%d, using:%d !!!\n",  
+	GRP_DBG("src_addr1:0x%X, src_img(x:%d, y:%d), crop_img(%d:%d:%d:%d) fmt:%d, block_waiting:%d !!!\n",  
 				src_addr1, 
 				g2d_p->src1_imgx, g2d_p->src1_imgy, 
 				g2d_p->src1_crop_offx, g2d_p->src1_crop_offy,  
 				g2d_p->src1_crop_imgx, g2d_p->src1_crop_imgy, 
-				g2d_p->src1_fmt, g2d_struct.count);
+				g2d_p->src1_fmt, g2d_struct.block_waiting);
 
-	GRP_DBG("src_addr2:0x%X, src_img(x:%d, y:%d), crop_img(%d:%d:%d:%d) fmt:%d, using:%d !!!\n",  
+	GRP_DBG("src_addr2:0x%X, src_img(x:%d, y:%d), crop_img(%d:%d:%d:%d) fmt:%d, block_operating:%d !!!\n",  
 				src_addr2, 
 				g2d_p->src2_imgx, g2d_p->src2_imgy, 
 				g2d_p->src2_crop_offx, g2d_p->src2_crop_offy,  
 				g2d_p->src2_crop_imgx, g2d_p->src2_crop_imgy, 
-				g2d_p->src2_fmt, g2d_struct.count);
+				g2d_p->src2_fmt, g2d_struct.block_operating);
 
 	GRP_DBG("dst_addr:0x%X, dst_img(x:%d, y:%d), dst_offset(x:%d, y:%d)\n",  
 				dest_addr, 
@@ -380,6 +380,7 @@ int grp_overlaymixer_ctrl(G2D_BITBLIT_TYPE_1 *g2d_p)
 	GRP_DBG("en_channel:%d\n",chEn);
 	
 	spin_lock_irq(&(g2d_struct.g2d_spin_lock));
+	gre2d_rsp_interrupt(G2D_INTERRUPT_TYPE);
 	
 	gre2d_ImgROP(rop, chEn);
 	
