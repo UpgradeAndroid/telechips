@@ -151,7 +151,7 @@ void cif_dma_hw_reg(unsigned char frame_num);
 static unsigned char cam_irq = 0;
 static unsigned char skip_frm = 0, skipped_frm = 0;
 static unsigned char frame_lock = 0;
-
+static unsigned char register_timer = 0;
 #if defined(CONFIG_USE_ISP)
 #ifdef TCCISP_GEN_CFG_UPD
 static 	struct tccxxx_cif_buffer * next_buf = 0;
@@ -1048,6 +1048,7 @@ void cif_timer_register(void* priv, unsigned long timeover)
 	data->cam_timer.expires = get_jiffies_64()+ timeover;
 
 	add_timer(&data->cam_timer);
+	register_timer = 1;
 }
 
 void cif_timer_deregister(void)
@@ -1056,6 +1057,7 @@ void cif_timer_deregister(void)
 
 	del_timer(&data->cam_timer);
 	data->cam_timer.expires = 0;
+	register_timer = 0;
 }
 
 
@@ -3062,34 +3064,38 @@ int tccxxx_cif_close(void)
 	cif_interrupt_disable();
 	cif_cleanup();
 
-	dprintk("reamp : [0x%x - 0x%x] -> [0x%x] \n",data->cif_buf.addr, data->cif_buf.bytes, (unsigned int)data->cif_buf.area);		
-	iounmap(data->cif_buf.area);
+	printk("camera close reamp : [0x%x - 0x%x] -> [0x%x] \n",data->cif_buf.addr, data->cif_buf.bytes, (unsigned int)data->cif_buf.area);
+	if(data->cif_buf.area != NULL)
+		iounmap(data->cif_buf.area);
 
+	if(cam_irq)
+	{
 #if defined(CONFIG_USE_ISP)
-	//free_irq(IRQ_ISP0, NULL);
-	free_irq(IRQ_ISP1, NULL);
-	free_irq(IRQ_ISP2, NULL);
-	//free_irq(IRQ_ISP3, NULL);
+		//free_irq(IRQ_ISP0, NULL);
+		free_irq(IRQ_ISP1, NULL);
+		free_irq(IRQ_ISP2, NULL);
+		//free_irq(IRQ_ISP3, NULL);
 #else
-	#if defined(CONFIG_ARCH_TCC88XX)
-		free_irq(IRQ_CIF, NULL);
-	#elif	defined(CONFIG_ARCH_TCC892X)
-		free_irq(INT_VIOC_WD5, cif_cam_isr_in8920);
-		//	In case of 892X, we have to add.
-	
-	#else
-		free_irq(IRQ_CAM, NULL);
-	#endif
+		#if defined(CONFIG_ARCH_TCC88XX)
+			free_irq(IRQ_CIF, NULL);
+		#elif	defined(CONFIG_ARCH_TCC892X)
+			free_irq(INT_VIOC_WD5, NULL/*cif_cam_isr_in8920*/);
+			//	In case of 892X, we have to add.
+		
+		#else
+			free_irq(IRQ_CAM, NULL);
+		#endif
 #endif
-
+	}
 	cam_irq = 0;
 	
 #ifdef JPEG_ENCODE_WITH_CAPTURE
 	free_irq(IRQ_JPGE, NULL);
 #endif
-
-	cif_timer_deregister();
-
+	if(register_timer)
+	{
+		cif_timer_deregister();
+	}
 	return 0;
 }
 
@@ -3138,7 +3144,8 @@ int  tccxxx_cif_init(void)
 	buf->bytes = PAGE_ALIGN(PREVIEW_MEM_SIZE);
 	buf->addr = PA_PREVIEW_BASE_ADDR;
 	buf->area = ioremap_nocache(buf->addr,buf->bytes);
-	dprintk("reamp : [0x%x - 0x%x] -> [0x%x] \n",buf->addr, buf->bytes, (unsigned int)buf->area);		
+	//dprintk("reamp : [0x%x - 0x%x] -> [0x%x] \n",buf->addr, buf->bytes, (unsigned int)buf->area);
+	printk("reamp : [0x%x - 0x%x] -> [0x%x] \n",buf->addr, buf->bytes, (unsigned int)buf->area);	
 #endif
 
 	if (buf->area == NULL) 

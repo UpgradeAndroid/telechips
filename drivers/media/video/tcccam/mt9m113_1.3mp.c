@@ -1375,7 +1375,7 @@ static int write_regs_mt9m113(const struct sensor_reg reglist[])
 			//mdelay(next->val);
 			msleep(next->val);
 			sleep_cnt = 100;
-			printk("Sensor init Delay[%d]!!!! \n", next->val);
+			//printk("Sensor init Delay[%d]!!!! \n", next->val);
 			next++;
 		}
 		else

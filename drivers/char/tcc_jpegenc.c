@@ -58,7 +58,7 @@
 #define TCC_JPEGENC_MINOR_ID 1
 #define TCC_JPEGENC_DEVICE_NAME "jpegenc"
 
-#define dprintk(msg...)	if (1) { printk( "TCC_JPEGENC: " msg); }
+#define dprintk(msg...)	if (0) { printk( "TCC_JPEGENC: " msg); }
 
 typedef struct _int_data_t {
 	wait_queue_head_t wq;
