@@ -957,21 +957,21 @@ static ssize_t tcc_sensor_attr_temperature_store(struct device *dev,
 	return 0;
 }
 
-static DEVICE_ATTR(delay, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
+static DEVICE_ATTR(delay, S_IRUGO|S_IWUSR|S_IWGRP,
 		tcc_sensor_attr_delay_show, tcc_sensor_attr_delay_store);
-static DEVICE_ATTR(enable, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
+static DEVICE_ATTR(enable, S_IRUGO|S_IWUSR|S_IWGRP,
 		tcc_sensor_attr_enable_show, tcc_sensor_attr_enable_store);
-static DEVICE_ATTR(resolution, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
+static DEVICE_ATTR(resolution, S_IRUGO|S_IWUSR|S_IWGRP,
 		tcc_sensor_attr_resolution_show, tcc_sensor_attr_resolution_store);
-static DEVICE_ATTR(inputdevice, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
+static DEVICE_ATTR(inputdevice, S_IRUGO|S_IWUSR|S_IWGRP,
 		tcc_sensor_attr_inputdevice_show, tcc_sensor_attr_inputdevice_store);
-static DEVICE_ATTR(calibration, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
+static DEVICE_ATTR(calibration, S_IRUGO|S_IWUSR|S_IWGRP,
 		tcc_sensor_attr_calibration_show, tcc_sensor_attr_calibration_store);
-static DEVICE_ATTR(autocalibration, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
+static DEVICE_ATTR(autocalibration, S_IRUGO|S_IWUSR|S_IWGRP,
 		tcc_sensor_attr_autocalibration_show, tcc_sensor_attr_autocalibration_store);
-static DEVICE_ATTR(halname, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
+static DEVICE_ATTR(halname, S_IRUGO|S_IWUSR|S_IWGRP,
 		tcc_sensor_attr_halname_show, tcc_sensor_attr_halname_store);
-static DEVICE_ATTR(temperature, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
+static DEVICE_ATTR(temperature, S_IRUGO|S_IWUSR|S_IWGRP,
 		tcc_sensor_attr_temperature_show, tcc_sensor_attr_temperature_store);
 	
 static struct attribute *tcc_sensor_attributes[] = {
