@@ -536,9 +536,8 @@ static irqreturn_t tcc_lcd_handler0_for_video(int irq, void *dev_id)
 {
 ///wz// tccvid_vsync 
 	tca_lcdc_interrupt_onoff(1, 0);
-	if(Output_SelectMode == TCC_OUTPUT_NONE || Output_SelectMode == TCC_OUTPUT_COMPONENT || Output_SelectMode == TCC_OUTPUT_COMPOSITE)
-	{
-#ifdef USE_SOFT_IRQ_FOR_VSYNC
+
+	#ifdef USE_SOFT_IRQ_FOR_VSYNC
 		if (schedule_work(&vsync_work_q) == 0 ) {
 			printk("vsync error:cannot schedule work !!!\n");
 		}
@@ -556,8 +555,7 @@ static irqreturn_t tcc_lcd_handler0_for_video(int irq, void *dev_id)
 
 		if( tcc_vsync_is_empty_buffer(&tccvid_vsync.vsync_buffer) == 0 )
 			DisplayUpdate();				
-#endif
-	}
+#endif	
 
 	return IRQ_HANDLED;	
 }
@@ -565,9 +563,7 @@ static irqreturn_t tcc_lcd_handler0_for_video(int irq, void *dev_id)
 static irqreturn_t tcc_lcd_handler1_for_video(int irq, void *dev_id)
 {
 	tca_lcdc_interrupt_onoff(1, 1);
-
-	if(Output_SelectMode == TCC_OUTPUT_HDMI)
-	{
+	
 #ifdef USE_SOFT_IRQ_FOR_VSYNC
 		if (schedule_work(&vsync_work_q) == 0 ) {
             printk("vsync error:cannot schedule work !!!\n");
@@ -585,8 +581,7 @@ static irqreturn_t tcc_lcd_handler1_for_video(int irq, void *dev_id)
 
 		if( tcc_vsync_is_empty_buffer(&tccvid_vsync.vsync_buffer) == 0)
 			DisplayUpdate();				
-#endif
-	}
+#endif	
 
 	return IRQ_HANDLED;	
 }
