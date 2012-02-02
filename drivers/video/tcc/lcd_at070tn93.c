@@ -54,13 +54,17 @@ static int at070tn93_set_power(struct lcd_panel *panel, int on, unsigned int lcd
 {
 	struct lcd_platform_data *pdata = panel->dev->platform_data;
 
+
+
+	if(!on && panel->bl_level)
+		panel->set_backlight_level(panel , 0);
+	
 	mutex_lock(&panel_lock);
-	lcd_pwr_state = on;
+	panel->state = on;
 
 	printk("%s : %d %d  lcd number = (%d) \n", __func__, on, panel->bl_level, lcd_num);
 
 	if (on) {
-		
 		gpio_set_value(pdata->power_on, 1);
 		udelay(100);
 
@@ -69,7 +73,7 @@ static int at070tn93_set_power(struct lcd_panel *panel, int on, unsigned int lcd
 
 		lcdc_initialize(panel, lcd_num);
 		LCDC_IO_Set(lcd_num, panel->bus_width);
-		msleep(80);
+		msleep(100);
 	}
 	else 
 	{
@@ -96,7 +100,7 @@ static int at070tn93_set_backlight_level(struct lcd_panel *panel, int level)
 
 	struct lcd_platform_data *pdata = panel->dev->platform_data;
 
-//	printk("%s : %d\n", __func__, level);
+//	printk("%s : level:%d  power:%d \n", __func__, level, panel->state);
 	
 	mutex_lock(&panel_lock);
 	panel->bl_level = level;
@@ -113,7 +117,7 @@ static int at070tn93_set_backlight_level(struct lcd_panel *panel, int level)
 
 		if(system_rev == 0x1005 || system_rev == 0x1007 || system_rev == 0x1006 || system_rev == 0x2002)
 		{
-			if(lcd_pwr_state)
+			if(panel->state)
 			{
 				if(system_rev == 0x1006)
 					tcc_gpio_config(pdata->bl_on, GPIO_FN(7));
@@ -131,7 +135,7 @@ static int at070tn93_set_backlight_level(struct lcd_panel *panel, int level)
 		}
 		else
 		{		
-			if(lcd_pwr_state)
+			if(panel->state)
 				tcc_gpio_config(pdata->bl_on, GPIO_FN(9));
 
 			pTIMER->TREF1.nREG = MAX_BL_LEVEL;
@@ -141,7 +145,7 @@ static int at070tn93_set_backlight_level(struct lcd_panel *panel, int level)
 		}
 #else
 	
-		if(lcd_pwr_state)
+		if(panel->state)
 			tcc_gpio_config(pdata->bl_on, GPIO_FN(2));
 
 		pTIMER	= (volatile PTIMER)tcc_p2v(HwTMR_BASE);
@@ -195,8 +199,8 @@ static int at070tn93_probe(struct platform_device *pdev)
 	printk("%s : %d\n", __func__, 0);
 
 	mutex_init(&panel_lock);
-	lcd_pwr_state = 1;
 
+	at070tn93_panel.state = 1;
 	at070tn93_panel.dev = &pdev->dev;
 	
 	tccfb_register_panel(&at070tn93_panel);
