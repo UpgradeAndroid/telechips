@@ -140,6 +140,17 @@
                         Shut-down Backup Registers
 
 ===========================================================================*/
+#if defined(CONFIG_PM_CONSOLE_NOT_SUSPEND)
+typedef struct _BACKUP_UART {
+	volatile unsigned int	DLL;	// 0x000  R/W  0x00000000   Divisor Latch (LSB) (DLAB=1)
+	volatile unsigned int	IER;		// 0x004  R/W  0x00000000   Interrupt Enable Register (DLAB=0)
+	volatile unsigned int	DLM;	// 0x004  R/W  0x00000000   Divisor Latch (MSB) (DLAB=1)
+	volatile unsigned int	LCR;	// 0x00C  R/W  0x00000003   Line Control Register
+	volatile unsigned int	MCR;	// 0x010  R/W  0x00000040   MODEM Control Register
+	volatile unsigned int	AFT;	// 0x020  R/W  0x00000000   AFC Trigger Level Register
+	volatile unsigned int	UCR;	// 0x024  R/W  0x00000000   UART Control register
+} bkUART;
+#endif
 
 typedef struct _TCC_REG_{
 	CKC ckc;
@@ -153,7 +164,9 @@ typedef struct _TCC_REG_{
 	IOBUSCFG iobuscfg;
 
 	NFC		nfc;
-	UART	uart;
+#if defined(CONFIG_PM_CONSOLE_NOT_SUSPEND)
+	bkUART	bkuart;
+#endif
 	UARTPORTMUX uartportmux;
 
 	volatile unsigned int backup_peri_iobus0;

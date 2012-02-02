@@ -3222,9 +3222,9 @@ typedef union {
 } UART_IRCFG_TYPE;
 
 typedef struct _UART{
-    volatile UART_REG1_TYPE     REG1;
-    volatile UART_REG2_TYPE     REG2;
-    volatile UART_REG3_TYPE     REG3;
+    volatile UART_REG1_TYPE     REG1;           // 0x000  PBR(R) / THR(W) / DLL(R/W)
+    volatile UART_REG2_TYPE     REG2;           // 0x004  IER(R/W) / DLM(R/W)
+    volatile UART_REG3_TYPE     REG3;           // 0x008  IIR(R) / FCR(W)
     volatile UART_LCR_TYPE      LCR;            // 0x00C  R/W  0x00000003   Line Control Register
     volatile UART_MCR_TYPE      MCR;            // 0x010  R/W  0x00000040   MODEM Control Register
     volatile UART_LSR_TYPE      LSR;            // 0x014  R    Unknown      Line Status Register

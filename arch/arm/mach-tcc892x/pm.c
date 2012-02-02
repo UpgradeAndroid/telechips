@@ -691,35 +691,41 @@ static void sdram_init(void)
 }
 
 #if defined(CONFIG_PM_CONSOLE_NOT_SUSPEND)
-void tcc_pm_uart_suspend(UART *pBackupUART, UARTPORTCFG *pBackupUARTPORTCFG)
+static void tcc_pm_uart_suspend(bkUART *pBackupUART)
 {	
 	UART *pHwUART = (UART *)tcc_p2v(HwUART0_BASE);
 
-	pBackupUART->REG2.nREG = pHwUART->REG2.nREG;	//0x04 : IER
-	pHwUART->REG2.IER.ELSI = 0;	//disable interrupt : ELSI
-	pBackupUART->LCR.nREG = pHwUART->LCR.nREG;	//0x0C : LCR
-	pHwUART->LCR.bREG.DLAB = 1;	// DLAB = 1
-	pBackupUART->REG1.nREG = pHwUART->REG1.nREG;	//0x00 : DLL
-	pBackupUART->REG2.nREG = pHwUART->REG2.nREG;	//0x04 : DLM
-	pBackupUART->MCR.nREG = pHwUART->MCR.nREG;	//0x10 : MCR
-	pBackupUART->AFT.nREG = pHwUART->AFT.nREG;	//0x20 : AFT
-	pBackupUART->UCR.nREG= pHwUART->UCR.nREG;	//0x24 : UCR
+	//pBackupUART->CFG0 = *(volatile unsigned long *)tcc_p2v(HwUART_PORTCFG_BASE);
+	//pBackupUART->CFG1 = *(volatile unsigned long *)tcc_p2v(HwUART_PORTCFG_BASE + 0x4);
+
+	pBackupUART->IER	= pHwUART->REG2.nREG;	//0x04 : IER
+	pHwUART->REG2.nREG	&= ~Hw2;	//disable interrupt : ELSI
+	pBackupUART->LCR	= pHwUART->LCR.nREG;	//0x0C : LCR
+	pHwUART->LCR.nREG	|= Hw7;		// DLAB = 1
+	pBackupUART->DLL	= pHwUART->REG1.nREG;	//0x00 : DLL
+	pBackupUART->DLM	= pHwUART->REG2.nREG;	//0x04 : DLM
+	pBackupUART->MCR	= pHwUART->MCR.nREG;	//0x10 : MCR
+	pBackupUART->AFT	= pHwUART->AFT.nREG;	//0x20 : AFT
+	pBackupUART->UCR	= pHwUART->UCR.nREG;	//0x24 : UCR
 }
 
-void tcc_pm_uart_resume(UART *pBackupUART, UARTPORTCFG *pBackupUARTPORTCFG)
+static void tcc_pm_uart_resume(bkUART *pBackupUART)
 {
 	UART *pHwUART = (UART *)tcc_p2v(HwUART0_BASE);
 
-	pHwUART->REG2.IER.ELSI = 0;	//disable interrupt	
-	pHwUART->LCR.bREG.DLAB = 1;	// DLAB = 1
-	pHwUART->REG3.nREG = Hw2 + Hw1 + Hw0;	//0x08 : FCR
-	pHwUART->REG1.nREG	= pBackupUART->REG1.nREG;	//0x00 : DLL
-	pHwUART->REG2.nREG	= pBackupUART->REG2.nREG;	//0x04 : DLM
-	pHwUART->MCR.nREG	= pBackupUART->MCR.nREG;	//0x10 : MCR
-	pHwUART->AFT.nREG	= pBackupUART->AFT.nREG;	//0x20 : AFT
-	pHwUART->UCR.nREG	= pBackupUART->UCR.nREG;	//0x24 : UCR
-	pHwUART->LCR.nREG	= pBackupUART->LCR.nREG;	//0x0C : LCR
-	pHwUART->REG2.nREG	= pBackupUART->REG2.nREG;	//0x04 : IER
+	//*(volatile unsigned long *)tcc_p2v(HwUART_PORTCFG_BASE) = pBackupUART->CFG0;
+	//*(volatile unsigned long *)tcc_p2v(HwUART_PORTCFG_BASE + 0x4) = pBackupUART->CFG1;
+
+	pHwUART->REG2.nREG	&= ~Hw2;	//disable interrupt : ELSI
+	pHwUART->LCR.nREG	|= Hw7;		// DLAB = 1
+	pHwUART->REG3.nREG	= Hw2 + Hw1 + Hw0;	//0x08 : FCR
+	pHwUART->REG1.nREG	= pBackupUART->DLL;	//0x00 : DLL
+	pHwUART->REG2.nREG	= pBackupUART->DLM;	//0x04 : DLM
+	pHwUART->MCR.nREG	= pBackupUART->MCR;	//0x10 : MCR
+	pHwUART->AFT.nREG	= pBackupUART->AFT;	//0x20 : AFT
+	pHwUART->UCR.nREG	= pBackupUART->UCR;	//0x24 : UCR
+	pHwUART->LCR.nREG	= pBackupUART->LCR;	//0x0C : LCR
+	pHwUART->REG2.nREG	= pBackupUART->IER;	//0x04 : IER
 }
 #endif
 
@@ -1109,13 +1115,12 @@ static void shutdown_mode(void)
 	memcpy((void*)WAKEUP_FUNC_ADDR,     (void*)wakeup,     WAKEUP_FUNC_SIZE);
 	memcpy((void*)SDRAM_INIT_FUNC_ADDR, (void*)sdram_init, SDRAM_INIT_FUNC_SIZE);
 
+#ifdef CONFIG_PM_CONSOLE_NOT_SUSPEND
 	/*--------------------------------------------------------------
 	 UART block suspend
 	--------------------------------------------------------------*/
-#ifdef CONFIG_PM_CONSOLE_NOT_SUSPEND
-	tcc_pm_uart_suspend(&RegRepo.uart, &RegRepo.uartportcfg);
+	tcc_pm_uart_suspend(&RegRepo.bkuart);
 #endif
-	memcpy(&RegRepo.uartportcfg, (UARTPORTCFG *)tcc_p2v(HwUART_PORTCFG_BASE), sizeof(UARTPORTCFG));
 
 	/*--------------------------------------------------------------
 	 BUS Config
@@ -1265,14 +1270,11 @@ static void shutdown_mode(void)
 	memcpy((PIOBUSCFG)tcc_p2v(HwIOBUSCFG_BASE), &RegRepo.iobuscfg, sizeof(IOBUSCFG));
 	memcpy((PMEMBUSCFG)tcc_p2v(HwMBUSCFG_BASE), &RegRepo.membuscfg, sizeof(MEMBUSCFG));
 
+#ifdef CONFIG_PM_CONSOLE_NOT_SUSPEND
 	/*--------------------------------------------------------------
 	 UART block resume
 	--------------------------------------------------------------*/
-	memcpy((UARTPORTCFG *)tcc_p2v(HwUART_PORTCFG_BASE), &RegRepo.uartportcfg, sizeof(UARTPORTCFG));
-#ifdef CONFIG_PM_CONSOLE_NOT_SUSPEND
-	tcc_pm_uart_resume(&RegRepo.uart, &RegRepo.uartportcfg);
-
-	printk("Wake up !!\n");
+	tcc_pm_uart_resume(&RegRepo.bkuart);
 #endif
 
 	/*--------------------------------------------------------------
@@ -1296,7 +1298,6 @@ static void shutdown_mode(void)
 	while(*(volatile unsigned int *)(L2CACHE_BASE+L2X0_CACHE_SYNC)&1); //wait for sync
 	*(volatile unsigned int *)(L2CACHE_BASE+L2X0_CTRL) = 1; //cache on
 #endif
-
 }
 /*=========================================================================*/
 
@@ -1941,6 +1942,7 @@ static int tcc_pm_enter(suspend_state_t state)
 	reg_backup[1] = pPIC->STS1.nREG;
 	#endif
 #endif
+
 // -------------------------------------------------------------------------
 // disable interrupt
 	local_irq_save(flags);

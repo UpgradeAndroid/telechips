@@ -385,39 +385,35 @@ static void port_arrange(void)
 #endif //#ifdef PORT_ARRANGE_USED
 
 #if defined(CONFIG_PM_CONSOLE_NOT_SUSPEND)
-void tcc_pm_uart_suspend(UART *pBackupUART, UARTPORTMUX *pBackupUARTPORTMUX)
+static void tcc_pm_uart_suspend(bkUART *pBackupUART)
 {	
 	UART *pHwUART = (UART *)tcc_p2v(HwUART0_BASE);
-//	UARTPORTMUX *pHwUartportmux = (UARTPORTMUX *)tcc_p2v(HwUART_PORTMUX_BASE);
 
-	pBackupUART->REG2.IER = pHwUART->REG2.IER;  //0x04
-	BITCLR(pHwUART->REG2.IER, Hw2);	//disable interrupt	
-	pBackupUART->LCR	= pHwUART->LCR;  //0x0C			
-	BITSET(pHwUART->LCR, Hw7);	// DLAB = 1
-	pBackupUART->REG1.DLL = pHwUART->REG1.DLL;  //0x00
-	pBackupUART->REG2.DLM = pHwUART->REG2.DLM;  //0x04
-	pBackupUART->MCR = pHwUART->MCR;  //0x10
-	pBackupUART->AFT = pHwUART->AFT;  //0x20
-	pBackupUART->UCR= pHwUART->UCR;  //0x24
-//	memcpy(pBackupUARTPORTMUX, pHwUartportmux, sizeof(UARTPORTMUX));
+	pBackupUART->IER	= pHwUART->REG2.IER;	//0x04 : IER
+	BITCLR(pHwUART->REG2.IER, Hw2);	//disable interrupt : ELSI
+	pBackupUART->LCR	= pHwUART->LCR;	//0x0C : LCR
+	BITSET(pHwUART->LCR, Hw7);		// DLAB = 1
+	pBackupUART->DLL	= pHwUART->REG1.DLL;	//0x00 : DLL
+	pBackupUART->DLM	= pHwUART->REG2.DLM;	//0x04 : DLM
+	pBackupUART->MCR	= pHwUART->MCR;	//0x10 : MCR
+	pBackupUART->AFT	= pHwUART->AFT;		//0x20 : AFT
+	pBackupUART->UCR	= pHwUART->UCR;	//0x24 : UCR
 }
 
-void tcc_pm_uart_resume(UART *pBackupUART, UARTPORTMUX *pBackupUARTPORTMUX)
+static void tcc_pm_uart_resume(bkUART *pBackupUART)
 {
 	UART *pHwUART = (UART *)tcc_p2v(HwUART0_BASE);
-//	UARTPORTMUX *pHwUartportmux = (UARTPORTMUX *)tcc_p2v(HwUART_PORTMUX_BASE);
 
-//	memcpy(pHwUartportmux, pBackupUARTPORTMUX, sizeof(UARTPORTMUX));
-	BITCLR(pHwUART->REG2.IER, Hw2);	// disable interrupt	
-	BITSET(pHwUART->LCR, Hw7);	// DLAB = 1
-	pHwUART->REG3.FCR	= Hw2 + Hw1 + Hw0;
-	pHwUART->REG1.DLL	= pBackupUART->REG1.DLL;
-	pHwUART->REG2.DLM	= pBackupUART->REG2.DLM;
-	pHwUART->MCR	= pBackupUART->MCR;
-	pHwUART->AFT	= pBackupUART->AFT;
-	pHwUART->UCR	= pBackupUART->UCR;
-	pHwUART->LCR	= pBackupUART->LCR;
-	pHwUART->REG2.IER	= pBackupUART->REG2.IER;
+	BITCLR(pHwUART->REG2.IER, Hw2);	//disable interrupt : ELSI
+	BITSET(pHwUART->LCR, Hw7);		// DLAB = 1
+	pHwUART->REG3.FCR	= Hw2 + Hw1 + Hw0;	//0x08 : FCR
+	pHwUART->REG1.DLL	= pBackupUART->DLL;	//0x00 : DLL
+	pHwUART->REG2.DLM	= pBackupUART->DLM;	//0x04 : DLM
+	pHwUART->MCR	= pBackupUART->MCR;	//0x10 : MCR
+	pHwUART->AFT	= pBackupUART->AFT;	//0x20 : AFT
+	pHwUART->UCR	= pBackupUART->UCR;	//0x24 : UCR
+	pHwUART->LCR	= pBackupUART->LCR;	//0x0C : LCR
+	pHwUART->REG2.IER	= pBackupUART->IER;	//0x04 : IER
 }
 #endif
 
@@ -1228,7 +1224,7 @@ static void shutdown_mode(void)
 	 UART block suspend
 	--------------------------------------------------------------*/
 #ifdef CONFIG_PM_CONSOLE_NOT_SUSPEND
-	tcc_pm_uart_suspend(&pReg->uart, &pReg->uartportmux);
+	tcc_pm_uart_suspend(&pReg->bkuart);
 #endif
 	memcpy(&pReg->uartportmux, uartportmux, sizeof(UARTPORTMUX));
 
@@ -1384,7 +1380,7 @@ static void shutdown_mode(void)
 	--------------------------------------------------------------*/
 	memcpy(uartportmux, &pReg->uartportmux, sizeof(UARTPORTMUX));
 #ifdef CONFIG_PM_CONSOLE_NOT_SUSPEND
-	tcc_pm_uart_resume(&pReg->uart, &pReg->uartportmux);
+	tcc_pm_uart_resume(&pReg->bkuart);
 #endif
 
 	pmdrv_dbg("Wake up !!\n");

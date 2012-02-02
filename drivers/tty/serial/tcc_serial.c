@@ -483,7 +483,6 @@ static void tcc_serial_start_tx(struct uart_port *port)
 static void tcc_serial_stop_rx(struct uart_port *port)
 {
 	dbg("%s  line[%d] irq[%d]\n", __func__, port->line, port->irq);
-    struct tcc_uart_port *tcc_port = port;
     u32 ier;
 
     if (rx_enabled(port)) {
@@ -1101,8 +1100,8 @@ static int tcc_serial_remove(struct platform_device *dev)
  *-------------------------------------------------*/
 static int tcc_serial_suspend(struct platform_device *dev, pm_message_t state)
 {
-	struct uart_port *port = tcc_dev_to_port(&dev->dev);
-	struct tcc_uart_port *tcc_port = (struct tcc_uart_port *)port;
+    struct uart_port *port = tcc_dev_to_port(&dev->dev);
+    struct tcc_uart_port *tcc_port = (struct tcc_uart_port *)port;
 
 #if defined(CONFIG_ARCH_TCC892X)
     uartPortCFG0 = *(volatile unsigned long *)tcc_p2v(HwUART_PORTCFG_BASE);
@@ -1112,14 +1111,14 @@ static int tcc_serial_suspend(struct platform_device *dev, pm_message_t state)
 #endif
     dbg("%s in...\n", __func__);
 
-        if (port) {
-		//port->suspended = 1;
+    if (port) {
+        //port->suspended = 1;
 
-            uart_suspend_port(&tcc_uart_drv, port);
-            if(port->line == TCC_GPS_UART){
+        uart_suspend_port(&tcc_uart_drv, port);
+        if(port->line == TCC_GPS_UART){
 #if defined(CONFIG_GPS)
-                if(gps_k_flag){
-#if defined(CONFIG_MACH_TCC9300) || defined(CONFIG_MACH_TCC8800) || defined(CONFIG_MACH_TCC8920)                	
+            if(gps_k_flag){
+#if defined(CONFIG_MACH_TCC9300) || defined(CONFIG_MACH_TCC8800) || defined(CONFIG_MACH_TCC8920)
                 if(machine_is_m801_88() || machine_is_m803()) // demo set
                 {
                     gpio_set_value(TCC_GPG(4), 0);
@@ -1136,17 +1135,17 @@ static int tcc_serial_suspend(struct platform_device *dev, pm_message_t state)
 #elif defined(CONFIG_MACH_M805_892X)
                 if(machine_is_m805_892x())
                 {
-                	if (system_rev == 0x2002)
-						gpio_set_value(TCC_GPE(14), 0);
-                	else
-                    	gpio_set_value(TCC_GPC(6), 0);
+                    if (system_rev == 0x2002)
+                        gpio_set_value(TCC_GPE(14), 0);
+                    else
+                        gpio_set_value(TCC_GPC(6), 0);
                 }
 #endif
             }
 #endif
-            }
+        }
         if(tcc_port->tx_dma_use) {
-		//tcc_pca953x_setup(PCA9539_U3_SLAVE_ADDR, BT_ON, OUTPUT, LOW, SET_DIRECTION|SET_VALUE);
+            //tcc_pca953x_setup(PCA9539_U3_SLAVE_ADDR, BT_ON, OUTPUT, LOW, SET_DIRECTION|SET_VALUE);
         }
     }
     dbg("%s out...\n", __func__);
@@ -1155,8 +1154,8 @@ static int tcc_serial_suspend(struct platform_device *dev, pm_message_t state)
 
 static int tcc_serial_resume(struct platform_device *dev)
 {
-	struct uart_port *port = tcc_dev_to_port(&dev->dev);
-	struct tcc_uart_port *tcc_port = (struct tcc_uart_port *)port;
+    struct uart_port *port = tcc_dev_to_port(&dev->dev);
+    struct tcc_uart_port *tcc_port = (struct tcc_uart_port *)port;
 #if defined(CONFIG_ARCH_TCC892X)
     *(volatile unsigned long *)tcc_p2v(HwUART_PORTCFG_BASE) = uartPortCFG0;
     *(volatile unsigned long *)tcc_p2v(HwUART_PORTCFG_BASE + 0x4) = 	uartPortCFG1;
@@ -1165,59 +1164,54 @@ static int tcc_serial_resume(struct platform_device *dev)
 #endif
 
     if(port) {
-		if (port->suspended) {
+        if (port->suspended) {
 
 #if defined(CONFIG_TCC_BT_DEV)
-	    if(tcc_port->bt_use == 1) 
-			tcc_port->bt_suspend = 1;
+            if(tcc_port->bt_use == 1)
+                tcc_port->bt_suspend = 1;
 #endif
-
             if(tcc_port->tx_dma_use){
-		    //tcc_pca953x_setup(PCA9539_U3_SLAVE_ADDR, BT_ON, OUTPUT, HIGH, SET_DIRECTION|SET_VALUE);
+                //tcc_pca953x_setup(PCA9539_U3_SLAVE_ADDR, BT_ON, OUTPUT, HIGH, SET_DIRECTION|SET_VALUE);
             }
 
-
-           uart_resume_port(&tcc_uart_drv, port);
-
-
+            uart_resume_port(&tcc_uart_drv, port);
 
             if(port->line == TCC_GPS_UART){
 #if defined(CONFIG_GPS)
                 if(gps_k_flag){
-#if defined(CONFIG_MACH_TCC9300) || defined(CONFIG_MACH_TCC8800) || defined(CONFIG_MACH_TCC8920)              	
-                if(machine_is_m801_88() || machine_is_m803()) // demo set
-                {
-                    gpio_set_value(TCC_GPG(4), 1);
-                }
+#if defined(CONFIG_MACH_TCC9300) || defined(CONFIG_MACH_TCC8800) || defined(CONFIG_MACH_TCC8920)
+                    if(machine_is_m801_88() || machine_is_m803()) // demo set
+                    {
+                        gpio_set_value(TCC_GPG(4), 1);
+                    }
                     else if(machine_is_tcc8800() || machine_is_tcc8920())
-                {
-                    gpio_direction_output(TCC_GPEXT1(6), 1);
-                }
+                    {
+                        gpio_direction_output(TCC_GPEXT1(6), 1);
+                    }
 #elif defined(CONFIG_MACH_TCC8900)
-                if(machine_is_tcc8900())
-                {
-                    gpio_set_value(TCC_GPD(25), 1);
-                }
+                    if(machine_is_tcc8900())
+                    {
+                        gpio_set_value(TCC_GPD(25), 1);
+                    }
 #elif defined(CONFIG_MACH_M805_892X)
                     if(machine_is_m805_892x())
                     {
-						if (system_rev == 0x2002)
-							gpio_set_value(TCC_GPE(14), 1);
-						else
-                        	gpio_set_value(TCC_GPC(6), 1);
+                        if (system_rev == 0x2002)
+                            gpio_set_value(TCC_GPE(14), 1);
+                        else
+                            gpio_set_value(TCC_GPC(6), 1);
                     }
 #endif      
-            }
+                }
 #endif
             }
-
 
 #if defined(CONFIG_TCC_BT_DEV)
-	    if(tcc_port->bt_use == 1) 
-			tcc_port->bt_suspend = 0;
+            if(tcc_port->bt_use == 1)
+                tcc_port->bt_suspend = 0;
 #endif
 
-			port->suspended = 0;
+            port->suspended = 0;
         }
 	
     }
