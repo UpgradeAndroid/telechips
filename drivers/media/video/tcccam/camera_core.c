@@ -1119,7 +1119,7 @@ static long camera_core_ioctl(struct file *file, unsigned int cmd, unsigned long
 static int camera_core_release(struct file *file)
 {
 	dprintk("camera_core_release \n");
-
+	//printk("camera_core_release!! \n");
 	tccxxx_cif_close();
 	tcc_reset_clock();
 
@@ -1146,7 +1146,7 @@ static int camera_core_open(struct file *file)
 	//jiffies_prev = jiffies;
 
 	dprintk("camera_core_open \n");	
-
+	//printk("camera_core_open !!!\n");	
 	if (!vfd || (vfd->minor != minor))
 		return -ENODEV;
 

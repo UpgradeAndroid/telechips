@@ -152,6 +152,8 @@ static unsigned char cam_irq = 0;
 static unsigned char skip_frm = 0, skipped_frm = 0;
 static unsigned char frame_lock = 0;
 static unsigned char register_timer = 0;
+static unsigned char cam_open = 0, cam_close = 1;
+static unsigned char *reg_buf = NULL;
 #if defined(CONFIG_USE_ISP)
 #ifdef TCCISP_GEN_CFG_UPD
 static 	struct tccxxx_cif_buffer * next_buf = 0;
@@ -3063,10 +3065,16 @@ int tccxxx_cif_close(void)
 
 	cif_interrupt_disable();
 	cif_cleanup();
-
-	printk("camera close reamp : [0x%x - 0x%x] -> [0x%x] \n",data->cif_buf.addr, data->cif_buf.bytes, (unsigned int)data->cif_buf.area);
-	if(data->cif_buf.area != NULL)
-		iounmap(data->cif_buf.area);
+	//printk("tccxxx_cif_close cam_open = %d, cam_close = %d\n", cam_open, cam_close);
+	dprintk("camera close reamp : [0x%x - 0x%x] -> [0x%x] \n",data->cif_buf.addr, data->cif_buf.bytes, (unsigned int)data->cif_buf.area);
+	if(cam_open == 1 && cam_close == 0)
+	{
+		if(data->cif_buf.area != NULL)
+			iounmap(data->cif_buf.area);
+		reg_buf = NULL;
+		cam_open = 0;
+		cam_close = 1;
+	}
 
 	if(cam_irq)
 	{
@@ -3140,20 +3148,39 @@ int  tccxxx_cif_init(void)
 	gJPEG_Buffer_Info.pBaseBitstreamDataSize = JPEG_STREAM;
 	gJPEG_Buffer_Info.pBaseHeaderDataAddr = (void*)(JPEG_PHY_ADDRESS + JPEG_STREAM);
 	gJPEG_Buffer_Info.pBaseHeaderDataSize = JPEG_HEADER;
-#else
-	buf->bytes = PAGE_ALIGN(PREVIEW_MEM_SIZE);
-	buf->addr = PA_PREVIEW_BASE_ADDR;
-	buf->area = ioremap_nocache(buf->addr,buf->bytes);
-	//dprintk("reamp : [0x%x - 0x%x] -> [0x%x] \n",buf->addr, buf->bytes, (unsigned int)buf->area);
-	printk("reamp : [0x%x - 0x%x] -> [0x%x] \n",buf->addr, buf->bytes, (unsigned int)buf->area);	
-#endif
 
 	if (buf->area == NULL) 
 	{
 		printk(KERN_ERR CAM_NAME ": cannot remap buffer\n");
 		return ENODEV;
 	}
-
+	
+#else
+	//printk("tccxxx_cif_init cam_open = %d, cam_close = %d\n", cam_open, cam_close);
+	if(cam_open ==1 && cam_close ==0)
+	{
+		if(reg_buf != NULL)
+			iounmap(reg_buf);
+		reg_buf = NULL;
+	}
+	if(cam_open == 0 && cam_close == 1)
+	{
+		buf->bytes = PAGE_ALIGN(PREVIEW_MEM_SIZE);
+		buf->addr = PA_PREVIEW_BASE_ADDR;
+		buf->area = ioremap_nocache(buf->addr,buf->bytes);
+		reg_buf = buf->area;
+		dprintk("reamp : [0x%x - 0x%x] -> [0x%x] \n",buf->addr, buf->bytes, (unsigned int)buf->area);
+		//printk("reamp : [0x%x - 0x%x] -> [0x%x] \n",buf->addr, buf->bytes, (unsigned int)buf->area);
+		if (buf->area == NULL) 
+		{
+			printk(KERN_ERR CAM_NAME ": cannot remap buffer\n");
+			return ENODEV;
+		}
+		
+		cam_open = 1;
+		cam_close = 0;		
+	}
+#endif
 	#if defined(CONFIG_ARCH_TCC892X)
 	pVINDemuxBase = (VIOC_VIN_DEMUX*)tcc_p2v(HwVIOC_VINDEMUX);
 	pWMIXBase = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX5);
