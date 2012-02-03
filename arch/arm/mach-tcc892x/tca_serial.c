@@ -239,6 +239,18 @@ int tca_serial_clock_enable(struct tcc_uart_port *tcc_port, int id)
 	return 0;
 }
 
+int tca_serial_clock_disable(struct tcc_uart_port *tcc_port, int id)
+{
+	sprintf(tcc_port->name, "uart%d", id);
+	tcc_port->clk = clk_get(NULL, tcc_port->name);
+	if(IS_ERR(tcc_port->clk)) {
+		printk("error: uart%d clock enable", id);
+		tcc_port->clk = NULL;
+		return -1;
+	}
+	clk_disable(tcc_port->clk);
+	return 0;
+}
 /*****************************************************************************
 * Function Name : tca_serial_dmaclrinterrupt(unsigned nDmanum, unsigned long* pVirtualDmaAddr)
 ******************************************************************************
