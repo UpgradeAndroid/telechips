@@ -19,6 +19,8 @@
 *******************************************************************************/
 #include <mach/vioc_disp.h>
 #include <mach/globals.h>
+#include <mach/io.h>
+
 VIOC_TIMING_INFO gVIOC_DefaultTimeSet[VIOC_DEFAUKLT_TIME_MAX] = 
 {
 	{VIOC_HDMI_1920X1080P_60Hz, 	0, 0, 0, 0, 0, 1, 0, 43, 1919, 147, 87, 4, 1079, 35, 3, 4, 1079, 35, 3},
@@ -343,9 +345,13 @@ void VIOC_DISP_SetPort( void )
 
 }
 
-void VIOC_DISP_SWReset( void )
+void VIOC_DISP_SWReset( unsigned int DISP )
 {
+	volatile PVIOC_IREQ_CONFIG pIREQConfig;
+	pIREQConfig = (volatile PVIOC_IREQ_CONFIG)tcc_p2v((unsigned int)HwVIOC_IREQ);
 
+	BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<(20+DISP)), (0x1<<(20+DISP))); // disp reset
+	BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<(20+DISP)), (0x0<<(20+DISP))); // disp reset
 }
 
 void VIOC_DISP_DisplayOnOff( unsigned int onOff )

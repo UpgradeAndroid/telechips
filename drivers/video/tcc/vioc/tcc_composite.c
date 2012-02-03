@@ -490,6 +490,8 @@ void tcc_composite_set_lcd2tv(COMPOSITE_MODE_TYPE type)
 	else
 		lcd_peri = PERI_LCD0;
 
+	VIOC_DISP_SWReset(Composite_LCDC_Num);
+
 	BITSET(pDDICfg->PWDN.nREG, Hw1);		// PWDN - TVE
 	BITCLR(pDDICfg->SWRESET.nREG, Hw1);		// SWRESET - TVE
 	BITSET(pDDICfg->SWRESET.nREG, Hw1);		// SWRESET - TVE	

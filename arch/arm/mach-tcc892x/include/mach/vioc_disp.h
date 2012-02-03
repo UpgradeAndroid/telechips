@@ -111,7 +111,7 @@ extern void VIOC_DISP_TurnOn (VIOC_DISP *pDISP);
 extern void VIOC_DISP_TurnOff (VIOC_DISP *pDISP);
 extern void VIOC_DISP_SetControl(VIOC_DISP *pDISP, stLCDCPARAM *pLcdParam);
 extern void VIOC_DISP_SetPort( void );
-extern void VIOC_DISP_SWReset( void );
+extern void VIOC_DISP_SWReset( unsigned int DISP );
 extern void VIOC_DISP_DisplayOnOff( unsigned int onOff );
 extern void VIOC_DISP_SetIreqMask(VIOC_DISP * pDISP, unsigned int mask, unsigned int set);
 extern void VIOC_DISP_IreqHandler( unsigned int vectorID );

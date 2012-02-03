@@ -664,6 +664,8 @@ void tcc_component_set_lcd2tv(COMPONENT_MODE_TYPE mode)
 		#endif
 	}
 		
+	VIOC_DISP_SWReset(Component_LCDC_Num);
+		
 	tcc_component_get_spec(mode, &spec);
 	
 	LCDC_IO_Set(Component_LCDC_Num, spec.component_bus_width);

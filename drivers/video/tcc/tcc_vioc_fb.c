@@ -72,6 +72,8 @@
 #include <mach/tca_lcdc.h>
 #include <linux/console.h>
 
+#include <mach/vioc_disp.h>
+
 
 static unsigned int EX_OUT_LCDC;
 static unsigned int LCD_LCDC_NUM;
@@ -160,7 +162,6 @@ static u_char *fb_mem_vaddr[CONFIG_FB_TCC_DEVS]= {0,};
 static u_int   fb_mem_size [CONFIG_FB_TCC_DEVS]= {0,};
 
 #ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
-#include <mach/vioc_disp.h>
 
 static int debug_v = 0;
 #define vprintk(msg...)	if (debug_v) { printk( "tccfb_vsync: " msg); }
@@ -1070,6 +1071,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 	switch(cmd)
 	{
 		case TCC_LCDC_HDMI_START:
+			VIOC_DISP_SWReset(EX_OUT_LCDC);
 			TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_HDMI, EX_OUT_LCDC, 1);
 			#ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
 			//tca_vsync_video_display_enable();
