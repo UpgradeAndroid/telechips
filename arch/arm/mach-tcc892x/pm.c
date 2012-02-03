@@ -900,7 +900,7 @@ static void shutdown(void)
 // set wake-up
 //Bruce, wake-up source should be surely set here !!!!
 
-	//set wake-up trigger mode : level
+	//set wake-up trigger mode : edge
 	((PPMU)HwPMU_BASE)->PMU_WKMOD0.nREG = 0xFFFFFFFF;
 	((PPMU)HwPMU_BASE)->PMU_WKMOD1.nREG = 0xFFFFFFFF;
 	//set wake-up polarity : default : active high
@@ -1466,7 +1466,7 @@ static void sleep(void)
 // set wake-up
 //Bruce, wake-up source should be surely set here !!!!
 
-	//set wake-up trigger mode : level
+	//set wake-up trigger mode : edge
 	((PPMU)HwPMU_BASE)->PMU_WKMOD0.nREG = 0xFFFFFFFF;
 	((PPMU)HwPMU_BASE)->PMU_WKMOD1.nREG = 0xFFFFFFFF;
 	//set wake-up polarity : active high
