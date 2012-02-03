@@ -101,8 +101,8 @@ static int debug = -1;      /* -1: default, 0: no output, 16:  all */
 module_param(debug, int, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(debug, "Message Level (0: no output, 16: all)");
 
-//#define DMA_TX_SIZE 256
-#define DMA_TX_SIZE 1024
+#define DMA_TX_SIZE 256
+//#define DMA_TX_SIZE 1024
 static int dma_txsize = DMA_TX_SIZE;
 module_param(dma_txsize, int, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(dma_txsize, "Number of descriptors in the TX list");
@@ -1907,7 +1907,7 @@ static int tcc_gmac_probe(struct platform_device *pdev)
     dev->features |= NETIF_F_HW_VLAN_RX;
 #endif
     priv->msg_enable = netif_msg_init(debug, default_msg_level);
-	priv->pbl = 16; //Programmable Burst Length
+	priv->pbl = 8; //Programmable Burst Length
 	priv->rx_csum = 1;
 
 	if (flow_ctrl) 
@@ -1935,9 +1935,16 @@ static int tcc_gmac_probe(struct platform_device *pdev)
 		MAC_addr[1]=0x50;
 		MAC_addr[2]=0xEB;
 
+		if(machine_is_tcc8800st()){
+			MAC_addr[3]= (gECID[2] >> 16) & 0xFF ;
+			MAC_addr[4]= (gECID[2] >> 8) & 0xFF;
+			MAC_addr[5]= (gECID[2] & 0xFF);
+		}
+		else {
 		MAC_addr[3]= (gECID[3] >>8) & 0xFF;
 		MAC_addr[4]= (gECID[3] & 0xFF);
 		MAC_addr[5]= (gECID[2] >> 24) & 0xFF ;
+		}
 
 		for(i=0;i<MAC_ADDRESS_LEN;i++)
 		{
