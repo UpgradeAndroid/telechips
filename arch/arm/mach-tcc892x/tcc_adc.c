@@ -257,7 +257,6 @@ static int tcc_adc_probe(struct platform_device *pdev)
 
 	pPMU->PMU_TSADC.bREG.PWREN = 1;
 	pPMU->PMU_TSADC.bREG.STOP = 0;
-	pPMU->PMU_ISOL.bREG.TSADC = 0;
 
 #if 0	
 	BITSET(pPMU->CONTROL, 1<<16/*HwPMU_CONTROL_APEN*/);
@@ -298,9 +297,9 @@ static int tcc_adc_remove(struct platform_device *pdev)
 	struct adc_device *adc = platform_get_drvdata(pdev);
 
 	iounmap(adc->regs);
-	//free_irq(adc->irq, adc);
-	//clk_disable(adc->clk);
-	//clk_put(adc->clk);
+	free_irq(adc->irq, adc);
+	clk_disable(adc->clk);
+	clk_put(adc->clk);
 	kfree(adc);
 
 	return 0;
@@ -309,7 +308,15 @@ static int tcc_adc_remove(struct platform_device *pdev)
 #ifdef CONFIG_PM
 static int tcc_adc_suspend(struct platform_device *pdev, pm_message_t state)
 {
+	volatile PPMU pPMU = (volatile PPMU)tcc_p2v(HwPMU_BASE);
+	struct adc_device *adc = platform_get_drvdata(pdev);
+
     tca_adc_powerdown();
+
+	clk_disable(adc->clk);
+
+	pPMU->PMU_TSADC.bREG.STOP = 1;
+	pPMU->PMU_TSADC.bREG.PWREN = 0;
 
 	return 0;
 }
@@ -317,6 +324,13 @@ static int tcc_adc_suspend(struct platform_device *pdev, pm_message_t state)
 static int tcc_adc_resume(struct platform_device *pdev)
 {
 	volatile PTSADC pTSADC = (volatile PTSADC)tcc_p2v(HwTSADC_BASE);
+	volatile PPMU pPMU = (volatile PPMU)tcc_p2v(HwPMU_BASE);
+	struct adc_device *adc = platform_get_drvdata(pdev);
+
+	pPMU->PMU_TSADC.bREG.PWREN = 1;
+	pPMU->PMU_TSADC.bREG.STOP = 0;
+
+	clk_enable(adc->clk);
 
 	tca_adc_adcinitialize((unsigned int)pTSADC, NULL);
     tca_adc_powerup();

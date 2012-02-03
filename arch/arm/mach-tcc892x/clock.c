@@ -383,6 +383,7 @@ static struct clk clk_ecid_phy = {
 
 static struct clk clk_hdmi_phy = {
     .name           = "hdmi_phy",
+	.parent         = &clk_ddi,
     .flags          = CLK_AUTO_OFF,
     .enable         = phy_enable,
     .disable        = phy_disable,
@@ -399,6 +400,7 @@ static struct clk clk_vdac_phy = {
 
 static struct clk clk_tsadc_phy = {
     .name           = "tsadc_phy",
+	.parent         = &clk_io,
     .flags          = CLK_AUTO_OFF,
     .enable         = phy_enable,
     .disable        = phy_disable,
@@ -407,6 +409,7 @@ static struct clk clk_tsadc_phy = {
 
 static struct clk clk_usbhp_phy = {
     .name           = "usbhp_phy",
+	.parent         = &clk_hsio,
     .flags          = CLK_AUTO_OFF,
     .enable         = phy_enable,
     .disable        = phy_disable,
@@ -415,6 +418,7 @@ static struct clk clk_usbhp_phy = {
 
 static struct clk clk_usbop_phy = {
     .name           = "usbop_phy",
+	.parent         = &clk_io,
     .flags          = CLK_AUTO_OFF,
     .enable         = phy_enable,
     .disable        = phy_disable,
@@ -529,7 +533,7 @@ static struct clk clk_ntscpal = {
 
 static struct clk clk_hdmi = {
     .name           = "hdmi",
-    .parent         = &clk_ddi,
+    .parent         = &clk_hdmi_phy,
     .flags          = CLK_AUTO_OFF,
     .enable         = pclk_enable,
     .disable        = pclk_disable,
@@ -914,7 +918,7 @@ static struct clk clk_remote = {
 
 static struct clk clk_tsadc = {
     .name           = "adc",
-    .parent         = &clk_io,
+    .parent         = &clk_tsadc_phy,
     .flags          = CLK_AUTO_OFF,
     .enable         = pclk_enable,
     .disable        = pclk_disable,
@@ -1524,7 +1528,7 @@ static struct clk clk_gpsb5 = {
 
 static struct clk clk_otg = {
     .name           = "usb_otg",
-    .parent         = &clk_io,
+    .parent         = &clk_usbop_phy,
     .flags          = CLK_AUTO_OFF,
     .enable         = pclk_enable,
     .disable        = pclk_disable,
@@ -1584,7 +1588,7 @@ static struct clk clk_gmac = {
 
 static struct clk clk_usb20host = {
     .name           = "usb20h",
-    .parent         = &clk_hsio,
+    .parent         = &clk_usbhp_phy,
     .flags          = CLK_AUTO_OFF,
     .enable         = pclk_enable,
     .disable        = pclk_disable,

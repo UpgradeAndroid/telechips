@@ -88,7 +88,6 @@ struct tcc_battery_info {
 	struct tcc_adc_client *client;
 	struct platform_device *pdev;
 	struct mutex lock;
-	struct clk *clk;
 	struct battery_info_reply rep;
 	struct work_struct changed_work;
 	int present;
@@ -1202,8 +1201,6 @@ static int tcc_battery_probe(struct platform_device *pdev)
 	tcc_batt_info.present = 1;
 	tcc_batt_info.update_time = jiffies;
 
-	clk_enable(tcc_batt_info.clk);
-	
 	/* register adc client driver */
 	client = tcc_adc_register(pdev, tcc_ts_select, batt_conv, 0);
 	if (IS_ERR(client)) {
@@ -1342,23 +1339,14 @@ static int __init tcc_battery_init(void)
 	wake_lock_init(&vbus_wake_lock, WAKE_LOCK_SUSPEND, "vbus_present");
 
 	mutex_init(&tcc_batt_info.lock);
-	clk  = clk_get(NULL, "adc");
-	if (!clk) {
-		printk(KERN_ERR "can't get ADC clock\n");
-		return -ENODEV;
-	}
-	tcc_batt_info.clk = clk;
 
 	tcc_battery_port_init();
-
 
 	return platform_driver_register(&tcc_battery_driver);
 }
 
 static void __exit tcc_battery_exit(void)
 {
-	clk_put(tcc_batt_info.clk);
-
 	platform_driver_unregister(&tcc_battery_driver);
 	usb_unregister_notify(&usb_status_notifier);
 }

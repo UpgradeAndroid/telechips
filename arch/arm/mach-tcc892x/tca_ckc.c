@@ -1049,6 +1049,25 @@ int tca_ckc_setippwdn( unsigned int sel, unsigned int ispwdn)
 {
     unsigned int ctrl_value;
 
+#if (1)
+	static unsigned int isol = 0x0;
+	
+	if( sel == PMU_ISOL_HDMI || sel == PMU_ISOL_LVDS ||
+		sel == PMU_ISOL_VDAC || sel == PMU_ISOL_TSADC ||
+		//sel == PMU_ISOL_RTC || sel == PMU_ISOL_PLL ||
+		//sel == PMU_ISOL_OTP || sel == PMU_ISOL_ECID ||
+		sel == PMU_ISOL_USBHP || sel == PMU_ISOL_USBOP )
+	{
+		if (ispwdn)
+			isol |= (1<<sel);
+		else
+			isol &= ~(1<<sel);
+
+		pPMU->PMU_ISOL.nREG = isol;
+		return 0;
+	}
+	return -1;
+#else
     return 0;
 
     if (ispwdn)
@@ -1090,8 +1109,8 @@ int tca_ckc_setippwdn( unsigned int sel, unsigned int ispwdn)
         default:
             return -1;
     }
-
     return 0;
+#endif
 }
 
 /****************************************************************************************
