@@ -1071,7 +1071,6 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 	switch(cmd)
 	{
 		case TCC_LCDC_HDMI_START:
-			VIOC_DISP_SWReset(EX_OUT_LCDC);
 			TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_HDMI, EX_OUT_LCDC, 1);
 			#ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
 			//tca_vsync_video_display_enable();
@@ -1089,6 +1088,8 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 
 				if (copy_from_user((void*)&lcdc_timing, (const void*)arg, sizeof(struct lcdc_timimg_parms_t)))
 					return -EFAULT;
+
+				VIOC_DISP_SWReset(EX_OUT_LCDC);
 
 				TCC_HDMI_LCDC_Timing(EX_OUT_LCDC, &lcdc_timing);
 				TCC_OUTPUT_UPDATE_OnOff(1, TCC_OUTPUT_HDMI);
