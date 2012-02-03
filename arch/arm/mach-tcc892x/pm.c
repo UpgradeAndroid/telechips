@@ -853,10 +853,10 @@ static void shutdown(void)
 // -------------------------------------------------------------------------
 // BUS Power Down
 
-#if defined(TCC_PM_PMU_CTRL)
 	//IP isolation off
-	((PPMU)HwPMU_BASE)->PMU_ISOL.nREG = 0xFFFFFFFF;
+	((PPMU)HwPMU_BASE)->PMU_ISOL.nREG = 0x00000BDF;
 
+#if defined(TCC_PM_PMU_CTRL)
 	//High Speed I/O Bus power down
 	((PMEMBUSCFG)HwMBUSCFG_BASE)->HCLKMASK.bREG.HSIOBUS = 0;
 	while (((PMEMBUSCFG)HwMBUSCFG_BASE)->MBUSSTS.bREG.HSIOBUS == 1);
@@ -1091,7 +1091,11 @@ static void wakeup(void)
 
 	//IP isolation on
 	((PPMU)HwPMU_BASE)->PMU_ISOL.nREG = 0x00000000;
+#else
+	//IP isolation on
+	((PPMU)HwPMU_BASE)->PMU_ISOL.nREG = 0x00000BD0;
 #endif
+
 }
 
 /*===========================================================================
@@ -1253,7 +1257,7 @@ static void shutdown_mode(void)
 		}
 
 		//IP isolation restore
-		//Bruce, PMU_ISOL is only write-only.. so it can't be set by back-up data..
+		//Bruce, PMU_ISOL is only write-only.. so it can't be set to back-up data..
 		//((PPMU)tcc_p2v(HwPMU_BASE))->PMU_ISOL.nREG = RegRepo.PMU_ISOL.nREG;
 		((PPMU)tcc_p2v(HwPMU_BASE))->PMU_ISOL.nREG = 0x00000000;
 	}
@@ -1417,7 +1421,7 @@ static void sleep(void)
 
 #if defined(TCC_PM_PMU_CTRL)
 	//IP isolation off
-	((PPMU)HwPMU_BASE)->PMU_ISOL.nREG = 0xFFFFFFFF;
+	((PPMU)HwPMU_BASE)->PMU_ISOL.nREG = 0x00000BDF;
 
 	//High Speed I/O Bus power down
 	((PMEMBUSCFG)HwMBUSCFG_BASE)->HCLKMASK.bREG.HSIOBUS = 0;
@@ -1888,7 +1892,7 @@ static void sleep_mode(void)
 		}
 
 		//IP isolation restore
-		//Bruce, PMU_ISOL is only write-only.. so it can't be set by back-up data..
+		//Bruce, PMU_ISOL is only write-only.. so it can't be set to back-up data..
 		//((PPMU)tcc_p2v(HwPMU_BASE))->PMU_ISOL.nREG = RegRepo.PMU_ISOL.nREG;
 		((PPMU)tcc_p2v(HwPMU_BASE))->PMU_ISOL.nREG = 0x00000000;
 	}

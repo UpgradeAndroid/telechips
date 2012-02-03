@@ -1054,8 +1054,8 @@ int tca_ckc_setippwdn( unsigned int sel, unsigned int ispwdn)
 	
 	if( sel == PMU_ISOL_HDMI || sel == PMU_ISOL_LVDS ||
 		sel == PMU_ISOL_VDAC || sel == PMU_ISOL_TSADC ||
-		//sel == PMU_ISOL_RTC || sel == PMU_ISOL_PLL ||
-		//sel == PMU_ISOL_OTP || sel == PMU_ISOL_ECID ||
+		//Bruce, These IP powers are controlled by PM.
+		//sel == PMU_ISOL_RTC || sel == PMU_ISOL_PLL || sel == PMU_ISOL_OTP || sel == PMU_ISOL_ECID ||
 		sel == PMU_ISOL_USBHP || sel == PMU_ISOL_USBOP )
 	{
 		if (ispwdn)
