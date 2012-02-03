@@ -116,12 +116,12 @@ unsigned int tca_tcc_initport(void)
 	}
 	else {
 	    /* SPDIF Tx */
-	    if (system_rev == 0x1006) {
-            tcc_gpio_config(TCC_GPG(18), GPIO_FN1);
-	    }
-	    else {
-	        tcc_gpio_config(TCC_GPG(5), GPIO_FN1);
-	    }
+	    //if (system_rev == 0x1006) {
+            tcc_gpio_config(TCC_GPG(18), GPIO_FN1);		// SPDIF Planet 20120203
+	    //}
+	    //else {
+	    //    tcc_gpio_config(TCC_GPG(5), GPIO_FN1);
+	    //}
 
 	    tcc_gpio_config(TCC_GPG(6), GPIO_FN1);
 	    tcc_gpio_config(TCC_GPG(7), GPIO_FN1);
