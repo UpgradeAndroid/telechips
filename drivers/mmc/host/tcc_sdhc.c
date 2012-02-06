@@ -96,6 +96,11 @@ static int tcc_sw_reset(struct tcc_mmc_host *host, uint8_t rst_bits)
 {
 	int timeout = 100;
 
+	if(host == NULL) {
+		printk("[mmc:NULL] %s(host:%x)\n", __func__, (u32)host);
+		return -EHOSTDOWN;
+	}
+
 	writew(rst_bits<<8 | readw(host->iobase+TCCSDHC_TIMEOUT_CONTROL), host->iobase+TCCSDHC_TIMEOUT_CONTROL);
 	
 	while (--timeout) {
@@ -115,6 +120,11 @@ static int tcc_sw_reset(struct tcc_mmc_host *host, uint8_t rst_bits)
 
 int tcc_mmc_card_inserted(struct tcc_mmc_host *host)
 {
+	if(host == NULL) {
+		printk("[mmc:NULL] %s(host:%x)\n", __func__, (u32)host);
+		return 0;//-EHOSTDOWN;
+	}
+
 	if (host->pdata->card_detect)
 		return host->pdata->card_detect(host->dev, host->id);
 	else
@@ -127,6 +137,11 @@ int tcc_mmc_card_inserted(struct tcc_mmc_host *host)
 static void tcc_mmc_poll_event(unsigned long data)
 {
 	struct tcc_mmc_host *host = (struct tcc_mmc_host *) data;	
+
+	if(host == NULL) {
+		printk("[mmc:NULL] %s(host:%x)\n", __func__, (u32)host);
+		return;// -EHOSTDOWN;
+	}
 
 	if (!tcc_mmc_card_inserted(host)) {
 		/* card removed */
@@ -165,12 +180,22 @@ static void tcc_mmc_poll_event(unsigned long data)
 
 static char *tcc_mmc_kmap_atomic(struct scatterlist *sg, unsigned long *flags)
 {
+	if((sg == NULL)||(flags == NULL)) {
+		printk("[mmc:NULL] %s(sg:%x, flags:%x)\n", __func__, (u32)sg, (u32)flags);
+		return 0;
+	}
+
 	local_irq_save(*flags);
 	return kmap_atomic(sg_page(sg), KM_BIO_SRC_IRQ) + sg->offset;
 }
 
 static void tcc_mmc_kunmap_atomic(void *buffer, unsigned long *flags)
 {
+	if((buffer == NULL)||(flags == NULL)) {
+		printk("[mmc:NULL] %s(buffer:%x, flags:%x)\n", __func__, (u32)buffer, (u32)flags);
+		return;
+	}
+
 	kunmap_atomic(buffer, KM_BIO_SRC_IRQ);
 	local_irq_restore(*flags);
 }
@@ -189,6 +214,11 @@ static int tcc_mmc_adma_table_pre(struct tcc_mmc_host *host, struct mmc_data *da
 	int i;
 	char *buffer;
 	unsigned long flags;
+
+	if((host == NULL)||(data == NULL)) {
+		printk("[mmc:NULL] %s(host:%x, data:%x)\n", __func__, (u32)host, (u32)data);
+		return -EHOSTDOWN;
+	}
 
 	/*
 	 * The spec does not specify endianness of descriptor table.
@@ -337,6 +367,11 @@ static void tcc_mmc_adma_table_post(struct tcc_mmc_host *host, struct mmc_data *
 	char *buffer;
 	unsigned long flags;
 
+	if((host == NULL)||(data == NULL)) {
+		printk("[mmc:NULL] %s(host:%x, data:%x)\n", __func__, (u32)host, (u32)data);
+		return;// -EHOSTDOWN;
+	}
+
 	if (data->flags & MMC_DATA_READ)
 		direction = DMA_FROM_DEVICE;
 	else
@@ -376,6 +411,11 @@ static void tcc_mmc_finish_data(struct tcc_mmc_host *host)
 {
 	struct mmc_data *data;
 	u16 blocks;
+
+	if(host == NULL) {
+		printk("[mmc:NULL] %s(host:%x)\n", __func__, (u32)host);
+		return;// -EHOSTDOWN;
+	}
 
 	BUG_ON(!host->data);
 
@@ -438,6 +478,11 @@ static void tcc_mmc_finish_data(struct tcc_mmc_host *host)
 //FIXME: Not yet implemented...
 static void tcc_transfer_pio(struct tcc_mmc_host *host)
 {
+	if(host == NULL) {
+		printk("[mmc:NULL] %s(host:%x)\n", __func__, (u32)host);
+		return;// -EHOSTDOWN;
+	}
+
 	BUG_ON(!host->data);
 	SD_DEBUG("enter %s  ", __func__);
 }
@@ -450,6 +495,11 @@ static void tcc_mmc_start_command(struct tcc_mmc_host *host, struct mmc_command 
 	unsigned long timeout;    
 	int cmd_reg = 0x00000000;
 	unsigned int uiIntStatusEn;
+
+	if((host == NULL)||(cmd == NULL)) {
+		printk("[mmc:NULL] %s(host:%x, cmd:%x)\n", __func__, (u32)host, (u32)cmd);
+		return;// -EHOSTDOWN;
+	}
 
 	/* Wait max 10 ms */
 #if defined(CONFIG_ATHEROS_WIFI)
@@ -635,6 +685,11 @@ static void tcc_mmc_start_command(struct tcc_mmc_host *host, struct mmc_command 
 
 static void tcc_mmc_finish_command(struct tcc_mmc_host *host)
 {
+	if(host == NULL) {
+		printk("[mmc:NULL] %s(host:%x)\n", __func__, (u32)host);
+		return;// -EHOSTDOWN;
+	}
+
 	BUG_ON(host->cmd == NULL);
 
 	if (host->cmd->flags & MMC_RSP_PRESENT) {
@@ -674,6 +729,11 @@ static void tcc_mmc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 {
 	struct tcc_mmc_host *host = mmc_priv(mmc);
 	unsigned long flags;
+
+	if((mmc == NULL)||(host == NULL)||(mrq == NULL)) {
+		printk("[mmc:NULL] %s(mmc:%x, host:%x, mrq:%x)\n", __func__, (u32)mmc, (u32)host, (u32)mrq);
+		return;// -EHOSTDOWN;
+	}
 
 	spin_lock_irqsave(&host->lock, flags);
 #ifdef SD_CLOCK_CONTROL
@@ -720,6 +780,11 @@ static void tcc_hw_set_high_speed(struct mmc_host *mmc, int hs)
 	unsigned long flags;
 	u8 host_ctrl = 0;
 
+	if((mmc == NULL)||(host == NULL)) {
+		printk("[mmc:NULL] %s(mmc:%x, host:%x)\n", __func__, (u32)mmc, (u32)host);
+		return;// -EHOSTDOWN;
+	}
+
 	spin_lock_irqsave(&host->lock, flags);
 
 	host_ctrl= readw(host->iobase+TCCSDHC_HOST_CONTROL);
@@ -744,6 +809,10 @@ static void tcc_mmc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 	int i = 0; /* 2^i is the divisor value */
 	u32 clk_div = 0;
 
+	if((mmc == NULL)||(host == NULL)||(ios == NULL)) {
+		printk("[mmc:NULL] %s(mmc:%x, host:%x, ios:%x)\n", __func__, (u32)mmc, (u32)host, (u32)ios);
+		return;// -EHOSTDOWN;
+	}
 
 	if (ios->clock != 0) {
 		tcc_hw_set_high_speed(mmc, ios->clock > SDIO_CLOCK_FREQ_HIGH_SPD);
@@ -860,6 +929,11 @@ static int tcc_mmc_get_ro(struct mmc_host *mmc)
 	unsigned long flags;
 	uint32_t reg = 0;
 
+	if((mmc == NULL)||(host == NULL)) {
+		printk("[mmc:NULL] %s(mmc:%x, host:%x)\n", __func__, (u32)mmc, (u32)host);
+		return 0;// -EHOSTDOWN;
+	}
+
 #ifdef SD_CLOCK_CONTROL
 	tcc_mmc_clock_onoff(host, 1);
 #endif
@@ -883,6 +957,11 @@ static int tcc_mmc_get_cd(struct mmc_host *mmc)
 	struct tcc_mmc_host *host = mmc_priv(mmc);
 	unsigned int status;
 
+	if((mmc == NULL)||(host == NULL)) {
+		printk("[mmc:NULL] %s(mmc:%x, host:%x)\n", __func__, (u32)mmc, (u32)host);
+		return 0;// -EHOSTDOWN;
+	}
+
 	status=	tcc_mmc_card_inserted(host);
 	udelay(500);	// jitter?
 	
@@ -894,6 +973,12 @@ static void tcc_sdio_hw_enable_int(struct mmc_host *mmc, uint32_t sigs)
 	struct tcc_mmc_host *host = mmc_priv(mmc);
 	unsigned long flags;
 	uint32_t stat_en;
+
+	if((mmc == NULL)||(host == NULL)) {
+		printk("[mmc:NULL] %s(mmc:%x, host:%x)\n", __func__, (u32)mmc, (u32)host);
+		return;// -EHOSTDOWN;
+	}
+
 	pr_debug("%s id[%d] iobase[0x%x], sigs[%x]\n", __FUNCTION__, host->id, host->iobase, sigs);
 
 	spin_lock_irqsave(&host->lock, flags);
@@ -910,6 +995,11 @@ static void tcc_sdio_hw_disable_int(struct mmc_host *mmc, uint32_t sigs)
 	unsigned long flags;
 	uint32_t stat_en;    
 
+	if((mmc == NULL)||(host == NULL)) {
+		printk("[mmc:NULL] %s(mmc:%x, host:%x)\n", __func__, (u32)mmc, (u32)host);
+		return;// -EHOSTDOWN;
+	}
+
 	pr_debug("%s id[%d] iobase[0x%x], sigs[%x]\n", __FUNCTION__, host->id, host->iobase, sigs);
 	spin_lock_irqsave(&host->lock, flags);
 
@@ -921,11 +1011,21 @@ static void tcc_sdio_hw_disable_int(struct mmc_host *mmc, uint32_t sigs)
 
 static void tcc_sdio_enable_card_int(struct mmc_host *mmc)
 {
+	if(mmc == NULL) {
+		printk("[mmc:NULL] %s(mmc:%x)\n", __func__, (u32)mmc);
+		return;// -EHOSTDOWN;
+	}
+
 	tcc_sdio_hw_enable_int(mmc, HwSDINT_EN_CDINT);
 }
 
 static void tcc_sdio_disable_card_int(struct mmc_host *mmc)
 {
+	if(mmc == NULL) {
+		printk("[mmc:NULL] %s(mmc:%x)\n", __func__, (u32)mmc);
+		return;// -EHOSTDOWN;
+	}
+
 	tcc_sdio_hw_disable_int(mmc, HwSDINT_EN_CDINT);
 }
 
@@ -958,6 +1058,11 @@ static void tcc_mmc_disable_cd_irq(int cd_irq)
 static void tcc_mmc_check_status(struct tcc_mmc_host *host)
 {
 	unsigned int status;
+
+	if((host == NULL)||(host->mmc == NULL)) {
+		printk("[mmc:NULL] %s(host:%x, host->mmc:%x)\n", __func__, (u32)host, (u32)(host->mmc));
+		return;// -EHOSTDOWN;
+	}
 
 	pr_debug("%s: cd detect\n",mmc_hostname(host->mmc));
 	// 1: insert  0:remove 
@@ -1010,6 +1115,11 @@ static irqreturn_t tcc_mmc_cd_irq(int irq, void *dev_id)
  */
 static void tcc_mmc_cmd_irq(struct tcc_mmc_host *host, u32 intmask)
 {
+	if(host == NULL) {
+		printk("[mmc:NULL] %s(host:%x)\n", __func__, (u32)host);
+		return;// -EHOSTDOWN;
+	}
+
 	BUG_ON(intmask == 0);
 
 	if (!host->cmd) {
@@ -1034,6 +1144,11 @@ static void tcc_mmc_cmd_irq(struct tcc_mmc_host *host, u32 intmask)
 
 static void tcc_mmc_data_irq(struct tcc_mmc_host *host, u32 intmask)
 {
+	if(host == NULL) {
+		printk("[mmc:NULL] %s(host:%x)\n", __func__, (u32)host);
+		return;// -EHOSTDOWN;
+	}
+
 	BUG_ON(intmask == 0);
 
 	if (!host->data) {
@@ -1097,6 +1212,11 @@ static irqreturn_t tcc_mmc_interrupt_handler(int irq, void *dev_id)
 	int cardint = 0;    
 	struct tcc_mmc_host *host = (struct tcc_mmc_host *) dev_id;
 	unsigned long flags;
+
+	if(host == NULL) {
+		printk("[mmc:NULL] %s(host:%x)\n", __func__, (u32)host);
+		return IRQ_HANDLED;// -EHOSTDOWN;
+	}
 
 	spin_lock_irqsave(&host->lock, flags);
 
@@ -1181,6 +1301,11 @@ static void tcc_mmc_tasklet_finish(unsigned long param)
 
 	host = (struct tcc_mmc_host *)param;
 
+	if(host == NULL) {
+		printk("[mmc:NULL] %s(host:%x)\n", __func__, (u32)host);
+		return;// -EHOSTDOWN;
+	}
+
 	spin_lock_irqsave(&host->lock, flags);
 
 	del_timer(&host->timer);
@@ -1227,6 +1352,11 @@ static void tcc_mmc_timeout_timer(unsigned long data)
 
 	host = (struct tcc_mmc_host*)data;
 
+	if(host == NULL) {
+		printk("[mmc:NULL] %s(host:%x)\n", __func__, (u32)host);
+		return;// -EHOSTDOWN;
+	}
+
 	spin_lock_irqsave(&host->lock, flags);
 
 	if (host->mrq) {
@@ -1253,6 +1383,11 @@ static void init_mmc_host(struct tcc_mmc_host *host)
 {
 	unsigned int temp_val;
 	PSDCHCTRL sdctrl = (PSDCHCTRL)tcc_p2v(HwSDMMC_CHCTRL_BASE); 	
+
+	if(host == NULL) {
+		printk("[mmc:NULL] %s(host:%x)\n", __func__, (u32)host);
+		return;// -EHOSTDOWN;
+	}
 
 	clk_set_rate(host->fclk, 48*1000*1000);
 	host->peri_clk = clk_get_rate(host->fclk);
@@ -1353,6 +1488,12 @@ static int __init tcc_mmc_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	host = mmc_priv(mmc);
+
+	if(host == NULL) {
+		printk("[mmc:NULL] %s(host:%x)\n", __func__, (u32)host);
+		return -ENODEV;// -EHOSTDOWN;
+	}
+
 	host->mmc = mmc;
 	host->id = pdev->id;
 	host->pdata = pdata;
@@ -1595,6 +1736,11 @@ static int tcc_mmc_suspend(struct platform_device *pdev, pm_message_t mesg)
 	int ret = 0;
 	struct tcc_mmc_host *host = platform_get_drvdata(pdev);
 
+	if(host == NULL) {
+		printk("[mmc:NULL] %s(host:%x)\n", __func__, (u32)host);
+		return 0;// -EHOSTDOWN;
+	}
+
 	if (host && host->suspended)
 		return 0;
 
@@ -1617,6 +1763,11 @@ static int tcc_mmc_resume(struct platform_device *pdev)
 {
 	int ret = 0;
 	struct tcc_mmc_host *host = platform_get_drvdata(pdev);
+
+	if(host == NULL) {
+		printk("[mmc:NULL] %s(host:%x)\n", __func__, (u32)host);
+		return 0;// -EHOSTDOWN;
+	}
 
 	if (host->pdata->resume)
 		ret = host->pdata->resume(&pdev->dev, host->id);	
