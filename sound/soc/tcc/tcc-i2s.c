@@ -443,6 +443,12 @@ static int tcc_i2s_suspend(struct snd_soc_dai *dai)
         gADMA_DAI.DAVC   = pADMA_DAI->DAVC;
         gADMA_DAI.MCCR0  = pADMA_DAI->MCCR0;
         gADMA_DAI.MCCR1  = pADMA_DAI->MCCR1;
+
+        if(tcc_dai_clk)
+            clk_disable(tcc_dai_clk);
+
+        if(tcc_adma_clk)
+            clk_disable(tcc_adma_clk);
     }
     else {              // SPDIFTX
         gADMA_SPDIFTX.TxConfig  = pADMA_SPDIFTX->TxConfig;
@@ -450,6 +456,9 @@ static int tcc_i2s_suspend(struct snd_soc_dai *dai)
         gADMA_SPDIFTX.TxIntMask = pADMA_SPDIFTX->TxIntMask;
 //        gADMA_SPDIFTX.TxIntStat = pADMA_SPDIFTX->TxIntStat;
         gADMA_SPDIFTX.DMACFG    = pADMA_SPDIFTX->DMACFG;
+
+        if(tcc_spdif_clk)
+            clk_disable(tcc_spdif_clk);
     }
 
     return 0;
@@ -462,12 +471,21 @@ static int tcc_i2s_resume(struct snd_soc_dai *dai)
 
     alsa_dbg(" %s \n", __func__);
     if(dai->id == 0) {  // DAI
+        if(tcc_dai_clk)
+            clk_enable(tcc_dai_clk);
+
+        if(tcc_adma_clk)
+            clk_enable(tcc_adma_clk);
+
         pADMA_DAI->DAMR   = gADMA_DAI.DAMR;
         pADMA_DAI->DAVC   = gADMA_DAI.DAVC;
         pADMA_DAI->MCCR0  = gADMA_DAI.MCCR0;
         pADMA_DAI->MCCR1  = gADMA_DAI.MCCR1;
     }
     else {              // SPDIFTX
+        if(tcc_spdif_clk)
+            clk_enable(tcc_spdif_clk);
+
         pADMA_SPDIFTX->TxConfig  = gADMA_SPDIFTX.TxConfig;
         pADMA_SPDIFTX->TxChStat  = gADMA_SPDIFTX.TxChStat;
         pADMA_SPDIFTX->TxIntMask = gADMA_SPDIFTX.TxIntMask;
