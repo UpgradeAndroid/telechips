@@ -1516,6 +1516,10 @@ static int dwc_otg_driver_suspend(struct platform_device *pdev, pm_message_t sta
 #if defined(CONFIG_MACH_M801_88) || defined(CONFIG_MACH_M803)
 	TCC_OTG_PWR_M801(0);
 #endif
+
+#if defined(CONFIG_ARCH_TCC892X)
+	clk_disable(dwc_otg_device->clk[0]);
+#endif
 	
 	return 0;
 }
@@ -1524,6 +1528,10 @@ static int dwc_otg_driver_resume(struct platform_device *pdev)
 {
 	int id = -1;
 	dwc_otg_device_t *dwc_otg_device = platform_get_otgdata(pdev);
+
+#if defined(CONFIG_ARCH_TCC892X)
+	clk_enable(dwc_otg_device->clk[0]);
+#endif
 	
 #if defined(CONFIG_REGULATOR)
 	if (dwc_otg_device->vdd_usb33)
