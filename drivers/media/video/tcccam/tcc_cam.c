@@ -3066,7 +3066,8 @@ int tccxxx_cif_close(void)
 	cif_interrupt_disable();
 	cif_cleanup();
 	//printk("tccxxx_cif_close cam_open = %d, cam_close = %d\n", cam_open, cam_close);
-	dprintk("camera close reamp : [0x%x - 0x%x] -> [0x%x] \n",data->cif_buf.addr, data->cif_buf.bytes, (unsigned int)data->cif_buf.area);
+	//printk("camera close reamp : [0x%x - 0x%x] -> [0x%x] \n",data->cif_buf.addr, data->cif_buf.bytes, (unsigned int)data->cif_buf.area);
+	//dprintk("camera close reamp : [0x%x - 0x%x] -> [0x%x] \n",data->cif_buf.addr, data->cif_buf.bytes, (unsigned int)data->cif_buf.area);
 	if(cam_open == 1 && cam_close == 0)
 	{
 		if(data->cif_buf.area != NULL)
@@ -3087,7 +3088,7 @@ int tccxxx_cif_close(void)
 		#if defined(CONFIG_ARCH_TCC88XX)
 			free_irq(IRQ_CIF, NULL);
 		#elif	defined(CONFIG_ARCH_TCC892X)
-			free_irq(INT_VIOC_WD5, NULL/*cif_cam_isr_in8920*/);
+			free_irq(INT_VIOC_WD5, cif_cam_isr_in8920);
 			//	In case of 892X, we have to add.
 		
 		#else
@@ -3156,12 +3157,14 @@ int  tccxxx_cif_init(void)
 	}
 	
 #else
-	//printk("tccxxx_cif_init cam_open = %d, cam_close = %d\n", cam_open, cam_close);
+	printk("tccxxx_cif_init cam_open = %d, cam_close = %d\n", cam_open, cam_close);
 	if(cam_open ==1 && cam_close ==0)
 	{
 		if(reg_buf != NULL)
 			iounmap(reg_buf);
 		reg_buf = NULL;
+		cam_open = 0;
+		cam_close = 1;
 	}
 	if(cam_open == 0 && cam_close == 1)
 	{
