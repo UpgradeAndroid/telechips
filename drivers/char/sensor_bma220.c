@@ -189,6 +189,7 @@ struct bmasensor_data {
 	#endif
 	atomic_t delay;
 	atomic_t enable;
+	atomic_t suspend;
 	atomic_t inputDevice;
 	atomic_t resolution;
 	atomic_t calibMode;
@@ -198,6 +199,7 @@ struct bmasensor_data {
 	struct bmacalib calibOffset;
 	struct mutex value_mutex;
 	struct mutex enable_mutex;
+	struct mutex suspend_mutex;
 	struct mutex mode_mutex;
 	struct delayed_work work;
 	//struct work_struct irq_work;
@@ -1129,9 +1131,11 @@ static int sensor_i2c_probe(struct i2c_client *client, const struct i2c_device_i
 	atomic_set(&data->calibMode,SENSOR_CALIBRATION_MODE);
 
 	data->i2cClient = client;
+	i2c_set_clientdata(client, data);
 	mutex_init(&data->value_mutex);
 	mutex_init(&data->mode_mutex);
 	mutex_init(&data->enable_mutex);
+	mutex_init(&data->suspend_mutex);
 
        mData = NULL;	
 
@@ -1150,6 +1154,7 @@ static int sensor_i2c_probe(struct i2c_client *client, const struct i2c_device_i
 	atomic_set(&data->realDelayTriggerCnt, SENSOR_TUNING_DIVIDE);
 	#endif
 	atomic_set(&data->enable, 0);
+	atomic_set(&data->suspend, 0);
 
 	dev = input_allocate_device();
 	if (!dev)
@@ -1206,10 +1211,16 @@ static int sensor_i2c_remove(struct i2c_client *client)
 static int sensor_i2c_suspend(struct i2c_client *client, pm_message_t mesg)
 {
 	struct bmasensor_data *sensor_data = i2c_get_clientdata(client);
+	int enableFlag = 0;
 
 	mutex_lock(&sensor_data->enable_mutex);
-	if (atomic_read(&sensor_data->enable)!=0) {
-		cancel_delayed_work_sync(&sensor_data->work);
+	enableFlag = atomic_read(&sensor_data->enable);
+	if (enableFlag !=0) {
+		//cancel_delayed_work_sync(&sensor_data->work);
+		mutex_lock(&sensor_data->suspend_mutex);
+		atomic_set(&sensor_data->suspend,enableFlag);
+		atomic_set(&sensor_data->enable,0);
+		mutex_unlock(&sensor_data->suspend_mutex);
 	}
 	mutex_unlock(&sensor_data->enable_mutex);
 
@@ -1219,9 +1230,13 @@ static int sensor_i2c_suspend(struct i2c_client *client, pm_message_t mesg)
 static int sensor_i2c_resume(struct i2c_client *client)
 {
 	struct bmasensor_data *sensor_data = i2c_get_clientdata(client);
-
-	mutex_lock(&sensor_data->enable_mutex);
-	if (atomic_read(&sensor_data->enable)!=0) {
+	int suspendFlag = 0;
+	mutex_lock(&sensor_data->suspend_mutex);
+	suspendFlag = atomic_read(&sensor_data->suspend);
+	if (suspendFlag!=0) {
+		mutex_lock(&sensor_data->enable_mutex);
+		atomic_set(&sensor_data->enable,suspendFlag);
+		mutex_unlock(&sensor_data->enable_mutex);
 		#ifdef SENSOR_TUNING
 		schedule_delayed_work(&sensor_data->work,
 				msecs_to_jiffies(atomic_read(&sensor_data->realDelay)));	
@@ -1230,7 +1245,7 @@ static int sensor_i2c_resume(struct i2c_client *client)
 				msecs_to_jiffies(atomic_read(&sensor_data->delay)));
 		#endif
 	}
-	mutex_unlock(&sensor_data->enable_mutex);
+	mutex_unlock(&sensor_data->suspend_mutex);
 
 	return 0;
 }
@@ -1248,8 +1263,8 @@ static struct i2c_driver sensor_i2c_driver = {
     },
     .probe      = sensor_i2c_probe,
     .remove     = sensor_i2c_remove,
-//    .suspend   = sensor_i2c_suspend,
-//    .resume   = sensor_i2c_resume,
+    .suspend   = sensor_i2c_suspend,
+    .resume   = sensor_i2c_resume,
     .id_table   = sensor_i2c_id,
 };
 
