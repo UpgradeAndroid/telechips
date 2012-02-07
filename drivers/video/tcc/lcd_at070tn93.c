@@ -70,7 +70,7 @@ static int at070tn93_set_power(struct lcd_panel *panel, int on, unsigned int lcd
 
 		gpio_set_value(pdata->reset, 1);
 		msleep(20);
-
+		gpio_set_value(pdata->display_on, 1);
 		lcdc_initialize(panel, lcd_num);
 		LCDC_IO_Set(lcd_num, panel->bus_width);
 		msleep(100);
@@ -78,6 +78,8 @@ static int at070tn93_set_power(struct lcd_panel *panel, int on, unsigned int lcd
 	else 
 	{
 		msleep(10);
+		gpio_set_value(pdata->display_on, 0);
+
 		gpio_set_value(pdata->reset, 0);
 		gpio_set_value(pdata->power_on, 0);
 
