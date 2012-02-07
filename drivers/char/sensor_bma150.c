@@ -1298,7 +1298,6 @@ static int sensor_i2c_suspend(struct i2c_client *client, pm_message_t mesg)
 
 	mutex_lock(&sensor_data->enable_mutex);
 	enableFlag = atomic_read(&sensor_data->enable);
-	printk(KERN_INFO "----- sensor_i2c_suspend enableFlag = %d\n",enableFlag);
 	if (enableFlag !=0) {
 		//cancel_delayed_work_sync(&sensor_data->work);
 		mutex_lock(&sensor_data->suspend_mutex);
@@ -1317,7 +1316,6 @@ static int sensor_i2c_resume(struct i2c_client *client)
 	int suspendFlag = 0;
 	mutex_lock(&sensor_data->suspend_mutex);
 	suspendFlag = atomic_read(&sensor_data->suspend);
-	printk(KERN_INFO "----- sensor_i2c_resume suspendFlag = %d\n",suspendFlag);
 	if (suspendFlag!=0) {
 		mutex_lock(&sensor_data->enable_mutex);
 		atomic_set(&sensor_data->enable,suspendFlag);
