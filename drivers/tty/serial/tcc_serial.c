@@ -1147,7 +1147,11 @@ static int tcc_serial_suspend(struct platform_device *dev, pm_message_t state)
         if(tcc_port->tx_dma_use) {
             //tcc_pca953x_setup(PCA9539_U3_SLAVE_ADDR, BT_ON, OUTPUT, LOW, SET_DIRECTION|SET_VALUE);
         }
+
 #if defined(CONFIG_ARCH_TCC892X)
+    #if defined(CONFIG_PM_CONSOLE_NOT_SUSPEND)
+		if(!port->cons || (port->cons->index != port->line))
+    #endif
         if(tca_serial_clock_disable(tcc_port, dev->id))
         	return -EINVAL;
 #endif
@@ -1162,8 +1166,10 @@ static int tcc_serial_resume(struct platform_device *dev)
     struct uart_port *port = tcc_dev_to_port(&dev->dev);
     struct tcc_uart_port *tcc_port = (struct tcc_uart_port *)port;
 
-
 #if defined(CONFIG_ARCH_TCC892X)
+    #if defined(CONFIG_PM_CONSOLE_NOT_SUSPEND)
+		if(!port->cons || (port->cons->index != port->line))
+    #endif
         if(tca_serial_clock_enable(tcc_port, dev->id))
         	return -EINVAL;
 #endif
