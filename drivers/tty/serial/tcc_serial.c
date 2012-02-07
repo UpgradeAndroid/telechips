@@ -1150,10 +1150,10 @@ static int tcc_serial_suspend(struct platform_device *dev, pm_message_t state)
 
 #if defined(CONFIG_ARCH_TCC892X)
     #if defined(CONFIG_PM_CONSOLE_NOT_SUSPEND)
-		if(!port->cons || (port->cons->index != port->line))
+    if(!port->cons || (port->cons->index != port->line))
     #endif
         if(tca_serial_clock_disable(tcc_port, dev->id))
-        	return -EINVAL;
+            return -EINVAL;
 #endif
 
     }
@@ -1168,10 +1168,10 @@ static int tcc_serial_resume(struct platform_device *dev)
 
 #if defined(CONFIG_ARCH_TCC892X)
     #if defined(CONFIG_PM_CONSOLE_NOT_SUSPEND)
-		if(!port->cons || (port->cons->index != port->line))
+    if(!port->cons || (port->cons->index != port->line))
     #endif
         if(tca_serial_clock_enable(tcc_port, dev->id))
-        	return -EINVAL;
+            return -EINVAL;
 #endif
 
 #if defined(CONFIG_ARCH_TCC892X)
