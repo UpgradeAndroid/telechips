@@ -1138,21 +1138,21 @@ static void tcc_sensor_work_func(struct work_struct *work)
 	mutex_unlock(&sensor_data->enable_mutex);
 
 	if(sensorWhat & SENSOR_G_MASK){
-	tcc_sensor_read_accel_xyz(client, &acc);
+		tcc_sensor_read_accel_xyz(client, &acc);
 
-	tcc_sensor_set_data(sensor_data,&acc);
+		tcc_sensor_set_data(sensor_data,&acc);
 
-	#ifdef SENSOR_TUNING
-	if(delay == 0)
-		delay = 1;
-	tcc_sensor_avg_data(avgAcc,&acc);
-	checkCnt++;
-	atomic_set(&sensor_data->realDelayCnt, checkCnt);
-	if(checkCnt < triggerCnt){
-		goto set_schedule;
-	}
-	atomic_set(&sensor_data->realDelayCnt, 0);
-	#endif
+		#ifdef SENSOR_TUNING
+		if(delay == 0)
+			delay = 1;
+		tcc_sensor_avg_data(avgAcc,&acc);
+		checkCnt++;
+		atomic_set(&sensor_data->realDelayCnt, checkCnt);
+		if(checkCnt < triggerCnt){
+			goto set_schedule;
+		}
+		atomic_set(&sensor_data->realDelayCnt, 0);
+		#endif
 	}
 
 	sensor_dbg(KERN_INFO "%s %d %d %d \n", __FUNCTION__,acc.x,acc.y,acc.z);
@@ -1174,7 +1174,7 @@ static void tcc_sensor_work_func(struct work_struct *work)
 	    input_report_abs(sensor_data->input, ABS_Z, acc.z);
        }
 
-	if(usedAsInputDevice || (sensorWhat & SENSOR_T_MASK))
+	if((usedAsInputDevice && (sensorWhat & SENSOR_G_MASK)) || (sensorWhat & SENSOR_T_MASK))
 	{
 	    input_sync(sensor_data->input);
 	}
@@ -1298,6 +1298,7 @@ static int sensor_i2c_suspend(struct i2c_client *client, pm_message_t mesg)
 
 	mutex_lock(&sensor_data->enable_mutex);
 	enableFlag = atomic_read(&sensor_data->enable);
+	printk(KERN_INFO "----- sensor_i2c_suspend enableFlag = %d\n",enableFlag);
 	if (enableFlag !=0) {
 		//cancel_delayed_work_sync(&sensor_data->work);
 		mutex_lock(&sensor_data->suspend_mutex);
@@ -1316,6 +1317,7 @@ static int sensor_i2c_resume(struct i2c_client *client)
 	int suspendFlag = 0;
 	mutex_lock(&sensor_data->suspend_mutex);
 	suspendFlag = atomic_read(&sensor_data->suspend);
+	printk(KERN_INFO "----- sensor_i2c_resume suspendFlag = %d\n",suspendFlag);
 	if (suspendFlag!=0) {
 		mutex_lock(&sensor_data->enable_mutex);
 		atomic_set(&sensor_data->enable,suspendFlag);

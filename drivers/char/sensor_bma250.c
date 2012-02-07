@@ -1223,7 +1223,7 @@ static void tcc_sensor_work_func(struct work_struct *work)
 	    input_report_abs(sensor_data->input, ABS_Z, acc.z);
        }
 
-	if(usedAsInputDevice || (sensorWhat & SENSOR_T_MASK))
+	if((usedAsInputDevice && (sensorWhat & SENSOR_G_MASK)) || (sensorWhat & SENSOR_T_MASK))
 	{
 	    input_sync(sensor_data->input);
 	}
