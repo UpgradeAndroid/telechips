@@ -72,71 +72,97 @@ static int tcc_spk_func;
 
 
 
-static void spk_mute()
+static void spk_mute(void)
 {
-#if defined(CONFIG_ARCH_TCC92XX)
-	if(machine_is_m57te())
-		gpio_set_value(TCC_GPA(11), 0);
-	else if(machine_is_m801())
-		gpio_set_value(TCC_GPD(5), 0);
-#elif defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC88XX)
 	if(machine_is_m801_88() || machine_is_m803())
 		gpio_set_value(TCC_GPG(6), 0);
+#elif defined(CONFIG_ARCH_TCC892X)
+	if(machine_is_m805_892x())
+	{
+		if(system_rev == 0x2002) {
+			gpio_set_value(TCC_GPE(18), 0);
+		} else {	
+			#if defined(CONFIG_M805S_8923_0XA)
+			gpio_set_value(TCC_GPG(11), 0);
+			#else
+			gpio_set_value(TCC_GPF(27), 0);
+			#endif
+		}
+	}
 #endif
 
 }
 
-static void spk_un_mute()
+static void spk_un_mute(void)
 {
-#if defined(CONFIG_ARCH_TCC92XX)
-	if(machine_is_m57te())
-		gpio_set_value(TCC_GPA(11), 1);
-	else if(machine_is_m801())
-		gpio_set_value(TCC_GPD(5), 1);
-#elif defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC88XX)
 	if(machine_is_m801_88() || machine_is_m803())
 		gpio_set_value(TCC_GPG(6), 1);
+#elif defined(CONFIG_ARCH_TCC892X)
+	if(machine_is_m805_892x())
+	{
+		if(system_rev == 0x2002) {
+			gpio_set_value(TCC_GPE(18), 1);
+		} else {
+			#if defined(CONFIG_M805S_8923_0XA)
+			gpio_set_value(TCC_GPG(11), 1);
+			#else
+			gpio_set_value(TCC_GPF(27), 1);
+			#endif
+		}
+	}
 #endif
 }
 
-static void hp_mute()
+static void hp_mute(void)
 {
-#if defined(CONFIG_ARCH_TCC92XX)
-	if(machine_is_m57te())
-		gpio_set_value(TCC_GPD(7), 0);
-	else if(machine_is_m801())
-		gpio_set_value(TCC_GPD(7), 0);
-#elif defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC88XX)
 	if(machine_is_m801_88() || machine_is_m803())
 		gpio_set_value(TCC_GPD(11), 0);
+#elif defined(CONFIG_ARCH_TCC892X)
+	if(machine_is_m805_892x())
+	{
+		if(system_rev == 0x2002)
+			gpio_set_value(TCC_GPE(17), 0);
+		else
+			gpio_set_value(TCC_GPG(5), 0);
+	}
 #endif
 }
 
-static void hp_un_mute()
+static void hp_un_mute(void)
 {
-#if defined(CONFIG_ARCH_TCC92XX)
-	if(machine_is_m57te())
-		gpio_set_value(TCC_GPD(7), 1);
-	else if(machine_is_m801())
-		gpio_set_value(TCC_GPD(7), 1);
-#elif defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC88XX)
 	if(machine_is_m801_88() || machine_is_m803())
 		gpio_set_value(TCC_GPD(11), 1);
+#elif defined(CONFIG_ARCH_TCC892X)
+	if(machine_is_m805_892x())
+	{
+		if(system_rev == 0x2002)
+			gpio_set_value(TCC_GPE(17), 1);
+		else
+			gpio_set_value(TCC_GPG(5), 1);
+	}
 #endif
 }
 
 int tcc_hp_is_valid(void)
 {
-#if defined(CONFIG_ARCH_TCC92XX)
-    if(machine_is_m57te() || machine_is_m801()) {
-        // gpio_get_value is ==> 1: disconnect, 0: connect
-        return gpio_get_value(TCC_GPA(12));
-    }
-#elif defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC88XX)
     if(machine_is_m801_88() || machine_is_m803()) {
         // gpio_get_value is ==> 0: disconnect, 1: connect
         return gpio_get_value(TCC_GPD(10));
     }
+#elif defined(CONFIG_ARCH_TCC892X)
+	if(machine_is_m805_892x())
+	{
+		// gpio_get_value is ==> 0: disconnect, 1: connect
+		if(system_rev == 0x2002)
+			return gpio_get_value(TCC_GPE(16));
+		else
+			return gpio_get_value(TCC_GPE(5));
+	}
 #endif
 
     return 0;
@@ -162,11 +188,12 @@ int tcc_spk_hw_mute(int flag)
 static void tcc_ext_control(struct snd_soc_codec *codec)
 {
 	int spk = 0;
+    struct snd_soc_dapm_context *dapm = &codec->dapm;
 
-    alsa_dbg("%s() tcc_jack_func=%d\n", __func__, tcc_jack_func);
+    alsa_dbg("%s() tcc_jack_func=%d, bias_level[%d]\n", __func__, tcc_jack_func, dapm->bias_level);
 
 	/* set up jack connection */
-    if(codec->bias_level == SND_SOC_BIAS_ON) {
+    if(dapm->bias_level == SND_SOC_BIAS_ON) {
     	switch (tcc_jack_func) {
     	case TCC_HP:
             tcc_hp_hw_mute(false);
@@ -181,17 +208,17 @@ static void tcc_ext_control(struct snd_soc_codec *codec)
 	if (tcc_spk_func == TCC_SPK_ON)
 	{
 		spk = 1;
-		snd_soc_dapm_enable_pin(codec, "Ext Spk");		
+		snd_soc_dapm_enable_pin(dapm, "Ext Spk");		
 	}
 
 	/* signal a DAPM event */
-	snd_soc_dapm_sync(codec);
+	snd_soc_dapm_sync(dapm);
 }
 
 static int tcc_startup(struct snd_pcm_substream *substream)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_codec *codec = rtd->socdev->card->codec;
+	struct snd_soc_codec *codec = rtd->codec;
 
     alsa_dbg("%s()\n", __func__);
 
@@ -208,8 +235,8 @@ static void tcc_shutdown(struct snd_pcm_substream *substream)
 static int tcc_hw_params(struct snd_pcm_substream *substream, struct snd_pcm_hw_params *params)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
-	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
+	struct snd_soc_dai *codec_dai = rtd->codec_dai;
+	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
 	unsigned int clk = 0;
 	int ret = 0;
 
@@ -366,30 +393,30 @@ static const struct snd_kcontrol_new wm8988_tcc_controls[] = {
 /*
  * Logic for a wm8988 as connected on a Sharp SL-C7x0 Device
  */
-static int tcc_wm8988_init(struct snd_soc_codec *codec)
+static int tcc_wm8988_init(struct snd_soc_pcm_runtime *rtd)
 {
-	int i, err;
+	int ret;
+	struct snd_soc_codec *codec = rtd->codec;
+	struct snd_soc_dapm_context *dapm = &codec->dapm;
 
     alsa_dbg("%s() in...\n", __func__);
 
-    snd_soc_dapm_enable_pin(codec, "MICIN");
+    snd_soc_dapm_enable_pin(dapm, "MICIN");
 
 	/* Add tcc specific controls */
-	for (i = 0; i < ARRAY_SIZE(wm8988_tcc_controls); i++) {
-		err = snd_ctl_add(codec->card,
-			snd_soc_cnew(&wm8988_tcc_controls[i],codec, NULL));
-		if (err < 0)
-			return err;
-	}
+	ret = snd_soc_add_controls(codec, wm8988_tcc_controls,
+				ARRAY_SIZE(wm8988_tcc_controls));
+	if (ret)
+		return ret;
 
 	/* Add tcc specific widgets */
-	snd_soc_dapm_new_controls(codec, tcc_wm8988_dapm_widgets,
+	snd_soc_dapm_new_controls(dapm, tcc_wm8988_dapm_widgets,
 				  ARRAY_SIZE(tcc_wm8988_dapm_widgets));
 
 	/* Set up Telechips specific audio path telechips audio_map */
-	snd_soc_dapm_add_routes(codec, tcc_audio_map, ARRAY_SIZE(tcc_audio_map));
+	snd_soc_dapm_add_routes(dapm, tcc_audio_map, ARRAY_SIZE(tcc_audio_map));
 
-	snd_soc_dapm_sync(codec);
+	snd_soc_dapm_sync(dapm);
 
     alsa_dbg("%s() call snd_soc_jack_new()\n", __func__);
 	return 0;
@@ -407,16 +434,21 @@ static struct snd_soc_dai_link tcc_dai[] = {
 	{
 		.name = "WM8988",
 		.stream_name = "WM8988",
-		.cpu_dai = &tcc_i2s_dai[0],
-		.codec_dai = &wm8988_dai,
+        .platform_name  = "tcc-pcm-audio",
+        .cpu_dai_name   = "tcc-dai-i2s",
+        .codec_name = "wm8988 I2C Codec.0-0010",
+        .codec_dai_name = "WM8988",
 		.init = tcc_wm8988_init,
 		.ops = &tcc_ops,
 	},
     {
         .name = "TCC",
         .stream_name = "IEC958",
-        .cpu_dai = &tcc_i2s_dai[1],
-        .codec_dai = &iec958_dai,
+        .platform_name  = "tcc-pcm-audio",
+        .cpu_dai_name   = "tcc-dai-spdif",
+
+        .codec_name     = "tcc-iec958",
+        .codec_dai_name = "IEC958",
         .init = tcc_iec958_dummy_init,
         .ops = &tcc_ops,
     },
@@ -425,10 +457,10 @@ static struct snd_soc_dai_link tcc_dai[] = {
 
 /* tcc audio machine driver */
 static struct snd_soc_card tcc_soc_card = {
-	.platform = &tcc_soc_platform,
-	.name = "tccx_board",
-	.dai_link = tcc_dai,
-	.num_links = ARRAY_SIZE(tcc_dai),
+	.driver_name = "TCC Audio",
+	.long_name   = "Telechips Board",
+	.dai_link    = tcc_dai,
+	.num_links   = ARRAY_SIZE(tcc_dai),
 };
 
 
@@ -467,11 +499,6 @@ static int wm8988_i2c_register(void)
 }
 
 
-/* tcc audio subsystem */
-static struct snd_soc_device tcc_snd_devdata = {
-	.card = &tcc_soc_card,
-	.codec_dev = &soc_codec_dev_wm8988,
-};
 
 static struct platform_device *tcc_snd_device;
 
@@ -480,31 +507,12 @@ static int __init tcc_init_wm8988(void)
 
 	int ret;
 
-    if( !(machine_is_m57te() || machine_is_m801() || machine_is_m801_88() || machine_is_m803()) ) {
+    if( !(machine_is_m57te() || machine_is_m801() || machine_is_m801_88() || machine_is_m803() || machine_is_tcc8920() ) ) {
         alsa_dbg("\n\n\n\n%s() do not execution....\n\n", __func__);
         return 0;
     }
 
-#if defined(CONFIG_ARCH_TCC92XX)
-    alsa_dbg("TCC Board probe [%s]\n", __FUNCTION__);
-
-    /* h/w mute control */
-    if(machine_is_m801()) {
-        gpio_request(TCC_GPD(5), "SPK_MUTE_CTL");
-        gpio_request(TCC_GPD(7), "HP_MUTE_CTL");
-        
-        gpio_direction_output(TCC_GPD(5), 0);    // Speaker mute
-        gpio_direction_output(TCC_GPD(7), 0);    // HeadPhone mute
-    }
-    else if (machine_is_m57te()) {
-        gpio_request(TCC_GPA(11), "SPK_MUTE_CTL");
-        gpio_request(TCC_GPD(7), "HP_MUTE_CTL");
-        
-        gpio_direction_output(TCC_GPA(11), 0);    // Speaker mute
-        gpio_direction_output(TCC_GPD(7), 0);    // HeadPhone mute
-    }
-
-#elif defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC88XX)
     alsa_dbg("TCC Board probe [%s]\n", __FUNCTION__);
 
     /* h/w mute control */
@@ -518,10 +526,49 @@ static int __init tcc_init_wm8988(void)
         gpio_direction_output(TCC_GPD(11), 1);   // HeadPhone mute
         tcc_hp_hw_mute(false);
         tcc_spk_hw_mute(false);
+
+        tcc_soc_card.name = "M801";
     }
 
+#elif defined(CONFIG_ARCH_TCC892X)
+	alsa_dbg("TCC Board probe [%s]\n", __FUNCTION__);
+
+	/* h/w mute control */
+	if(machine_is_m805_892x())
+	{
+		if(system_rev == 0x2002) {
+			tcc_gpio_config(TCC_GPE(18), GPIO_FN(0));
+			gpio_request(TCC_GPE(18), "SPK_MUTE_CTL");
+			gpio_direction_output(TCC_GPE(18), 0);	 // Speaker mute
+			
+			tcc_gpio_config(TCC_GPE(17), GPIO_FN(0));
+			gpio_request(TCC_GPE(17), "HP_MUTE_CTL");
+			gpio_direction_output(TCC_GPE(17), 1);	 // HeadPhone mute
+		}
+		else {
+			#if defined(CONFIG_M805S_8923_0XA)
+			tcc_gpio_config(TCC_GPG(11), GPIO_FN(0));
+			gpio_request(TCC_GPG(11), "SPK_MUTE_CTL");
+			gpio_direction_output(TCC_GPG(11), 0);	 // Speaker mute
+			#else
+			tcc_gpio_config(TCC_GPF(27), GPIO_FN(0));
+			gpio_request(TCC_GPF(27), "SPK_MUTE_CTL");
+			gpio_direction_output(TCC_GPF(27), 0);	 // Speaker mute
+			#endif
+
+			tcc_gpio_config(TCC_GPG(5), GPIO_FN(0));
+			gpio_request(TCC_GPG(5), "HP_MUTE_CTL");
+			gpio_direction_output(TCC_GPG(5), 1);	 // HeadPhone mute
+		}
+
+		tcc_hp_hw_mute(false);
+		tcc_spk_hw_mute(false);
+
+        tcc_soc_card.name = "M805";
+	}
 #else
     alsa_dbg("TCC Board probe [%s]\n", __FUNCTION__);
+	return 0;
 #endif
 
     tca_tcc_initport();
@@ -532,18 +579,21 @@ static int __init tcc_init_wm8988(void)
 	if (!tcc_snd_device)
 		return -ENOMEM;
 
-	platform_set_drvdata(tcc_snd_device, &tcc_snd_devdata);
-	tcc_snd_devdata.dev = &tcc_snd_device->dev;
-	ret = platform_device_add(tcc_snd_device);
+	platform_set_drvdata(tcc_snd_device, &tcc_soc_card);
 
-	if (ret)
+	ret = platform_device_add(tcc_snd_device);
+	if (ret) {
+        printk(KERN_ERR "Unable to add platform device\n");\
 		platform_device_put(tcc_snd_device);
+	}
 
 	return ret;
 }
 
 static void __exit tcc_exit_wm8988(void)
 {
+    printk("%s() \n", __func__);
+
 	platform_device_unregister(tcc_snd_device);
 }
 

@@ -709,7 +709,7 @@ static struct snd_soc_dai_ops wm8988_ops = {
 };
 
 static struct snd_soc_dai_driver wm8988_dai = {
-	.name = "wm8988-hifi",
+	.name = "WM8988",
 	.playback = {
 		.stream_name = "Playback",
 		.channels_min = 1,
@@ -886,7 +886,7 @@ MODULE_DEVICE_TABLE(i2c, wm8988_i2c_id);
 
 static struct i2c_driver wm8988_i2c_driver = {
 	.driver = {
-		.name = "wm8988-codec",
+		.name = "wm8988 I2C Codec",
 		.owner = THIS_MODULE,
 	},
 	.probe =    wm8988_i2c_probe,
