@@ -204,7 +204,7 @@ struct bmasensor_data {
 	struct mutex mode_mutex;
 	struct delayed_work work;
 	//struct work_struct irq_work;
-#if 0 //def CONFIG_HAS_EARLYSUSPEND
+#ifdef CONFIG_HAS_EARLYSUSPEND
 	struct early_suspend early_suspend;
 #endif
 	int IRQ;
@@ -1191,6 +1191,48 @@ set_schedule:
 	mutex_unlock(&sensor_data->enable_mutex);
 }
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static void tcc_sensor_suspend(struct early_suspend *handler)
+{
+	struct bmasensor_data *sensor_data = container_of(handler, struct bmasensor_data, early_suspend);
+	int enableFlag = 0;
+
+	mutex_lock(&sensor_data->enable_mutex);
+	enableFlag = atomic_read(&sensor_data->enable);
+
+	if (enableFlag !=0) {
+		//cancel_delayed_work_sync(&sensor_data->work);
+		mutex_lock(&sensor_data->suspend_mutex);
+		atomic_set(&sensor_data->suspend,enableFlag);
+		atomic_set(&sensor_data->enable,0);
+		mutex_unlock(&sensor_data->suspend_mutex);
+	}
+	mutex_unlock(&sensor_data->enable_mutex);	
+}
+
+static void tcc_sensor_resume(struct early_suspend *handler)
+{
+	struct bmasensor_data *sensor_data = container_of(handler, struct bmasensor_data, early_suspend);
+	int suspendFlag = 0;
+	mutex_lock(&sensor_data->suspend_mutex);
+	suspendFlag = atomic_read(&sensor_data->suspend);
+
+	if (suspendFlag!=0) {
+		mutex_lock(&sensor_data->enable_mutex);
+		atomic_set(&sensor_data->enable,suspendFlag);
+		mutex_unlock(&sensor_data->enable_mutex);
+		#ifdef SENSOR_TUNING
+		schedule_delayed_work(&sensor_data->work,
+				msecs_to_jiffies(atomic_read(&sensor_data->realDelay)));	
+		#else
+		schedule_delayed_work(&sensor_data->work,
+				msecs_to_jiffies(atomic_read(&sensor_data->delay)));
+		#endif
+	}
+	mutex_unlock(&sensor_data->suspend_mutex);	
+}
+#endif
+
 static int sensor_i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 	int err = 0;
@@ -1268,6 +1310,11 @@ static int sensor_i2c_probe(struct i2c_client *client, const struct i2c_device_i
 
        mData = (struct bmasensor_data *)input_get_drvdata(dev);
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+	data->early_suspend.suspend = tcc_sensor_suspend;
+	data->early_suspend.resume = tcc_sensor_resume;
+	register_early_suspend(&data->early_suspend);
+#endif	
 	return 0;
 
 error_sysfs:
@@ -1284,6 +1331,9 @@ static int sensor_i2c_remove(struct i2c_client *client)
     struct bmasensor_data *data  = i2c_get_clientdata(client);
     sysfs_remove_group(&data->input->dev.kobj, &tcc_sensor_attribute_group);
     input_unregister_device(data->input);
+#ifdef CONFIG_HAS_EARLYSUSPEND	
+    unregister_early_suspend(&data->early_suspend);
+#endif
     kfree(data);
     mData = NULL;
 
@@ -1346,8 +1396,8 @@ static struct i2c_driver sensor_i2c_driver = {
     },
     .probe      = sensor_i2c_probe,
     .remove     = sensor_i2c_remove,
-    .suspend   = sensor_i2c_suspend,
-    .resume   = sensor_i2c_resume,
+    //.suspend   = sensor_i2c_suspend,
+    //.resume   = sensor_i2c_resume,
     .id_table   = sensor_i2c_id,
 };
 
