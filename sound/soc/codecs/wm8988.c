@@ -313,6 +313,7 @@ static const struct snd_soc_dapm_widget wm8988_dapm_widgets[] = {
 	SND_SOC_DAPM_OUTPUT("ROUT2"),
 	SND_SOC_DAPM_OUTPUT("VREF"),
 
+	SND_SOC_DAPM_INPUT("MICIN"),
 	SND_SOC_DAPM_INPUT("LINPUT1"),
 	SND_SOC_DAPM_INPUT("LINPUT2"),
 	SND_SOC_DAPM_INPUT("RINPUT1"),
@@ -355,6 +356,15 @@ static const struct snd_soc_dapm_route audio_map[] = {
 	{ "Left ADC", NULL, "Left ADC Mux" },
 	{ "Right ADC", NULL, "Right ADC Mux" },
 
+//	{ "Left PGA Mux", "Differential", "Mic Bias" },
+//    { "Left PGA Mux", "Differential", "Mic Bias" },
+    { "Left ADC", NULL, "Mic Bias" },
+    { "Right ADC", NULL, "Mic Bias" },
+
+    { "Mic Bias", NULL, "MICIN" },
+        
+
+
 	{ "Left Line Mux", "Line 1", "LINPUT1" },
 	{ "Left Line Mux", "Line 2", "LINPUT2" },
 	{ "Left Line Mux", "PGA", "Left PGA Mux" },
@@ -395,6 +405,7 @@ struct _coeff_div {
 };
 
 /* codec hifi mclk clock divider coefficients */
+#if 0
 static const struct _coeff_div coeff_div[] = {
 	/* 8k */
 	{12288000, 8000, 1536, 0x6, 0x0},
@@ -443,6 +454,13 @@ static const struct _coeff_div coeff_div[] = {
 	{18432000, 96000, 192, 0xf, 0x0},
 	{12000000, 96000, 125, 0xe, 0x1},
 };
+#else	// by shmin_20110908, tcc generate MCLK based on sampling_rate
+static const struct _coeff_div coeff_div[] = {
+	/* 44.1k */
+	{11289600, 44100, 256, 0x10, 0x0},
+};
+#endif
+
 
 static inline int get_coeff(int mclk, int rate)
 {
@@ -701,7 +719,7 @@ static int wm8988_set_bias_level(struct snd_soc_codec *codec,
 	SNDRV_PCM_FMTBIT_S24_LE)
 
 static struct snd_soc_dai_ops wm8988_ops = {
-	.startup = wm8988_pcm_startup,
+//	.startup = wm8988_pcm_startup,
 	.hw_params = wm8988_pcm_hw_params,
 	.set_fmt = wm8988_set_dai_fmt,
 	.set_sysclk = wm8988_set_dai_sysclk,
@@ -785,6 +803,62 @@ static int wm8988_probe(struct snd_soc_codec *codec)
 	reg = snd_soc_read(codec, WM8988_RINVOL);
 	snd_soc_write(codec, WM8988_RINVOL, reg | 0x0100);
 
+/* ---------------------------------------------------------------------------
+   - S: Initialize WM8988 register for M57TE
+   ---------------------------------------------------------------------------*/
+    snd_soc_write(codec, WM8988_ADCDAC, 0x0008); //mute wm8988 dac20091125
+    reg = snd_soc_read(codec, WM8988_LOUT1V);
+    snd_soc_write(codec, WM8988_LOUT1V, reg | 0x0100);   //upate gain
+    reg = snd_soc_read(codec, WM8988_ROUT1V);
+    snd_soc_write(codec, WM8988_ROUT1V, reg | 0x0100);
+
+    reg = snd_soc_read(codec, WM8988_LOUT2V);
+    snd_soc_write(codec, WM8988_LOUT2V, reg | 0x0100);
+    reg = snd_soc_read(codec, WM8988_ROUT2V);
+    snd_soc_write(codec, WM8988_ROUT2V, reg | 0x0100);
+
+    //reg = snd_soc_read(codec, WM8988_LINVOL);
+    //snd_soc_write(codec, WM8988_LINVOL, /*0x0100*//*0x14e*/0x16e);
+    snd_soc_write(codec, WM8988_LINVOL, 0x0137);//20091126
+    //reg = snd_soc_read(codec, WM8988_RINVOL);
+    //snd_soc_write(codec, WM8988_RINVOL, /*0x0100*//*0x14e*/0x16e);
+    snd_soc_write(codec, WM8988_RINVOL, 0x0137);//20091126
+
+     // snd_soc_write(codec, WM8988_IFACE, 0x02);
+#if 0
+    snd_soc_write(codec, WM8988_LOUTM1, /*0x0120*/0x1d3); //83
+    //snd_soc_write(codec, WM8988_LOUTM2, /*0x0120*/0x120);
+
+    snd_soc_write(codec, WM8988_ROUTM1, /*0x0120*/0x1d3); //53
+    //snd_soc_write(codec, WM8988_ROUTM2, /*0x0120*/0x120);
+#else
+    snd_soc_write(codec, WM8988_LOUTM1, 0x0120);
+    //snd_soc_write(codec, WM8988_LOUTM2, 0x070);
+
+    //snd_soc_write(codec, WM8988_ROUTM1, 0x070);
+    snd_soc_write(codec, WM8988_ROUTM2, 0x0120);
+
+#endif
+    snd_soc_write(codec, WM8988_LDAC, 0xf0); //set dac volume
+    snd_soc_write(codec, WM8988_RDAC, 0x01f0);
+
+    snd_soc_write(codec, WM8988_PWR2, 0x01f8);
+#if 1
+    /********************************************/
+    snd_soc_write(codec, WM8988_LADC, /*0x01c3*/0x1d0); //set adc volume
+    snd_soc_write(codec, WM8988_RADC, /*0x01c3*/0x1d0);
+    snd_soc_write(codec, WM8988_ADCIN,  0x0100);//200911126 /*select DIFF input,the state mask befor20091126*/
+    //snd_soc_write(codec, WM8988_LADCIN, 0x0070); //0xf0 //20091126
+    //snd_soc_write(codec, WM8988_RADCIN, 0x0070); //0xf0
+    snd_soc_write(codec, WM8988_LADCIN, 0x00E0); //0xf0 //20091126
+    snd_soc_write(codec, WM8988_RADCIN, 0x00E0); //0xf0
+    //snd_soc_write(codec, WM8988_PWR1,  0x00fe);     //0xfe/fc  20091126
+    /********************************************/
+    //snd_soc_write(codec, WM8988_ADCDAC, 0x0000);
+#endif
+/* ---------------------------------------------------------------------------
+   - E: Initialize WM8988 register for M57TE
+   ---------------------------------------------------------------------------*/
 	wm8988_set_bias_level(codec, SND_SOC_BIAS_STANDBY);
 
 	snd_soc_add_controls(codec, wm8988_snd_controls,

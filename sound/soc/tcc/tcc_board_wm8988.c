@@ -436,7 +436,7 @@ static struct snd_soc_dai_link tcc_dai[] = {
 		.stream_name = "WM8988",
         .platform_name  = "tcc-pcm-audio",
         .cpu_dai_name   = "tcc-dai-i2s",
-        .codec_name = "wm8988 I2C Codec.0-0010",
+        .codec_name = "wm8988 I2C Codec.0-001a",
         .codec_dai_name = "WM8988",
 		.init = tcc_wm8988_init,
 		.ops = &tcc_ops,
@@ -507,7 +507,7 @@ static int __init tcc_init_wm8988(void)
 
 	int ret;
 
-    if( !(machine_is_m57te() || machine_is_m801() || machine_is_m801_88() || machine_is_m803() || machine_is_tcc8920() ) ) {
+    if( !(machine_is_m57te() || machine_is_m801() || machine_is_m801_88() || machine_is_m803() || machine_is_m805_892x() ) ) {
         alsa_dbg("\n\n\n\n%s() do not execution....\n\n", __func__);
         return 0;
     }
