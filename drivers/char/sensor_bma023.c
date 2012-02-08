@@ -249,7 +249,7 @@ static int sensor_used_count=0;
 
 static int bma023_read_accel_xyz(struct i2c_client *client,	struct bmasensoracc *acc);
 static void tcc_sensor_convertCoordination(struct bmasensoracc *sensor_accel, matrix3by3 *layout);
-static void tcc_sensor_set_enable_by_client_for_calibration(struct bmasensor_data *sensor_data, int enable);
+//static void tcc_sensor_set_enable_by_client_for_calibration(struct bmasensor_data *sensor_data, int enable);
 
 #ifdef CONFIG_I2C
 static struct i2c_driver sensor_i2c_driver;
@@ -474,7 +474,7 @@ static ssize_t tcc_sensor_attr_calibration_store(struct device *dev,
 
 	sensor_dbg(KERN_INFO "%s  count = %d\n", __FUNCTION__,count);	
 	//error = strict_strtol(buf, 10, &data);
-	error = sscanf(buf, "%d %d %d\n",&data1,&data2,&data3);
+	error = sscanf(buf, "%ld %ld %ld\n",&data1,&data2,&data3);
 	sensor_dbg(KERN_INFO "%s : data = %d %d %d error = %d \n", __FUNCTION__,data1,data2,data3,error);	
 	if (error != 3)
 		return error;
@@ -590,6 +590,7 @@ static ssize_t tcc_sensor_attr_enable_show(struct device *dev,
 
 }
 
+/*
 static void tcc_sensor_set_enable_by_client_for_calibration(struct bmasensor_data *sensor_data, int enable)
 {
 	int pre_enable = atomic_read(&sensor_data->enable);
@@ -617,6 +618,7 @@ static void tcc_sensor_set_enable_by_client_for_calibration(struct bmasensor_dat
 	mutex_unlock(&sensor_data->enable_mutex);
 
 }
+*/
 
 static void tcc_sensor_attr_set_enable_by_client(struct bmasensor_data *sensor_data, int enable)
 {
@@ -880,9 +882,10 @@ static void tcc_sensor_work_func(struct work_struct *work)
 	unsigned long delay = msecs_to_jiffies(atomic_read(&sensor_data->delay));
 	#endif			
 	struct i2c_client *client = sensor_data->i2cClient;
+	int sensorWhat = 0;
 
 	mutex_lock(&sensor_data->enable_mutex);
-	int sensorWhat = atomic_read(&sensor_data->enable);
+	sensorWhat = atomic_read(&sensor_data->enable);
 	mutex_unlock(&sensor_data->enable_mutex);
 
 	if(sensorWhat & SENSOR_G_MASK){
@@ -930,7 +933,9 @@ static void tcc_sensor_work_func(struct work_struct *work)
 	mutex_lock(&sensor_data->value_mutex);
 	sensor_data->value = acc;
 	mutex_unlock(&sensor_data->value_mutex);
+#ifdef SENSOR_TUNING	
 set_schedule:
+#endif
 	mutex_lock(&sensor_data->enable_mutex);
 	pre_enable = atomic_read(&sensor_data->enable);
 	if(pre_enable != 0){
@@ -1088,6 +1093,7 @@ static int sensor_i2c_remove(struct i2c_client *client)
     return 0;
 }
 
+#if 0
 #ifdef CONFIG_PM
 static int sensor_i2c_suspend(struct i2c_client *client, pm_message_t mesg)
 {
@@ -1135,6 +1141,7 @@ static int sensor_i2c_resume(struct i2c_client *client)
 #define sensor_i2c_suspend		NULL
 #define sensor_i2c_resume		NULL
 #endif /* CONFIG_PM */
+#endif
 
 /* bmaxxx i2c control layer */
 static struct i2c_driver sensor_i2c_driver = {
@@ -1177,7 +1184,7 @@ static ssize_t tcc_sensor_read(struct file *file, char __user *user, size_t size
     return 0;
 }
 
-static long tcc_sensor_ioctl(struct file *filp, unsigned int cmd, void *arg)
+long tcc_sensor_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
     sensor_dbg("%s  (0x%x)  \n", __FUNCTION__, cmd);
 	

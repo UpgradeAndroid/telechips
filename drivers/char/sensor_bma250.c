@@ -693,7 +693,7 @@ int tcc_sensor_calibration(struct bmasensor_data *sensor_data, short x_offset,sh
 
 		sensor_dbg_d("%s: B %d %d %d\n", __func__, calib.x,calib.y,calib.z);
 		
-		//bma220_set_offset_xyz(sensor_data->i2cClient,-calib.x,-calib.y,-calib.z);
+		//bma250_set_offset_xyz(sensor_data->i2cClient,-calib.x,-calib.y,-calib.z);
 	}
 
 	return 0;
@@ -775,7 +775,7 @@ static ssize_t tcc_sensor_attr_calibration_store(struct device *dev,
 
 	sensor_dbg(KERN_INFO "%s  count = %d\n", __FUNCTION__,count);	
 	//error = strict_strtol(buf, 10, &data);
-	error = sscanf(buf, "%d %d %d\n",&data1,&data2,&data3);
+	error = sscanf(buf, "%ld %ld %ld\n",&data1,&data2,&data3);
 	sensor_dbg(KERN_INFO "%s : data = %d %d %d error = %d \n", __FUNCTION__,data1,data2,data3,error);	
 	if (error != 3)
 		return error;
@@ -1181,9 +1181,10 @@ static void tcc_sensor_work_func(struct work_struct *work)
 	unsigned long delay = msecs_to_jiffies(atomic_read(&sensor_data->delay));
 	#endif			
 	struct i2c_client *client = sensor_data->i2cClient;
+	int sensorWhat = 0;
 
 	mutex_lock(&sensor_data->enable_mutex);
-	int sensorWhat = atomic_read(&sensor_data->enable);
+	sensorWhat = atomic_read(&sensor_data->enable);
 	mutex_unlock(&sensor_data->enable_mutex);
 
 	if(sensorWhat & SENSOR_G_MASK){
@@ -1231,7 +1232,9 @@ static void tcc_sensor_work_func(struct work_struct *work)
 	mutex_lock(&sensor_data->value_mutex);
 	sensor_data->value = acc;
 	mutex_unlock(&sensor_data->value_mutex);
+#ifdef SENSOR_TUNING	
 set_schedule:
+#endif
 	mutex_lock(&sensor_data->enable_mutex);
 	pre_enable = atomic_read(&sensor_data->enable);
 
@@ -1390,6 +1393,7 @@ static int sensor_i2c_remove(struct i2c_client *client)
     return 0;
 }
 
+#if 0
 #ifdef CONFIG_PM
 static int sensor_i2c_suspend(struct i2c_client *client, pm_message_t mesg)
 {
@@ -1437,6 +1441,7 @@ static int sensor_i2c_resume(struct i2c_client *client)
 #define sensor_i2c_suspend		NULL
 #define sensor_i2c_resume		NULL
 #endif /* CONFIG_PM */
+#endif
 
 /* bmaxxx i2c control layer */
 static struct i2c_driver sensor_i2c_driver = {
@@ -1446,8 +1451,8 @@ static struct i2c_driver sensor_i2c_driver = {
     },
     .probe      = sensor_i2c_probe,
     .remove     = sensor_i2c_remove,
-    .suspend   = sensor_i2c_suspend,
-    .resume   = sensor_i2c_resume,
+    //.suspend   = sensor_i2c_suspend,
+    //.resume   = sensor_i2c_resume,
     .id_table   = sensor_i2c_id,
 };
 
@@ -1479,7 +1484,7 @@ static ssize_t tcc_sensor_read(struct file *file, char __user *user, size_t size
     return 0;
 }
 
-static long tcc_sensor_ioctl(struct file *filp, unsigned int cmd, void *arg)
+long tcc_sensor_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
     sensor_dbg("%s  (0x%x)  \n", __FUNCTION__, cmd);
 	
