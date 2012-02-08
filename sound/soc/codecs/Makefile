@@ -86,7 +86,7 @@ snd-soc-jz4740-codec-objs := jz4740.o
 snd-soc-es8388-objs := es8388.o
 # Realtek
 snd-soc-rt5625-objs := rt5625.o
-
+snd-soc-rt5633-objs := rt5633.o
 
 # Amp
 snd-soc-lm4857-objs := lm4857.o
@@ -183,7 +183,7 @@ obj-$(CONFIG_SND_SOC_WM_HUBS)	+= snd-soc-wm-hubs.o
 obj-$(CONFIG_SND_SOC_ES8388)	+= snd-soc-es8388.o
 # RealTek
 obj-$(CONFIG_SND_SOC_RT5625)	+= snd-soc-rt5625.o
-
+obj-$(CONFIG_SND_SOC_RT5633)	+= snd-soc-rt5633.o
 
 # Amp
 obj-$(CONFIG_SND_SOC_LM4857)	+= snd-soc-lm4857.o
