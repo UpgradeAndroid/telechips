@@ -83,6 +83,28 @@ typedef void (*FuncPtr)(void);
 /*===========================================================================
 FUNCTION
 ===========================================================================*/
+#if defined(CONFIG_MACH_TCC8920ST)
+static void tcc_stb_suspend(void)
+{
+#if defined(TCC_PM_MEMQ_PWR_CTRL)
+    BITCLR(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //VDDQ_MEM_ON : low
+#endif    
+   	BITCLR(((PGPIO)HwGPIO_BASE)->GPFDAT.nREG, 1<<16); //SLEEP_MODE_CTL : low
+	BITCLR(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<19); //CORE1_ON : low
+	BITCLR(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<21); //CORE2_ON : low
+}
+
+static void tcc_stb_resume(void)
+{
+#if defined(TCC_PM_MEMQ_PWR_CTRL)
+    BITSET(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //VDDQ_MEM_ON : high
+#endif        
+   	BITSET(((PGPIO)HwGPIO_BASE)->GPFDAT.nREG, 1<<16); //SLEEP_MODE_CTL : high
+	BITSET(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<19); //CORE1_ON : high
+	BITSET(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<21); //CORE2_ON : high	
+}
+#endif
+
 static void sdram_init(void)
 {
 #if defined(CONFIG_DRAM_DDR3)
@@ -838,6 +860,9 @@ static void shutdown(void)
 	}
 	#endif
 #endif
+#if defined(CONFIG_MACH_TCC8920ST)
+    tcc_stb_suspend();
+#endif
 
 // -------------------------------------------------------------------------
 // SRAM Retention
@@ -1058,7 +1083,9 @@ static void wakeup(void)
 	}
 	#endif
 #endif
-
+#if defined(CONFIG_MACH_TCC8920ST)
+    tcc_stb_resume();
+#endif
 // -------------------------------------------------------------------------
 // BUS Power On
 
@@ -1410,7 +1437,9 @@ static void sleep(void)
 	}
 	#endif
 #endif
-
+#if defined(CONFIG_MACH_TCC8920ST)
+    tcc_stb_suspend();
+#endif
 // -------------------------------------------------------------------------
 // SRAM Retention
 
@@ -1618,7 +1647,9 @@ static void sleep(void)
 	}
 	#endif
 #endif
-
+#if defined(CONFIG_MACH_TCC8920ST)
+    tcc_stb_resume();
+#endif
 // -------------------------------------------------------------------------
 // BUS Power On
 
