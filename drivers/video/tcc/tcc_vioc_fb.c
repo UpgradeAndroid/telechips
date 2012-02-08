@@ -1359,6 +1359,23 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 			}
 			break;
 
+		case TCC_LCDC_3D_UI_ENABLE:
+			{
+				unsigned int mode;
+
+				if(copy_from_user((void *)&mode, (const void *)arg, sizeof(unsigned int)))
+					return -EFAULT;
+
+				TCC_OUTPUT_FB_Set3DMode(TRUE, mode);
+			}
+			break;
+			
+		case TCC_LCDC_3D_UI_DISABLE:
+			{
+				TCC_OUTPUT_FB_Set3DMode(FALSE, 0);
+			}
+			break;
+			
 	#ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
 	case TCC_LCDC_VIDEO_START_VSYNC:
 		{

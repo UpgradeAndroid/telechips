@@ -104,6 +104,8 @@ typedef enum{
 #define TCC_LCDC_MOUSE_SHOW				0x0200
 #define TCC_LCDC_MOUSE_MOVE				0x0201
 #define TCC_LCDC_MOUSE_ICON				0x0202
+#define TCC_LCDC_3D_UI_ENABLE			0x0203
+#define TCC_LCDC_3D_UI_DISABLE			0x0204
 
 #define TCC_FB_FLUSH					0x1000
 

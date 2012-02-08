@@ -458,6 +458,7 @@ char M2M_Scaler1_Ctrl_Detail(SCALER_TYPE *scale_img)
 	VIOC_CONFIG_RDMA14PathCtrl(0 /* RDMA14 */);
 
 	// set to VRDMA
+	VIOC_RDMA_SetImageAlphaEnable(pRDMABase1, 1);
 	VIOC_RDMA_SetImageFormat(pRDMABase1, scale_img->src_fmt);
 	VIOC_RDMA_SetImageSize(pRDMABase1, scale_img->src_ImgWidth, scale_img->src_ImgHeight);
 	VIOC_RDMA_SetImageOffset(pRDMABase1, scale_img->src_fmt, scale_img->src_ImgWidth);
@@ -676,23 +677,31 @@ int tccxxx_scaler1_release(struct inode *inode, struct file *filp)
 	if(sc1_data.dev_opened == 0)
 	{
 		if(sc1_data.block_operating)
+		{
 			ret = wait_event_interruptible_timeout(sc1_data.cmd_wq, sc1_data.block_operating == 0, msecs_to_jiffies(200));
 
-		if(ret <= 0)	{
- 			printk("[%d]: line :%d scaler 1 timed_out block_operation:%d!! cmd_count:%d \n", ret, __LINE__, sc1_data.block_waiting, sc1_data.cmd_count);
+			if(ret <= 0)	{
+	 			printk("[%d]: line :%d scaler 1 timed_out block_operation:%d!! cmd_count:%d \n", ret, __LINE__, sc1_data.block_operating, sc1_data.cmd_count);
+			}
 		}
 
 		if(sc1_data.irq_reged)	{
 			#if defined(CONFIG_ARCH_TCC892X)
-			free_irq(INT_VIOC_WD4, &sc1_data);
+				free_irq(INT_VIOC_WD4, &sc1_data);
+				VIOC_CONFIG_PlugOut(VIOC_SC2);
+				VIOC_SC_SetSWReset(VIOC_SC2, 14/*RDMA14*/, 4/*WDMA04*/);
 			#else // CONFIG_ARCH_TCC892X
-			free_irq(INT_SC1, &sc1_data);
+				free_irq(INT_SC1, &sc1_data);
+				M2M_Scaler_SW_Reset(M2M_SCALER1);
 			#endif // CONFIG_ARCH_TCC892X
+
 			sc1_data.irq_reged = 0;
 		}
+
 		sc1_data.block_operating = sc1_data.block_waiting = 0;
 		sc1_data.poll_count = sc1_data.cmd_count = 0;
 	}
+
 	clk_disable(m2m2_clk);
 	#if !defined(CONFIG_ARCH_TCC892X)
 	clk_disable(m2m1_ddi_cache);

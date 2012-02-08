@@ -107,13 +107,13 @@ u_char *		Gmap_cpu;	/* virtual */
 *
 ******************************************************************************/
 //#define TCC_FB_UPSCALE
+//#define TCC_OUTPUT_3DUI_SUPPORT
 
 /*****************************************************************************
 *
 * structures
 *
 ******************************************************************************/
-
 
 typedef struct {
 	unsigned int output;
@@ -131,6 +131,26 @@ struct output_struct {
 static struct output_struct Output_struct;
 static struct output_struct Output_lcdc0_struct;
 static struct output_struct Output_lcdc1_struct;
+
+typedef struct {
+	unsigned int wmix_num;
+	unsigned int src0_fmt;
+	unsigned int src0_wd;
+	unsigned int src0_ht;
+	unsigned int dst0_sx;
+	unsigned int dst0_sy;
+	unsigned int src1_fmt;
+	unsigned int src1_wd;
+	unsigned int src1_ht;
+	unsigned int dst1_sx;
+	unsigned int dst1_sy;
+	unsigned int dst_fmt;
+	unsigned int dst_wd;
+	unsigned int dst_ht;
+	char *src0_addr;
+	char *src1_addr;
+	char *dst_addr;
+} output_wmixer_info;
 
 /*****************************************************************************
 *
@@ -169,6 +189,10 @@ static unsigned int uiOutputResizeMode = 0;
 static lcdc_chroma_params output_chroma;
 static output_video_img_info output_video_img;
 
+static char output_3d_ui_flag = 0;
+static char output_3d_ui_mode = 0;
+static char output_ui_resize_count = 0;
+
 struct inode scaler_inode;
 struct file scaler_filp;
 
@@ -194,6 +218,12 @@ int tccxxx_grp_open(struct inode *inode, struct file *filp);
 int (*g2d_ioctl) (struct inode *, struct file *, unsigned int, unsigned long);
 int (*g2d_open) (struct inode *, struct file *);
 int (*g2d_release) (struct inode *, struct file *);
+
+#ifdef CONFIG_CPU_FREQ
+extern struct tcc_freq_table_t gtHdmiClockLimitTable;
+#endif//CONFIG_CPU_FREQ
+extern unsigned int tca_get_lcd_lcdc_num(viod);
+extern unsigned int tca_get_hdmi_lcdc_num(viod);
 
 static irqreturn_t TCC_OUTPUT_LCDC_Handler(int irq, void *dev_id)
 {
@@ -269,7 +299,6 @@ static irqreturn_t TCC_OUTPUT_LCDC1_Handler(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-extern unsigned int tca_get_lcd_lcdc_num(viod);
 void TCC_OUTPUT_LCDC_Init(void)
 {
 	unsigned int lcd_lcdc_num;
@@ -343,7 +372,6 @@ void TCC_OUTPUT_LCDC_Init(void)
 	}
  }
 
-extern unsigned int tca_get_hdmi_lcdc_num(viod);
 void TCC_OUTPUT_UPDATE_OnOff(char onoff, char type)
 {
 	unsigned int lcdc_num, vioc_scaler_plug_in;	
@@ -363,7 +391,11 @@ void TCC_OUTPUT_UPDATE_OnOff(char onoff, char type)
 	}
 	else
 	{
-		vioc_scaler_plug_in = 1;
+		#if defined(TCC_OUTPUT_3DUI_SUPPORT)
+			vioc_scaler_plug_in = 0;
+		#else
+			vioc_scaler_plug_in = 1;
+		#endif
 	}
 
 	if(onoff)	
@@ -378,7 +410,10 @@ void TCC_OUTPUT_UPDATE_OnOff(char onoff, char type)
 		else
 		{
 			g2d_open((struct inode *)&g2d_inode, (struct file *)&g2d_filp);
-			scaler_open((struct inode *)&scaler_inode, (struct file *)&scaler_filp);
+
+			#if !defined(TCC_OUTPUT_3DUI_SUPPORT)
+	 			scaler_open((struct inode *)&scaler_inode, (struct file *)&scaler_filp);
+			#endif
 		}
 	}
 	else 
@@ -389,15 +424,15 @@ void TCC_OUTPUT_UPDATE_OnOff(char onoff, char type)
 		}
 		else
 		{
-			scaler_release((struct inode *)&scaler_inode, (struct file *)&scaler_filp);
+			#if !defined(TCC_OUTPUT_3DUI_SUPPORT)
+				scaler_release((struct inode *)&scaler_inode, (struct file *)&scaler_filp);
+			#endif
+
 			g2d_release((struct inode *)&g2d_inode, (struct file *)&g2d_filp);
 		}
 	}
 }
 
-#ifdef CONFIG_CPU_FREQ
-extern struct tcc_freq_table_t gtHdmiClockLimitTable;
-#endif//CONFIG_CPU_FREQ
 void TCC_OUTPUT_LCDC_OnOff(char output_type, char output_lcdc_num, char onoff)
 {
 	int i;
@@ -548,6 +583,91 @@ void TCC_OUTPUT_LCDC_CtrlChroma(lcdc_chroma_params lcdc_chroma)
 	output_chroma.color = lcdc_chroma.color;
 }
 
+void TCC_OUTPUT_LCDC_CtrlWinMixer(output_wmixer_info output_wmixer, unsigned int onoff)
+{
+	PVIOC_WMIX pVIOC_WMIX = NULL;
+	PVIOC_RDMA pVIOC_RDMA0 = NULL;
+	PVIOC_RDMA pVIOC_RDMA1 = NULL;
+	PVIOC_WDMA pVIOC_WDMA = NULL;
+
+	switch(output_wmixer.wmix_num)
+	{
+		case 0:
+		case 1:
+			break;
+
+		case 3:
+			pVIOC_WMIX = (PVIOC_WMIX)tcc_p2v(HwVIOC_WMIX3);	
+			pVIOC_RDMA0 = (PVIOC_RDMA)tcc_p2v(HwVIOC_RDMA12);
+			pVIOC_RDMA1 = (PVIOC_RDMA)tcc_p2v(HwVIOC_RDMA13);	
+			pVIOC_WDMA = (PVIOC_WDMA)tcc_p2v(HwVIOC_WDMA03);
+			VIOC_CONFIG_RDMA12PathCtrl(0 /* RDMA14 */);
+			VIOC_CONFIG_WMIXPath(WMIX30, 1 /* Mixing */);
+			break;
+
+		case 4:
+			pVIOC_WMIX = (PVIOC_WMIX)tcc_p2v(HwVIOC_WMIX4);	
+			pVIOC_RDMA0 = (PVIOC_RDMA)tcc_p2v(HwVIOC_RDMA14);
+			pVIOC_RDMA1 = (PVIOC_RDMA)tcc_p2v(HwVIOC_RDMA15);	
+			pVIOC_WDMA = (PVIOC_WDMA)tcc_p2v(HwVIOC_WDMA04);
+			VIOC_CONFIG_RDMA14PathCtrl(0 /* RDMA14 */);
+			VIOC_CONFIG_WMIXPath(WMIX40, 1 /* Mixing */);
+			break;
+	}
+
+	if(pVIOC_WMIX == NULL)
+		return;
+
+	dprintk("%s\n", __func__);
+
+	dprintk("s0_wd=%d, s0_ht=%d, d0_sx=%d, d0_sy=%d, s1_wd=%d, s1_ht=%d, d1_sx=%d, d1_sy=%d\n",
+			output_wmixer.src0_wd, output_wmixer.src0_ht, output_wmixer.dst0_sx, output_wmixer.dst0_sy,
+			output_wmixer.src1_wd, output_wmixer.src1_ht, output_wmixer.dst1_sx, output_wmixer.dst1_sy);
+	
+	if(onoff)
+	{
+		// set to VRDMA switch path
+		//VIOC_CONFIG_RDMA14PathCtrl(0 /* RDMA14 */);
+
+		// set to RDMA0(VRDMA)
+		VIOC_RDMA_SetImageAlphaEnable(pVIOC_RDMA0, 1);
+		VIOC_RDMA_SetImageFormat(pVIOC_RDMA0, output_wmixer.src0_fmt);
+		VIOC_RDMA_SetImageSize(pVIOC_RDMA0, output_wmixer.src0_wd, output_wmixer.src0_ht);
+		VIOC_RDMA_SetImageOffset(pVIOC_RDMA0, output_wmixer.src0_fmt, output_wmixer.src0_wd);
+		VIOC_RDMA_SetImageBase(pVIOC_RDMA0, output_wmixer.src0_addr, NULL, NULL);
+
+		// set to RDMA1(GRDMA)
+		VIOC_RDMA_SetImageAlphaEnable(pVIOC_RDMA1, 1);
+		VIOC_RDMA_SetImageFormat(pVIOC_RDMA1, output_wmixer.src1_fmt);
+		VIOC_RDMA_SetImageSize(pVIOC_RDMA1, output_wmixer.src1_wd, output_wmixer.src1_ht);
+		VIOC_RDMA_SetImageOffset(pVIOC_RDMA1, output_wmixer.src1_fmt, output_wmixer.src1_wd);
+		VIOC_RDMA_SetImageBase(pVIOC_RDMA1, output_wmixer.src1_addr, NULL, NULL);
+
+		// set to WMIX 
+		//VIOC_CONFIG_WMIXPath(WMIX40, 0 /* by-pass */);
+		VIOC_WMIX_SetSize(pVIOC_WMIX, output_wmixer.dst_wd, output_wmixer.dst_ht);
+		VIOC_WMIX_SetPosition(pVIOC_WMIX, 0, output_wmixer.dst0_sx, output_wmixer.dst0_sy);
+		VIOC_WMIX_SetPosition(pVIOC_WMIX, 1, output_wmixer.dst1_sx, output_wmixer.dst1_sy);
+		VIOC_WMIX_SetUpdate(pVIOC_WMIX);
+
+		VIOC_RDMA_SetImageEnable(pVIOC_RDMA0);
+		VIOC_RDMA_SetImageEnable(pVIOC_RDMA1);
+
+		// set to VWRMA
+		VIOC_WDMA_SetImageFormat(pVIOC_WDMA, output_wmixer.dst_fmt);
+		VIOC_WDMA_SetImageSize(pVIOC_WDMA, output_wmixer.dst_wd, output_wmixer.dst_ht);
+		VIOC_WDMA_SetImageOffset(pVIOC_WDMA, output_wmixer.dst_fmt, output_wmixer.dst_wd);
+		VIOC_WDMA_SetImageBase(pVIOC_WDMA, output_wmixer.dst_addr, NULL, NULL);
+		VIOC_WDMA_SetImageEnable(pVIOC_WDMA, 0 /* OFF */);
+		pVIOC_WDMA->uIRQSTS.nREG = 0xFFFFFFFF; // wdma status register all clear.
+	}
+	else
+	{
+		VIOC_RDMA_SetImageDisable(pVIOC_RDMA0);
+		VIOC_RDMA_SetImageDisable(pVIOC_RDMA1);
+	}
+}
+
 char TCC_FB_G2D_FmtConvert(unsigned int width, unsigned int height, unsigned int g2d_rotate, unsigned int Sfmt, unsigned int Tfmt, unsigned int Saddr, unsigned int Taddr)
 {
 	G2D_BITBLIT_TYPE g2d_p;
@@ -645,6 +765,7 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 	unsigned int  chromaR = 0, chromaG = 0, chromaB = 0;
 	unsigned int  chroma_en = 0, alpha_blending_en = 0, alpha_type = 0;
 	unsigned int vioc_scaler_plug_in = 0;
+	char mode_3d = 0;
 
 	SCALER_TYPE fbscaler;
 	VIOC_SC *pSC;
@@ -677,6 +798,11 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 	if(lcd_width != width || lcd_height != height || uiOutputResizeMode)
 		scaler_need = 1;
 
+	#if defined(TCC_OUTPUT_3DUI_SUPPORT)
+		if(TCC_OUTPUT_FB_Get3DMode(&mode_3d))
+	 		scaler_need = 1;
+ 	#endif
+	
 	if(bits_per_pixel == 32 )	{
 		chroma_en = 0;
 		alpha_type = 1;
@@ -699,7 +825,11 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 	}
 	else
 	{
-		vioc_scaler_plug_in = 1;
+		#if defined(TCC_OUTPUT_3DUI_SUPPORT)
+ 			vioc_scaler_plug_in = 0;
+		#else
+			vioc_scaler_plug_in = 1;
+		#endif
 	}
 
 #if 0
@@ -758,26 +888,19 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 		FBimg_buf_addr = taddr;
 	}
 
-	if(machine_is_tcc8920st())
-	{
-		lcd_width -= uiOutputResizeMode << 4;
-		lcd_height -= uiOutputResizeMode << 3;
-
-        lcd_w_pos = uiOutputResizeMode << 3;
-		if( interlace_output )
-			lcd_h_pos = uiOutputResizeMode << 1;
-		else
-			lcd_h_pos = uiOutputResizeMode << 2;
-
-		VIOC_WMIX_SetPosition(pDISP_OUTPUT[type].pVIOC_WMIXBase, 0, lcd_w_pos, lcd_h_pos);
-	}
-
 	if( vioc_scaler_plug_in == 0 )
 	{
 		if(scaler_need)
 		{
+			int x_offset, y_offset;
+			output_wmixer_info wmixer_info;
+				
 			//need to add scaler component
-			fbscaler.responsetype = SCALER_NOWAIT;
+			#if defined(TCC_OUTPUT_3DUI_SUPPORT)
+				fbscaler.responsetype = SCALER_POLLING;
+			#else
+				fbscaler.responsetype = SCALER_NOWAIT;
+			#endif
 			
 			fbscaler.src_Yaddr = (char *)FBimg_buf_addr;
 
@@ -820,21 +943,133 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 				img_height = lcd_height;
 			}
 
-			ifmt = TCC_LCDC_IMG_FMT_RGB888;
-			fbscaler.dest_fmt = SCALER_ARGB8888;		// destination image format
-			fbscaler.dest_ImgWidth = img_width;		// destination image width
-			fbscaler.dest_ImgHeight = img_height; 	// destination image height
-			fbscaler.dest_winLeft = 0;
-			fbscaler.dest_winTop = 0;
-			fbscaler.dest_winRight = img_width;
-			fbscaler.dest_winBottom = img_height;
+		#if defined(TCC_OUTPUT_3DUI_SUPPORT)
+			if(TCC_OUTPUT_FB_Get3DMode(&mode_3d))
+			{
+				ifmt = TCC_LCDC_IMG_FMT_RGB888;
+				fbscaler.dest_fmt = SCALER_ARGB8888;	// destination image format
+				fbscaler.viqe_onthefly = 0;
 
-			FBimg_buf_addr = fbscaler.dest_Yaddr;
-			
-			scaler_ioctl((struct file *)&scaler_filp, TCC_SCALER_IOCTRL_KERENL, &fbscaler);
+				x_offset = (uiOutputResizeMode << 4) + 2;
+				y_offset = (uiOutputResizeMode << 3) + 2;
+					
+				/* 3D MKV : SBS(SideBySide) Mode */
+				if(mode_3d == 0)
+				{
+					img_width = (img_width - x_offset)>>1;
+					img_height = (img_height - y_offset);
 
-			dprintk("src_fmt=%d, src_ImgWidth=%d, src_ImgHeight=%d, dest_ImgWidth=%d, dest_ImgHeight=%d\n",
-					fbscaler.src_fmt, fbscaler.src_ImgWidth, fbscaler.src_ImgHeight, fbscaler.dest_ImgWidth, fbscaler.dest_ImgHeight);
+					VIOC_WMIX_SetPosition(pDISP_OUTPUT[type].pVIOC_WMIXBase, 0, (x_offset>>2), (y_offset>>1));
+				}
+				else
+				/* 3D MKV : TNB(Top&Bottom) Mode */
+				{
+					img_width = (img_width - x_offset);
+					img_height = (img_height - y_offset)>>1;
+
+					VIOC_WMIX_SetPosition(pDISP_OUTPUT[type].pVIOC_WMIXBase, 0, (x_offset>>1), (y_offset>>2));
+				}
+
+				fbscaler.dest_ImgWidth = img_width; 
+				fbscaler.dest_ImgHeight = img_height;
+				fbscaler.dest_winLeft = 0;
+				fbscaler.dest_winTop = 0;
+				fbscaler.dest_winRight = img_width;
+				fbscaler.dest_winBottom = img_height;
+
+				scaler_open((struct inode *)&scaler_inode, (struct file *)&scaler_filp);
+				scaler_ioctl((struct file *)&scaler_filp, TCC_SCALER_IOCTRL_KERENL, &fbscaler);
+				scaler_release((struct inode *)&scaler_inode, (struct file *)&scaler_filp);
+
+				dprintk("src_fmt=%d, src_wd=%d, src_ht=%d, dst_fmt=%d, dst_wd=%d, dst_ht=%d, dst_wL=%d, dst_wR=%d, dst_wT=%d, dst_wB=%d\n",
+						fbscaler.src_fmt, fbscaler.src_ImgWidth, fbscaler.src_ImgHeight, fbscaler.src_fmt, fbscaler.dest_ImgWidth, fbscaler.dest_ImgHeight,
+						fbscaler.dest_winLeft, fbscaler.dest_winRight, fbscaler.dest_winTop, fbscaler.dest_winBottom);
+
+				/* 3D MKV : SBS(SideBySide) Mode */
+				if(mode_3d == 0)
+				{
+					wmixer_info.dst0_sx = (x_offset>>2);
+					wmixer_info.dst0_sy = (y_offset>>1);
+
+					wmixer_info.dst1_sx = (x_offset>>2) + (lcd_width>>1);
+					wmixer_info.dst1_sy = (y_offset>>1);
+				}
+				else
+				/* 3D MKV : TNB(Top&Bottom) Mode */
+				{
+					wmixer_info.dst0_sx = (x_offset>>1);
+					wmixer_info.dst0_sy = (y_offset>>2);
+
+					wmixer_info.dst1_sx = (x_offset>>1);
+					wmixer_info.dst1_sy = (y_offset>>2) + (lcd_height>>1);
+				}
+				
+				wmixer_info.wmix_num = 4; /* SC2 + WMIX4 */
+
+				wmixer_info.src0_fmt = VIOC_IMG_FMT_ARGB8888;
+				wmixer_info.src0_wd = fbscaler.dest_ImgWidth;
+				wmixer_info.src0_ht = fbscaler.dest_ImgHeight;
+				wmixer_info.src0_addr = fbscaler.dest_Yaddr;
+
+				wmixer_info.src1_fmt = VIOC_IMG_FMT_ARGB8888;
+				wmixer_info.src1_wd = fbscaler.dest_ImgWidth;
+				wmixer_info.src1_ht = fbscaler.dest_ImgHeight;
+				wmixer_info.src1_addr = fbscaler.dest_Yaddr;
+
+				wmixer_info.dst_fmt = VIOC_IMG_FMT_ARGB8888;
+				wmixer_info.dst_wd = lcd_width;
+				wmixer_info.dst_ht = lcd_height;
+				if(buf_index)
+					wmixer_info.dst_addr = fb_g2d_pbuf0;
+				else
+					wmixer_info.dst_addr = fb_g2d_pbuf1;
+
+				TCC_OUTPUT_LCDC_CtrlWinMixer(wmixer_info, TRUE);
+
+				img_width = wmixer_info.dst_wd;
+				img_height = wmixer_info.dst_ht;
+
+				FBimg_buf_addr = wmixer_info.dst_addr;
+			}
+			else
+		#endif //TCC_OUTPUT_3DUI_SUPPORT
+			{
+				if(machine_is_tcc8920st())
+				{
+					img_width -= uiOutputResizeMode << 4;
+					img_height -= uiOutputResizeMode << 3;
+
+			        lcd_w_pos = uiOutputResizeMode << 3;
+					if( interlace_output )
+						lcd_h_pos = uiOutputResizeMode << 1;
+					else
+						lcd_h_pos = uiOutputResizeMode << 2;
+
+					VIOC_WMIX_SetPosition(pDISP_OUTPUT[type].pVIOC_WMIXBase, 0, lcd_w_pos, lcd_h_pos);
+				}
+
+				ifmt = TCC_LCDC_IMG_FMT_RGB888;
+				fbscaler.dest_fmt = SCALER_ARGB8888;	// destination image format
+				fbscaler.dest_ImgWidth = img_width;		// destination image width
+				fbscaler.dest_ImgHeight = img_height; 	// destination image height
+				fbscaler.dest_winLeft = 0;
+				fbscaler.dest_winTop = 0;
+				fbscaler.dest_winRight = img_width;
+				fbscaler.dest_winBottom = img_height;
+
+				#if defined(TCC_OUTPUT_3DUI_SUPPORT)
+					scaler_open((struct inode *)&scaler_inode, (struct file *)&scaler_filp);
+					scaler_ioctl((struct file *)&scaler_filp, TCC_SCALER_IOCTRL_KERENL, &fbscaler);
+					scaler_release((struct inode *)&scaler_inode, (struct file *)&scaler_filp);
+				#else
+					scaler_ioctl((struct file *)&scaler_filp, TCC_SCALER_IOCTRL_KERENL, &fbscaler);
+				#endif
+
+				dprintk("src_fmt=%d, src_ImgWidth=%d, src_ImgHeight=%d, dest_ImgWidth=%d, dest_ImgHeight=%d\n",
+						fbscaler.src_fmt, fbscaler.src_ImgWidth, fbscaler.src_ImgHeight, fbscaler.dest_ImgWidth, fbscaler.dest_ImgHeight);
+
+				FBimg_buf_addr = fbscaler.dest_Yaddr;
+			}
 		}
 	}
 	else
@@ -1123,3 +1358,25 @@ int TCC_OUTPUT_FB_MouseSetIcon(tcc_mouse_icon *mouse_icon)
     }
     return 1;
 }
+
+int TCC_OUTPUT_FB_Set3DMode(char enable, char mode)
+{
+	dprintk("%s, 3D mode=%d\n", __func__, mode);
+
+	output_3d_ui_flag = enable;
+	output_3d_ui_mode = mode;
+
+	output_ui_resize_count = 4;
+
+	return 0;
+}
+
+int TCC_OUTPUT_FB_Get3DMode(char *mode)
+{
+	dprintk("%s, flag=%d, mode=%d\n", __func__, output_3d_ui_flag, output_3d_ui_mode);
+
+	*mode = output_3d_ui_mode;
+
+	return output_3d_ui_flag;
+}
+
