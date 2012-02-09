@@ -36,7 +36,14 @@ static int debug_mask = DEBUG_EXIT_SUSPEND | DEBUG_WAKEUP;
 #else
 static int debug_mask = DEBUG_EXIT_SUSPEND | DEBUG_WAKEUP | DEBUG_SUSPEND | DEBUG_EXPIRE | DEBUG_WAKE_LOCK;
 //static int debug_mask = DEBUG_EXIT_SUSPEND | DEBUG_WAKEUP | DEBUG_SUSPEND;
+
+// eventX-XXXX log message is skip.
+#define DEBUG_EVENT_MSG_SKIP
+#if defined(DEBUG_EVENT_MSG_SKIP)
+static int debug_event_msg_skip = 0;
 #endif
+#endif
+
 module_param_named(debug_mask, debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP);
 
 #define WAKE_LOCK_TYPE_MASK              (0x0f)
@@ -250,8 +257,12 @@ static long has_wake_lock_locked(int type)
 				max_timeout = timeout;
 		}
 		else {
-			if (debug_mask & DEBUG_WAKE_LOCK)
+			if (debug_mask & DEBUG_WAKE_LOCK) {
+				#if defined(DEBUG_EVENT_MSG_SKIP)
+				if(debug_event_msg_skip != 0)		// eventX-XXXX wake_lock log msg skip.
+				#endif
 				pr_info("has_wake_lock_locked: %s, retrun -1, lock->flags=0x%x\n", lock->name, lock->flags);
+			}
 			return -1;
 		}
 	}
@@ -455,17 +466,31 @@ static void wake_lock_internal(
 #endif
 	}
 	list_del(&lock->link);
+
+	#if defined(DEBUG_EVENT_MSG_SKIP)
+	if(memcmp(lock->name, "event", 5) != 0)
+		debug_event_msg_skip = 1;
+	#endif
+
 	if (has_timeout) {
-		if (debug_mask & DEBUG_WAKE_LOCK)
+		if (debug_mask & DEBUG_WAKE_LOCK) {
+			#if defined(DEBUG_EVENT_MSG_SKIP)
+			if(debug_event_msg_skip != 0)
+			#endif
 			pr_info("wake_lock: %s, type %d, timeout %ld.%03lu\n",
 				lock->name, type, timeout / HZ,
 				(timeout % HZ) * MSEC_PER_SEC / HZ);
+		}
 		lock->expires = jiffies + timeout;
 		lock->flags |= WAKE_LOCK_AUTO_EXPIRE;
 		list_add_tail(&lock->link, &active_wake_locks[type]);
 	} else {
-		if (debug_mask & DEBUG_WAKE_LOCK)
+		if (debug_mask & DEBUG_WAKE_LOCK) {
+			#if defined(DEBUG_EVENT_MSG_SKIP)
+			if(debug_event_msg_skip != 0)
+			#endif
 			pr_info("wake_lock: %s, type %d\n", lock->name, type);
+		}
 		lock->expires = LONG_MAX;
 		lock->flags &= ~WAKE_LOCK_AUTO_EXPIRE;
 		list_add(&lock->link, &active_wake_locks[type]);
@@ -483,19 +508,33 @@ static void wake_lock_internal(
 		else
 			expire_in = -1;
 		if (expire_in > 0) {
-			if (debug_mask & DEBUG_EXPIRE)
+			if (debug_mask & DEBUG_EXPIRE) {
+				#if defined(DEBUG_EVENT_MSG_SKIP)
+				if(debug_event_msg_skip != 0)
+				#endif
 				pr_info("wake_lock: %s, start expire timer, "
 					"%ld\n", lock->name, expire_in);
+			}
 			mod_timer(&expire_timer, jiffies + expire_in);
 		} else {
 			if (del_timer(&expire_timer))
-				if (debug_mask & DEBUG_EXPIRE)
+				if (debug_mask & DEBUG_EXPIRE) {
+					#if defined(DEBUG_EVENT_MSG_SKIP)
+					if(debug_event_msg_skip != 0)
+					#endif
 					pr_info("wake_lock: %s, stop expire timer\n",
 						lock->name);
+				}
 			if (expire_in == 0)
 				queue_work(suspend_work_queue, &suspend_work);
 		}
 	}
+
+	#if defined(DEBUG_EVENT_MSG_SKIP)
+	//if(memcmp(lock->name, "event", 5) != 0)		// eventX-XXXX wake_lock log msg skip.
+		debug_event_msg_skip = 0;
+	#endif
+
 	spin_unlock_irqrestore(&list_lock, irqflags);
 }
 
@@ -520,23 +559,41 @@ void wake_unlock(struct wake_lock *lock)
 #ifdef CONFIG_WAKELOCK_STAT
 	wake_unlock_stat_locked(lock, 0);
 #endif
-	if (debug_mask & DEBUG_WAKE_LOCK)
+
+	#if defined(DEBUG_EVENT_MSG_SKIP)
+	if(memcmp(lock->name, "event", 5) != 0)
+		debug_event_msg_skip = 1;
+	#endif
+
+	if (debug_mask & DEBUG_WAKE_LOCK) {
+		#if defined(DEBUG_EVENT_MSG_SKIP)
+		if(debug_event_msg_skip != 0)
+		#endif
 		pr_info("wake_unlock: %s, type=%d\n", lock->name, type);
+	}
 	lock->flags &= ~(WAKE_LOCK_ACTIVE | WAKE_LOCK_AUTO_EXPIRE);
 	list_del(&lock->link);
 	list_add(&lock->link, &inactive_locks);
 	if (type == WAKE_LOCK_SUSPEND) {
 		long has_lock = has_wake_lock_locked(type);
 		if (has_lock > 0) {
-			if (debug_mask & DEBUG_EXPIRE)
+			if (debug_mask & DEBUG_EXPIRE) {
+				#if defined(DEBUG_EVENT_MSG_SKIP)
+				if(debug_event_msg_skip != 0)
+				#endif
 				pr_info("wake_unlock: %s, start expire timer, "
 					"%ld\n", lock->name, has_lock);
+			}
 			mod_timer(&expire_timer, jiffies + has_lock);
 		} else {
 			if (del_timer(&expire_timer))
-				if (debug_mask & DEBUG_EXPIRE)
+				if (debug_mask & DEBUG_EXPIRE) {
+					#if defined(DEBUG_EVENT_MSG_SKIP)
+					if(debug_event_msg_skip != 0)
+					#endif
 					pr_info("wake_unlock: %s, stop expire "
 						"timer\n", lock->name);
+				}
 			if (has_lock == 0)
 				queue_work(suspend_work_queue, &suspend_work);
 		}
@@ -548,6 +605,12 @@ void wake_unlock(struct wake_lock *lock)
 #endif
 		}
 	}
+
+	#if defined(DEBUG_EVENT_MSG_SKIP)
+	//if(memcmp(lock->name, "event", 5) != 0)
+		debug_event_msg_skip = 0;
+	#endif
+
 	spin_unlock_irqrestore(&list_lock, irqflags);
 }
 EXPORT_SYMBOL(wake_unlock);
