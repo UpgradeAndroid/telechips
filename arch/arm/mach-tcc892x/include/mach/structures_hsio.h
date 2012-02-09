@@ -451,8 +451,6 @@ typedef struct _CIPHER{
     volatile CIPHER_KEY_TYPE    KEY5;           // 0x054  R/W  0x00000000   Key5 register
     volatile CIPHER_KEY_TYPE    KEY6;           // 0x058  R/W  0x00000000   Key6 register
     volatile CIPHER_KEY_TYPE    KEY7;           // 0x05C  R/W  0x00000000   Key7 register
-    volatile CIPHER_KEY_TYPE    KEY8;           // 0x060  R/W  0x00000000   Key8 register
-    volatile CIPHER_KEY_TYPE    KEY9;           // 0x064  R/W  0x00000000   Key9 register
     volatile CIPHER_IV_TYPE     IV0;            // 0x068  R/W  0x00000000   Initial vector0 register
     volatile CIPHER_IV_TYPE     IV1;            // 0x06C  R/W  0x00000000   Initial vector1 register
     volatile CIPHER_IV_TYPE     IV2;            // 0x070  R/W  0x00000000   Initial vector2 register

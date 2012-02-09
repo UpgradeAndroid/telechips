@@ -18,7 +18,9 @@ obj-$(CONFIG_ARCH_TCC892X)      += tca_tsif.o
 obj-$(CONFIG_ARCH_TCC892X)      += vioc/vioc_disp.o vioc/vioc_outcfg.o vioc/vioc_rdma.o vioc/vioc_wdma.o vioc/vioc_wmix.o vioc/vioc_viqe.o \
                                                            vioc/vioc_scaler.o vioc/vioc_ireq.o vioc/vioc_api.o vioc/vioc_config.o vioc/vioc_vin.o
 
+obj-$(CONFIG_TCC_CIPHER)		+= tca_cipher.o
 obj-$(CONFIG_CPU_FREQ)          += cpufreq.o
+obj-$(CONFIG_SERIAL_TCC_SC) += tca_sc.o 
 
 obj-$(CONFIG_TCC_ECID_SUPPORT)  += tcc_ecid.o
 

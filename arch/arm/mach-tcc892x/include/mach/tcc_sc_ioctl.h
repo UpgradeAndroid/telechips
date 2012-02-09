@@ -194,6 +194,8 @@ enum
 	DRV_UART_PORT3,
 	DRV_UART_PORT4,
 	DRV_UART_PORT5,
+	DRV_UART_PORT6,
+	DRV_UART_PORT7,
 	DRV_UART_PORTMAX
 };
 
@@ -245,7 +247,6 @@ typedef struct
 	unsigned int	SCCLK;		// UART Smart Card Clock
 
 	unsigned char	CHSTS;		// Handle Status
-	unsigned char	CHANNEL;	// Channel Number
 	unsigned char	PORT;		// Port Number
 } sDRV_UART;
 
