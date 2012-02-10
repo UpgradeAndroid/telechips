@@ -16,6 +16,7 @@ typedef struct
 	int lcdCtrlNo;
 	int scalerCh;
 	int onTheFly;
+	unsigned int useWMIXER;
 	unsigned int srcWidth;
 	unsigned int srcHeight;
 	unsigned int crop_top, crop_bottom, crop_left, crop_right;
