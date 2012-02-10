@@ -41,7 +41,7 @@ unsigned int tca_get_lcd_lcdc_num(viod)
 			#ifdef CONFIG_MACH_TCC8920ST
 				return 0;
 			#else
-				if(system_rev == 0x1006)
+				if(system_rev == 0x1006 || system_rev == 0x1008)
 					return 0;
 				else
 					return 1;			
@@ -63,7 +63,7 @@ unsigned int tca_get_hdmi_lcdc_num(viod)
 			#ifdef CONFIG_MACH_TCC8920ST
 				return 1;
 			#else
-				if(system_rev == 0x1006)
+				if(system_rev == 0x1006 || system_rev == 0x1008)
 					return 1;
 				else
 					return 0;			

@@ -225,6 +225,14 @@ static int axp192_irq_init(void)
 		gpio_request(TCC_GPE(27), "PMIC_IRQ");
 		gpio_direction_input(TCC_GPE(27));
 	}
+	else if(system_rev == 0x1008)
+	{
+		tcc_gpio_config(TCC_GPD(9), GPIO_FN(0)|GPIO_PULL_DISABLE);  // GPIOE[31]: input mode, disable pull-up/down
+		tcc_gpio_config_ext_intr(PMIC_IRQ, EXTINT_GPIOD_09);
+
+		gpio_request(TCC_GPD(9), "PMIC_IRQ");
+		gpio_direction_input(TCC_GPD(9));
+	}
 	else
 	{
 		tcc_gpio_config(TCC_GPE(31), GPIO_FN(0)|GPIO_PULL_DISABLE);  // GPIOE[31]: input mode, disable pull-up/down
@@ -732,24 +740,30 @@ static void __init tcc8920_init_machine(void)
 	//spi_register_board_info(tcc8920_spi1_board_info, ARRAY_SIZE(tcc8920_spi1_board_info)); //jhlim
 #endif
 
-#if defined(CONFIG_SENSORS_AK8975)
+#if defined(CONFIG_SENSORS_AK8975) //set compass irq
     /* Input mode */
 	if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007)
 	{
-	    tcc_gpio_config(TCC_GPG(16), GPIO_FN(0)|GPIO_PULL_DISABLE);  // GPIOE[29]: input mode, disable pull-up/down
-	    gpio_direction_input(TCC_GPG(16));
-	    tcc_gpio_config_ext_intr(INT_EI1, EXTINT_GPIOG_16);
+		tcc_gpio_config(TCC_GPG(16), GPIO_FN(0)|GPIO_PULL_DISABLE);  // GPIOE[29]: input mode, disable pull-up/down
+		gpio_direction_input(TCC_GPG(16));
+		tcc_gpio_config_ext_intr(INT_EI1, EXTINT_GPIOG_16);
+	}
+	else if(system_rev == 0x1008)
+	{
+		tcc_gpio_config(TCC_GPE(7), GPIO_FN(0)|GPIO_PULL_DISABLE);  // GPIOE[29]: input mode, disable pull-up/down
+		gpio_direction_input(TCC_GPE(7));
+		tcc_gpio_config_ext_intr(INT_EI1, EXTINT_GPIOE_07);
 	}
 	else
 	{
-	    tcc_gpio_config(TCC_GPE(29), GPIO_FN(0)|GPIO_PULL_DISABLE);  // GPIOE[29]: input mode, disable pull-up/down
-	    gpio_direction_input(TCC_GPE(29));
-	    tcc_gpio_config_ext_intr(INT_EI1, EXTINT_GPIOE_29);
+		tcc_gpio_config(TCC_GPE(29), GPIO_FN(0)|GPIO_PULL_DISABLE);  // GPIOE[29]: input mode, disable pull-up/down
+		gpio_direction_input(TCC_GPE(29));
+		tcc_gpio_config_ext_intr(INT_EI1, EXTINT_GPIOE_29);
 	}
 #endif
 
 	i2c_register_board_info(0, i2c_devices1, ARRAY_SIZE(i2c_devices1));
-	if(system_rev == 0x1006)
+	if(system_rev == 0x1006 || system_rev == 0x1008)
 	{
 		i2c_register_board_info(1, i2c_devices_tcc8925_port1, ARRAY_SIZE(i2c_devices_tcc8925_port1));
 	}

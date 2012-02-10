@@ -115,11 +115,11 @@ static int at070tn93_set_backlight_level(struct lcd_panel *panel, int level)
 #if defined(CONFIG_ARCH_TCC892X)
 		pTIMER	= (volatile PTIMER)tcc_p2v(HwTMR_BASE);
 
-		if(system_rev == 0x1005 || system_rev == 0x1007 || system_rev == 0x1006 || system_rev == 0x2002)
+		if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 || system_rev == 0x1008 || system_rev == 0x2002)
 		{
 			if(panel->state)
 			{
-				if(system_rev == 0x1006)
+				if(system_rev == 0x1006 || system_rev == 0x1008)
 					tcc_gpio_config(pdata->bl_on, GPIO_FN(7));
 				else if (system_rev == 0x2002)
 					tcc_gpio_config(pdata->bl_on, GPIO_FN(9));

@@ -854,6 +854,10 @@ static void shutdown(void)
 	{
 		BITCLR(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<29); //GPIO B 29
 	}
+	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1008)
+	{
+		BITCLR(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<7); //GPIO C 7
+	}
 	else
 	{
 		BITCLR(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
@@ -969,7 +973,8 @@ static void shutdown(void)
 		((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_D12 = 1;	// PMU WakeUp Enable
 	#endif
 #else
-	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1005 || *(volatile unsigned long *)SRAM_STACK_ADDR == 0x1007)
+	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1005 || *(volatile unsigned long *)SRAM_STACK_ADDR == 0x1007 || \
+	   *(volatile unsigned long *)SRAM_STACK_ADDR == 0x1008)
 	{
 		//set wake-up polarity
 		((PPMU)HwPMU_BASE)->PMU_WKPOL1.bREG.GPIO_E30 = 1; //power key - Active Low
@@ -1076,6 +1081,10 @@ static void wakeup(void)
 	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1006)
 	{
 		BITSET(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<29); //GPIO B 29
+	}
+	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1008)
+	{
+		BITSET(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<7); //GPIO C 7
 	}
 	else
 	{
@@ -1431,6 +1440,10 @@ static void sleep(void)
 	{
 		BITCLR(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<29); //GPIO B 29
 	}
+	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1008)
+	{
+		BITCLR(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<7); //GPIO C 7
+	}
 	else
 	{
 		BITCLR(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //GPIO C 22
@@ -1552,7 +1565,8 @@ static void sleep(void)
 	((PPIC)HwPIC_BASE)->IEN1.bREG.REMOCON = 1;
   #endif
 #else
-	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1005 || *(volatile unsigned long *)SRAM_STACK_ADDR == 0x1007)
+	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1005 || *(volatile unsigned long *)SRAM_STACK_ADDR == 0x1007 || \
+	   *(volatile unsigned long *)SRAM_STACK_ADDR == 0x1008)
 	{
 		//set wake-up polarity
 		((PPMU)HwPMU_BASE)->PMU_WKPOL1.bREG.GPIO_E30 = 1; //power key - Active Low
@@ -1640,6 +1654,10 @@ static void sleep(void)
 	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1006)
 	{
 		BITSET(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<29); //GPIO B 29
+	}
+	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1008)
+	{
+		BITSET(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<7); //GPIO C 7
 	}
 	else
 	{
