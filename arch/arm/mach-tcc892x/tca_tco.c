@@ -19,6 +19,8 @@
 #include <mach/bsp.h>
 #include <asm/mach-types.h>
 #include <mach/gpio.h>
+#include <mach/tca_tco.h>
+#include <mach/io.h>
 
 #if defined(CONFIG_ARCH_TCC892X)
 #include <mach/reg_physical.h>
@@ -30,7 +32,7 @@
 
 PTIMERN IO_TCO_GetBaseAddr(unsigned uCH)
 {
-	return (PTIMERN)HwTCO_BASE_ADDR(uCH);
+	return (volatile PTIMERN)tcc_p2v(HwTCO_BASE_ADDR(uCH));
 }
 
 unsigned IO_TCO_GetGpioFunc(unsigned uCH, unsigned uGPIO)
