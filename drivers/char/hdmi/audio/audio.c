@@ -826,8 +826,8 @@ static unsigned int io_ckc_get_dai_clock(unsigned int freq)
 }
 
 
-#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
-void tcc_hdmi_audio_set_clock(unsigned int clock_rate)
+#if defined(CONFIG_ARCH_TCC88XX)
+void tcc_hdmi_audio_set_clock(unsigned int output, unsigned int clock_rate)
 {
     unsigned int clk_rate;
 	DPRINTK(KERN_WARNING "[%s], clock_rate[%u]\n", __func__, clock_rate);
@@ -836,9 +836,35 @@ void tcc_hdmi_audio_set_clock(unsigned int clock_rate)
 
     clk_set_rate(hdmi_audio_clk, clk_rate);
 }
-#endif /* CONFIG_ARCH_TCC88XX */
+#elif defined(CONFIG_ARCH_TCC892X)
+void tcc_hdmi_audio_set_clock(unsigned int output, unsigned int clock_rate)
+{
+	PCKC				pCKC ;
+	unsigned long		audio_clock;
+	unsigned int		clkdiv;
+	pCKC = (CKC *)tcc_p2v(HwCKC_BASE);
 
-void setHDMIAudioClock(unsigned int freq)
+	DPRINTK(KERN_WARNING "[%s], clock_rate[%u]\n", __func__, clock_rate);
+
+	if( output == I2S_PORT )
+	{
+		audio_clock = pCKC->PCLKCTRL28.nREG;
+		clkdiv = (audio_clock & 0xFFFF) * 2;	//I2S *2 = HDMIA : I2S - 256*fs, HDMIA = 512*fs
+
+		audio_clock &= 0xFFFF0000;
+		audio_clock |= clkdiv;
+		
+		pCKC->PCLKCTRL18.nREG = audio_clock;
+	}
+	else if( output == SPDIF_PORT )
+	{
+		audio_clock = pCKC->PCLKCTRL28.nREG;
+		pCKC->PCLKCTRL18.nREG = audio_clock;
+	}
+}
+#endif /* CONFIG_ARCH_TCC892X */
+
+void setHDMIAudioClock(unsigned int output, unsigned int freq)
 {
 	#if defined(CONFIG_ARCH_TCC92XX)
 	{
@@ -850,7 +876,7 @@ void setHDMIAudioClock(unsigned int freq)
 	}
 	#elif defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 	{
-		tcc_hdmi_audio_set_clock(freq);
+		tcc_hdmi_audio_set_clock(output, freq);
 	}
 	#else
 	{
@@ -871,6 +897,7 @@ int setCUVSampleFreq(enum SamplingFreq freq)
 {
     int ret = 1;
     unsigned char reg;
+	unsigned int  audio_freq;
 	
     DPRINTK(KERN_INFO "%s freq:%d \n", __FUNCTION__, freq);
 
@@ -880,39 +907,42 @@ int setCUVSampleFreq(enum SamplingFreq freq)
     {
         case SF_32KHZ:
             reg |= I2S_CH_ST_3_SF_32KHZ;
-			setHDMIAudioClock(32000);
+			audio_freq = 32000;
             break;
         case SF_44KHZ:
             reg |= I2S_CH_ST_3_SF_44KHZ;
-			setHDMIAudioClock(44100);
+			audio_freq = 44100;
             break;
         case SF_88KHZ:
             reg |= I2S_CH_ST_3_SF_88KHZ;
-			setHDMIAudioClock(88200);
+			audio_freq = 88200;
             break;
         case SF_176KHZ:
             reg |= I2S_CH_ST_3_SF_176KHZ;
-			setHDMIAudioClock(176000);
+			audio_freq = 176000;
             break;
         case SF_48KHZ:
             reg |= I2S_CH_ST_3_SF_48KHZ;
-			setHDMIAudioClock(48000);
+			audio_freq = 48000;
             break;
         case SF_96KHZ:
             reg |= I2S_CH_ST_3_SF_96KHZ;
-			setHDMIAudioClock(96000);
+			audio_freq = 96000;
             break;
-
         case SF_192KHZ:
             reg |= I2S_CH_ST_3_SF_192KHZ;
-			setHDMIAudioClock(192000);
+			audio_freq = 192000;
             break;
 
         default:
             ret = 0;
     }
 
-    writeb(reg, HDMI_SS_I2S_CH_ST_3);
+	if( ret )
+	{
+		writeb(reg, HDMI_SS_I2S_CH_ST_3);
+		setHDMIAudioClock(I2S_PORT, audio_freq);
+	}
 
     return ret;
 }
@@ -927,37 +957,40 @@ int setSPDIFSampleFreq(enum SamplingFreq freq)
 {
     int ret = 1;
     unsigned char reg;
+	unsigned int  audio_freq;
 	
     DPRINTK(KERN_INFO "%s freq:%d \n", __FUNCTION__, freq);
 
     switch (freq)
     {
         case SF_32KHZ:
-			setHDMIAudioClock(32000);
+			audio_freq = 32000;
             break;
         case SF_44KHZ:
-			setHDMIAudioClock(44100);
+			audio_freq = 44100;
             break;
         case SF_88KHZ:
-			setHDMIAudioClock(88200);
+			audio_freq = 88200;
             break;
         case SF_176KHZ:
-			setHDMIAudioClock(176000);
+			audio_freq = 176000;
             break;
         case SF_48KHZ:
-			setHDMIAudioClock(48000);
+			audio_freq = 48000;
             break;
         case SF_96KHZ:
-			setHDMIAudioClock(96000);
+			audio_freq = 96000;
             break;
-
         case SF_192KHZ:
-			setHDMIAudioClock(192000);
+			audio_freq = 192000;
             break;
 
         default:
             ret = 0;
     }
+
+	if( ret )
+		setHDMIAudioClock(SPDIF_PORT, audio_freq);
 
     return ret;
 }
