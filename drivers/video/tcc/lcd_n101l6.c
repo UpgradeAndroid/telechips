@@ -30,6 +30,7 @@
 #include <mach/globals.h>
 #include <mach/reg_physical.h>
 #include <mach/tca_ckc.h>
+#include <mach/tca_tco.h>
 
 #include <asm/mach-types.h>
 #include <asm/io.h>
@@ -138,7 +139,7 @@ static int n101l6_set_backlight_level(struct lcd_panel *panel, int level)
 	mutex_lock(&panel_lock);
 
 
-	#define MAX_BACKLIGTH
+	#define MAX_BACKLIGTH 255
 	if (level == 0) {
 		tca_tco_pwm_ctrl(0, pdata->display_on, MAX_BACKLIGTH, level);
 		gpio_set_value(pdata->bl_on, 0);

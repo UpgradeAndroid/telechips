@@ -26,6 +26,7 @@
 #include <mach/tcc_fb.h>
 #include <mach/gpio.h>
 #include <mach/tca_lcdc.h>
+#include <mach/tca_tco.h>
 #include <mach/TCC_LCD_Interface.h>
 #include <mach/globals.h>
 #include <mach/reg_physical.h>
@@ -133,7 +134,7 @@ static int claa102na0dcw_set_backlight_level(struct lcd_panel *panel, int level)
 
 	mutex_lock(&panel_lock);
 
-	#define MAX_BACKLIGTH
+	#define MAX_BACKLIGTH 255
  	if (level == 0) {
 		tca_tco_pwm_ctrl(0, pdata->bl_on, MAX_BACKLIGTH, level);
 	}
