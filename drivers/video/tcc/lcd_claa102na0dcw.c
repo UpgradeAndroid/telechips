@@ -35,8 +35,7 @@
 #include <asm/io.h>
 
 static struct mutex panel_lock;
-static char lcd_pwr_state;
-static unsigned int lcd_bl_level;
+
 extern void lcdc_initialize(struct lcd_panel *lcd_spec, unsigned int lcdc_num);
 
 static struct clk *lvds_clk;
@@ -56,7 +55,7 @@ static int claa102na0dcw_set_power(struct lcd_panel *panel, int on, unsigned int
 //	printk("%s : %d %d  \n", __func__, on, panel->bl_level);
 
 	mutex_lock(&panel_lock);
-	lcd_pwr_state = on;
+	panel->state = on;
 
 	pDDICfg = (volatile PDDICONFIG)tcc_p2v(HwDDI_CONFIG_BASE);
 
@@ -134,23 +133,25 @@ static int claa102na0dcw_set_backlight_level(struct lcd_panel *panel, int level)
 
 	mutex_lock(&panel_lock);
 
-
-#if 1	
-	if (level == 0) {
-		tcc_gpio_config(pdata->bl_on, GPIO_FN(0)); 	
-		gpio_set_value(pdata->bl_on, 0);
-	} else {
-		tcc_gpio_config(pdata->display_on, GPIO_FN(2));	
-		
-		pTIMER	= (volatile PTIMER)tcc_p2v(HwTMR_BASE);
-		pTIMER->TREF0   = MAX_BL_LEVEL;	
-		pTIMER->TCFG0   = 0x105;
-		pTIMER->TMREF0 = (level | 0x07);	// 23.5 KHz 
-		pTIMER->TCFG0	= 0x105;
-
-		gpio_set_value(pdata->bl_on, 1);
+	#define MAX_BACKLIGTH
+ 	if (level == 0) {
+		tca_tco_pwm_ctrl(0, pdata->bl_on, MAX_BACKLIGTH, level);
 	}
-#endif//
+	else 
+	{
+		if(panel->state)
+		{
+			#if defined(CONFIG_ARCH_TCC892X)
+			if(system_rev == 0x1005 || system_rev == 0x1007 || system_rev == 0x1006 || system_rev == 0x2002)
+				tca_tco_pwm_ctrl(0, pdata->bl_on, MAX_BACKLIGTH, level);
+			else
+				tca_tco_pwm_ctrl(1, pdata->bl_on, MAX_BACKLIGTH, level);
+			#else
+				tca_tco_pwm_ctrl(0, pdata->bl_on, MAX_BACKLIGTH, level);		
+			#endif//
+		}
+	}
+
 
 	mutex_unlock(&panel_lock);
 	return 0;
@@ -195,7 +196,7 @@ static int claa102na0dcw_probe(struct platform_device *pdev)
 
 	
 	mutex_init(&panel_lock);
-	lcd_pwr_state = 1;
+
 
 	gpio_request(pdata->power_on, "lvds_on");
 	gpio_request(pdata->bl_on, "lvds_bl");
@@ -208,6 +209,7 @@ static int claa102na0dcw_probe(struct platform_device *pdev)
 	gpio_direction_output(pdata->reset, 1);
 
 	claa102na0dcw_panel.dev = &pdev->dev;
+	claa102na0dcw_panel.state = 1;
 
 	lvds_clk = clk_get(0, "lvds");
 	BUG_ON(lvds_clk == NULL);
