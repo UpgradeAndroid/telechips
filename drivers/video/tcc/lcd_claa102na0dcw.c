@@ -26,7 +26,6 @@
 #include <mach/tcc_fb.h>
 #include <mach/gpio.h>
 #include <mach/tca_lcdc.h>
-#include <mach/tca_tco.h>
 #include <mach/TCC_LCD_Interface.h>
 #include <mach/globals.h>
 #include <mach/reg_physical.h>
@@ -34,6 +33,7 @@
 
 #include <asm/mach-types.h>
 #include <asm/io.h>
+#include <mach/tca_tco.h>
 
 static struct mutex panel_lock;
 
@@ -143,7 +143,7 @@ static int claa102na0dcw_set_backlight_level(struct lcd_panel *panel, int level)
 		if(panel->state)
 		{
 			#if defined(CONFIG_ARCH_TCC892X)
-			if(system_rev == 0x1005 || system_rev == 0x1007 || system_rev == 0x1006 || system_rev == 0x2002)
+			if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002)
 				tca_tco_pwm_ctrl(0, pdata->bl_on, MAX_BACKLIGTH, level);
 			else
 				tca_tco_pwm_ctrl(1, pdata->bl_on, MAX_BACKLIGTH, level);

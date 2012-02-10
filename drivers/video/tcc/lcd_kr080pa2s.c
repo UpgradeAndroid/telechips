@@ -44,9 +44,6 @@
 
 
 static struct mutex panel_lock;
-static char lcd_pwr_state;
-static unsigned int lcd_bl_level;
-static char lcdc_number;
 extern void lcdc_initialize(struct lcd_panel *lcd_spec, unsigned int lcdc_num);
 static int kr080pa2s_panel_init(struct lcd_panel *panel)
 {
@@ -106,8 +103,6 @@ static int kr080pa2s_set_power(struct lcd_panel *panel, int on, unsigned int lcd
 
 static int kr080pa2s_set_backlight_level(struct lcd_panel *panel, int level)
 {
-	#define MAX_BL_LEVEL	255	
-	volatile PTIMER pTIMER;
 
 	struct lcd_platform_data *pdata = panel->dev->platform_data;	
 	mutex_lock(&panel_lock);
@@ -123,7 +118,7 @@ static int kr080pa2s_set_backlight_level(struct lcd_panel *panel, int level)
 		if(panel->state)
 		{
 			#if defined(CONFIG_ARCH_TCC892X)
-			if(system_rev == 0x1005 || system_rev == 0x1007 || system_rev == 0x1006 || system_rev == 0x2002)
+			if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002)
 				tca_tco_pwm_ctrl(0, pdata->bl_on, MAX_BACKLIGTH, level);
 			else
 				tca_tco_pwm_ctrl(1, pdata->bl_on, MAX_BACKLIGTH, level);

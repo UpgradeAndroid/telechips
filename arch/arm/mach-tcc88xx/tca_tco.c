@@ -19,6 +19,8 @@
 #include <mach/bsp.h>
 #include <asm/mach-types.h>
 #include <mach/gpio.h>
+#include <mach/tca_tco.h>
+#include <mach/io.h>
 
 #if defined(CONFIG_ARCH_TCC892X)
 #include <mach/reg_physical.h>
@@ -30,7 +32,7 @@
 
 PTIMERN IO_TCO_GetBaseAddr(unsigned uCH)
 {
-	return (PTIMERN)HwTCO_BASE_ADDR(uCH);
+	return (volatile PTIMERN)tcc_p2v(HwTCO_BASE_ADDR(uCH));
 }
 
 unsigned IO_TCO_GetGpioFunc(unsigned uCH, unsigned uGPIO)
@@ -115,7 +117,7 @@ int tca_tco_pwm_ctrl(unsigned tco_ch, unsigned uGPIO, unsigned int max_cnt, unsi
 	unsigned uFGPIO;
 	volatile PTIMERN pTIMER = IO_TCO_GetBaseAddr(tco_ch);
 
-	printk("tco:%d, GPIO(G:%d, Num:%d) max:%d level:%d TCOaddr:0x%p \n", tco_ch, (uGPIO>>5), (uGPIO &0x1F), max_cnt, level_cnt, pTIMER);
+//	printk("tco:%d, GPIO(G:%d, Num:%d) max:%d level:%d TCOaddr:0x%p \n", tco_ch, (uGPIO>>5), (uGPIO &0x1F), max_cnt, level_cnt, pTIMER);
 	if(pTIMER == NULL)
 		return -1;
 
@@ -135,7 +137,7 @@ int tca_tco_pwm_ctrl(unsigned tco_ch, unsigned uGPIO, unsigned int max_cnt, unsi
 		pTIMER->TMREF = level_cnt;
 		pTIMER->TCFG	= 0x105;
 		uFGPIO = IO_TCO_GetGpioFunc(tco_ch, uGPIO);
-		tcc_gpio_config(uGPIO, GPIO_OUTPUT | uFGPIO);
+		tcc_gpio_config(uGPIO,  uFGPIO);
 	}
 }
 

@@ -117,7 +117,7 @@ int tca_tco_pwm_ctrl(unsigned tco_ch, unsigned uGPIO, unsigned int max_cnt, unsi
 	unsigned uFGPIO;
 	volatile PTIMERN pTIMER = IO_TCO_GetBaseAddr(tco_ch);
 
-	printk("tco:%d, GPIO(G:%d, Num:%d) max:%d level:%d TCOaddr:0x%p \n", tco_ch, (uGPIO>>5), (uGPIO &0x1F), max_cnt, level_cnt, pTIMER);
+//	printk("tco:%d, GPIO(G:%d, Num:%d) max:%d level:%d TCOaddr:0x%p \n", tco_ch, (uGPIO>>5), (uGPIO &0x1F), max_cnt, level_cnt, pTIMER);
 	if(pTIMER == NULL)
 		return -1;
 
@@ -137,7 +137,7 @@ int tca_tco_pwm_ctrl(unsigned tco_ch, unsigned uGPIO, unsigned int max_cnt, unsi
 		pTIMER->TMREF = level_cnt;
 		pTIMER->TCFG	= 0x105;
 		uFGPIO = IO_TCO_GetGpioFunc(tco_ch, uGPIO);
-		tcc_gpio_config(uGPIO, GPIO_OUTPUT | uFGPIO);
+		tcc_gpio_config(uGPIO,  uFGPIO);
 	}
 }
 
