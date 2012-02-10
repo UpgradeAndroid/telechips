@@ -1469,7 +1469,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 			{
 				struct tcc_lcdc_image_update ImageInfo;
 				memset(&ImageInfo, 0x00, sizeof(struct tcc_lcdc_image_update));
-				TCC_HDMI_DISPLAY_UPDATE(LCD_OUT_LCDC, &ImageInfo);
+				TCC_HDMI_DISPLAY_UPDATE(EX_OUT_LCDC, &ImageInfo);
 			}
 
 		}
