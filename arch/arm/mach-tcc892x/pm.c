@@ -983,7 +983,18 @@ static void shutdown(void)
 
 		#if defined(CONFIG_MMC_TCC_SDHC)	// Wakeup for SD Insert->Remove in Suspend.
 		if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1)		// SD Insert -> Remove in suspend : Active High
-			((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_B12 = 1;	// PMU WakeUp Enable
+		{
+			if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1008)
+			{
+				#if defined(CONFIG_MMC_TCC_SUPPORT_EMMC)
+				((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E00 = 1;	// PMU WakeUp Enable
+				#else
+				((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E01 = 1;	// PMU WakeUp Enable
+				#endif
+			}
+			else
+				((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_B12 = 1;	// PMU WakeUp Enable
+		}
 		#endif
 	}
 	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1006)
@@ -1575,7 +1586,18 @@ static void sleep(void)
 
 		#if defined(CONFIG_MMC_TCC_SDHC)	// Wakeup for SD Insert->Remove in Suspend.
 		if(*(volatile unsigned long *)(SRAM_STACK_ADDR+4) == 1)		// SD Insert -> Remove in suspend : Active High
-			((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_B12 = 1;	// PMU WakeUp Enable
+		{
+			if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1008)
+			{
+				#if defined(CONFIG_MMC_TCC_SUPPORT_EMMC)
+				((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E00 = 1;	// PMU WakeUp Enable
+				#else
+				((PPMU)HwPMU_BASE)->PMU_WKUP1.bREG.GPIO_E01 = 1;	// PMU WakeUp Enable
+				#endif
+			}
+			else
+				((PPMU)HwPMU_BASE)->PMU_WKUP0.bREG.GPIO_B12 = 1;	// PMU WakeUp Enable
+		}
 		#endif
 	}
 	else if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x1006)
