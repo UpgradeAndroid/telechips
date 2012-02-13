@@ -237,6 +237,14 @@ static int tca_spi_set_port(struct tca_spi_handle *h)
 		    tcc_gpio_config(TCC_GPB(14), GPIO_FN(9));
 			break;
 		}
+		case 9:
+		{
+		    tcc_gpio_config(TCC_GPC(0), GPIO_FN(5));
+		    tcc_gpio_config(TCC_GPC(1), GPIO_FN(5));
+		    tcc_gpio_config(TCC_GPC(2), GPIO_FN(5));
+		    tcc_gpio_config(TCC_GPC(3), GPIO_FN(5));
+			break;
+		}
 	    case 10:
 		{
 		    tcc_gpio_config(TCC_GPC(10), GPIO_FN(5));
@@ -313,6 +321,14 @@ static int tca_spi_clear_port(struct tca_spi_handle *h)
 		    tcc_gpio_config(TCC_GPB(12), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);
 		    tcc_gpio_config(TCC_GPB(13), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);
 		    tcc_gpio_config(TCC_GPB(24), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);
+			break;
+		}
+		case 9:
+		{
+		    tcc_gpio_config(TCC_GPC(0), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);
+		    tcc_gpio_config(TCC_GPC(1), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);
+		    tcc_gpio_config(TCC_GPC(2), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);
+		    tcc_gpio_config(TCC_GPC(3), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);
 			break;
 		}
 	    case 10:
