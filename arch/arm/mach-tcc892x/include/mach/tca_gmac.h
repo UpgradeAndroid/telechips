@@ -121,8 +121,8 @@ static void tca_gmac_clk_disable(void)
 	}
 
 	if(hsio_clk) {
-		//tcc_cpufreq_set_limit_table(&gtHSIOClockLimitTable, TCC_FREQ_LIMIT_GMAC, 0);
-		//clk_disable(hsio_clk);
+		tcc_cpufreq_set_limit_table(&gtHSIOClockLimitTable, TCC_FREQ_LIMIT_GMAC, 0);
+		clk_disable(hsio_clk);
 	}
 }
 
@@ -138,6 +138,21 @@ static void tca_gmac_phy_pwr_on(void)
 
 static void tca_gmac_phy_pwr_off(void)
 {
+	
+	if(machine_is_tcc8920st()){
+		gpio_direction_output(TCC_GPC(9), 0);
+	}
+	else{
+		if(system_rev == 0x1006){//tcc8925
+			gpio_direction_output(TCC_GPC(9), 0);
+		}
+		else{
+			gpio_direction_output(TCC_GPC(28), 0);
+		}
+	}
+	
+	msleep(10);
+	
 	if(machine_is_tcc8920() && (system_rev == 0x1006))//tcc8925
 		gpio_direction_output(GPIO_E_PHY_ON, 0);
 	else

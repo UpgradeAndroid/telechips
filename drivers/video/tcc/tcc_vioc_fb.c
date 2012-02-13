@@ -1073,7 +1073,8 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 		case TCC_LCDC_HDMI_START:
 			TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_HDMI, EX_OUT_LCDC, 1);
 			#ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
-			//tca_vsync_video_display_enable();
+			if(tccvid_vsync.isVsyncRunning)
+				tca_vsync_video_display_enable();
 
 			spin_lock_irq(&vsync_lock);
 			tccvid_vsync.outputMode = -1;
@@ -1134,11 +1135,19 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 			if(Output_SelectMode == TCC_OUTPUT_HDMI) 
 			#endif
 			{
+				struct tcc_lcdc_image_update lcdc_image;
 				#if defined(CONFIG_ARCH_TCC93XX)
 					TCC_OUTPUT_FB_BackupVideoImg(Output_SelectMode);
 				#endif
 
 				Output_SelectMode = TCC_OUTPUT_NONE;
+				
+				lcdc_image.enable = 0;
+				lcdc_image.Lcdc_layer = 2;
+				lcdc_image.fmt = TCC_LCDC_IMG_FMT_RGB565;
+
+				TCC_HDMI_DISPLAY_UPDATE(EX_OUT_LCDC, &lcdc_image);
+
 				TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_HDMI, EX_OUT_LCDC, 0);
 
 			}
@@ -1359,6 +1368,23 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 			}
 			break;
 
+		case TCC_LCDC_3D_UI_ENABLE:
+			{
+				unsigned int mode;
+
+				if(copy_from_user((void *)&mode, (const void *)arg, sizeof(unsigned int)))
+					return -EFAULT;
+
+				TCC_OUTPUT_FB_Set3DMode(TRUE, mode);
+			}
+			break;
+			
+		case TCC_LCDC_3D_UI_DISABLE:
+			{
+				TCC_OUTPUT_FB_Set3DMode(FALSE, 0);
+			}
+			break;
+			
 	#ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
 	case TCC_LCDC_VIDEO_START_VSYNC:
 		{
@@ -1375,6 +1401,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 			backup_time = tccvid_vsync.nTimeGapToNextField; 
 			backup_frame_rate = tccvid_vsync.video_frame_rate;
 			memset( &tccvid_vsync, 0, sizeof( tccvid_vsync ) ) ; 
+			tccvid_vsync.isVsyncRunning = 1;
 			tccvid_vsync.overlayUsedFlag = -1;
 			tccvid_vsync.outputMode = -1;
 			tccvid_vsync.firstFrameFlag = 1;
@@ -1417,7 +1444,8 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 			tcc_vsync_set_time(0);
 			spin_unlock_irq(&vsync_lock) ;
 
-			tca_vsync_video_display_enable();
+			if(Output_SelectMode != TCC_OUTPUT_NONE)
+				tca_vsync_video_display_enable();
 
 			tcc_vsync_set_max_buffer(&tccvid_vsync.vsync_buffer, arg);
 		}
@@ -1441,7 +1469,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 			{
 				struct tcc_lcdc_image_update ImageInfo;
 				memset(&ImageInfo, 0x00, sizeof(struct tcc_lcdc_image_update));
-				TCC_HDMI_DISPLAY_UPDATE(LCD_OUT_LCDC, &ImageInfo);
+				TCC_HDMI_DISPLAY_UPDATE(EX_OUT_LCDC, &ImageInfo);
 			}
 
 		}
@@ -1715,7 +1743,7 @@ TCC_VSYNC_PUSH_ERROR:
 		
 	case TCC_LCDC_VIDEO_GET_DISPLAYED :
 		
-		if(tccvid_vsync.outputMode == Output_SelectMode)
+//		if(tccvid_vsync.outputMode == Output_SelectMode)
 		{
 			if(tccvid_vsync.skipFrameStatus)
 			{

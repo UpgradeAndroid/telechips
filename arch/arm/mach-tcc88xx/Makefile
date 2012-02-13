@@ -12,9 +12,12 @@ obj-$(CONFIG_ARCH_TCC88XX)      += tca_adconv.o tcc_adc.o
 obj-$(CONFIG_ARCH_TCC88XX)      += tcc_asm.o
 obj-$(CONFIG_ARCH_TCC88XX)      += tca_serial.o
 obj-$(CONFIG_ARCH_TCC88XX)      += tca_i2c.o
-obj-$(CONFIG_ARCH_TCC88XX)      += tca_spi.o
+obj-$(CONFIG_ARCH_TCC88XX)      += tca_spi.o tca_tco.o
 obj-$(CONFIG_ARCH_TCC88XX)      += tca_tsif.o
 obj-$(CONFIG_CPU_FREQ)          += cpufreq.o
+
+obj-$(CONFIG_ARCH_TCC88XX)		+= tca_cipher.o
+obj-$(CONFIG_SERIAL_TCC_SC) += tca_sc.o 
 
 obj-$(CONFIG_TCC_ECID_SUPPORT)  += tcc_ecid.o
 

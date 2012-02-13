@@ -175,99 +175,99 @@ static void tcc_tsif_release_port(struct tcc_tsif_handle *h)
 
 	switch (h->gpio_port) {
 		case 0:
-				tcc_gpio_config(TCC_GPD(8), GPIO_FN(0));		//clk
-				tcc_gpio_config(TCC_GPD(9), GPIO_FN(0));		//valid
-				tcc_gpio_config(TCC_GPD(10), GPIO_FN(0));		//sync
-				tcc_gpio_config(TCC_GPD(0), GPIO_FN(0));		//d0
+				tcc_gpio_config(TCC_GPD(8), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);		//clk
+				tcc_gpio_config(TCC_GPD(9), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);		//valid
+				tcc_gpio_config(TCC_GPD(10), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);		//sync
+				tcc_gpio_config(TCC_GPD(0), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);		//d0
 
 				if(!(h->serial_mode)) {
-					tcc_gpio_config(TCC_GPD(1), GPIO_FN(0));	//d1
-					tcc_gpio_config(TCC_GPD(2), GPIO_FN(0));	//d2
-					tcc_gpio_config(TCC_GPD(3), GPIO_FN(0));	//d3
-					tcc_gpio_config(TCC_GPD(4), GPIO_FN(0));	//d4
-					tcc_gpio_config(TCC_GPD(5), GPIO_FN(0));	//d5
-					tcc_gpio_config(TCC_GPD(6), GPIO_FN(0));	//d6
-					tcc_gpio_config(TCC_GPD(7), GPIO_FN(0));	//d7
+					tcc_gpio_config(TCC_GPD(1), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d1
+					tcc_gpio_config(TCC_GPD(2), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d2
+					tcc_gpio_config(TCC_GPD(3), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d3
+					tcc_gpio_config(TCC_GPD(4), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d4
+					tcc_gpio_config(TCC_GPD(5), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d5
+					tcc_gpio_config(TCC_GPD(6), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d6
+					tcc_gpio_config(TCC_GPD(7), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d7
 				}
 			break;
 		case 1:
-				tcc_gpio_config(TCC_GPB(0), GPIO_FN(0));		//clk
-				tcc_gpio_config(TCC_GPB(2), GPIO_FN(0));		//valid
-				tcc_gpio_config(TCC_GPB(1), GPIO_FN(0));		//sync
-				tcc_gpio_config(TCC_GPB(3), GPIO_FN(0));		//d0
+				tcc_gpio_config(TCC_GPB(0), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);		//clk
+				tcc_gpio_config(TCC_GPB(2), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);		//valid
+				tcc_gpio_config(TCC_GPB(1), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);		//sync
+				tcc_gpio_config(TCC_GPB(3), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);		//d0
 
 				if(!(h->serial_mode)) {
-					tcc_gpio_config(TCC_GPB(4), GPIO_FN(0));	//d1
-					tcc_gpio_config(TCC_GPB(5), GPIO_FN(0));	//d2
-					tcc_gpio_config(TCC_GPB(6), GPIO_FN(0));	//d3
-					tcc_gpio_config(TCC_GPB(7), GPIO_FN(0));	//d4
-					tcc_gpio_config(TCC_GPB(8), GPIO_FN(0));	//d5
-					tcc_gpio_config(TCC_GPB(9), GPIO_FN(0));	//d6
-					tcc_gpio_config(TCC_GPB(10), GPIO_FN(0));	//d7
+					tcc_gpio_config(TCC_GPB(4), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d1
+					tcc_gpio_config(TCC_GPB(5), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d2
+					tcc_gpio_config(TCC_GPB(6), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d3
+					tcc_gpio_config(TCC_GPB(7), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d4
+					tcc_gpio_config(TCC_GPB(8), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d5
+					tcc_gpio_config(TCC_GPB(9), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d6
+					tcc_gpio_config(TCC_GPB(10), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d7
 				}
 			break;
 		case 2:
-				tcc_gpio_config(TCC_GPB(28), GPIO_FN(0));		//clk
-				tcc_gpio_config(TCC_GPB(26), GPIO_FN(0));		//valid
-				tcc_gpio_config(TCC_GPB(27), GPIO_FN(0));		//sync
-				tcc_gpio_config(TCC_GPB(25), GPIO_FN(0));		//d0
+				tcc_gpio_config(TCC_GPB(28), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);		//clk
+				tcc_gpio_config(TCC_GPB(26), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);		//valid
+				tcc_gpio_config(TCC_GPB(27), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);		//sync
+				tcc_gpio_config(TCC_GPB(25), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);		//d0
 
 				if(!(h->serial_mode)) {
-					tcc_gpio_config(TCC_GPB(24), GPIO_FN(0));	//d1
-					tcc_gpio_config(TCC_GPB(23), GPIO_FN(0));	//d2
-					tcc_gpio_config(TCC_GPB(22), GPIO_FN(0));	//d3
-					tcc_gpio_config(TCC_GPB(21), GPIO_FN(0));	//d4
-					tcc_gpio_config(TCC_GPB(20), GPIO_FN(0));	//d5
-					tcc_gpio_config(TCC_GPB(19), GPIO_FN(0));	//d6
-					tcc_gpio_config(TCC_GPB(18), GPIO_FN(0));	//d7
+					tcc_gpio_config(TCC_GPB(24), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d1
+					tcc_gpio_config(TCC_GPB(23), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d2
+					tcc_gpio_config(TCC_GPB(22), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d3
+					tcc_gpio_config(TCC_GPB(21), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d4
+					tcc_gpio_config(TCC_GPB(20), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d5
+					tcc_gpio_config(TCC_GPB(19), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d6
+					tcc_gpio_config(TCC_GPB(18), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d7
 				}
 			break;
 		case 3:
-				tcc_gpio_config(TCC_GPC(26), GPIO_FN(0));		//clk
-				tcc_gpio_config(TCC_GPC(24), GPIO_FN(0));		//valid
-				tcc_gpio_config(TCC_GPC(25), GPIO_FN(0));		//sync
-				tcc_gpio_config(TCC_GPC(23), GPIO_FN(0));		//d0
+				tcc_gpio_config(TCC_GPC(26), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);		//clk
+				tcc_gpio_config(TCC_GPC(24), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);		//valid
+				tcc_gpio_config(TCC_GPC(25), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);		//sync
+				tcc_gpio_config(TCC_GPC(23), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);		//d0
 
 				if(!(h->serial_mode)) {
-					tcc_gpio_config(TCC_GPC(22), GPIO_FN(0));	//d1
-					tcc_gpio_config(TCC_GPC(21), GPIO_FN(0));	//d2
-					tcc_gpio_config(TCC_GPC(20), GPIO_FN(0));	//d3
-					tcc_gpio_config(TCC_GPC(19), GPIO_FN(0));	//d4
-					tcc_gpio_config(TCC_GPC(18), GPIO_FN(0));	//d5
-					tcc_gpio_config(TCC_GPC(17), GPIO_FN(0));	//d6
-					tcc_gpio_config(TCC_GPC(16), GPIO_FN(0));	//d7
+					tcc_gpio_config(TCC_GPC(22), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d1
+					tcc_gpio_config(TCC_GPC(21), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d2
+					tcc_gpio_config(TCC_GPC(20), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d3
+					tcc_gpio_config(TCC_GPC(19), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d4
+					tcc_gpio_config(TCC_GPC(18), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d5
+					tcc_gpio_config(TCC_GPC(17), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d6
+					tcc_gpio_config(TCC_GPC(16), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d7
 				}
 			break;
 		case 4:
-				tcc_gpio_config(TCC_GPE(26), GPIO_FN(0));		//clk
-				tcc_gpio_config(TCC_GPE(24), GPIO_FN(0));		//valid
-				tcc_gpio_config(TCC_GPE(25), GPIO_FN(0));		//sync
-				tcc_gpio_config(TCC_GPE(23), GPIO_FN(0));		//d0
+				tcc_gpio_config(TCC_GPE(26), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);		//clk
+				tcc_gpio_config(TCC_GPE(24), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);		//valid
+				tcc_gpio_config(TCC_GPE(25), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);		//sync
+				tcc_gpio_config(TCC_GPE(23), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);		//d0
 
 				if(!(h->serial_mode)) {
-					tcc_gpio_config(TCC_GPE(22), GPIO_FN(0));	//d1
-					tcc_gpio_config(TCC_GPE(21), GPIO_FN(0));	//d2
-					tcc_gpio_config(TCC_GPE(20), GPIO_FN(0));	//d3
-					tcc_gpio_config(TCC_GPE(19), GPIO_FN(0));	//d4
-					tcc_gpio_config(TCC_GPE(18), GPIO_FN(0));	//d5
-					tcc_gpio_config(TCC_GPE(17), GPIO_FN(0));	//d6
-					tcc_gpio_config(TCC_GPE(16), GPIO_FN(0));	//d7
+					tcc_gpio_config(TCC_GPE(22), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d1
+					tcc_gpio_config(TCC_GPE(21), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d2
+					tcc_gpio_config(TCC_GPE(20), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d3
+					tcc_gpio_config(TCC_GPE(19), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d4
+					tcc_gpio_config(TCC_GPE(18), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d5
+					tcc_gpio_config(TCC_GPE(17), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d6
+					tcc_gpio_config(TCC_GPE(16), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//d7
 				}
 			break;
 		case 5:
-				tcc_gpio_config(TCC_GPF(0), GPIO_FN(0));		//clk
-				tcc_gpio_config(TCC_GPF(2), GPIO_FN(0));		//valid
-				tcc_gpio_config(TCC_GPF(1), GPIO_FN(0));		//sync
-				tcc_gpio_config(TCC_GPF(3), GPIO_FN(0));		//d0
+				tcc_gpio_config(TCC_GPF(0), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);		//clk
+				tcc_gpio_config(TCC_GPF(2), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);		//valid
+				tcc_gpio_config(TCC_GPF(1), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);		//sync
+				tcc_gpio_config(TCC_GPF(3), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);		//d0
 
 				if(!(h->serial_mode)) {
-					tcc_gpio_config(TCC_GPF(4), GPIO_FN(2));	//d1
-					tcc_gpio_config(TCC_GPF(5), GPIO_FN(2));	//d2
-					tcc_gpio_config(TCC_GPF(6), GPIO_FN(2));	//d3
-					tcc_gpio_config(TCC_GPF(7), GPIO_FN(2));	//d4
-					tcc_gpio_config(TCC_GPF(8), GPIO_FN(2));	//d5
-					tcc_gpio_config(TCC_GPF(9), GPIO_FN(2));	//d6
-					tcc_gpio_config(TCC_GPF(10), GPIO_FN(2));	//d7
+					tcc_gpio_config(TCC_GPF(4), GPIO_FN(2)|GPIO_OUTPUT|GPIO_LOW);	//d1
+					tcc_gpio_config(TCC_GPF(5), GPIO_FN(2)|GPIO_OUTPUT|GPIO_LOW);	//d2
+					tcc_gpio_config(TCC_GPF(6), GPIO_FN(2)|GPIO_OUTPUT|GPIO_LOW);	//d3
+					tcc_gpio_config(TCC_GPF(7), GPIO_FN(2)|GPIO_OUTPUT|GPIO_LOW);	//d4
+					tcc_gpio_config(TCC_GPF(8), GPIO_FN(2)|GPIO_OUTPUT|GPIO_LOW);	//d5
+					tcc_gpio_config(TCC_GPF(9), GPIO_FN(2)|GPIO_OUTPUT|GPIO_LOW);	//d6
+					tcc_gpio_config(TCC_GPF(10), GPIO_FN(2)|GPIO_OUTPUT|GPIO_LOW);	//d7
 				}
 			break;		
 		default:

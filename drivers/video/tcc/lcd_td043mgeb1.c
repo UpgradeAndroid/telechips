@@ -181,6 +181,8 @@ static int td043mgeb1_set_power(struct lcd_panel *panel, int on, unsigned int lc
 	printk("%s : %d \n", __func__, on);
 
 	mutex_lock(&panel_lock);
+	panel->state = on;
+	
 	if (on) {
 		gpio_set_value(pdata->power_on, 0);
 
@@ -209,8 +211,6 @@ static int td043mgeb1_set_power(struct lcd_panel *panel, int on, unsigned int lc
 
 		LCDC_IO_Disable(1, panel->bus_width);
 	}
-	
-	panel->state = on;
 
 	mutex_unlock(&panel_lock);
 	
@@ -235,25 +235,18 @@ static int td043mgeb1_set_backlight_level(struct lcd_panel *panel, int level)
 	if((panel->state == 0) && (level != 0))
 		return 0;
 	mutex_lock(&panel_lock);
-#if 1	
+
 	if (level == 0) {
 		tcc_gpio_config(pdata->bl_on, GPIO_FN(0));
 		gpio_set_value(pdata->bl_on, 0);
 	} else {
-
-		tcc_gpio_config(pdata->bl_on, GPIO_FN(0));
-		gpio_set_value(pdata->bl_on, 1);
-#if 0
-		tcc_gpio_config(pdata->bl_on, GPIO_FN(2));
-
-		pTIMER	= (volatile PTIMER)tcc_p2v(HwTMR_BASE);
-		pTIMER->TREF0 = (MAX_BL_LEVEL << 2) | 0x3;
-		pTIMER->TCFG0	= 0x135;	
-		pTIMER->TMREF0 = ((MAX_BL_LEVEL - ((MAX_BL_LEVEL - level)/2)) <<2) | 0x3;//MAX_BL_LEVEL - ((MAX_BL_LEVEL - level)/2);
-		pTIMER->TCFG0	= 0x135;
-#endif//
+		if(panel->state)
+		{
+			tcc_gpio_config(pdata->bl_on, GPIO_FN(0));
+			gpio_set_value(pdata->bl_on, 1);
+		}
 	}
-#endif//
+
 	mutex_unlock(&panel_lock);
 
 	return 0;

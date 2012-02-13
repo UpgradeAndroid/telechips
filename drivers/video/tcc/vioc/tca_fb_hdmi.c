@@ -225,7 +225,7 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 	if(ImageInfo->on_the_fly)
 	{
 		unsigned int RDMA_NUM;
-		RDMA_NUM = hdmi_lcdc ? (ImageInfo->Lcdc_layer + HwVIOC_RDMA04) : ImageInfo->Lcdc_layer;
+		RDMA_NUM = hdmi_lcdc ? (ImageInfo->Lcdc_layer + VIOC_SC_RDMA_04) : ImageInfo->Lcdc_layer;
 
 		if(!onthefly_using) {
 			onthefly_using = 1;

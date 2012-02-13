@@ -485,12 +485,13 @@ config SERIAL_TCC_CONSOLE
           boot time.)
 
 config SERIAL_TCC_SC
-        bool "Telechips TCC88xx Smartcard driver support"
-        depends on ARM && ARCH_TCC88XX
+        bool "Telechips Smartcard driver support"
+        depends on ARM 
+	depends on ARCH_TCC88XX || ARCH_TCC892X
         depends on SERIAL_TCC        
         default n
         help
-          Support for Smartcard driver using the on-chip UARTs on the Telechips TCC8800 series CPUs,
+          Support for Smartcard driver using the on-chip UARTs on the Telechips TCC8800 & TCC8920 series CPUs,
           providing /dev/smartcard, 1.
           
 config SERIAL_SAMSUNG

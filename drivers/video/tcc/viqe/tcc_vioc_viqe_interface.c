@@ -31,6 +31,8 @@ static VIOC_RDMA *pRDMABase;
 
 static int gFrmCnt = 0;
 static int gbfield =0;
+static int gRDMA_reg = 0;
+static int gRDMA_num = 0;
 static unsigned int gPMEM_VIQE_BASE;
 static unsigned int gPMEM_VIQE_SIZE;
 
@@ -76,12 +78,11 @@ int VIOC_API_VIQE_SetPlugOut(unsigned int viqe)
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
-void TCC_VIQE_DI_Init(int scalerCh, unsigned int srcWidth, unsigned int srcHeight,
-						int crop_top, int crop_bottom, int crop_left, int crop_right)
+void TCC_VIQE_DI_Init(int scalerCh, unsigned int useWMIXER, unsigned int srcWidth, unsigned int srcHeight,
+						int crop_top, int crop_bottom, int crop_left, int crop_right, int OddFirst)
 {
 	unsigned int deintl_dma_base0, deintl_dma_base1, deintl_dma_base2, deintl_dma_base3;
 	unsigned int framebufWidth, framebufHeight;
-	int RDMA_reg, RDMA_num;
 	int imgSize;
 	
 	VIOC_VIQE_FMT_TYPE img_fmt = VIOC_VIQE_FMT_YUV420;
@@ -91,32 +92,40 @@ void TCC_VIQE_DI_Init(int scalerCh, unsigned int srcWidth, unsigned int srcHeigh
 	
 	pmap_get_info("viqe", &pmap_viqe);
 
-	if(scalerCh == 0)
+	if(useWMIXER)
 	{
-		RDMA_reg = HwVIOC_RDMA12;
-		RDMA_num = VIOC_VIQE_RDMA_12;
-	}
-	else if(scalerCh == 1)
-	{
-		RDMA_reg = HwVIOC_RDMA14;
-		RDMA_num = VIOC_VIQE_RDMA_14;
+		gRDMA_reg = HwVIOC_RDMA14;
+		gRDMA_num = VIOC_VIQE_RDMA_14;	
 	}
 	else
 	{
-		RDMA_reg = HwVIOC_RDMA06;
-		RDMA_num = VIOC_VIQE_RDMA_06;
+		if(scalerCh == 0)
+		{
+			gRDMA_reg = HwVIOC_RDMA12;
+			gRDMA_num = VIOC_VIQE_RDMA_12;
+		}
+		else if(scalerCh == 1)
+	{
+			gRDMA_reg = HwVIOC_RDMA02;//HwVIOC_RDMA14;
+			gRDMA_num = VIOC_VIQE_RDMA_02;//VIOC_VIQE_RDMA_14;
+		}
+		else
+	{
+			gRDMA_reg = HwVIOC_RDMA06;
+			gRDMA_num = VIOC_VIQE_RDMA_06;
+		}
 	}
 		
 	gPMEM_VIQE_BASE = PA_VIQE_BASE_ADDR;
 	gPMEM_VIQE_SIZE = PA_VIQE_BASE_SIZE;
 
 	pVIQE= (VIQE *)tcc_p2v(HwVIOC_VIQE0);
-	pRDMABase = (VIOC_RDMA *)tcc_p2v(RDMA_reg);
+	pRDMABase = (VIOC_RDMA *)tcc_p2v(gRDMA_reg);
 	
 	framebufWidth = ((srcWidth - crop_left - crop_right) >> 3) << 3;			// 8bit align
 	framebufHeight = ((srcHeight - crop_top - crop_bottom) >> 1) << 1;		// 2bit align
 
-	printk("TCC_VIQE_DI_Init, scaler:%d, W:%d, H:%d\n", scalerCh, framebufWidth, framebufHeight);
+	printk("TCC_VIQE_DI_Init, W:%d, H:%d, FMT:%s, OddFirst:%d, RDMA:%d\n", framebufWidth, framebufHeight, (img_fmt?"YUV422":"YUV420"), OddFirst, ((gRDMA_reg-HwVIOC_RDMA00)/256));
 	if(DI_mode == VIOC_VIQE_DEINTL_S)
 	{
 		deintl_dma_base0	= NULL;
@@ -142,18 +151,18 @@ void TCC_VIQE_DI_Init(int scalerCh, unsigned int srcWidth, unsigned int srcHeigh
 	}
 	
 	VIOC_RDMA_SetImageIntl(pRDMABase, 1);
-	VIOC_RDMA_SetImageBfield(pRDMABase, 0);
+	VIOC_RDMA_SetImageBfield(pRDMABase, OddFirst);
 	
 	if(DI_mode == VIOC_VIQE_DEINTL_S)
 	{
-		VIOC_API_VIQE_SetPlugIn(VIOC_DEINTLS, RDMA_num);
+		VIOC_API_VIQE_SetPlugIn(VIOC_DEINTLS, gRDMA_num);
 	}
 	else
 	{
 		VIOC_VIQE_SetControlRegister(pVIQE, framebufWidth, framebufHeight, img_fmt);
 		VIOC_VIQE_SetDeintlRegister(pVIQE, img_fmt, top_size_dont_use, framebufWidth, framebufHeight, DI_mode, deintl_dma_base0, deintl_dma_base1, deintl_dma_base2, deintl_dma_base3);
 		VIOC_VIQE_SetControlEnable(pVIQE, OFF, OFF, OFF, OFF, ON);
-		VIOC_API_VIQE_SetPlugIn(VIOC_VIQE, RDMA_num);
+		VIOC_API_VIQE_SetPlugIn(VIOC_VIQE, gRDMA_num);
 	}
 
 	gFrmCnt= 0;
@@ -161,32 +170,9 @@ void TCC_VIQE_DI_Init(int scalerCh, unsigned int srcWidth, unsigned int srcHeigh
 }
 
 
-void TCC_VIQE_DI_Run(int scalerCh, unsigned int srcWidth, unsigned int srcHeight,	
-						int crop_top, int crop_bottom, int crop_left, int crop_right)
+void TCC_VIQE_DI_Run(unsigned int srcWidth, unsigned int srcHeight,	
+						int crop_top, int crop_bottom, int crop_left, int crop_right, int OddFirst)
 {
-	int RDMA_reg, RDMA_num;
-	if(scalerCh == 0)
-	{
-		RDMA_reg = HwVIOC_RDMA12;
-		RDMA_num = VIOC_VIQE_RDMA_12;
-	}
-	else if(scalerCh == 1)
-	{
-		RDMA_reg = HwVIOC_RDMA14;
-		RDMA_num = VIOC_VIQE_RDMA_14;
-	}
-	else
-	{
-		RDMA_reg = HwVIOC_RDMA06;
-		RDMA_num = VIOC_VIQE_RDMA_06;
-	}
-
-	// This description's are represent to YUV420 Interleaved format.
-	// If screen mode will be used, cropping information have to apply on viqe source image.
-	pVIQE= (VIQE *)tcc_p2v(HwVIOC_VIQE0);
-	pRDMABase = (VIOC_RDMA *)tcc_p2v(RDMA_reg);
-
-
 #if 0
 {
 	unsigned int pBase0, pBase1, pBase2;
@@ -207,6 +193,7 @@ void TCC_VIQE_DI_Run(int scalerCh, unsigned int srcWidth, unsigned int srcHeight
 	if(gFrmCnt == 3)
 		VIOC_VIQE_SetDeintlMode(pVIQE, VIOC_VIQE_DEINTL_MODE_3D);
 
+#if 0
 	if (gbfield) 					// end fied of bottom field
 	{
 		VIOC_RDMA_SetImageBfield(pRDMABase, 0);				// change the bottom to top field
@@ -218,9 +205,10 @@ void TCC_VIQE_DI_Run(int scalerCh, unsigned int srcWidth, unsigned int srcHeight
 	{
 		VIOC_RDMA_SetImageBfield(pRDMABase, 1);				// change the top to bottom field
 		gbfield = 1;
-
 	}
-
+#else
+	VIOC_RDMA_SetImageBfield(pRDMABase, OddFirst);				// change the top to bottom field
+#endif
 	gFrmCnt++;	
 }
 

@@ -206,6 +206,14 @@ int tca_getrawdata(int * x, int * y, struct tcc_ts *ts_data)
 			r_y[validcnt]=yp;
 			validcnt++;
 		}
+#elif defined(CONFIG_ARCH_TCC892X)
+		if ((xp < ts_data->pdata->max_x && xp > ts_data->pdata->min_x) &&
+		    (yp < ts_data->pdata->max_y && yp > ts_data->pdata->min_y) &&
+		    (xp*ym/(xm+1)-xp) < 35000) {
+			r_x[validcnt]=xp;
+			r_y[validcnt]=yp;
+			validcnt++;
+		}
 #else
 		if ((xp < ts_data->pdata->max_x && xp > ts_data->pdata->min_x) &&
 		    (yp < ts_data->pdata->max_y && yp > ts_data->pdata->min_y) &&

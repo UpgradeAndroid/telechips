@@ -29,6 +29,7 @@
 #include <mach/tcc_fb.h>
 #include <mach/gpio.h>
 #include <mach/tca_lcdc.h>
+#include <mach/tca_tco.h>
 #include <mach/TCC_LCD_Interface.h>
 
 #if defined(CONFIG_ARCH_TCC892X)
@@ -96,7 +97,6 @@ static int at070tn93_set_backlight_level(struct lcd_panel *panel, int level)
 {
 
 	#define MAX_BL_LEVEL	255	
-	volatile PTIMER pTIMER;
 
 	struct lcd_platform_data *pdata = panel->dev->platform_data;
 
@@ -105,56 +105,23 @@ static int at070tn93_set_backlight_level(struct lcd_panel *panel, int level)
 	mutex_lock(&panel_lock);
 	panel->bl_level = level;
 
+	#define MAX_BACKLIGTH 255
  	if (level == 0) {
-		tcc_gpio_config(pdata->bl_on, GPIO_FN(0));
-		gpio_set_value(pdata->bl_on, 0);
+		tca_tco_pwm_ctrl(0, pdata->bl_on, MAX_BACKLIGTH, level);
 	}
 	else 
 	{
-
-#if defined(CONFIG_ARCH_TCC892X)
-		pTIMER	= (volatile PTIMER)tcc_p2v(HwTMR_BASE);
-
-		if(system_rev == 0x1005 || system_rev == 0x1007 || system_rev == 0x1006 || system_rev == 0x2002)
-		{
-			if(panel->state)
-			{
-				if(system_rev == 0x1006)
-					tcc_gpio_config(pdata->bl_on, GPIO_FN(7));
-				else if (system_rev == 0x2002)
-					tcc_gpio_config(pdata->bl_on, GPIO_FN(9));
-				else
-					tcc_gpio_config(pdata->bl_on, GPIO_FN(11));
-			}
-
-
-			pTIMER->TREF0.nREG = MAX_BL_LEVEL;
-			pTIMER->TCFG0.nREG	= 0x105;	
-			pTIMER->TMREF0.nREG = (level | 0x07);
-			pTIMER->TCFG0.nREG	= 0x105;
-		}
-		else
-		{		
-			if(panel->state)
-				tcc_gpio_config(pdata->bl_on, GPIO_FN(9));
-
-			pTIMER->TREF1.nREG = MAX_BL_LEVEL;
-			pTIMER->TCFG1.nREG	= 0x105;	
-			pTIMER->TMREF1.nREG = (level | 0x07);
-			pTIMER->TCFG1.nREG	= 0x105;
-		}
-#else
-	
 		if(panel->state)
-			tcc_gpio_config(pdata->bl_on, GPIO_FN(2));
-
-		pTIMER	= (volatile PTIMER)tcc_p2v(HwTMR_BASE);
-		pTIMER->TREF0 = MAX_BL_LEVEL;
-		pTIMER->TCFG0	= 0x105;	
-		pTIMER->TMREF0 = (level | 0x07);
-		pTIMER->TCFG0	= 0x105;
-#endif
-
+		{
+			#if defined(CONFIG_ARCH_TCC892X)
+			if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002)
+				tca_tco_pwm_ctrl(0, pdata->bl_on, MAX_BACKLIGTH, level);
+			else
+				tca_tco_pwm_ctrl(1, pdata->bl_on, MAX_BACKLIGTH, level);
+			#else
+				tca_tco_pwm_ctrl(0, pdata->bl_on, MAX_BACKLIGTH, level);		
+			#endif//
+		}
 	}
 
  	mutex_unlock(&panel_lock);

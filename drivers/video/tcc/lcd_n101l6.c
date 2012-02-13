@@ -30,6 +30,7 @@
 #include <mach/globals.h>
 #include <mach/reg_physical.h>
 #include <mach/tca_ckc.h>
+#include <mach/tca_tco.h>
 
 #include <asm/mach-types.h>
 #include <asm/io.h>
@@ -57,7 +58,7 @@ static int n101l6_set_power(struct lcd_panel *panel, int on, unsigned int lcd_nu
 
 	mutex_lock(&panel_lock);
 	
-	lcd_pwr_state = on;
+	panel->state = on;
 
 	pDDICfg = (volatile PDDICONFIG)tcc_p2v(HwDDI_CONFIG_BASE);
 
@@ -138,22 +139,29 @@ static int n101l6_set_backlight_level(struct lcd_panel *panel, int level)
 	mutex_lock(&panel_lock);
 
 
-	#if 1	
+	#define MAX_BACKLIGTH 255
 	if (level == 0) {
-		tcc_gpio_config(pdata->bl_on, GPIO_FN(0)); 	
+		tca_tco_pwm_ctrl(0, pdata->display_on, MAX_BACKLIGTH, level);
 		gpio_set_value(pdata->bl_on, 0);
-	} else {
 
-		tcc_gpio_config(pdata->display_on, GPIO_FN(2));	
-		pTIMER	= (volatile PTIMER)tcc_p2v(HwTMR_BASE);
-		pTIMER->TREF0 = (MAX_BL_LEVEL << 2) | 0x3;	
-		pTIMER->TCFG0	= 0x125;
-		pTIMER->TMREF0 = (MAX_BL_LEVEL - ((MAX_BL_LEVEL - level)) <<2) | (0x3 << 2 );
-		pTIMER->TCFG0	= 0x125;
-
-		gpio_set_value(pdata->bl_on, 1);
 	}
-	#endif//
+	else 
+	{
+		if(panel->state)
+		{
+			#if defined(CONFIG_ARCH_TCC892X)
+			if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002)
+				tca_tco_pwm_ctrl(0, pdata->display_on, ((MAX_BACKLIGTH<< 2) | 0x3), (MAX_BL_LEVEL - ((MAX_BL_LEVEL - level)) <<2) | (0x3 << 2 ));
+			else
+				tca_tco_pwm_ctrl(1, pdata->display_on, ((MAX_BACKLIGTH<< 2) | 0x3), (MAX_BL_LEVEL - ((MAX_BL_LEVEL - level)) <<2) | (0x3 << 2 ));
+			#else
+				tca_tco_pwm_ctrl(0, pdata->display_on, ((MAX_BACKLIGTH<< 2) | 0x3), (MAX_BL_LEVEL - ((MAX_BL_LEVEL - level)) <<2) | (0x3 << 2 ));		
+			#endif//
+
+			gpio_set_value(pdata->bl_on, 1);
+
+		}
+	}
 
 	mutex_unlock(&panel_lock);
 	return 0;
@@ -198,7 +206,6 @@ static int n101l6_probe(struct platform_device *pdev)
 
 	
 	mutex_init(&panel_lock);
-	lcd_pwr_state = 1;
 
 	gpio_request(pdata->power_on, "lvds_on");
 	gpio_request(pdata->bl_on, "lvds_bl");
@@ -211,7 +218,8 @@ static int n101l6_probe(struct platform_device *pdev)
 	gpio_direction_output(pdata->reset, 1);
 
 	n101l6_panel.dev = &pdev->dev;
-
+	n101l6_panel.state = 1;
+	
 	lvds_clk = clk_get(0, "lvds");
 	BUG_ON(lvds_clk == NULL);
 	clk_enable(lvds_clk);	

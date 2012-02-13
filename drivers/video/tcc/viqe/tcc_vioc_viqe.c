@@ -65,8 +65,8 @@ static int tcc_viqe_DI_init_wrapper(VIQE_DI_TYPE *arg)
 	dprintk("[VIQE Initiaize] LCDC %d, Scaler %d, OnTheFly %d, W:%d, H:%d\n",
 		viqe_arg.lcdCtrlNo, viqe_arg.scalerCh, viqe_arg.onTheFly, viqe_arg.srcWidth, viqe_arg.srcHeight);
 
-	TCC_VIQE_DI_Init(viqe_arg.scalerCh, viqe_arg.srcWidth, viqe_arg.srcHeight, 
-				viqe_arg.crop_top, viqe_arg.crop_bottom, viqe_arg.crop_left, viqe_arg.crop_right);
+	TCC_VIQE_DI_Init(viqe_arg.scalerCh, viqe_arg.useWMIXER, viqe_arg.srcWidth, viqe_arg.srcHeight, 
+				viqe_arg.crop_top, viqe_arg.crop_bottom, viqe_arg.crop_left, viqe_arg.crop_right, viqe_arg.OddFirst);
 
 	return 0;
 }
@@ -82,8 +82,8 @@ static int tcc_viqe_DI_excute_wrapper(VIQE_DI_TYPE *arg)
 			viqe_arg.scalerCh, viqe_arg.address[0], viqe_arg.address[1], viqe_arg.address[2], viqe_arg.address[3], viqe_arg.address[4], viqe_arg.address[5],
 			viqe_arg.srcWidth, viqe_arg.srcHeight, viqe_arg.lcdCtrlNo, viqe_arg.dstAddr, viqe_arg.deinterlaceM2M, viqe_arg.OddFirst, viqe_arg.DI_use);
 */
-	TCC_VIQE_DI_Run(viqe_arg.scalerCh, viqe_arg.srcWidth, viqe_arg.srcHeight, 
-				viqe_arg.crop_top, viqe_arg.crop_bottom, viqe_arg.crop_left, viqe_arg.crop_right);
+	TCC_VIQE_DI_Run(viqe_arg.srcWidth, viqe_arg.srcHeight, 
+				viqe_arg.crop_top, viqe_arg.crop_bottom, viqe_arg.crop_left, viqe_arg.crop_right, viqe_arg.OddFirst);
 	return 0;
 }
 

@@ -675,6 +675,13 @@ typedef struct _TIMER{
     volatile TC32IRQ_TYPE       TC32IRQ;        // 0x098  R/W  0x0000----   32-bit Counter Interrupt Control
 } TIMER, *PTIMER;
 
+typedef struct _TIMERN{
+    volatile unsigned int   TCFG;          // 0x000   R/W  Timer/Counter Configuration Register
+    volatile unsigned int   TCNT;          // 0x004   R/W  Timer/Counter Counter Register
+    volatile unsigned int   TREF;          // 0x008   R/W  Timer/Counter Reference Register
+    volatile unsigned int   TMREF;         // 0x00C   R/W  Timer/Counter Middle Reference Register
+} TIMERN, *PTIMERN;
+
 
 /************************************************************************
 *   4. PMU(Power Management Unit)                (Base Addr = 0x74400000)

@@ -1200,6 +1200,13 @@ static void initial_irq(void)
 		gpio_direction_input(TCC_GPE(17));
 		tcc_gpio_config_ext_intr(INT_EI2, EXTINT_GPIOE_17);
 	}
+	else if(system_rev == 0x1008)
+	{
+		gpio_request(TCC_GPE(5), "tsc_int");
+		tcc_gpio_config(TCC_GPE(5), GPIO_FN(0));
+		gpio_direction_input(TCC_GPE(5));
+		tcc_gpio_config_ext_intr(INT_EI2, EXTINT_GPIOE_05);
+	}
 	else
 	{
 		gpio_request(TCC_GPG(18), "tsc_int");

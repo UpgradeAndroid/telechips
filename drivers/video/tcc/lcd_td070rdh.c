@@ -29,12 +29,11 @@
 #include <mach/tcc_fb.h>
 #include <mach/gpio.h>
 #include <mach/tca_lcdc.h>
+#include <mach/tca_tco.h>
 #include <mach/TCC_LCD_Interface.h>
 
 
 static struct mutex panel_lock;
-static char lcd_pwr_state;
-static unsigned int lcd_bl_level;
 extern void lcdc_initialize(struct lcd_panel *lcd_spec, unsigned int lcdc_num);
 
 
@@ -49,10 +48,10 @@ static int tm070rdh11_set_power(struct lcd_panel *panel, int on, unsigned int lc
 {
 	struct lcd_platform_data *pdata = panel->dev->platform_data;
 
-	printk("%s : %d %d  \n", __func__, on, lcd_bl_level);
+	printk("%s : %d %d  \n", __func__, on, panel->bl_level);
 
 	mutex_lock(&panel_lock);
-	lcd_pwr_state = on;
+	panel->state = on;
 
 	if (on) {
 
@@ -66,7 +65,7 @@ static int tm070rdh11_set_power(struct lcd_panel *panel, int on, unsigned int lc
 		lcdc_initialize(panel, lcd_num);
 		LCDC_IO_Set(1, panel->bus_width);
 
-		if(lcd_bl_level)		{
+		if(panel->bl_level)		{
 			msleep(80); 	
 			tcc_gpio_config(pdata->bl_on, GPIO_FN(2));
 		}
@@ -100,24 +99,28 @@ static int tm070rdh11_set_backlight_level(struct lcd_panel *panel, int level)
 //	printk("%s : %d\n", __func__, level);
 	
 	mutex_lock(&panel_lock);
-	lcd_bl_level = level;
+	panel->bl_level = level;
 
-#if 1
-	if (level == 0) {
-		tcc_gpio_config(pdata->bl_on, GPIO_FN(0));
-		gpio_set_value(pdata->bl_on, 0);
-	} else {
 
-		if(lcd_pwr_state)
-			tcc_gpio_config(pdata->bl_on, GPIO_FN(2));
-
-		pTIMER	= (volatile PTIMER)tcc_p2v(HwTMR_BASE);
-		pTIMER->TREF0 = MAX_BL_LEVEL;
-		pTIMER->TCFG0	= 0x105;	
-		pTIMER->TMREF0 = (level | 0x07);
-		pTIMER->TCFG0	= 0x105;
+	#define MAX_BACKLIGTH 255
+ 	if (level == 0) {
+		tca_tco_pwm_ctrl(0, pdata->bl_on, MAX_BACKLIGTH, level);
 	}
-#endif//
+	else 
+	{
+		if(panel->state)
+		{
+			#if defined(CONFIG_ARCH_TCC892X)
+			if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002)
+				tca_tco_pwm_ctrl(0, pdata->bl_on, MAX_BACKLIGTH, level);
+			else
+				tca_tco_pwm_ctrl(1, pdata->bl_on, MAX_BACKLIGTH, level);
+			#else
+				tca_tco_pwm_ctrl(0, pdata->bl_on, MAX_BACKLIGTH, level);		
+			#endif//
+		}
+	}
+
 	mutex_unlock(&panel_lock);
 
 	return 0;
@@ -160,8 +163,8 @@ static int tm070rdh11_probe(struct platform_device *pdev)
 	printk("%s : %d\n", __func__, 0);
 
 	mutex_init(&panel_lock);
-	lcd_pwr_state = 1;
-
+	
+	tm070rdh11_panel.state =1;
 	tm070rdh11_panel.dev = &pdev->dev;
 	
 	tccfb_register_panel(&tm070rdh11_panel);

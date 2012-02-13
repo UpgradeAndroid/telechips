@@ -29,6 +29,19 @@
 #include "board-tcc8920.h"
 
 ////////////////////////////////////
+#define GPIO_DXB0_SCLK_REV1008		TCC_GPC(26)
+#define GPIO_DXB0_SFRM_REV1008		TCC_GPC(25)
+#define GPIO_DXB0_SDI_REV1008		TCC_GPC(24)
+#define GPIO_DXB0_SDO_REV1008		TCC_GPC(23)
+#define GPIO_DXB0_RST_REV1008		TCC_GPE(4)
+#define GPIO_DXB1_SCLK_REV1008		TCC_GPC(0)
+#define GPIO_DXB1_SFRM_REV1008		TCC_GPC(1)
+#define GPIO_DXB1_SDI_REV1008		TCC_GPC(2)
+#define GPIO_DXB1_SDO_REV1008		TCC_GPC(3)
+#define GPIO_DXB1_RST_REV1008		TCC_GPE(27)
+#define INT_DXB1_IRQ_REV1008		TCC_GPE(26)
+#define INT_DXB0_IRQ_REV1008		TCC_GPE(3)
+////////////////////////////////////
 #define GPIO_DXB0_SCLK_REV1006		TCC_GPD(8)
 #define GPIO_DXB0_SFRM_REV1006		TCC_GPD(10)
 #define GPIO_DXB0_SDI_REV1006		TCC_GPD(9)
@@ -400,7 +413,21 @@ static void tcc_dxb_init(void)
 			gINT_DXB1_IRQ = INT_DXB1_IRQ_REV1006;
             gINT_DXB0_IRQ = INT_DXB0_IRQ_REV1006;
         }        
-
+        else if(system_rev == 0x1008)
+        {
+            gGPIO_DXB0_SCLK = GPIO_DXB0_SCLK_REV1008;
+            gGPIO_DXB0_SFRM = GPIO_DXB0_SFRM_REV1008;
+            gGPIO_DXB0_SDI = GPIO_DXB0_SDI_REV1008;
+            gGPIO_DXB0_SDO = GPIO_DXB0_SDO_REV1008;
+            gGPIO_DXB0_RST = GPIO_DXB0_RST_REV1008;
+            gGPIO_DXB1_SCLK = GPIO_DXB1_SCLK_REV1008;
+            gGPIO_DXB1_SFRM = GPIO_DXB1_SFRM_REV1008;
+            gGPIO_DXB1_SDI = GPIO_DXB1_SDI_REV1008;
+            gGPIO_DXB1_SDO = GPIO_DXB1_SDO_REV1008;
+            gGPIO_DXB1_RST = GPIO_DXB1_RST_REV1008;
+			gINT_DXB1_IRQ = INT_DXB1_IRQ_REV1008;
+            gINT_DXB0_IRQ = INT_DXB0_IRQ_REV1008;
+        }        
 		//TCC_GPE(2)
 		tcc_gpio_config(gGPIO_DXB0_SFRM, GPIO_FN(0)|GPIO_PULL_DISABLE);
 		gpio_request(gGPIO_DXB0_SFRM, NULL);

@@ -593,7 +593,7 @@ static int __init tsif_init(void)
 #ifdef      SUPPORT_TSIF_BLOCK
 	if(machine_is_tcc8920())
     {
-        if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007)
+        if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 || system_rev == 0x1008)
         { 
             g_use_tsif_block = 1;
             tsif_ex_init();

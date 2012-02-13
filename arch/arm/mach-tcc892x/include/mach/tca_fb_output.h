@@ -146,6 +146,8 @@ extern void TCC_OUTPUT_FB_Update_Disable(unsigned int disable);
 extern int TCC_OUTPUT_FB_MouseShow(unsigned int enable, unsigned int type);
 extern int TCC_OUTPUT_FB_MouseMove(unsigned int width, unsigned int height, tcc_mouse *mouse, unsigned int type);
 extern int TCC_OUTPUT_FB_MouseSetIcon(tcc_mouse_icon *mouse_icon);
+extern int TCC_OUTPUT_FB_Set3DMode(char enable, char mode);
+extern int TCC_OUTPUT_FB_Get3DMode(char *mode);
 
 #ifdef __cplusplus
  } 

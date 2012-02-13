@@ -770,8 +770,7 @@ config TCC_VPU
 
 config TCC_CIPHER
 	bool "TCC Cipher driver"
-	default y
-	depends on ARCH_TCC88XX ||  MACH_TCC9300 || MACH_TCC9300CM || MACH_TCC9300ST
+	depends on ARCH_TCC88XX ||  MACH_TCC9300 || MACH_TCC9300CM || MACH_TCC9300ST || ARCH_TCC892X
 	help
 	  Cipher Block driver for AES,DES,MULTI2 Algorithm
 

@@ -1107,7 +1107,7 @@ static int dapm_power_widgets(struct snd_soc_dapm_context *dapm, int event)
 	LIST_HEAD(up_list);
 	LIST_HEAD(down_list);
 	LIST_HEAD(async_domain);
-	int power;
+	int power= 0;
 
 	trace_snd_soc_dapm_start(card);
 
@@ -1184,6 +1184,7 @@ static int dapm_power_widgets(struct snd_soc_dapm_context *dapm, int event)
 		}
 	}
 
+#if 0   // commented by shmin, it makes dapm working wrong. audio codec dosen't go into standby mode.
 	/* Force all contexts in the card to the same bias state */
 	power = 0;
 	list_for_each_entry(d, &card->dapm_list, list)
@@ -1191,6 +1192,7 @@ static int dapm_power_widgets(struct snd_soc_dapm_context *dapm, int event)
 			power = 1;
 	list_for_each_entry(d, &card->dapm_list, list)
 		d->dev_power = power;
+#endif
 
 
 	/* Run all the bias changes in parallel */

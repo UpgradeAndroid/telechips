@@ -1045,7 +1045,8 @@ static void __exit axp192_pmic_exit(void)
 {
 	i2c_del_driver(&axp192_pmic_driver);
 	if (axp192_wq)
-		destroy_workqueue(axp192_wq);}
+		destroy_workqueue(axp192_wq);
+}
 module_exit(axp192_pmic_exit);
 
 /* Module information */

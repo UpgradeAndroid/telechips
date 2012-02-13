@@ -3013,6 +3013,8 @@ typedef union {
     UART_PBR_IDX_TYPE       RBR;                // 0x000  R    Unknown      Receiver Buffer Register(DLAB = 0)
     UART_THR_IDX_TYPE       THR;                // 0x000  W    0x00000000   Transmitter Holding Register (DLAB=0)
     UART_DLL_IDX_TYPE       DLL;                // 0x000  R/W  0x00000000   Divisor Latch (LSB) (DLAB=1)
+    volatile unsigned int  UTRXD;                 
+    volatile unsigned int  UTTXD;                 
 } UART_REG1_TYPE;
 
 typedef struct {
