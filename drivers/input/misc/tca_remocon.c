@@ -107,10 +107,10 @@ void    RemoconStatus (void)
 // REMOCON DIVIDE enable & ir clk & end count setting
 // (end count use remocon clk)
 //======================================================
-void    RemoconDivide (void)
+void    RemoconDivide (int state)
 {
 	PREMOTECON      pRcu = (volatile PREMOTECON)tcc_p2v(HwREMOTE_BASE);
-	unsigned int    uiclock = tca_ckc_getfbusctrl(FBUS_IO);
+	unsigned int    uiclock = state == 1? 120000:tca_ckc_getfbusctrl(FBUS_IO);
 
 	unsigned int    uidiv   = (unsigned int)(uiclock/32768)*100;
 
@@ -160,11 +160,11 @@ void    DisableRemocon (void)
 //======================================================
 // REMOCON functions
 //======================================================
-void    RemoconInit (void)
+void    RemoconInit (int state)
 {
 	PREMOTECON      pRcu = (volatile PREMOTECON)tcc_p2v(HwREMOTE_BASE);
 
-	RemoconDivide();
+	RemoconDivide(state);
 	RemoconIrqClear();
 	RemoconIntClear();
 
