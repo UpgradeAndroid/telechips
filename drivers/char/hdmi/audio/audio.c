@@ -858,7 +858,7 @@ void tcc_hdmi_audio_set_clock(unsigned int output, unsigned int clock_rate)
 	}
 	else if( output == SPDIF_PORT )
 	{
-		audio_clock = pCKC->PCLKCTRL28.nREG;
+		audio_clock = pCKC->PCLKCTRL27.nREG;	//SPDIF Audio 1
 		pCKC->PCLKCTRL18.nREG = audio_clock;
 	}
 }
