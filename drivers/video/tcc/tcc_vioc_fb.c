@@ -70,6 +70,7 @@
 #include <mach/tca_fb_hdmi.h>
 #include <mach/tca_fb_output.h>
 #include <mach/tca_lcdc.h>
+#include <mach/globals.h>
 #include <linux/console.h>
 
 #include <mach/vioc_disp.h>
@@ -595,12 +596,19 @@ static irqreturn_t tcc_vsync_timer_handler(int irq, void *dev_id)
 {
 	PTIMER pTIMER_reg = (volatile PTIMER)tcc_p2v(HwTMR_BASE);
 
-	//pTIMER_reg->TIREQ = 0x00000202;
-	//pTIMER_reg->TIREQ.nREG = 0x00000202;
-	pTIMER_reg->TIREQ.bREG.TI1 = 1;
-	pTIMER_reg->TIREQ.bREG.TF1 = 1;
-	//printk("tcc_vsync_timer_handler \n");
-//	tcc_vsync_timer_count +=55924;
+	#if defined(CONFIG_ARCH_TCC892X)
+		if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002)
+		{
+				pTIMER_reg->TIREQ.nREG = 0x00000202;
+		}
+		else
+		{
+				pTIMER_reg->TIREQ.nREG = 0x00000101;
+		}
+	#endif					
+	
+	vprintk("tcc_vsync_timer_handler \n");
+	//tcc_vsync_timer_count +=55924;
 
 	return IRQ_HANDLED;	
 }
@@ -617,77 +625,100 @@ void tccfb_vsync_timer_onoff(int onOff)
 
 	if(onOff == 1)	{
 		PCKC pCKC = (volatile PCKC)tcc_p2v(HwCKC_BASE);
+		BITCSET(pCKC->PCLKCTRL01.nREG, 0xFFFFFFFF, 0x24000000);
 
-		writel(0x24000000, &pCKC->PCLKCTRL01);//PCLK_TCT
-		/*
-		pTIMER_reg->TCFG1 = 0x00000059;
-		pTIMER_reg->TREF1 = 0x0000FFFF;
-		pTIMER_reg->TIREQ = 0x00000202;
-		*/
+		#if defined(CONFIG_ARCH_TCC892X)
+			if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002)
+			{
+				pTIMER_reg->TCFG1.bREG.EN = 1;
+				pTIMER_reg->TCFG1.bREG.IEN = 1;
+				pTIMER_reg->TCFG1.bREG.TCKSEL= 5;
+				pTIMER_reg->TREF1.nREG= 0x0000FFFF;
+				pTIMER_reg->TIREQ.bREG.TI1 = 1;
+				pTIMER_reg->TIREQ.bREG.TF1 = 1;
+				pTIMER_reg->TCNT1.bREG.TCNT = 0;
+			}
+
+			else
+			{
+				pTIMER_reg->TCFG0.bREG.EN = 1;
+				pTIMER_reg->TCFG0.bREG.IEN = 1;
+				pTIMER_reg->TCFG0.bREG.TCKSEL= 5;
+				pTIMER_reg->TREF0.nREG= 0x0000FFFF;
+				pTIMER_reg->TIREQ.bREG.TI0 = 1;
+				pTIMER_reg->TIREQ.bREG.TF0 = 1;
+				pTIMER_reg->TCNT0.bREG.TCNT = 0;
+			}
+		#endif
 		
-		pTIMER_reg->TCFG1.bREG.EN = 1;
-		pTIMER_reg->TCFG1.bREG.IEN = 1;
-		pTIMER_reg->TCFG1.bREG.TCKSEL= 5;
-		pTIMER_reg->TREF1.nREG= 0x0000FFFF;
-		pTIMER_reg->TIREQ.bREG.TI1 = 1;
-		pTIMER_reg->TIREQ.bREG.TF1 = 1;
-		pTIMER_reg->TCNT1.bREG.TCNT = 0;
-		
-		/*
-		pTIMER_reg->TCFG1.nREG= 0x00000059;
-		pTIMER_reg->TREF1.nREG = 0x0000FFFF;
-		pTIMER_reg->TIREQ.nREG = 0x00000202;
-		pTIMER_reg->TCNT1.nREG = 0x0000;
-			*/
-		// interrupt enable 
 		pHwPIC_reg->SEL0.bREG.TC0= 1;
 		pHwPIC_reg->IEN0.bREG.TC0 = 1;
 		pHwPIC_reg->INTMSK0.bREG.TC0 = 1;
 		pHwPIC_reg->MODEA0.bREG.TC0 = 1;
-/*
-		// interrupt enable 
-		BITSET(pHwPIC_reg->SEL0, HwINT0_TC0);	// 1 : IRQ interrupt
-		BITSET(pHwPIC_reg->IEN0, HwINT0_TC0);
-		BITSET(pHwPIC_reg->INTMSK0, HwINT0_TC0);	
-		BITSET(pHwPIC_reg->MODE0, HwINT0_TC0); //0 : edge-triggered mode  1: level
-*/
+		
+
 		if(timer_interrupt_onoff == 0)
 		{
-			request_irq(INT_TC_TI1, tcc_vsync_timer_handler,	IRQF_SHARED,
-					"TCC_TC1",	tcc_vsync_timer_handler);
 
+		#if defined(CONFIG_ARCH_TCC892X)
+			if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002)
+			{
+				request_irq(INT_TC_TI1, tcc_vsync_timer_handler,	IRQF_SHARED,
+						"TCC_TC1",	tcc_vsync_timer_handler);
+			}
+			else
+			{
+				request_irq(INT_TC_TI0, tcc_vsync_timer_handler,	IRQF_SHARED,
+						"TCC_TC0",	tcc_vsync_timer_handler);
+			}
+		#endif
 			timer_interrupt_onoff = 1;
 		}
 	
 	}
 	else	{
-		/*
-		pTIMER_reg->TCFG1.nREG= 0x00000000;
-		pTIMER_reg->TREF1.nREG= 0x0000FFFF;
-		pTIMER_reg->TIREQ.nREG = 0x00000000;
-		pTIMER_reg->TCNT1.nREG = 0x0000;
-*/
 
-		pTIMER_reg->TCFG1.bREG.EN = 0;
-		pTIMER_reg->TCFG1.bREG.IEN = 0;
-		pTIMER_reg->TCFG1.bREG.TCKSEL= 0;
-		pTIMER_reg->TREF1.nREG= 0x0000FFFF;
-		pTIMER_reg->TIREQ.bREG.TI1 = 0;
-		pTIMER_reg->TIREQ.bREG.TF1 = 0;
-		pTIMER_reg->TCNT1.bREG.TCNT = 0;
+		#if defined(CONFIG_ARCH_TCC892X)
+			if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002)
+			{
+				pTIMER_reg->TCFG1.bREG.EN = 0;
+				pTIMER_reg->TCFG1.bREG.IEN = 0;
+				pTIMER_reg->TCFG1.bREG.TCKSEL= 0;
+				pTIMER_reg->TREF1.nREG= 0x0000FFFF;
+				pTIMER_reg->TIREQ.bREG.TI1 = 0;
+				pTIMER_reg->TIREQ.bREG.TF1 = 0;
+				pTIMER_reg->TCNT1.bREG.TCNT = 0;
+			}
+			else
+			{
+				pTIMER_reg->TCFG0.bREG.EN = 0;
+				pTIMER_reg->TCFG0.bREG.IEN = 0;
+				pTIMER_reg->TCFG0.bREG.TCKSEL= 0;
+				pTIMER_reg->TREF0.nREG= 0x0000FFFF;
+				pTIMER_reg->TIREQ.bREG.TI0 = 0;
+				pTIMER_reg->TIREQ.bREG.TF0 = 0;
+				pTIMER_reg->TCNT0.bREG.TCNT = 0;
+
+			}
+		#endif
 
 		// interrupt disable
 		pHwPIC_reg->CLR0.bREG.TC0 = 1;
 		pHwPIC_reg->IEN0.bREG.TC0 = 0;
 		pHwPIC_reg->INTMSK0.bREG.TC0 = 0;
-		/*
-		BITSET(pHwPIC_reg->CLR0, HwINT0_TC0);
-		BITCLR(pHwPIC_reg->IEN0, HwINT0_TC0);
-		BITCLR(pHwPIC_reg->INTMSK0, HwINT0_TC0);	
-*/
+
 		if(timer_interrupt_onoff == 1)
 		{
-			free_irq(INT_TC_TI1, tcc_vsync_timer_handler);
+			#if defined(CONFIG_ARCH_TCC892X)
+				if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002)
+				{
+						free_irq(INT_TC_TI1, tcc_vsync_timer_handler);			
+				}
+				else
+				{
+						free_irq(INT_TC_TI0, tcc_vsync_timer_handler);
+				}
+			#endif					
 			timer_interrupt_onoff = 0;
 		}
 
@@ -702,8 +733,17 @@ unsigned int tcc_vsync_get_timer_clock(void)
 	
 	PTIMER pTIMER_reg = (volatile PTIMER)tcc_p2v(HwTMR_BASE);
 
-	timer_tick = pTIMER_reg->TCNT1.bREG.TCNT;
-	//timer_tick = pTIMER_reg->TCNT1.nREG;
+
+	#if defined(CONFIG_ARCH_TCC892X)
+		if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002)
+		{
+				timer_tick = pTIMER_reg->TCNT1.bREG.TCNT;
+		}
+		else
+		{
+				timer_tick = pTIMER_reg->TCNT0.bREG.TCNT;
+		}
+	#endif					
 
 	msec_time = timer_tick*85/1000 + timer_tick/3000;
 	
