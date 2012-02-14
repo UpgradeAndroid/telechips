@@ -228,6 +228,7 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 		RDMA_NUM = hdmi_lcdc ? (ImageInfo->Lcdc_layer + VIOC_SC_RDMA_04) : ImageInfo->Lcdc_layer;
 
 		if(!onthefly_using) {
+			dprintk(" %s  scaler 1 is plug in RDMA %d \n",__func__, RDMA_NUM);
 			onthefly_using = 1;
 			VIOC_CONFIG_PlugIn (VIOC_SC1, RDMA_NUM);			
 			VIOC_SC_SetBypass (pSC, OFF);
@@ -236,6 +237,16 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 		VIOC_SC_SetSrcSize(pSC, ImageInfo->Frame_width, ImageInfo->Frame_height);
 		VIOC_SC_SetDstSize (pSC, ImageInfo->Image_width, ImageInfo->Image_height);			// set destination size in scaler
 		VIOC_SC_SetOutSize (pSC, ImageInfo->Image_width, ImageInfo->Image_height);			// set output size in scaer
+	}
+
+	else
+	{
+		if(onthefly_using == 1)	{
+			dprintk(" %s  scaler 1 is plug  \n",__func__);
+			VIOC_RDMA_SetImageDisable(pRDMABase);
+			VIOC_CONFIG_PlugOut(VIOC_SC1);
+			onthefly_using = 0;
+		}
 	}
 
 		
