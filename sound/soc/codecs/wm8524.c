@@ -170,6 +170,12 @@ static int wm8524_suspend(struct snd_soc_codec *codec, pm_message_t state)
 		printk("%s(): in...\n", __func__);
 	#endif
 
+	if(machine_is_tcc8920st())
+	{
+		gpio_set_value(TCC_GPF(24), 0);	//AIFMODE
+		gpio_set_value(TCC_GPB(6), 0);	//MUTE_CTL
+	}
+
 	return 0;
 }
 
@@ -178,6 +184,12 @@ static int wm8524_resume(struct snd_soc_codec *codec)
 	#ifdef _WM8524_REG_DEBUG_	/* Telechips */
 		printk("%s(): out..\n", __func__);
 	#endif
+	
+	if(machine_is_tcc8920st())
+	{
+		gpio_set_value(TCC_GPF(24), 1);	//AIFMODE
+		gpio_set_value(TCC_GPB(6), 1);	//MUTE_CTL
+	}
 	
 	return 0;
 }
