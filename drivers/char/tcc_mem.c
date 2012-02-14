@@ -55,13 +55,14 @@
 #define DXB_BASE1       0x30000000
 #define DXB_BASE2       0xF08C0000
 #define AV_BASE         0xF0538000
+#define AV_BASE2        0xF0308000
 #elif defined(CONFIG_ARCH_TCC93XX)
 #define VPU_BASE		0xB0900000
 #define CLK_BASE        0xB0500000
 #define DXB_BASE1       0xE0000000
 #define DXB_BASE2       0x00000000
-// adjust DTS ECID check
-#define AV_BASE         0xB010A000
+#define AV_BASE         0xB010C000
+#define AV_BASE2        0xB010A000
 #elif defined(CONFIG_ARCH_TCC892X)
 #define VPU_BASE		0x75000000
 #define JPEG_BASE		0x75300000
@@ -69,12 +70,14 @@
 #define DXB_BASE1       0x30000000 // have to modify
 #define DXB_BASE2       0xF08C0000 // have to modify
 #define AV_BASE         0x76067000
+#define AV_BASE2        0xF0308000
 #else
 #define VPU_BASE		0xF0700000
 #define CLK_BASE        0xF0400000
 #define DXB_BASE1       0xE0000000
 #define DXB_BASE2       0x00000000
 #define AV_BASE         0xE0000000
+#define AV_BASE2        0xF0102000
 #endif
 
 static pmap_t pmap_total;
@@ -92,11 +95,9 @@ struct allow_region AllowRegion[] = {
 #ifdef CONFIG_ARCH_TCC892X
 	{ JPEG_BASE,0x2000}, 	//JPEG(in VPU) Register..	
 #endif
-#ifndef	CONFIG_ARCH_TCC93XX
-	{ AV_BASE,  0x1000}  	//for AV_algorithm.
-#else
-	{ AV_BASE,  0x3000}  	//for AV_algorithm.
-#endif
+
+	{ AV_BASE,  0x1000},  	//for AV_algorithm.
+	{ AV_BASE2, 0x1000}  	  //for AV_algorithm.
 
 };
 
