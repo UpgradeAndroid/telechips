@@ -544,12 +544,16 @@ void tcc_composite_set_lcd2tv(COMPOSITE_MODE_TYPE type)
 	LcdCtrlParam.pxdw = 6;
 	LcdCtrlParam.dp = 0;
 	LcdCtrlParam.ni = 0;
-	LcdCtrlParam.advi = 1;
 	LcdCtrlParam.tv = 1;
 	LcdCtrlParam.opt = 0;
 	LcdCtrlParam.stn = 0;
 	LcdCtrlParam.evsel = 0;
 	LcdCtrlParam.ovp = 0;
+
+	if(Composite_LCDC_Num)	
+		LcdCtrlParam.advi = 1;
+	else
+		LcdCtrlParam.advi = 0;
 
 	VIOC_DISP_SetControlConfigure(pDISPBase, &LcdCtrlParam);
 

@@ -819,9 +819,14 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 	if( pDISP_OUTPUT[type].pVIOC_DispBase == (VIOC_DISP*)tcc_p2v(HwVIOC_DISP0))
 	{
 		if( !(pDISP_OUTPUT[type].pVIOC_DispBase->uCTRL.nREG & HwDISP_NI ))//interlace mode
+		{
 			vioc_scaler_plug_in = 0;
+			interlace_output = 1;
+		}
 		else
+		{
 			vioc_scaler_plug_in = 1;
+		}
 	}
 	else
 	{
@@ -831,13 +836,6 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 			vioc_scaler_plug_in = 1;
 		#endif
 	}
-
-#if 0
-	if( !(pDISP_OUTPUT[type].pVIOC_DispBase->uCTRL.nREG & HwDISP_NI ))//interlace mode
-		interlace_output = 1;
-	else
-#endif /* 0 */
-		interlace_output = 0;
 
 	if( vioc_scaler_plug_in == 1 )
 	{
