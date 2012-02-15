@@ -664,7 +664,10 @@ void tcc_component_set_lcd2tv(COMPONENT_MODE_TYPE mode)
 		#endif
 	}
 		
-	VIOC_DISP_SWReset(Component_LCDC_Num);
+#if defined(CONFIG_ARCH_TCC892X)
+	if(Component_Mode == COMPONENT_MODE_1080I)	
+		VIOC_DISP_SWReset(Component_LCDC_Num);
+#endif
 		
 	tcc_component_get_spec(mode, &spec);
 	
