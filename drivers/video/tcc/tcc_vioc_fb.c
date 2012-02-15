@@ -1484,8 +1484,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 			tcc_vsync_set_time(0);
 			spin_unlock_irq(&vsync_lock) ;
 
-			if(Output_SelectMode != TCC_OUTPUT_NONE)
-				tca_vsync_video_display_enable();
+			tca_vsync_video_display_enable();
 
 			tcc_vsync_set_max_buffer(&tccvid_vsync.vsync_buffer, arg);
 		}
