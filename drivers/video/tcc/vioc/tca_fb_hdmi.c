@@ -125,7 +125,7 @@ void TCC_HDMI_LCDC_Timing(char hdmi_lcdc, struct lcdc_timimg_parms_t *mode)
 	VIOC_DISP_SetSize (pDISP, width, height);
 	VIOC_DISP_SetBGColor(pDISP, 0, 0 , 0);
 
-	VIOC_WMIX_SetOverlayPriority(pWMIX, 0);
+	VIOC_WMIX_SetOverlayPriority(pWMIX, 1);
 	VIOC_WMIX_SetBGColor(pWMIX, 0x00, 0x00, 0x00, 0xff);
 	VIOC_WMIX_SetSize(pWMIX, width, height);
 	VIOC_WMIX_SetUpdate (pWMIX);

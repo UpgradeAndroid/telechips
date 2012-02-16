@@ -42,7 +42,18 @@
 #include <mach/tcc_ccfb_ioctl.h>
 #include <mach/tcc_fb.h>
 #include <mach/tccfb_ioctrl.h>
+#ifdef CONFIG_TCC_VIOC_CONTROLLER
+#include <mach/vioc_outcfg.h>
+#include <mach/vioc_rdma.h>
+#include <mach/vioc_wdma.h>
+#include <mach/vioc_wmix.h>
+#include <mach/vioc_disp.h>
+#include <mach/vioc_global.h>
+#endif//
 
+#if defined(CONFIG_TCC_LCDC_CONTROLLER) && defined(CONFIG_TCC_VIOC_CONTROLLER)
+#error "Wrong configuration found in tcc_ccfb.c. You can not use both LCDC and VIOC controller."
+#endif
 
 /****************************************************************************
 DEFINITION
@@ -53,6 +64,8 @@ DEFINITION
 #define DEV_MINOR		204
 #define MAX_LCDC_NUM	2
 
+#define MUTEX_LOCK		mutex_lock(&g_ccfb_mutex);
+#define MUTEX_UNLOCK	mutex_unlock(&g_ccfb_mutex);
 
 /****************************************************************************
 DEFINITION OF TYPE
@@ -69,10 +82,15 @@ typedef enum
 
 typedef struct
 {
-	ccfb_state_t			cur_state;
-	int32_t				act_lcdc_idx;
+	ccfb_state_t		cur_state;
+	int32_t			act_lcdc_idx;
+#ifdef CONFIG_TCC_VIOC_CONTROLLER
+	VIOC_RDMA		*pCurLcdc;
+	VIOC_WMIX		*pCurWMix;
+#else
 	LCDC_CHANNEL		*pCurLcdc;
 	LCDC_CHANNEL		*pUiLcdc;
+#endif
 	struct clk 			*pLcdcClk[MAX_LCDC_NUM];	/* TCCxx machine has two LCD controller */
 }ccfb_dev_config_t;
 
@@ -148,6 +166,17 @@ static int tccxxx_ccfb_act_clock(ccfb_dev_config_t *dev, int lcdc_num)
 
 	dev->act_lcdc_idx = lcdc_num;
 
+#ifdef CONFIG_TCC_VIOC_CONTROLLER
+	if(lcdc_num == 0){
+		// LCD
+		dev->pCurLcdc = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA01);
+		dev->pCurWMix = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX0);
+	}else{
+		// hdmi , composite
+		dev->pCurLcdc = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA05);
+		dev->pCurWMix = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX1);
+	}
+#else
 	if(lcdc_num == 0){		
 		dev->pCurLcdc = (LCDC_CHANNEL *)tcc_p2v(HwLCDC0_CH_BASE(1));	
 		dev->pUiLcdc = (LCDC_CHANNEL *)tcc_p2v(HwLCDC0_CH_BASE(2));
@@ -156,7 +185,7 @@ static int tccxxx_ccfb_act_clock(ccfb_dev_config_t *dev, int lcdc_num)
 		dev->pCurLcdc = (LCDC_CHANNEL *)tcc_p2v(HwLCDC1_CH_BASE(1));
 		dev->pUiLcdc = (LCDC_CHANNEL *)tcc_p2v(HwLCDC1_CH_BASE(2));
 	}
-	
+#endif	
 	return 0;
 }
 
@@ -184,10 +213,14 @@ static int tccxxx_ccfb_lcdc_enable(ccfb_dev_config_t *dev)
 	dprintk("==> %s\n", __func__);
 	
 	if(dev->pCurLcdc){
+#ifdef CONFIG_TCC_VIOC_CONTROLLER
+	VIOC_RDMA_SetImageEnable	(dev->pCurLcdc);
+#else
 		BITCSET (dev->pCurLcdc->LIC, 0x1<<28, (1) << 28);	// IEN set
 	#if !defined(CONFIG_ARCH_TCC92XX)	
 		BITCSET (dev->pCurLcdc->LIC, HwLCT_RU, HwLCT_RU);
 	#endif
+#endif
 	}
 	
 	return 0;
@@ -198,10 +231,14 @@ static int tccxxx_ccfb_lcdc_disable(ccfb_dev_config_t *dev)
 	dprintk("==> %s\n", __func__);
 	
 	if(dev->pCurLcdc){
+#ifdef CONFIG_TCC_VIOC_CONTROLLER
+	VIOC_RDMA_SetImageDisable	(dev->pCurLcdc);
+#else
 		BITCSET (dev->pCurLcdc->LIC, 0x1<<28, (0) << 28);	// IEN unset
 	#if !defined(CONFIG_ARCH_TCC92XX)
 		BITCSET (dev->pCurLcdc->LIC, HwLCT_RU, HwLCT_RU);
 	#endif
+#endif
 	}
 	
 	return 0;
@@ -238,6 +275,33 @@ static int tccxxx_ccfb_set_config(ccfb_dev_config_t *dev, ccfb_config_t *arg)
 	{
 		memcpy(&g_ccfg_cfg, &cfg, sizeof(ccfb_config_t));
 		
+#ifdef CONFIG_TCC_VIOC_CONTROLLER
+		// position (full screen update)
+		VIOC_WMIX_SetPosition(dev->pCurWMix, 1, cfg.res.disp_x, cfg.res.disp_y);
+
+		// size
+		VIOC_RDMA_SetImageSize(dev->pCurLcdc, cfg.res.disp_w, cfg.res.disp_h);
+
+		// scale
+		VIOC_RDMA_SetImageScale(dev->pCurLcdc, cfg.res.disp_m, cfg.res.disp_m);
+	
+		// ARGB 32bit format		
+		VIOC_RDMA_SetImageFormat(dev->pCurLcdc, VIOC_IMG_FMT_ARGB8888);
+		VIOC_RDMA_SetImageOffset(dev->pCurLcdc, VIOC_IMG_FMT_ARGB8888, cfg.res.mem_w);
+
+		// Y2R disable
+		VIOC_RDMA_SetImageY2REnable(dev->pCurLcdc, 0);
+
+		// Chroma-keying disable
+		//BITCSET (dev->pCurLcdc->LIC, 0x1<< 29, 0 << 29);
+
+		// Alpha enable
+		VIOC_RDMA_SetImageAlphaSelect(dev->pCurLcdc, 1);	// ASEL set
+		VIOC_RDMA_SetImageAlphaEnable(dev->pCurLcdc, 1);	// AEN set
+
+		// Ch disable
+		VIOC_RDMA_SetImageDisable	(dev->pCurLcdc);
+#else
 		// position (full screen update)
 		BITCSET (dev->pCurLcdc->LIP, 0xffff<< 16, (cfg.res.disp_y)  << 16);
 		BITCSET (dev->pCurLcdc->LIP, 0xffff<<  0, (cfg.res.disp_x)  <<  0);
@@ -274,7 +338,7 @@ static int tccxxx_ccfb_set_config(ccfb_dev_config_t *dev, ccfb_config_t *arg)
 	#if !defined(CONFIG_ARCH_TCC92XX)
 		BITCSET (dev->pCurLcdc->LIC, HwLCT_RU, HwLCT_RU);
 	#endif	
-		
+#endif		
 	}	
 	
 	return ret;
@@ -293,6 +357,36 @@ static int tccxxx_ccfb_disp_update(ccfb_dev_config_t *dev, unsigned int* arg)
 	}
 	
 	dprintk("updated address : 0x%08x\n", cur_addr);
+#ifdef CONFIG_TCC_VIOC_CONTROLLER
+#if 0
+	// position (full screen update)
+	VIOC_WMIX_SetPosition(dev->pCurWMix, 1, g_ccfg_cfg.res.disp_x, g_ccfg_cfg.res.disp_y);
+	
+	// size
+	VIOC_RDMA_SetImageSize(dev->pCurLcdc, g_ccfg_cfg.res.disp_w, g_ccfg_cfg.res.disp_h);
+
+	// scale
+	VIOC_RDMA_SetImageScale(dev->pCurLcdc, 0, 0);
+
+	// ARGB 32bit format		
+	VIOC_RDMA_SetImageFormat(dev->pCurLcdc, VIOC_IMG_FMT_ARGB8888);
+	VIOC_RDMA_SetImageOffset(dev->pCurLcdc, VIOC_IMG_FMT_ARGB8888, g_ccfg_cfg.res.mem_w);
+
+	// Y2R disable
+	VIOC_RDMA_SetImageY2REnable(dev->pCurLcdc, 0);
+
+	// Chroma-keying disable
+	//BITCSET (dev->pCurLcdc->LIC, 0x1<< 29, 0 << 29);
+
+	// Alpha enable
+	VIOC_RDMA_SetImageAlphaSelect(dev->pCurLcdc, 1);	// ASEL set
+	VIOC_RDMA_SetImageAlphaEnable(dev->pCurLcdc, 1);	// AEN set
+#endif
+
+	// Update base address
+	VIOC_RDMA_SetImageBase(dev->pCurLcdc, cur_addr, 0, 0);
+	VIOC_RDMA_SetImageEnable(dev->pCurLcdc);
+#else
 	if(dev->pUiLcdc->LIC & Hw28){
 		printk("==>>> [%s] WARNING : UI is enabled.\n", __func__);
 		BITCSET(dev->pUiLcdc->LIC, 0x0<<28, 0x0<<28);
@@ -337,6 +431,7 @@ static int tccxxx_ccfb_disp_update(ccfb_dev_config_t *dev, unsigned int* arg)
 #if !defined(CONFIG_ARCH_TCC92XX)
 	BITCSET (dev->pCurLcdc->LIC, HwLCT_RU, HwLCT_RU);
 #endif	
+#endif
 	return 0;
 }
 
@@ -350,44 +445,44 @@ static long tccxxx_ccfb_ioctl(struct file *file, unsigned int cmd, unsigned long
 	switch(cmd)
 	{
 		case CCFB_GET_CONFIG:
-			mutex_lock(&g_ccfb_mutex);
+			MUTEX_LOCK
 			ret = tccxxx_ccfb_get_config(dev, (ccfb_config_t *)arg);
-			mutex_unlock(&g_ccfb_mutex);
+			MUTEX_UNLOCK
 			break;
 			
 		case CCFB_SET_CONFIG:
 			if(dev->cur_state != CCFB_STATE_CLOSED){
-				mutex_lock(&g_ccfb_mutex);
+				MUTEX_LOCK
 				ret = tccxxx_ccfb_set_config(dev, (ccfb_config_t *)arg);
-				mutex_unlock(&g_ccfb_mutex);
+				MUTEX_UNLOCK
 				if(ret == 0) dev->cur_state = CCFB_STATE_PAUSE;
 			}		
 			break;
 			
 		case CCFB_DISP_UPDATE:
 			if(dev->cur_state == CCFB_STATE_RUNNING){
-				mutex_lock(&g_ccfb_mutex);
+				MUTEX_LOCK
 				ret = tccxxx_ccfb_disp_update(dev, (unsigned int *)arg);
-				mutex_unlock(&g_ccfb_mutex);
+				MUTEX_UNLOCK
 			}
 			break;
 		
 		case CCFB_DISP_ENABLE:
 			if(dev->cur_state == CCFB_STATE_PAUSE){
-				mutex_lock(&g_ccfb_mutex);
+				MUTEX_LOCK
 				/* enable setting is moved to update routine */
 				//ret = tccxxx_ccfb_lcdc_enable(dev);
 				dev->cur_state = CCFB_STATE_RUNNING;
-				mutex_unlock(&g_ccfb_mutex);
+				MUTEX_UNLOCK
 			}
 			break;
 			
 		case CCFB_DISP_DISABLE:
 			if(dev->cur_state == CCFB_STATE_RUNNING){
-				mutex_lock(&g_ccfb_mutex);				
+				MUTEX_LOCK
 				ret = tccxxx_ccfb_lcdc_disable(dev);
 				dev->cur_state = CCFB_STATE_PAUSE;
-				mutex_unlock(&g_ccfb_mutex);
+				MUTEX_UNLOCK
 			}
 			break;
 
@@ -418,6 +513,8 @@ static int tccxxx_ccfb_release(struct inode *inode, struct file *file)
 		//tccxxx_ccfb_deact_clock(dev);
 	}
 
+#ifdef CONFIG_TCC_VIOC_CONTROLLER
+#else
 	if(dev->pUiLcdc){
 		if((dev->pUiLcdc->LIC & Hw28)==0){
 			BITSET(dev->pUiLcdc->LIC, 0x1<<28);
@@ -426,13 +523,17 @@ static int tccxxx_ccfb_release(struct inode *inode, struct file *file)
 		#endif
 		}
 	}
-
+#endif
 	memset(&g_ccfg_cfg, 0x0, sizeof(ccfb_config_t));
 
 	dev->cur_state = CCFB_STATE_CLOSED;
 	dev->act_lcdc_idx = -1;
 	dev->pCurLcdc = NULL;
+#ifdef CONFIG_TCC_VIOC_CONTROLLER
+	dev->pCurWMix = NULL;
+#else
 	dev->pUiLcdc = NULL;
+#endif
 	dev->pLcdcClk[0] = NULL;
 	dev->pLcdcClk[1] = NULL;
 	
@@ -456,7 +557,11 @@ static int tccxxx_ccfb_open(struct inode *inode, struct file *file)
 	dev->cur_state = CCFB_STATE_OPENED;
 	dev->act_lcdc_idx = -1;
 	dev->pCurLcdc = NULL;
+#ifdef CONFIG_TCC_VIOC_CONTROLLER
+	dev->pCurWMix = NULL;
+#else
 	dev->pUiLcdc = NULL;
+#endif
 	dev->pLcdcClk[0] = NULL;
 	dev->pLcdcClk[1] = NULL;
 	
@@ -501,7 +606,7 @@ static int tcc_ccfb_remove(struct platform_device *pdev)
 }
 
 #ifdef CONFIG_PM
-static volatile LCDC_CHANNEL active_lcdc_backup;
+//static volatile LCDC_CHANNEL active_lcdc_backup;
 static int tcc_ccfb_suspend(struct platform_device *pdev, pm_message_t state)
 {
 #if 0
