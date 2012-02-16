@@ -103,6 +103,28 @@ static inline int machine_is_hdmidp(void)
 
 
 
+#if defined(CONFIG_ARCH_TCC892X)
+//@{
+/**
+ * @name DDI_BUS HDMI_AES register
+ */
+#define DDICFG_HDMI_AES				DDICFG_REG(0x14)
+
+//@{
+/**
+ * @name DDI_BUS HDMI_AES_DATA register
+ */
+#define DDICFG_HDMI_AES_DATA0		DDICFG_REG(0x18)
+#define DDICFG_HDMI_AES_DATA1		DDICFG_REG(0x1C)
+
+//@{
+/**
+ * @name DDI_BUS HDMI_AES_HW_x register
+ */
+#define DDICFG_HDMI_AES_HW0			DDICFG_REG(0x20)
+#define DDICFG_HDMI_AES_HW1			DDICFG_REG(0x24)
+#define DDICFG_HDMI_AES_HW2			DDICFG_REG(0x28)
+#elif (CONFIG_ARCH_TCC88XX ) || defined(CONFIG_MACH_TCC8900 ) || defined( CONFIG_ARCH_TCC92XX)
 //@{
 /**
  * @name DDI_BUS HDMI_AES register
@@ -123,6 +145,9 @@ static inline int machine_is_hdmidp(void)
 #define DDICFG_HDMI_AES_HW0			DDICFG_REG(0x50)
 #define DDICFG_HDMI_AES_HW1			DDICFG_REG(0x54)
 #define DDICFG_HDMI_AES_HW2			DDICFG_REG(0x58)
+#else
+
+#endif /* CONFIG_ARCH_TCC892X */
 
 //@{
 /**
