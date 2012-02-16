@@ -175,6 +175,7 @@ static char output_3d_ui_flag = 0;
 static char output_3d_ui_mode = 0;
 static char output_ui_resize_count = 0;
 
+
 #if defined(CONFIG_TCC_EXCLUSIVE_UI_LAYER)
 #define TCC_EXCLUSIVE_UI_BD_MIN_WD		1280
 #define TCC_EXCLUSIVE_UI_BD_MIN_HT		720
@@ -198,6 +199,7 @@ static exclusive_ui_update exclusive_ui_mixer;
 static exclusive_ui_update exclusive_ui_viqe[TCC_EXCLUSIVE_UI_UPDATE_MAX];
 static exclusive_ui_ar_params exclusive_ui_aspect_ratio;
 static struct task_struct *exclusive_ui_task = NULL;
+
 extern int grp_overlay_ctrl(G2D_OVERY_FUNC *overlay);
 #if defined(CONFIG_FB_TCC_COMPONENT)
 extern void tcc_component_process(struct tcc_lcdc_image_update *update, char force_update);
@@ -409,6 +411,7 @@ void TCC_OUTPUT_LCDC_Init(void)
 	#endif
 
 	pLCDC_OUTPUT[TCC_OUTPUT_NONE] = (volatile PLCDC)tcc_p2v(HwLCDC1_BASE);
+
 
 #if defined(CONFIG_TCC_EXCLUSIVE_UI_LAYER)
 	pmap_get_info("exclusive_src", &pmap);

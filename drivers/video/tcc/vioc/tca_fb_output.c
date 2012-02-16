@@ -832,13 +832,6 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 		#endif
 	}
 
-#if 0
-	if( !(pDISP_OUTPUT[type].pVIOC_DispBase->uCTRL.nREG & HwDISP_NI ))//interlace mode
-		interlace_output = 1;
-	else
-#endif /* 0 */
-		interlace_output = 0;
-
 	if( vioc_scaler_plug_in == 1 )
 	{
 		UseVSyncInterrupt = 1;
@@ -1034,20 +1027,6 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 			else
 		#endif //TCC_OUTPUT_3DUI_SUPPORT
 			{
-				if(machine_is_tcc8920st())
-				{
-					img_width -= uiOutputResizeMode << 4;
-					img_height -= uiOutputResizeMode << 3;
-
-			        lcd_w_pos = uiOutputResizeMode << 3;
-					if( interlace_output )
-						lcd_h_pos = uiOutputResizeMode << 1;
-					else
-						lcd_h_pos = uiOutputResizeMode << 2;
-
-					VIOC_WMIX_SetPosition(pDISP_OUTPUT[type].pVIOC_WMIXBase, 0, lcd_w_pos, lcd_h_pos);
-				}
-
 				ifmt = TCC_LCDC_IMG_FMT_RGB888;
 				fbscaler.dest_fmt = SCALER_ARGB8888;	// destination image format
 				fbscaler.dest_ImgWidth = img_width;		// destination image width
@@ -1074,6 +1053,20 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 	}
 	else
 	{
+		if(machine_is_tcc8920st())
+		{
+			lcd_width -= uiOutputResizeMode << 4;
+			lcd_height -= uiOutputResizeMode << 3;
+
+			lcd_w_pos = uiOutputResizeMode << 3;
+			if( interlace_output )
+				lcd_h_pos = uiOutputResizeMode << 1;
+			else
+				lcd_h_pos = uiOutputResizeMode << 2;
+
+			VIOC_WMIX_SetPosition(pDISP_OUTPUT[type].pVIOC_WMIXBase, 0, lcd_w_pos, lcd_h_pos);
+		}
+
 		VIOC_SC_SetBypass (pSC, OFF);
 		VIOC_SC_SetSrcSize(pSC, width, height);
 		VIOC_SC_SetDstSize (pSC, lcd_width, lcd_height);			// set destination size in scaler
@@ -1082,7 +1075,7 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 		VIOC_SC_SetUpdate (pSC);				// Scaler update
 		VIOC_WMIX_SetUpdate (pDISP_OUTPUT[type].pVIOC_WMIXBase);			// WMIX update
 	}
-			
+
 	// size
 	VIOC_RDMA_SetImageSize(pDISP_OUTPUT[type].pVIOC_RDMA_FB, img_width, img_height);
 
