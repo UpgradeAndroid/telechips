@@ -989,6 +989,11 @@ int sensor_if_init(struct v4l2_pix_format *pix)
 					gpio_direction_output(TCC_GPF(15), 0);
 				}
 				else {
+					#ifdef CONFIG_M805S_8923_0XA
+						gpio_request(TCC_GPE(3), NULL);
+						gpio_direction_output(TCC_GPE(3), 1);
+					#endif
+					
 					// Powerdown
 					gpio_request(TCC_GPE(22), NULL);
 					gpio_direction_output(TCC_GPE(22), 1);
@@ -1664,7 +1669,9 @@ void sensor_power_enable(void)
 	}
 	#elif defined(CONFIG_ARCH_TCC892X)
 		#if defined(CONFIG_MACH_M805_892X)
-		
+			#ifdef CONFIG_M805S_8923_0XA
+				gpio_set_value(TCC_GPE(3), 1);
+			#endif	
 		#else
 			if(system_rev == 0x1005 || system_rev == 0x1007){
 				// In Case of CAM0
@@ -1734,7 +1741,9 @@ void sensor_power_disable(void)
 	}
 	#elif defined(CONFIG_ARCH_TCC892X)
 		#if defined(CONFIG_MACH_M805_892X)
-		
+			#ifdef CONFIG_M805S_8923_0XA
+				gpio_set_value(TCC_GPE(3), 0);
+			#endif		
 		#else
 			if(system_rev == 0x1005 || system_rev == 0x1007){
 				// In Case of CAM0
@@ -2080,6 +2089,7 @@ void sensor_powerdown_enable(void)
 				if(system_rev == 0x2002)
 					gpio_set_value(TCC_GPD(1), 1); 
 				else
+					dprintk("M805S PWDN Enable!!\n");
 					gpio_set_value(TCC_GPE(22), 1);	
 			#endif
 		#else
@@ -2312,6 +2322,7 @@ void sensor_powerdown_disable(void)
 				if(system_rev == 0x2002)
 					gpio_set_value(TCC_GPD(1), 0);
 				else
+					dprintk("M805S PWDN Disable!!\n");
 					gpio_set_value(TCC_GPE(22), 0);
 			#endif
 		#else
@@ -2541,6 +2552,7 @@ void sensor_reset_high(void)
 				if(system_rev == 0x2002)
 					gpio_set_value(TCC_GPF(15), 1);
 				else
+					dprintk("M805S Reset High!!\n");
 					gpio_set_value(TCC_GPE(10), 1);
 			#endif
 		#else
@@ -2733,6 +2745,7 @@ void sensor_reset_low(void)
 				if(system_rev == 0x2002)
 					gpio_set_value(TCC_GPF(15), 0);
 				else
+					dprintk("M805S Reset Low!!\n");
 					gpio_set_value(TCC_GPE(10), 0);
 			#endif
 		#else
