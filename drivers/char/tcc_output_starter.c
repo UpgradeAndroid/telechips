@@ -1440,8 +1440,6 @@ void tcc_output_starter_hdmi(unsigned char lcdc_num, unsigned char hdmi_resoluti
 		pLCDC_CKC = (PCLK_XXX_TYPE *)((&pCKC->PCLKCTRL00)+PERI_LCD0);
 	}
 
-	VIOC_DISP_TurnOff(pDISP);
-	VIOC_RDMA_SetImageDisable(pRDMA);
 	pLCDC_CKC->bREG.EN = 0;
 			
 	pSC = (VIOC_SC *)tcc_p2v(HwVIOC_SC2);
@@ -1472,6 +1470,9 @@ void tcc_output_starter_hdmi(unsigned char lcdc_num, unsigned char hdmi_resoluti
 	clk_enable(clock);
 #endif//	
 
+	VIOC_DISP_TurnOff(pDISP);
+	VIOC_RDMA_SetImageDisable(pRDMA);
+			
 	image_width = 1280;
 	image_height = 720;
 	image_fmt = TCC_LCDC_IMG_FMT_RGB565;
@@ -1581,8 +1582,6 @@ void tcc_output_starter_composite(unsigned char lcdc_num, unsigned char type)
 		VIOC_OUTCFG_SetOutConfig(VIOC_OUTCFG_SDVENC, VIOC_OUTCFG_DISP0);
   	}
 
-	VIOC_DISP_TurnOff(pDISP);
-	VIOC_RDMA_SetImageDisable(pRDMA);
 	pLCDC_CKC->bREG.EN = 0;
 
 	tca_ckc_setippwdn(PMU_ISOL_VDAC, 0);
@@ -1610,6 +1609,8 @@ void tcc_output_starter_composite(unsigned char lcdc_num, unsigned char type)
 	clock = clk_get(0, "ntscpal");
 	clk_enable(clock);
 
+	VIOC_DISP_TurnOff(pDISP);
+	VIOC_RDMA_SetImageDisable(pRDMA);
 	image_width = 1280;
 	image_height = 720;
 	image_fmt = TCC_LCDC_IMG_FMT_RGB565;
@@ -1850,8 +1851,6 @@ void tcc_output_starter_component(unsigned char lcdc_num, unsigned char type)
 		pLCDC_CKC = (PCLK_XXX_TYPE *)((&pCKC->PCLKCTRL00)+PERI_LCD0);
 	}
 
-	VIOC_DISP_TurnOff(pDISP);
-	VIOC_RDMA_SetImageDisable(pRDMA);
 	pLCDC_CKC->bREG.EN = 0;
 			
 	pSC = (VIOC_SC *)tcc_p2v(HwVIOC_SC2);
@@ -1874,6 +1873,9 @@ void tcc_output_starter_component(unsigned char lcdc_num, unsigned char type)
 	}
 	
 	DPRINTF("LCDC0 clk:%d, LCDC1 clk:%d, PLL%1d:%d\n", tca_ckc_getperi(PERI_LCD0), tca_ckc_getperi(PERI_LCD1), PCDIRECTPLL0, tca_ckc_getpll(PCDIRECTPLL0));
+	
+	VIOC_DISP_TurnOff(pDISP);
+	VIOC_RDMA_SetImageDisable(pRDMA);
 	
 	image_width = 1280;
 	image_height = 720;

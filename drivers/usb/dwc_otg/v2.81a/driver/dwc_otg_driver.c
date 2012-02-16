@@ -750,7 +750,7 @@ static int tcc_usb_thread(void* _dwc_otg_device)
 	dwc_otg_device->flagDeviceAttach = 0;
 
 	#if defined(CONFIG_MACH_TCC8920ST)
-		gpio_set_value(TCC_GPG(4), 0);
+		gpio_set_value(TCC_GPF(13), 0);
 		gpio_set_value(TCC_GPB(24), 1);
 	#endif
 	
