@@ -253,36 +253,35 @@ int tca_serial_clock_disable(struct tcc_uart_port *tcc_port, int id)
 }
 
 
-int tca_serial_port_pullup(int nPort, int enable)
+int tca_serial_port_pullup(int nPort, int enable, unsigned long uartPortCFG)
 {
-	volatile PUARTPORTCFG pPORT = (volatile PUARTPORTCFG)tcc_p2v(HwUART_PORTCFG_BASE);
-	unsigned int phy_port;
+	unsigned char phy_port[4];
+	int i;
 
-	switch(nPort){
-		case 0: phy_port = pPORT->PCFG0.bREG.UART0; break;
-		case 1: phy_port = (pPORT->PCFG0.nREG & 0xff00) >> 8; break;
-		case 2: phy_port = pPORT->PCFG0.bREG.UART2; break;
-		case 3: phy_port = pPORT->PCFG0.bREG.UART3; break;
-		case 4: phy_port = pPORT->PCFG1.bREG.UART4; break;			
-		case 5: phy_port = pPORT->PCFG1.bREG.UART5; break;
-		case 6: phy_port = pPORT->PCFG1.bREG.UART6; break;
-		case 7: phy_port = pPORT->PCFG1.bREG.UART7; break;			
-	}
-	
-	if(enable)
+	phy_port[0] = (uartPortCFG & 0xFF000000) >> 24;
+	phy_port[1] = (uartPortCFG & 0x00FF0000) >> 16;
+	phy_port[2] = (uartPortCFG & 0x0000FF00) >> 8;
+	phy_port[3] = (uartPortCFG & 0x000000FF) ;
+
+	for(i=0 ; i<4 ; i++)
 	{
-		if(phy_port == 20 || phy_port == 21)
-			tcc_gpio_config(uart_port_map[phy_port][0]+1, GPIO_PULLUP);
-		else
-			tcc_gpio_config(uart_port_map[phy_port][0], GPIO_PULLUP);
+	    if(phy_port[i] != 0){	
+	        if(enable)
+	        {
+	   	    if(phy_port == 20 || phy_port == 21)
+			tcc_gpio_config(uart_port_map[phy_port[i]][0]+1, GPIO_PULLUP);
+		    else
+			tcc_gpio_config(uart_port_map[phy_port[i]][0], GPIO_PULLUP);
+	        } 
+	        else
+	        {
+		     if(phy_port == 20 || phy_port == 21)
+			tcc_gpio_config(uart_port_map[phy_port[i]][0]+1, GPIO_PULL_DISABLE);
+		     else
+			tcc_gpio_config(uart_port_map[phy_port[i]][0], GPIO_PULL_DISABLE);
+	        }	
+	    }
 	}
-	else
-	{
-		if(phy_port == 20 || phy_port == 21)
-			tcc_gpio_config(uart_port_map[phy_port][0]+1, GPIO_PULL_DISABLE);
-		else
-			tcc_gpio_config(uart_port_map[phy_port][0], GPIO_PULL_DISABLE);
-	}	
 
 	return 0;
 }

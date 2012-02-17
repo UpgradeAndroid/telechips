@@ -1153,9 +1153,13 @@ static int tcc_serial_suspend(struct platform_device *dev, pm_message_t state)
     #if defined(CONFIG_PM_CONSOLE_NOT_SUSPEND)
     if(!port->cons || (port->cons->index != port->line)){
     #endif
-	tca_serial_port_pullup(port->line , 1);
         if(tca_serial_clock_disable(tcc_port, dev->id))
             return -EINVAL;
+	
+	if(tca_ckc_getiopwdn(RB_UART_CONTROLLER)){
+	    tca_serial_port_pullup(port->line , 1, uartPortCFG0);
+	    tca_serial_port_pullup(port->line , 1, uartPortCFG1);
+	}
 
     #if defined(CONFIG_PM_CONSOLE_NOT_SUSPEND)
     }
@@ -1174,16 +1178,23 @@ static int tcc_serial_resume(struct platform_device *dev)
 
 #if defined(CONFIG_ARCH_TCC892X)
     #if defined(CONFIG_PM_CONSOLE_NOT_SUSPEND)
-    if(!port->cons || (port->cons->index != port->line))
+    if(!port->cons || (port->cons->index != port->line)){
     #endif
         if(tca_serial_clock_enable(tcc_port, dev->id))
             return -EINVAL;
+
+
+	tca_serial_port_pullup(port->line , 0, uartPortCFG0);
+	tca_serial_port_pullup(port->line , 0, uartPortCFG1);
+
+    #if defined(CONFIG_PM_CONSOLE_NOT_SUSPEND)
+    }
+    #endif
 #endif
 
 #if defined(CONFIG_ARCH_TCC892X)
     *(volatile unsigned long *)tcc_p2v(HwUART_PORTCFG_BASE) = uartPortCFG0;
     *(volatile unsigned long *)tcc_p2v(HwUART_PORTCFG_BASE + 0x4) = 	uartPortCFG1;
-    tca_serial_port_pullup(port->line , 0);
 #else
     *(volatile unsigned long *)tcc_p2v(HwUART_CHSEL) = uartPortCFG ;
 #endif
