@@ -307,7 +307,7 @@ const int m805_892x_vol[] = {
 	2135,  // 3.45v
 };
 
-const int m805_88vol[] = {
+const int m801_88_vol[] = {
 	2612,  // 4.2v
 	2548,  // 4.1v
 	2479,  // 4.0v
@@ -331,7 +331,7 @@ const int m805_892x_vol[] = {
 	2135,  // 3.45v
 };
 
-const int m805_88vol[] = {
+const int m801_88_vol[] = {
 	2612,  // 4.2v
 	2548,  // 4.1v
 	2479,  // 4.0v
