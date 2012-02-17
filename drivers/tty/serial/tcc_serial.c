@@ -1149,13 +1149,17 @@ static int tcc_serial_suspend(struct platform_device *dev, pm_message_t state)
         }
 
 #if defined(CONFIG_ARCH_TCC892X)
-    tca_serial_port_pullup(port->line , 1);
 
     #if defined(CONFIG_PM_CONSOLE_NOT_SUSPEND)
-    if(!port->cons || (port->cons->index != port->line))
+    if(!port->cons || (port->cons->index != port->line)){
     #endif
+	tca_serial_port_pullup(port->line , 1);
         if(tca_serial_clock_disable(tcc_port, dev->id))
             return -EINVAL;
+
+    #if defined(CONFIG_PM_CONSOLE_NOT_SUSPEND)
+    }
+    #endif
 #endif
 
     }
