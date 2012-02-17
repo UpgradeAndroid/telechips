@@ -102,7 +102,7 @@ void lcdc_initialize(struct lcd_panel *lcd_spec, unsigned int lcdc_num)
 	}
 
 	VIOC_WMIX_SetSize(pWIXBase, lcd_spec->xres, lcd_spec->yres);	
-	VIOC_WMIX_SetOverlayPriority(pWIXBase, 1);	
+	VIOC_WMIX_SetOverlayPriority(pWIXBase, 24);	
 	VIOC_WMIX_SetBGColor(pWIXBase, 0, 0, 0, 0);	
 
 	if(lcd_spec->bus_width == 24)

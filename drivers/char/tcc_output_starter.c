@@ -1679,7 +1679,7 @@ void tcc_output_starter_composite(unsigned char lcdc_num, unsigned char type)
 	VIOC_DISP_SetSize(pDISP, width, height);
 	VIOC_DISP_SetBGColor(pDISP, 0, 0 , 0);
 
-	VIOC_WMIX_SetOverlayPriority(pWMIX, 1);
+	VIOC_WMIX_SetOverlayPriority(pWMIX, 0);
 	VIOC_WMIX_SetBGColor(pWMIX, 0x00, 0x00, 0x00, 0xff);
 	VIOC_WMIX_SetSize(pWMIX, width, height);
 	VIOC_WMIX_SetUpdate (pWMIX);
@@ -1979,7 +1979,7 @@ void tcc_output_starter_component(unsigned char lcdc_num, unsigned char type)
 	VIOC_RDMA_SetImageEnable(pRDMA);
 	//BITCSET(pRDMA->uCTRL.nREG, HwDMA_IEN, HwDMA_IEN);
 	
-	VIOC_WMIX_SetOverlayPriority(pWMIX, 1);
+	VIOC_WMIX_SetOverlayPriority(pWMIX, 0);
 	VIOC_WMIX_SetBGColor(pWMIX, 0x00, 0x00, 0x00, 0xff);
 	VIOC_WMIX_SetSize(pWMIX, output_width, output_height);
 	VIOC_WMIX_SetPosition(pWMIX, 0, 0, 0);

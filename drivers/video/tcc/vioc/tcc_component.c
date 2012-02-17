@@ -778,7 +778,7 @@ void tcc_component_set_lcd2tv(COMPONENT_MODE_TYPE mode)
 		VIOC_DISP_SetSize(pComponent_DISP, output_width, output_height);
 		VIOC_DISP_SetBGColor(pComponent_DISP, 0, 0 , 0);
 
-		VIOC_WMIX_SetOverlayPriority(pComponent_WMIX, 1);
+		VIOC_WMIX_SetOverlayPriority(pComponent_WMIX, 0);
 		VIOC_WMIX_SetBGColor(pComponent_WMIX, 0x00, 0x00, 0x00, 0xff);
 		VIOC_WMIX_SetSize(pComponent_WMIX, output_width, output_height);
 		VIOC_WMIX_SetPosition(pComponent_WMIX, 0, 0, 0);
