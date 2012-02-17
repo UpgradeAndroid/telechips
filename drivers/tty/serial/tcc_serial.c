@@ -792,6 +792,8 @@ static int tcc_serial_startup(struct uart_port *port)
     //volatile PIOBUSCFG pIOBUSCFG = (volatile PIOBUSCFG)(tcc_p2v(HwIOBUSCFG_BASE));
     //dbg(" HCLKEN0[0x%08x]\n", pIOBUSCFG->HCLKEN0);
 
+	tcc_port->opened = 1;
+	
     dbg(" %s() out...\n", __func__);
 	return retval;
 }
@@ -1155,10 +1157,11 @@ static int tcc_serial_suspend(struct platform_device *dev, pm_message_t state)
     #endif
         if(tca_serial_clock_disable(tcc_port, dev->id))
             return -EINVAL;
-	
+
 	if(tca_ckc_getiopwdn(RB_UART_CONTROLLER)){
-	    tca_serial_port_pullup(port->line , 1, uartPortCFG0);
-	    tca_serial_port_pullup(port->line , 1, uartPortCFG1);
+		if(tcc_port->opened == 1){
+			tca_serial_port_pullup(port->line , 1, uartPortCFG0|((unsigned long long)uartPortCFG1<<32));
+		}
 	}
 
     #if defined(CONFIG_PM_CONSOLE_NOT_SUSPEND)
@@ -1180,12 +1183,12 @@ static int tcc_serial_resume(struct platform_device *dev)
     #if defined(CONFIG_PM_CONSOLE_NOT_SUSPEND)
     if(!port->cons || (port->cons->index != port->line)){
     #endif
+		if(tcc_port->opened == 1){
+			tca_serial_port_pullup(port->line , 0, uartPortCFG0|((unsigned long long)uartPortCFG1<<32));
+		}
+
         if(tca_serial_clock_enable(tcc_port, dev->id))
             return -EINVAL;
-
-
-	tca_serial_port_pullup(port->line , 0, uartPortCFG0);
-	tca_serial_port_pullup(port->line , 0, uartPortCFG1);
 
     #if defined(CONFIG_PM_CONSOLE_NOT_SUSPEND)
     }

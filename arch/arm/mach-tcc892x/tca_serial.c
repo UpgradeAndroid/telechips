@@ -253,35 +253,19 @@ int tca_serial_clock_disable(struct tcc_uart_port *tcc_port, int id)
 }
 
 
-int tca_serial_port_pullup(int nPort, int enable, unsigned long uartPortCFG)
+int tca_serial_port_pullup(int nPort, int enable, unsigned long long uartPortCFG)
 {
-	unsigned char phy_port[4];
+	#define PORT_NUM 8
 	int i;
+	unsigned char phy_port[PORT_NUM];
 
-	phy_port[0] = (uartPortCFG & 0xFF000000) >> 24;
-	phy_port[1] = (uartPortCFG & 0x00FF0000) >> 16;
-	phy_port[2] = (uartPortCFG & 0x0000FF00) >> 8;
-	phy_port[3] = (uartPortCFG & 0x000000FF) ;
+	for(i=0 ; i<PORT_NUM ; i++)
+		phy_port[i] = (uartPortCFG>>(i*8))&0xFF;
 
-	for(i=0 ; i<4 ; i++)
-	{
-	    if(phy_port[i] != 0){	
-	        if(enable)
-	        {
-	   	    if(phy_port == 20 || phy_port == 21)
-			tcc_gpio_config(uart_port_map[phy_port[i]][0]+1, GPIO_PULLUP);
-		    else
-			tcc_gpio_config(uart_port_map[phy_port[i]][0], GPIO_PULLUP);
-	        } 
-	        else
-	        {
-		     if(phy_port == 20 || phy_port == 21)
-			tcc_gpio_config(uart_port_map[phy_port[i]][0]+1, GPIO_PULL_DISABLE);
-		     else
-			tcc_gpio_config(uart_port_map[phy_port[i]][0], GPIO_PULL_DISABLE);
-	        }	
-	    }
-	}
+	if(enable)
+		tcc_gpio_config(uart_port_map[phy_port[nPort]][0], GPIO_PULLUP);
+	else
+		tcc_gpio_config(uart_port_map[phy_port[nPort]][0], GPIO_PULLDOWN);
 
 	return 0;
 }
