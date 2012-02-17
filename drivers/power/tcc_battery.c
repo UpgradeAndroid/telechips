@@ -29,6 +29,7 @@
 #include <asm/io.h>
 #include <mach/tcc_adc.h>
 #include <asm/mach-types.h>
+#include <linux/earlysuspend.h>
 
 #define ENABLE_START_EN (1<<0)
 #define ECFLG_END (1<<15)
@@ -37,9 +38,34 @@
 #define EMPTLIMIT 20 //
 #define INTR 1
 
-#define BATTVOLSAMPLE 8
-unsigned long   gAvrVoltage[8];
+#define BATTVOLSAMPLE 16
+unsigned long   gAvrVoltage[BATTVOLSAMPLE];
 unsigned long   gIndex = 0;
+
+
+#define BATT_CHECK_LOOP 1500 //ms
+#define BATT_READ_WINDOW 1
+
+#define COMPENSATION_LOAD 1
+#define COMPENSATION_AC 1
+#define COMPENSATION_RESUME 1
+
+
+#if defined(CONFIG_REGULATOR_AXP192)
+#define OVERCHARGE 105
+#define ADJUSTCHARGE1 195
+#define ADJUSTCHARGE2 185
+#define ADJUSTCHARGE3 155 
+#define MAX_CHARGING_INCREASE 200
+#else
+#define OVERCHARGE 30
+#define ADJUSTCHARGE1 165
+#define ADJUSTCHARGE2 150
+#define ADJUSTCHARGE3 120 
+#define MAX_CHARGING_INCREASE 200
+#endif
+
+
 
 #define TRACE_BATT 0 
 
@@ -96,10 +122,25 @@ struct tcc_battery_info {
 
 struct mutex batt_lock;
 struct task_struct	*batt_thread_task;
+struct early_suspend batt_early_suspend;
 
+#if 0
+static int batt_charging_increase = 0;
+#endif
+static int batt_charging_finish = 0;
+static int batt_check_times = 6;
+static int in_suspend = 0;
 static int adc_channel;
 static int ac_channel;
+static int once = 1;
+
+
+extern int android_system_booting_finished;
 // XXX
+
+tcc_battery_charging_status(void);
+void tcc_battery_process(void) ;
+
 void usb_register_notifier(struct notifier_block *nb);
 
 
@@ -190,103 +231,120 @@ static struct notifier_block usb_status_notifier = {
 
 
 
-const tcc_batt_vol tcc_battery_levels[] = {
-#if 1
-	{ 0, 4095, 100}
-#else
-#if defined(CONFIG_MACH_TCC9200) || defined(CONFIG_MACH_TCC9201)
-	// low, high, persent
-	{ 732, 752,  100},    // 4.1v ~ 4.2v
-	{ 716, 731,  90},     // 4.0v ~ 4.1v
-	{ 699, 715,  80},     // 3.9v ~ 4.0v
-	{ 680, 698,  70},     // 3.8v ~ 3.9v
-	{ 665, 679,  60},     // 3.7v ~ 3.8v
-	{ 647, 664,  50},     // 3.6v ~ 3.7v
-	{ 628, 646,  40},     // 3.5v ~ 3.6v
-	{ 610, 627,  30},     // 3.4v ~ 3.5v    
-	{ 593, 609,  20},     // 3.3v ~ 3.4v    
-	{ 575, 592,  10},     // 3.2v ~ 3.3v // low battery level is under 10 percentage.
-	{ 557, 574,  0},      // 3.1v ~ 3.2v // power off level is 0 percentage.
-#elif defined(CONFIG_MACH_TCC8900)
-	// low, high, persent
-	{ 712, 723,  100},    // 4.1v ~ 4.2v
-	{ 694, 711,  90},     // 4.0v ~ 4.1v
-	{ 674, 693,  80},     // 3.9v ~ 4.0v
-	{ 656, 673,  70},     // 3.8v ~ 3.9v
-	{ 637, 655,  60},     // 3.7v ~ 3.8v
-	{ 620, 636,  50},     // 3.6v ~ 3.7v
-	{ 602, 619,  40},     // 3.5v ~ 3.6v
-	{ 580, 601,  30},     // 3.4v ~ 3.5v    
-	{ 562, 579,  20},     // 3.3v ~ 3.4v    
-	{ 545, 561,  10},     // 3.2v ~ 3.3v // low battery level is under 10 percentage.
-	{ 534, 544,  0},      // 3.1v ~ 3.2v // power off level is 0 percentage.
-#else
-	{ 0, 1600, 100}
-#endif
-#endif
+const int tcc_battery_vol[] = {
+	100,  // 4.2v
+	45,  // 4.1v
+	40,  // 4.0v
+	35,  // 3.9v
+	30,  // 3.8v
+	25,  // 3.7v
+	20,  // 3.6v
+	15,  // 3.5v
+	10,  // 3.45v
+}; // must check adc value 
+
+
+/* backup
+const int m805_892x_vol1[] = { // for m805 8923 system_rev 2001
+	3740,  // 4.2v
+	3663,  // 4.1v
+	3576,  // 4.0v
+	3475,  // 3.9v
+	3383,  // 3.8v
+	3290,  // 3.7v
+	3194,  // 3.6v
+	3100,  // 3.5v
+	3080,  // 3.48v
 };
+*/
 
 
 #if defined(CONFIG_REGULATOR_AXP192)
 extern int axp192_battery_voltage(void);
 extern int axp192_acin_detect(void);
+extern int axp192_charge_status(void);
+//extern int axp192_charging_current(void);
+//extern int axp192_discharging_current(void);
 
-const tcc_batt_vol m801_88_battery_levels[] = {
-        { 3707, 4095,  100},    // 4.2v ~ 
-        { 3613, 3706,  90},     // 4.1v ~ 4.2v
-        { 3522, 3612,  75},     // 4.0v ~ 4.1v
-        { 3425, 3521,  60},     // 3.9v ~ 4.0v
-        { 3330, 3424,  45},     // 3.8v ~ 3.9v
-        { 3181, 3329,  30},     // 3.7v ~ 3.8v
-        { 3043, 3180,  15},     // 3.55v ~ 3.7v
-        { 500,  3042,  0},     // 3.4v ~ 3.55v
+const int m805_892x_vol[] = {
+	3700,  // 4.2v
+	3613,  // 4.1v
+	3522,  // 4.0v
+	3425,  // 3.9v
+	3330,  // 3.8v
+	3235,  // 3.7v
+	3144,  // 3.6v
+	3043,  // 3.5v
+	3010,  // 3.45v
 };
+
+
+const int m801_88_vol[] = {
+	3707,  // 4.2v
+	3613,  // 4.1v
+	3522,  // 4.0v
+	3425,  // 3.9v
+	3330,  // 3.8v
+	3235,  // 3.7v
+	3144,  // 3.6v
+	3043,  // 3.5v
+	2997,  // 3.45v
+};
+
 #elif defined(CONFIG_REGULATOR_RN5T614)
 extern int rn5t614_battery_voltage(void);
 extern int rn5t614_acin_detect(void);
 
-const tcc_batt_vol m801_88_battery_levels[] = {
-        { 3707, 4095,  100},    // 4.2v ~ 
-        { 3613, 3706,  90},     // 4.1v ~ 4.2v
-        { 3522, 3612,  75},     // 4.0v ~ 4.1v
-        { 3425, 3521,  60},     // 3.9v ~ 4.0v
-        { 3330, 3424,  45},     // 3.8v ~ 3.9v
-        { 3181, 3329,  30},     // 3.7v ~ 3.8v
-        { 3043, 3180,  15},     // 3.55v ~ 3.7v
-        { 500,  3042,  0},     // 3.4v ~ 3.55v
+const int m805_892x_vol[] = {
+	2612,  // 4.2v
+	2548,  // 4.1v
+	2479,  // 4.0v
+	2421,  // 3.9v
+	2357,  // 3.8v
+	2293,  // 3.7v
+	2227,  // 3.6v
+	2165,  // 3.5v
+	2135,  // 3.45v
+};
+
+const int m805_88vol[] = {
+	2612,  // 4.2v
+	2548,  // 4.1v
+	2479,  // 4.0v
+	2421,  // 3.9v
+	2357,  // 3.8v
+	2293,  // 3.7v
+	2227,  // 3.6v
+	2165,  // 3.5v
+	2135,  // 3.45v
 };
 #else
-const tcc_batt_vol m801_88_battery_levels[] = {
-    // low, high, persent
-#if 0
-    	{ 0, 4095, 50 },
-#else
+const int m805_892x_vol[] = {
+	2612,  // 4.2v
+	2548,  // 4.1v
+	2479,  // 4.0v
+	2421,  // 3.9v
+	2357,  // 3.8v
+	2293,  // 3.7v
+	2227,  // 3.6v
+	2165,  // 3.5v
+	2135,  // 3.45v
+};
 
-#if defined(CONFIG_MACH_M805_892X)
-	{ 2552, 2900 , 100}, // 4.1v ~ 4.2v
-	{ 2486, 2551,  90},  // 4.0v ~ 4.1v   
-	{ 2423, 2485,  75}, // 3.9v ~ 4.0v   
-	{ 2361, 2422,  60}, // 3.8v ~ 3.9v    
-	{ 2297, 2360,  45}, // 3.7v ~ 3.8v    
-	{ 2232, 2296,  30},  // 3.6v ~ 3.7v    
-	{ 2181, 2231,  15},  // 3.5v ~ 3.6v  
-	{ 550, 2180,  0},     // 3.4v ~ 3.5v
-#else
-	{ 2710, 2900,  100},    // 4.1v ~ 4.2v
-	{ 2626, 2709,  90},     // 4.0v ~ 4.1v
-	{ 2559, 2625,  75},     // 3.9v ~ 4.0v
-	{ 2490, 2558,  60},     // 3.8v ~ 3.9v
-	{ 2416, 2489,  45},     // 3.7v ~ 3.8v
-	{ 2343, 2415,  30},     // 3.6v ~ 3.7v
-	{ 2271, 2342,  15},     // 3.5v ~ 3.6v
-	{ 545, 2270,  0},     // 3.4v ~ 3.5v    
-//	{ 2179, 2196,  10},     // 3.3v ~ 3.4v    // low battery level is under 10 percentage.
-//	{ 545, 2178,  0},     // 3.2v ~ 3.3v  power off level is zero percentage.
-#endif
-#endif
+const int m805_88vol[] = {
+	2612,  // 4.2v
+	2548,  // 4.1v
+	2479,  // 4.0v
+	2421,  // 3.9v
+	2357,  // 3.8v
+	2293,  // 3.7v
+	2227,  // 3.6v
+	2165,  // 3.5v
+	2135,  // 3.45v
 };
 #endif
 
+#if 0 // not support
 const tcc_batt_vol m57te_battery_levels[] = {
     // low, high, persent
     { 686, 702, 100}, // 4.1v ~ 4.2v
@@ -298,6 +356,8 @@ const tcc_batt_vol m57te_battery_levels[] = {
     { 583, 601,  15}, // 3.5v ~ 3.6v low battery level is under 15%
     {  50, 583,   0}, //      ~ 3.5v power off level is zero percentage.
 };
+
+#endif
 
 static void tcc_set_fast_charge_mode(int onoff) {
     if( onoff ) {
@@ -338,6 +398,8 @@ static unsigned long tcc_read_adc(void)
 {
 	unsigned long adcValue = 0;
 	int i=0;
+	int *pbattery_vols;
+	int temp_adc, adjustResume;
 	struct clk *cpu_clk;
 	struct clk *ddi_clk;
 	
@@ -347,8 +409,6 @@ static unsigned long tcc_read_adc(void)
 
 #if defined(CONFIG_REGULATOR_AXP192)
 			adcValue = axp192_battery_voltage();
-#elif defined(CONFIG_REGULATOR_RN5T614)
-			adcValue = rn5t614_battery_voltage();
 #else
 			adcValue = tcc_adc_start(client, adc_channel, 0);
 #endif
@@ -358,51 +418,125 @@ static unsigned long tcc_read_adc(void)
 		if( adcValue < EMPTLIMIT) {
 #if defined(CONFIG_REGULATOR_AXP192)
                         adcValue = axp192_battery_voltage();
-#elif defined(CONFIG_REGULATOR_RN5T614)
-                        adcValue = rn5t614_battery_voltage();
 #else
                         adcValue = tcc_adc_start(client, adc_channel, 0);
 #endif
 		}
 
-		// temporary compensation
-		//########################################################
 
+		if(machine_is_m805_892x()){
+			pbattery_vols = m805_892x_vol;		
+		}
+		else if(machine_is_m801_88())
+			pbattery_vols = m801_88_vol;		
+		else 
+		{
+			pbattery_vols = tcc_battery_vol;
+			adcValue = 4000;
+		}
+
+
+		BATT("ADC Value = %x\n", adcValue);
+
+		// temporary compensation by cpu, ddi clock
+		//########################################################
+#if COMPENSATION_LOAD
 		cpu_clk = clk_get(0, "cpu");
 		ddi_clk = clk_get(0, "ddi");
 
 		//printk("cpu = %d\n",clk_get_rate(cpu_clk));
 		//printk("ddi = %d\n",clk_get_rate(ddi_clk));
-		if(clk_get_rate(cpu_clk) > 800000000 || clk_get_rate(ddi_clk) > 380000000)
-			adcValue += 90;
-		else if (clk_get_rate(cpu_clk) > 700000000 || clk_get_rate(ddi_clk) > 340000000)
-			adcValue += 70;
-		else if (clk_get_rate(cpu_clk) > 600000000 || clk_get_rate(ddi_clk) > 310000000)
-			adcValue += 50;
-		else if (clk_get_rate(cpu_clk) > 500000000 || clk_get_rate(ddi_clk) > 260000000)
-			adcValue += 30;
-		else if (clk_get_rate(cpu_clk) > 400000000 || clk_get_rate(ddi_clk) > 220000000)
-			adcValue += 10;
+		if(!g_ac_plugin && !in_suspend){				
+			batt_check_times = 6;
+			if(1) { //adcValue < pbattery_vols[6]){
+				if(clk_get_rate(cpu_clk) > 800000000)
+					adcValue += 30;
+				else if (clk_get_rate(cpu_clk) > 700000000 || clk_get_rate(ddi_clk) > 360000000)
+					adcValue += 25;
+				else if (clk_get_rate(cpu_clk) > 600000000 || clk_get_rate(ddi_clk) > 340000000)
+					adcValue += 20;
+				else if (clk_get_rate(cpu_clk) > 500000000 || clk_get_rate(ddi_clk) > 310000000)
+					adcValue += 10;
+				else if (clk_get_rate(cpu_clk) > 400000000 || clk_get_rate(ddi_clk) > 260000000)
+					adcValue += 5;
+			}		
+/* // TODO:
+			else
+			{
+				if(clk_get_rate(cpu_clk) > 800000000)
+					adcValue += 68;
+				else if (clk_get_rate(cpu_clk) > 700000000 || clk_get_rate(ddi_clk) > 360000000)
+					adcValue += 58;
+				else if (clk_get_rate(cpu_clk) > 600000000 || clk_get_rate(ddi_clk) > 340000000)
+					adcValue += 38;
+			}
+*/
+		}
+#endif
 		//########################################################
-		
 
-		if( adcValue < EMPTLIMIT) {
-            if( machine_is_m57te() || machine_is_m801()) {
-                adcValue = m57te_battery_levels[ARRAY_SIZE(m57te_battery_levels)-1].voltage_high;
-            } 
-		else if(machine_is_m801_88() || machine_is_m803() || machine_is_m805_892x())
+		// temporary compensation by ac	
+		//########################################################
+
+
+#if COMPENSATION_AC
+		if(g_ac_plugin){
+			batt_check_times = 12;
+			temp_adc = adcValue;
+			//printk(" original adc = %d \n", temp_adc);
+
+#if defined(CONFIG_REGULATOR_AXP192)
+			if(axp192_charge_status() != 0x02){
+#endif
+			if(adcValue < pbattery_vols[5])
+				adcValue -= ADJUSTCHARGE1;
+			else if(adcValue >= pbattery_vols[5] && adcValue < pbattery_vols[0])
+				adcValue -= ADJUSTCHARGE2;
+			else if(adcValue >= pbattery_vols[0])
+				adcValue -= (ADJUSTCHARGE3);
+#if defined(CONFIG_REGULATOR_AXP192)			
+			}
+#endif
+
+			if(temp_adc >= (pbattery_vols[0] + OVERCHARGE) ){
+				adcValue = temp_adc;
+				batt_check_times = 24;				
+			}
+			else
+			{
+				//TODO : 
+			}
+		}
+		else
 		{
-		   adcValue = m801_88_battery_levels[ARRAY_SIZE(m801_88_battery_levels)-1].voltage_high;
-		}
-			else {
-    			adcValue = tcc_battery_levels[ARRAY_SIZE(tcc_battery_levels)-1].voltage_high;
-            }
-            
-			BATT("dummy ADC Value = %x\n", adcValue);
+			if(adcValue >= pbattery_vols[1])
+				batt_check_times =  12;				
+			else
+				batt_check_times =  6;				
 		}
 
-		//BATT("ADC Value = %x\n", adcValue);
+
+#endif
+		//########################################################
+
+		// temporary compensation by resume
+		//########################################################
+#if COMPENSATION_RESUME
+	
+		if(!g_ac_plugin){
+			adjustResume = 60;
+			if(g_usb_online)
+				adjustResume = 40;
+		}
+		else
+			adjustResume = 10;		
 		
+		if(in_suspend)
+			adcValue -= adjustResume;
+
+#endif
+		//########################################################
+
 		//msleep(30);
 		gAvrVoltage[gIndex++%BATTVOLSAMPLE] = adcValue;
 	}	
@@ -693,39 +827,6 @@ static int tcc_battery_get_property(struct power_supply *psy,
 }
 
 
-
-static int tcc_battery_suspend(struct platform_device *dev, pm_message_t state)
-{
-	printk("%s in\n", __func__);	
-	/* flush all pending status updates */
-
-	if(machine_is_m801_88()) {
-		// for LED
-		gpio_set_value(TCC_GPF(15), 0);
-		gpio_set_value(TCC_GPF(16), 0);			
-	}
-
-	printk("%s out\n", __func__);	
-	return 0;
-}
-
-static int tcc_battery_resume(struct platform_device *dev)
-{
-	printk("%s in\n", __func__);	
-	/* things may have changed while we were away */
-	/* wake thread */
-
-	if(machine_is_m801_88()) {
-		// for LED
-		gpio_set_value(TCC_GPF(15), 1);
-		gpio_set_value(TCC_GPF(16), 1);			
-	}
-
-	printk("%s out\n", __func__);	
-	return 0;
-}
-
-
 #define TCC_BATTERY_ATTR(_name)						\
 {									\
 	.attr = { .name = #_name, .mode = S_IRUGO}, \
@@ -852,14 +953,44 @@ void tcc_ac_charger_detect_process(void)
 
 
 	      if( g_ac_plugin ) {
+#if defined(CONFIG_REGULATOR_AXP192)
+		  if(axp192_charge_status() == 0x02){
+		  	if( tcc_batt_info.rep.charging_source == CHARGER_AC ){
+		            tcc_cable_status_update(CHARGER_BATTERY);
+				batt_check_times = 1;
+		  	}	
+		  }
+		  else
+		  {
+#endif		  	
 	        if( tcc_batt_info.rep.charging_source == CHARGER_BATTERY ) {
 	            tcc_cable_status_update(CHARGER_AC);
+			batt_check_times = 10;	
+			msleep(10000);
+			gIndex = 0;
+			for(i=0;i<BATTVOLSAMPLE;i++)
+				tcc_read_adc();
+
+		      tcc_ac_charger_detect_process();
+		      tcc_battery_process();			
 				//if( machine_is_m801() )
 				//	HwGPIOD->GPDAT |= Hw11;
 	        }
+#if defined(CONFIG_REGULATOR_AXP192)
+		  }
+#endif
 	      } else {
 	        if( tcc_batt_info.rep.charging_source == CHARGER_AC ) {
 	            tcc_cable_status_update(CHARGER_BATTERY);
+			batt_charging_finish = 0;
+			batt_check_times = 10;
+			msleep(10000);
+			gIndex = 0;
+			for(i=0;i<BATTVOLSAMPLE;i++)
+				tcc_read_adc();
+
+		      tcc_ac_charger_detect_process();
+		      tcc_battery_process();
 				//if( machine_is_m801() )
 				//	HwGPIOD->GPDAT &= ~Hw11;
 	        	}
@@ -931,6 +1062,25 @@ int tcc_battery_percentage(void)
 }
 EXPORT_SYMBOL(tcc_battery_percentage);
 
+#if 0 // not yet support
+int tcc_battery_charging_status(void)
+{
+#if defined(CONFIG_REGULATOR_AXP192)
+	int temp;
+      axp192_discharging_current();
+	if(axp192_charging_current() > 100)
+		return 1;
+	else
+		return 0;
+	
+#elif defined(CONFIG_REGULATOR_RN5T614)
+//TODO:
+#else
+//TODO:
+#endif
+}
+#endif
+
 void tcc_battery_process(void) 
 {
 	unsigned long adcValue;
@@ -941,11 +1091,14 @@ void tcc_battery_process(void)
 	unsigned int battery_changed_flag = 0;
     int battery_level_count = 0;
     tcc_batt_vol *pbattery_levels;
+	int *pbattery_vols;
+	int info_temp;
+	static old_batt_per = 0;
 
 	adcValue = 0;
 	temp = 0;
 
-	for (i=0; i<8; i++)
+	for (i=0; i<BATTVOLSAMPLE; i++)
 		adcValue += gAvrVoltage[i];
 
 	if( adcValue )
@@ -968,28 +1121,132 @@ void tcc_battery_process(void)
 
 	info.level = 100;
 
-    if( machine_is_m57te() || machine_is_m801()) {
-        battery_level_count = ARRAY_SIZE(m57te_battery_levels);
-        pbattery_levels = m57te_battery_levels;
-    }
-    else if(machine_is_m801_88() || machine_is_m803() || machine_is_m805_892x()){
-        battery_level_count = ARRAY_SIZE(m801_88_battery_levels);
-        pbattery_levels = m801_88_battery_levels;
-    	}	
-	else {
-        battery_level_count = ARRAY_SIZE(tcc_battery_levels);
-        pbattery_levels = tcc_battery_levels;        
-    }
-    
-	for (count = 0; count < battery_level_count; count++)
+	if(machine_is_m805_892x())
 	{
-		if ((temp >= pbattery_levels[count].voltage_low) && (temp <= pbattery_levels[count].voltage_high))
-			info.level = pbattery_levels[count].percentage;
+		pbattery_vols = m805_892x_vol;		
+	}
+	else if(machine_is_m801_88())
+		pbattery_vols = m801_88_vol;		
+	else 
+	{
+		pbattery_vols = tcc_battery_vol;
+		temp = 4000;
 	}
 
-	if( temp < pbattery_levels[battery_level_count-1].voltage_low ) {
-	    info.level = pbattery_levels[battery_level_count-1].percentage;
+
+	if( g_ac_plugin)
+	{
+		if(temp > pbattery_vols[0])
+		{
+			//printk("### 90~100 ###\n");
+#if defined(CONFIG_REGULATOR_AXP192)
+			if( temp >= (pbattery_vols[0] + OVERCHARGE)){
+				if(axp192_charge_status() == 0x02)
+					info.level = 100;
+
+				batt_charging_finish++;
+				if(batt_charging_finish >= 2000){
+					info.level = 100;
+					batt_charging_finish = 0;
+				}
+			}
+			else
+			{
+					info.level = 95;
+			}
+#else
+			if( temp >= (pbattery_vols[0] + OVERCHARGE) - 10)			
+			{
+				if(pbattery_vols[0] + OVERCHARGE <= temp){
+					batt_charging_finish++;
+
+					if(batt_charging_finish >= 2000){
+						info_temp = 100;
+						batt_charging_finish = 0;
+					}
+				}
+				else
+				{
+					if(old_batt_per != 0)
+						info_temp = old_batt_per;
+					else
+						info_temp = 90;	
+				}
+
+			}
+			else
+				info_temp = old_batt_per;
+			
+			info.level = info_temp;
+#endif
+		}
+		else if( temp > pbattery_vols[5] && temp <= pbattery_vols[0])
+		{
+			//printk("### 20~90 ###\n");
+			info_temp = 20 + (temp - pbattery_vols[5])/((pbattery_vols[1] - pbattery_vols[5])/70);
+			if(info_temp > 90) info_temp = 90;
+			info.level = (int)info_temp;		
+		}
+		else if( temp >= pbattery_vols[6] && temp <= pbattery_vols[5])
+		{
+			info_temp = 10 + (temp - pbattery_vols[6])/((pbattery_vols[5] - pbattery_vols[6])/10);
+			if(info_temp > 20) info_temp = 20;					
+			info.level = (int)info_temp;		
+		}
+		else if( temp >= pbattery_vols[8] && temp <= pbattery_vols[6])
+		{
+			info_temp = (temp - pbattery_vols[8])/((pbattery_vols[6] - pbattery_vols[8])/10);
+			if(info_temp > 10) info_temp = 10;					
+			info.level = (int)info_temp;		
+		}
+		else
+		{
+			info_temp = 0;
+			info.level = info_temp;
+		}		
 	}
+	else
+	{
+		if(temp > pbattery_vols[0])
+		{
+			info_temp = 100;
+			info.level = info_temp;
+		}
+		else if( temp > pbattery_vols[1] && temp <= pbattery_vols[0])
+		{
+			info_temp = 90 + (temp - pbattery_vols[1])/((pbattery_vols[0] - pbattery_vols[1])/10);
+			info.level = (int)info_temp;
+		}
+		else if( temp > pbattery_vols[5] && temp <= pbattery_vols[1])
+		{
+			info_temp = 20 + (temp - pbattery_vols[5])/((pbattery_vols[1] - pbattery_vols[5])/70);
+			info.level = (int)info_temp;		
+		}
+		else if( temp >= pbattery_vols[6] && temp <= pbattery_vols[5])
+		{
+			info_temp = 10 + (temp - pbattery_vols[6])/((pbattery_vols[5] - pbattery_vols[6])/10);
+			info.level = (int)info_temp;		
+		}
+		else if( temp >= pbattery_vols[8] && temp <= pbattery_vols[6])
+		{
+			info_temp = (temp - pbattery_vols[8])/((pbattery_vols[6] - pbattery_vols[8])/10);
+			info.level = (int)info_temp;		
+		}
+		else
+		{
+			info_temp = 0;
+			info.level = info_temp;
+		}
+	}
+
+
+	old_batt_per = info.level;
+
+	if(machine_is_tcc8920() || machine_is_tcc8800())
+		info.level = 100;
+
+	//printk("batt_per  = %d \n" , (int)info.level);
+		
 
 	//BATT("Voltage : %d, level: %d\r\n", temp, info->level);
 	/* Move the rules of charging_source to cable_status_update. */
@@ -1066,30 +1323,49 @@ static int tcc_battery_thread(void *v)
 	while (!signal_pending(tsk)) {
         int i;
 
-	if(gIndex >= (BATTVOLSAMPLE-1))
-	{
-	        gIndex = BATTVOLSAMPLE-1;
-		for(i=0;i<BATTVOLSAMPLE-1;i++)
+	if(batt_check_times > 0) batt_check_times--;
+
+	if(batt_check_times == 0){
+
+#if BATT_READ_WINDOW
+		if(gIndex >= (BATTVOLSAMPLE-1))
 		{
-			gAvrVoltage[i] = gAvrVoltage[i+1];
+		        gIndex = BATTVOLSAMPLE-1;
+			for(i=0;i<BATTVOLSAMPLE-1;i++)
+			{
+				gAvrVoltage[i] = gAvrVoltage[i+1];
+			}
+			tcc_read_adc();
 		}
-		tcc_read_adc();
-	}
-	else
-	{
-		tcc_read_adc();
-	}
+		else
+		{
+			tcc_read_adc();
+		}
+#else
+		gIndex = 0;
+		for(i=0; i<BATTVOLSAMPLE; i++)
+			tcc_read_adc();
+#endif
+
+		if(android_system_booting_finished == 1 && once)
+		{
+			gIndex = 0;
+			for(i=0; i<BATTVOLSAMPLE; i++)
+			tcc_read_adc();
+			once = 0;
+		}
    
-        tcc_ac_charger_detect_process();
-        tcc_battery_process();
+  	     tcc_ac_charger_detect_process();
+	     tcc_battery_process();
+	}
+	
 
-
-        for( i=0; i< 10; i++ ) {
-            msleep(10);
-            tcc_ac_charger_detect_process();
-        }
+	for( i=0; i< 10; i++ ) {
+      	      msleep(10);
+	      tcc_ac_charger_detect_process();
+      }
 		
-		msleep(1500);
+		msleep(BATT_CHECK_LOOP);
 		power_supply_changed(&tcc_power_supplies[CHARGER_BATTERY]);
 	}
 
@@ -1125,12 +1401,77 @@ static tcc_battery_adc_channel(void)
 		adc_channel = 1;
 	}
 	else if(machine_is_m805_892x()){
-		adc_channel = 2;
-		ac_channel = 3;
+		if(system_rev == 0x2002)
+		{
+			adc_channel = 3;
+			ac_channel = 2;
+		}
+		else
+		{
+			adc_channel = 2;
+			ac_channel = 3;
+		}
 	}
 
 
 }
+
+
+void tcc_battery_early_suspend(struct early_suspend *h)
+{
+	printk("%s in\n", __func__);
+	in_suspend = 1;
+	printk("%s out\n", __func__);
+}
+
+void tcc_battery_late_resume(struct early_suspend *h)
+{
+	int i;
+	printk("%s in\n", __func__);
+
+	gIndex = 0;
+	for(i=0;i<BATTVOLSAMPLE;i++)
+		tcc_read_adc();
+
+      tcc_ac_charger_detect_process();
+      tcc_battery_process();
+  	in_suspend = 0;
+	printk("%s out\n", __func__);	
+}
+
+
+static int tcc_battery_suspend(struct platform_device *dev, pm_message_t state)
+{
+	printk("%s in\n", __func__);	
+	/* flush all pending status updates */
+
+	if(machine_is_m801_88()) {
+		// for LED
+		gpio_set_value(TCC_GPF(15), 0);
+		gpio_set_value(TCC_GPF(16), 0);			
+	}
+
+	printk("%s out\n", __func__);	
+	return 0;
+}
+
+static int tcc_battery_resume(struct platform_device *dev)
+{
+	printk("%s in\n", __func__);	
+	/* things may have changed while we were away */
+	/* wake thread */
+
+	if(machine_is_m801_88()) {
+		// for LED
+		gpio_set_value(TCC_GPF(15), 1);
+		gpio_set_value(TCC_GPF(16), 1);			
+	}
+
+	printk("%s out\n", __func__);	
+	return 0;
+}
+
+
 static int tcc_battery_probe(struct platform_device *pdev)
 {
 	int i, err, ret;
@@ -1232,10 +1573,18 @@ static int tcc_battery_probe(struct platform_device *pdev)
 
 	gIndex = 0;
 
+#if 1
+	batt_early_suspend.suspend = tcc_battery_early_suspend;
+	batt_early_suspend.resume = tcc_battery_late_resume;
+	batt_early_suspend.level = EARLY_SUSPEND_LEVEL_DISABLE_FB - 2;
+	register_early_suspend(&batt_early_suspend);	
+#endif	
+
+      tcc_ac_charger_detect_process();
+
 	for(i=0; i<BATTVOLSAMPLE; i++)
    		tcc_read_adc();	
 
-    tcc_ac_charger_detect_process();
 	tcc_battery_process();
 
 	kernel_thread(tcc_battery_thread, NULL, CLONE_KERNEL);
@@ -1321,10 +1670,7 @@ static tcc_battery_port_init(void)
 	if(machine_is_m805_892x()){
 	//TODO:adc_gpio set config , led config, ricoh pmic config
 #if defined(CONFIG_ARCH_TCC892X)
-		gpio_request(TCC_GPADC(0), GPIO_FN(1));
-		gpio_request(TCC_GPADC(1), GPIO_FN(1));
-		gpio_request(TCC_GPADC(2), GPIO_FN(1));
-		gpio_request(TCC_GPADC(3), GPIO_FN(1));		
+
 #endif
 	}	
 
@@ -1341,6 +1687,7 @@ static int __init tcc_battery_init(void)
 	mutex_init(&tcc_batt_info.lock);
 
 	tcc_battery_port_init();
+
 
 	return platform_driver_register(&tcc_battery_driver);
 }
