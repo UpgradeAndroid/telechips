@@ -104,6 +104,7 @@ extern void tca_serial_portinit(int nCh, int nPort);
 extern void tca_serial_intrinit(void);
 extern int  tca_serial_clock_enable(struct tcc_uart_port *tcc_port, int id);
 extern int  tca_serial_clock_disable(struct tcc_uart_port *tcc_port, int id);
+extern int tca_serial_port_pullup(int nPort, int enable);
 
 int	tca_dma_ctrl(int m_DmaNumber, unsigned long* pVirtualDmaAddr);
 int	tca_dma_dmacurrentaddress(int m_DmaNumber, unsigned long* pVirtualDmaAddr);
