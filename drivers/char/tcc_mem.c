@@ -70,7 +70,7 @@
 #define DXB_BASE1       0x30000000 // have to modify
 #define DXB_BASE2       0xF08C0000 // have to modify
 #define AV_BASE         0x76067000
-#define AV_BASE2        0xF0308000
+#define AV_BASE2        0x74200000
 #else
 #define VPU_BASE		0xF0700000
 #define CLK_BASE        0xF0400000
