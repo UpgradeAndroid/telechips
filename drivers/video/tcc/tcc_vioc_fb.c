@@ -1957,7 +1957,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 				tccvid_vsync.nDeinterProcCount = 0;
 				tccvid_vsync.m2m_mode =  input_image.m2m_mode;
 
-				TCC_VIQE_DI_Init60Hz(input_image.Lcdc_layer, input_image.on_the_fly, input_image.fmt, 
+				TCC_VIQE_DI_Init60Hz(lcdCtrlNum, input_image.Lcdc_layer, input_image.on_the_fly, input_image.fmt, 
 										input_image.Frame_width, input_image.Frame_height,	// srcWidth, srcHeight
 										input_image.crop_top, input_image.crop_bottom, input_image.crop_left, input_image.crop_right,	// offset top, offset bottom, offset left, offset right
 										input_image.Image_width, input_image.Image_height,

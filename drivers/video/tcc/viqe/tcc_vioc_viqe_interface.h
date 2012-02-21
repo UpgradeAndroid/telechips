@@ -5,7 +5,7 @@
  void TCC_VIQE_DI_Init(int scalerCh, int useWMIXER, unsigned int FrmWidth, unsigned int FrmHeight, int crop_top, int crop_bottom, int crop_left, int crop_right, int OddFirst);
  void TCC_VIQE_DI_Run(unsigned int FrmWidth, unsigned int FrmHeight, int crop_top, int crop_bottom, int crop_left, int crop_right, int OddFirst);
  void TCC_VIQE_DI_DeInit(void);
- void TCC_VIQE_DI_Init60Hz(int Lcdc_layer, int useSCALER, unsigned int img_fmt, 
+ void TCC_VIQE_DI_Init60Hz(int lcdCtrlNum, int Lcdc_layer, int useSCALER, unsigned int img_fmt, 
 						unsigned int srcWidth, unsigned int srcHeight,
 						int crop_top, int crop_bottom, int crop_left, int crop_right, 
 						unsigned int destWidth, unsigned int destHeight, unsigned int offset_x, unsigned int offset_y, int OddFirst);
