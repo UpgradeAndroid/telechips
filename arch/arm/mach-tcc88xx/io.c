@@ -96,13 +96,13 @@ static struct map_desc tcc8800_io_desc[] __initdata = {
         .type       = MT_DEVICE
     },
     {
-        .virtual    = 0xEFF00000,
+        .virtual    = 0xF0A00000, //0xEFF00000,
         .pfn        = __phys_to_pfn(0x10000000),
         .length     = 0x100000,
         .type       = MT_MEMORY_TCC
     },
     {
-        .virtual    = 0xEFE00000,
+        .virtual    = 0xF0B00000, //0xEFE00000,
         .pfn        = __phys_to_pfn(0x30000000),
         .length     = 0x100000,
         .type       = MT_MEMORY_TCC

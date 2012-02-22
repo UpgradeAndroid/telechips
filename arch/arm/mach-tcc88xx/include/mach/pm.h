@@ -71,7 +71,7 @@
  1) Shut-down (shut down + sram boot + sdram self-refresh)
 
      << sram >>
-     0x10000000(0xEFF00000) ------------------
+     0x10000000(0xF0A00000) ------------------
                            |    Boot code     | 0x700
                      0x700  ------------------
                            |      Stack       | 0x100
@@ -101,32 +101,32 @@
 
 ---------------------------------------------------------------------------*/
 
-#define SRAM_BOOT_ADDR           0xEFF00000
+#define SRAM_BOOT_ADDR           0xF0A00000
 #define SRAM_BOOT_SIZE           0x00000700
 
-#define SHUTDOWN_STACK_ADDR      0xEFF00700
+#define SHUTDOWN_STACK_ADDR      0xF0A00700
 #define SHUTDOWN_STACK_SIZE      0x00000100
 #define SHUTDOWN_STACK_PHY       0x10000700
 
-#define IO_RESTORE_FUNC_ADDR     0xEFF00800
+#define IO_RESTORE_FUNC_ADDR     0xF0A00800
 #define IO_RESTORE_FUNC_SIZE     0x00000200
 
-#define GPIO_BUF_ADDR            0xEFF01100
+#define GPIO_BUF_ADDR            0xF0A01100
 #define GPIO_BUF_PHY             0x10001100
 
-#define SHUTDOWN_FUNC_ADDR       0xEFF01400
+#define SHUTDOWN_FUNC_ADDR       0xF0A01400
 #define SHUTDOWN_FUNC_SIZE       0x00000400
 #define SHUTDOWN_FUNC_PHY        0x10001400
 
-#define MMU_SWITCH_FUNC_ADDR     0xEFF01800
+#define MMU_SWITCH_FUNC_ADDR     0xF0A01800
 #define MMU_SWITCH_FUNC_SIZE     0x00000020
 #define MMU_SWITCH_FUNC_PHY      0x10001800
 
-#define REG_MMU_DATA_ADDR        0xEFF01850
+#define REG_MMU_DATA_ADDR        0xF0A01850
 #define REG_MMU_DATA_PHY         0x10001850
 
 #ifdef PORT_ARRANGE_USED
-#define GPIO_BUF_ADDR_           0xEFF01950
+#define GPIO_BUF_ADDR_           0xF0A01950
 #define GPIO_BUF_PHY_            0x10001950
 #endif
 
@@ -188,7 +188,7 @@ typedef struct _TCC_REG_{
 /*---------------------------------------------------------------------------
  2) sleep (sleep + sdram self-refresh)
 
-     0x10000000(0xEFF00000) ------------------
+     0x10000000(0xF0A00000) ------------------
                            |    Sleep code    | 0x700
                      0x700  ------------------
                            |      Stack       | 0x100
@@ -206,10 +206,10 @@ typedef struct _TCC_REG_{
 
 ---------------------------------------------------------------------------*/
 
-#define SLEEP_FUNC_ADDR          0xEFF00000
+#define SLEEP_FUNC_ADDR          0xF0A00000
 #define SLEEP_FUNC_SIZE          0x00000700
 
-#define SLEEP_STACK_ADDR         0xEFF00700
+#define SLEEP_STACK_ADDR         0xF0A00700
 #define SLEEP_STACK_SIZE         0x00000100
 #define SLEEP_STACK_PHY          0x10000700
 
@@ -223,15 +223,15 @@ typedef struct _TCC_REG_{
 
 ===========================================================================*/
 
-#define SDRAM_INIT_FUNC_ADDR     0xEFF00A00
+#define SDRAM_INIT_FUNC_ADDR     0xF0A00A00
 #define SDRAM_INIT_FUNC_SIZE     0x00000700
 #define SDRAM_INIT_FUNC_PHY      0x10000A00
 
-#define COREPWR_FUNC_ADDR        0xEFF02000
+#define COREPWR_FUNC_ADDR        0xF0A02000
 #define COREPWR_FUNC_SIZE        0x00000FE0
 #define COREPWR_FUNC_PHY         0x10002000
 
-#define COREPWR_PARAM_ADDR       0xEFF02FE0
+#define COREPWR_PARAM_ADDR       0xF0A02FE0
 #define COREPWR_PARAM_SIZE       0x00000020
 #define COREPWR_PARAM_PHY        0x10002FE0
 
