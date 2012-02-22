@@ -78,7 +78,7 @@ typedef void (*FuncPtr)(unsigned int type);
 /*---------------------------------------------------------------------------
  1) TCC93xx
      << sram1 >>
-     0xD0000000(0xEFE00000) ------------------
+     0x10000000(0xF0A00000) ------------------
                            | ckc change func  | 0x700
                      0x700  ------------------
                            | ckc change arg   | 0x80
@@ -88,11 +88,11 @@ typedef void (*FuncPtr)(unsigned int type);
 
 ---------------------------------------------------------------------------*/
 
-#define CKC_CHANGE_FUNC_ADDR       0xEFF00000
+#define CKC_CHANGE_FUNC_ADDR       0xF0A00000
 
 #define CKC_CHANGE_FUNC_SIZE       0x700
 
-#define CKC_CHANGE_ARG_BASE        0xEFF00700
+#define CKC_CHANGE_ARG_BASE        0xF0A00700
 
 
 
