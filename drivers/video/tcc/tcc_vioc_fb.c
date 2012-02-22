@@ -1025,6 +1025,11 @@ void tcc_vsync_set_firstFrameFlag(int firstFrameFlag)
 	tccvid_vsync.firstFrameFlag = firstFrameFlag;
 }
 
+int tcc_vsync_get_isVsyncRunning(void)
+{
+	return tccvid_vsync.isVsyncRunning;
+}
+
 static int tccfb_calculateSyncTime(int currentTime)
 {
 	static int lastUdateTime = 0;
@@ -1210,10 +1215,8 @@ static int tccfb_pan_display(struct fb_var_screeninfo *var, struct fb_info *info
 		{
 			tcc_output_ret = TCC_OUTPUT_FB_Update(fbi->fb->var.xres, fbi->fb->var.yres, fbi->fb->var.bits_per_pixel, base_addr, Output_SelectMode);
 
-			#if !defined(CONFIG_TCC_HDMI_UI_DISPLAY_OFF)
-				if(tcc_output_ret )
-					TCC_OUTPUT_FB_UpdateSync(Output_SelectMode);
-			#endif//CONFIG_TCC_HDMI_UI_DISPLAY_OFF
+			if(tcc_output_ret )
+				TCC_OUTPUT_FB_UpdateSync(Output_SelectMode);
 		}
 	#endif
 
@@ -1315,10 +1318,8 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 				TCC_OUTPUT_UPDATE_OnOff(1, TCC_OUTPUT_HDMI);
 				Output_SelectMode = TCC_OUTPUT_HDMI;
 		
-				#if !defined(CONFIG_TCC_HDMI_UI_DISPLAY_OFF)
 				TCC_OUTPUT_FB_Update(fb_info->fb->var.xres, fb_info->fb->var.yres, fb_info->fb->var.bits_per_pixel, Output_BaseAddr, Output_SelectMode);
 				TCC_OUTPUT_FB_UpdateSync(Output_SelectMode);
-				#endif /*CONFIG_TCC_HDMI_UI_DISPLAY_OFF*/
 				TCC_HDMI_LCDC_OutputEnable(EX_OUT_LCDC, 1);
 
 				TCC_OUTPUT_FB_MouseShow(0, TCC_OUTPUT_HDMI);
@@ -1374,7 +1375,8 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 			TCC_OUTPUT_FB_MouseShow(0, TCC_OUTPUT_HDMI);
 			
 			#ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
-			tca_vsync_video_display_disable();
+			if(tccvid_vsync.isVsyncRunning)
+				tca_vsync_video_display_disable();
 			tcc_vsync_set_firstFrameFlag(1);
 			#endif
 			#ifdef TCC_VIDEO_DISPLAY_DEINTERLACE_MODE
@@ -1495,23 +1497,21 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 				if(composite_mode == LCDC_COMPOSITE_UI_MODE)
 				{
 					Output_SelectMode = TCC_OUTPUT_COMPOSITE;
- #ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
+					#ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
 					{
 					       spin_lock_irq(&vsync_lock);
 					       tccvid_vsync.outputMode = -1;
 					       spin_unlock_irq(&vsync_lock);
 					}
- #endif
+					#endif
+					
  					printk("TCC_LCDC_COMPOSITE_MODE_SET : Output_SelectMode = %d , composite_mode = %d\n", composite_mode, Output_SelectMode);
-#if !defined(CONFIG_TCC_HDMI_UI_DISPLAY_OFF)
+
 					TCC_OUTPUT_FB_Update(fb_info->fb->var.xres, fb_info->fb->var.yres, fb_info->fb->var.bits_per_pixel, Output_BaseAddr, Output_SelectMode);
 					TCC_OUTPUT_FB_UpdateSync(Output_SelectMode);
 					TCC_OUTPUT_LCDC_OutputEnable(EX_OUT_LCDC, 1);
-#endif /*CONFIG_TCC_HDMI_UI_DISPLAY_OFF*/
 
-#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 					TCC_OUTPUT_FB_MouseShow(1, TCC_OUTPUT_COMPOSITE);
-#endif
 				}
 				else if(composite_mode == LCDC_COMPOSITE_NONE_MODE)
 				{
@@ -1550,11 +1550,9 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 				       spin_unlock_irq(&vsync_lock);
 					#endif
 
-					#if !defined(CONFIG_TCC_HDMI_UI_DISPLAY_OFF)
-						TCC_OUTPUT_FB_Update(fb_info->fb->var.xres, fb_info->fb->var.yres, fb_info->fb->var.bits_per_pixel, Output_BaseAddr, Output_SelectMode);
-						TCC_OUTPUT_FB_UpdateSync(Output_SelectMode);
-						TCC_OUTPUT_LCDC_OutputEnable(EX_OUT_LCDC, 1);
-					#endif /*CONFIG_TCC_HDMI_UI_DISPLAY_OFF*/
+					TCC_OUTPUT_FB_Update(fb_info->fb->var.xres, fb_info->fb->var.yres, fb_info->fb->var.bits_per_pixel, Output_BaseAddr, Output_SelectMode);
+					TCC_OUTPUT_FB_UpdateSync(Output_SelectMode);
+					TCC_OUTPUT_LCDC_OutputEnable(EX_OUT_LCDC, 1);
 
 					TCC_OUTPUT_FB_MouseShow(1, TCC_OUTPUT_COMPONENT);
 				}

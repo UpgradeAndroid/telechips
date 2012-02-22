@@ -62,9 +62,14 @@
 #include "tcc_component_ths8200.h"
 
 #if defined(CONFIG_ARCH_TCC892X)
-#include <mach/vioc_disp.h>
-#include <mach/vioc_wmix.h>
+#include <mach/vioc_outcfg.h>
 #include <mach/vioc_rdma.h>
+#include <mach/vioc_wdma.h>
+#include <mach/vioc_wmix.h>
+#include <mach/vioc_disp.h>
+#include <mach/vioc_global.h>
+#include <mach/vioc_config.h>
+#include <mach/vioc_scaler.h>
 #endif
 
 /*****************************************************************************
@@ -155,6 +160,7 @@ extern void tcc_vsync_viqe_deinitialize(void);
 #endif /* TCC_VIDEO_DISPLAY_DEINTERLACE_MODE */
 #if defined(TCC_VIDEO_DISPLAY_BY_VSYNC_INT)
 extern void tcc_vsync_set_firstFrameFlag(int firstFrameFlag);
+extern int tcc_vsync_get_isVsyncRunning(void);
 #endif /* TCC_VIDEO_DISPLAY_BY_VSYNC_INT */
 
 
@@ -1311,6 +1317,7 @@ void tcc_component_set_imagectrl(unsigned int flag, unsigned int type, COMPONENT
 	#endif
 }
 
+static int onthefly_using;
 /*****************************************************************************
  Function Name : tcc_component_update()
 ******************************************************************************/
@@ -1320,8 +1327,16 @@ void tcc_component_update(struct tcc_lcdc_image_update *update)
 	unsigned int Y_offset, UV_offset;
 	unsigned int img_width = 0, img_height = 0, win_offset_x = 0, win_offset_y = 0;
 	unsigned int lcd_w = 0, lcd_h =0;
+	unsigned int lcd_width = 0, lcd_height = 0;
 	unsigned int lcd_ctrl_flag;
 	
+	VIOC_DISP * pDISPBase;
+	VIOC_WMIX * pWMIXBase;
+	VIOC_RDMA * pRDMABase;
+
+	VIOC_SC *pSC;
+	pSC = (VIOC_SC *)tcc_p2v(HwVIOC_SC1);
+
 	dprintk("%s  \n", __func__);
 
 	tcc_component_get_lcdsize(&lcd_w, &lcd_h);
@@ -1330,14 +1345,85 @@ void tcc_component_update(struct tcc_lcdc_image_update *update)
 	//printk("update->addr0 : %x, update->addr1 : %x, update->addr2  : %x \n",update->addr0, update->addr1, update->addr2 );
 
 	#if defined(CONFIG_ARCH_TCC892X)
-		#if 0
-		if(Component_Mode == COMPONENT_MODE_720P)
-			VIOC_RDMA_SetImageIntl(pComponent_RDMA_VIDEO, FALSE);
+		if(Component_LCDC_Num)
+		{
+			pDISPBase = (VIOC_DISP*)tcc_p2v(HwVIOC_DISP1);
+			pWMIXBase = (VIOC_WMIX*)tcc_p2v(HwVIOC_WMIX1);		
+
+			switch(update->Lcdc_layer)
+			{			
+				case 0:
+					pRDMABase = (VIOC_RDMA*)tcc_p2v(HwVIOC_RDMA04);
+					break;
+				case 1:
+					pRDMABase = (VIOC_RDMA*)tcc_p2v(HwVIOC_RDMA05);
+					break;
+				case 2:
+					pRDMABase = (VIOC_RDMA*)tcc_p2v(HwVIOC_RDMA06);
+					break;
+			}
+		}
 		else
-			VIOC_RDMA_SetImageIntl(pComponent_RDMA_VIDEO, TRUE);
-		#else
-			VIOC_RDMA_SetImageIntl(pComponent_RDMA_VIDEO, FALSE);
-		#endif
+		{
+			pDISPBase = (VIOC_DISP*)tcc_p2v(HwVIOC_DISP0);
+			pWMIXBase = (VIOC_WMIX*)tcc_p2v(HwVIOC_WMIX0);
+			
+			switch(update->Lcdc_layer)
+			{			
+				case 0:
+					pRDMABase = (VIOC_RDMA*)tcc_p2v(HwVIOC_RDMA00);
+					break;
+				case 1:
+					pRDMABase = (VIOC_RDMA*)tcc_p2v(HwVIOC_RDMA01);
+					break;
+				case 2:
+					pRDMABase = (VIOC_RDMA*)tcc_p2v(HwVIOC_RDMA02);
+					break;
+			}		
+		}
+
+		VIOC_DISP_GetSize(pDISPBase, &lcd_width, &lcd_height);
+		
+		if((!lcd_width) || (!lcd_height))
+			return;
+		
+		if(!update->enable)	{
+			VIOC_RDMA_SetImageDisable(pRDMABase);
+
+			if(onthefly_using == 1)	{
+				VIOC_CONFIG_PlugOut(VIOC_SC1);
+				onthefly_using = 0;
+			}		
+			return;
+		}	
+
+		if(update->on_the_fly)
+		{
+			unsigned int RDMA_NUM;
+			RDMA_NUM = Component_LCDC_Num ? (update->Lcdc_layer + VIOC_SC_RDMA_04) : update->Lcdc_layer;
+
+			if(!onthefly_using) {
+				dprintk(" %s  scaler 1 is plug in RDMA %d \n",__func__, RDMA_NUM);
+				onthefly_using = 1;
+				VIOC_CONFIG_PlugIn (VIOC_SC1, RDMA_NUM);			
+				VIOC_SC_SetBypass (pSC, OFF);
+			}
+			
+			VIOC_SC_SetSrcSize(pSC, update->Frame_width, update->Frame_height);
+			VIOC_SC_SetDstSize (pSC, update->Image_width, update->Image_height);			// set destination size in scaler
+			VIOC_SC_SetOutSize (pSC, update->Image_width, update->Image_height);			// set output size in scaer
+		}
+		else
+		{
+			if(onthefly_using == 1)	{
+				dprintk(" %s  scaler 1 is plug  \n",__func__);
+				VIOC_RDMA_SetImageDisable(pRDMABase);
+				VIOC_CONFIG_PlugOut(VIOC_SC1);
+				onthefly_using = 0;
+			}
+		}
+
+		dprintk("%s lcdc:%d, pRDMA:0x%08x, pWMIX:0x%08x, pDISP:0x%08x, addr0:0x%08x\n", __func__, Component_LCDC_Num, pRDMABase, pWMIXBase, pDISPBase, update->addr0);
 
 		VIOC_RDMA_SetImageFormat(pComponent_RDMA_VIDEO, update->fmt);
 		
@@ -1446,13 +1532,27 @@ void tcc_component_update(struct tcc_lcdc_image_update *update)
 		VIOC_RDMA_SetImageSize(pComponent_RDMA_VIDEO, img_width, img_height);
 		
 		// image position
-		VIOC_WMIX_SetPosition(pComponent_WMIX, 2, win_offset_x, win_offset_y);
+#if 0//defined(CONFIG_TCC_VIDEO_DISPLAY_BY_VSYNC_INT) || defined(TCC_VIDEO_DISPLAY_BY_VSYNC_INT)
+	if(update->deinterlace_mode == 1 && update->output_toMemory == 0)
+	{
+		VIOC_RDMA_SetImageIntl(pComponent_RDMA_VIDEO, TRUE);
+		VIOC_WMIX_SetPosition(pComponent_WMIX, update->Lcdc_layer, win_offset_x, win_offset_y/2);
+	}
+	else
+	{
+		VIOC_RDMA_SetImageIntl(pComponent_RDMA_VIDEO, FALSE);
+		VIOC_WMIX_SetPosition(pComponent_WMIX, update->Lcdc_layer, win_offset_x, win_offset_y);
+}
+#endif
 
 		// image enable
 		if(update->enable)
 			VIOC_RDMA_SetImageEnable(pComponent_RDMA_VIDEO);
 		else
 			VIOC_RDMA_SetImageDisable(pComponent_RDMA_VIDEO);
+
+		if(onthefly_using)
+			VIOC_SC_SetUpdate (pSC);
 
 		VIOC_WMIX_SetUpdate(pComponent_WMIX);
 	#else
@@ -1839,7 +1939,8 @@ static long tcc_component_ioctl(struct file *file, unsigned int cmd, void *arg)
 			tcc_component_start(start.mode);
 			
 #ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
-			tca_vsync_video_display_enable();
+			if( tcc_vsync_get_isVsyncRunning() )
+				tca_vsync_video_display_enable();
 #endif
 			break;
 
@@ -1857,7 +1958,8 @@ static long tcc_component_ioctl(struct file *file, unsigned int cmd, void *arg)
 			tcc_component_end();
 
 #ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
-			tca_vsync_video_display_disable();
+			if( tcc_vsync_get_isVsyncRunning() )
+				tca_vsync_video_display_disable();
 			tcc_vsync_set_firstFrameFlag(1);
 #endif
 #if defined(TCC_VIDEO_DISPLAY_DEINTERLACE_MODE)
