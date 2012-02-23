@@ -51,6 +51,8 @@
 #ifdef CONFIG_HAS_EARLYSUSPEND
 #include <linux/earlysuspend.h>
 #endif
+
+#include "../tccfb.h"
 #include "tcc_composite.h"
 #include "tcc_composite_internal.h"
 #include <mach/tcc_composite_ioctl.h>
@@ -138,11 +140,9 @@ static exclusive_ui_params composite_exclusive_ui_param;
 extern char TCC_FB_LCDC_NumSet(char NumLcdc, char OnOff);
 extern void tca_vsync_video_display_enable(void);
 extern void tca_vsync_video_display_disable(void);
-#if defined(TCC_VIDEO_DISPLAY_DEINTERLACE_MODE)
-extern void tcc_vsync_viqe_deinitialize(void);
-#endif /* TCC_VIDEO_DISPLAY_DEINTERLACE_MODE */
 #if defined(TCC_VIDEO_DISPLAY_BY_VSYNC_INT)
 extern void tcc_vsync_set_firstFrameFlag(int firstFrameFlag);
+extern int tcc_vsync_get_isVsyncRunning(void);
 #endif /* TCC_VIDEO_DISPLAY_BY_VSYNC_INT */
 
 
@@ -544,12 +544,16 @@ void tcc_composite_set_lcd2tv(COMPOSITE_MODE_TYPE type)
 	LcdCtrlParam.pxdw = 6;
 	LcdCtrlParam.dp = 0;
 	LcdCtrlParam.ni = 0;
-	LcdCtrlParam.advi = 1;
 	LcdCtrlParam.tv = 1;
 	LcdCtrlParam.opt = 0;
 	LcdCtrlParam.stn = 0;
 	LcdCtrlParam.evsel = 0;
 	LcdCtrlParam.ovp = 0;
+
+	if(Composite_LCDC_Num)	
+		LcdCtrlParam.advi = 1;
+	else
+		LcdCtrlParam.advi = 0;
 
 	VIOC_DISP_SetControlConfigure(pDISPBase, &LcdCtrlParam);
 
@@ -818,6 +822,8 @@ void tcc_composite_set_imagectrl(unsigned int flag, unsigned int type, COMPOSITE
 	}
 }
 
+
+static int onthefly_using;
 /*****************************************************************************
  Function Name : tcc_composite_update()
 ******************************************************************************/
@@ -828,8 +834,11 @@ void tcc_composite_update(struct tcc_lcdc_image_update *update)
 	VIOC_RDMA * pRDMABase;
 	unsigned int lcd_width = 0, lcd_height = 0, lcd_h_pos = 0, lcd_w_pos = 0, scale_x = 0, scale_y = 0;
 
-	dprintk("%s enable:%d, layer:%d, fmt:%d, Fw:%d, Fh:%d, Iw:%d, Ih:%d, fmt:%d\n", __func__, update->enable, update->Lcdc_layer,
-			update->fmt,update->Frame_width, update->Frame_height, update->Image_width, update->Image_height, update->fmt);
+	VIOC_SC *pSC;
+	pSC = (VIOC_SC *)tcc_p2v(HwVIOC_SC1);
+
+	dprintk("%s enable:%d, layer:%d, fmt:%d, Fw:%d, Fh:%d, Iw:%d, Ih:%d, fmt:%d, onthefly = %d\n", __func__, update->enable, update->Lcdc_layer,
+			update->fmt,update->Frame_width, update->Frame_height, update->Image_width, update->Image_height, update->fmt, update->on_the_fly);
 	
 	if((update->Lcdc_layer >= 3) || (update->fmt >TCC_LCDC_IMG_FMT_MAX))
 		return;
@@ -878,8 +887,39 @@ void tcc_composite_update(struct tcc_lcdc_image_update *update)
 	
 	if(!update->enable)	{
 		VIOC_RDMA_SetImageDisable(pRDMABase);		
+
+		if(onthefly_using == 1)	{
+			VIOC_CONFIG_PlugOut(VIOC_SC1);
+			onthefly_using = 0;
+		}		
 		return;
 	}	
+
+	if(update->on_the_fly)
+	{
+		unsigned int RDMA_NUM;
+		RDMA_NUM = Composite_LCDC_Num ? (update->Lcdc_layer + VIOC_SC_RDMA_04) : update->Lcdc_layer;
+
+		if(!onthefly_using) {
+			dprintk(" %s  scaler 1 is plug in RDMA %d \n",__func__, RDMA_NUM);
+			onthefly_using = 1;
+			VIOC_CONFIG_PlugIn (VIOC_SC1, RDMA_NUM);			
+			VIOC_SC_SetBypass (pSC, OFF);
+		}
+		
+		VIOC_SC_SetSrcSize(pSC, update->Frame_width, update->Frame_height);
+		VIOC_SC_SetDstSize (pSC, update->Image_width, update->Image_height);			// set destination size in scaler
+		VIOC_SC_SetOutSize (pSC, update->Image_width, update->Image_height);			// set output size in scaer
+	}
+	else
+	{
+		if(onthefly_using == 1)	{
+			dprintk(" %s  scaler 1 is plug  \n",__func__);
+			VIOC_RDMA_SetImageDisable(pRDMABase);
+			VIOC_CONFIG_PlugOut(VIOC_SC1);
+			onthefly_using = 0;
+		}
+	}
 
 	dprintk("%s lcdc:%d, pRDMA:0x%08x, pWMIX:0x%08x, pDISP:0x%08x, addr0:0x%08x\n", __func__, Composite_LCDC_Num, pRDMABase, pWMIXBase, pDISPBase, update->addr0);
 		
@@ -889,7 +929,7 @@ void tcc_composite_update(struct tcc_lcdc_image_update *update)
 		VIOC_RDMA_SetImageY2RMode(pRDMABase, 0); /* Y2RMode Default 0 (Studio Color) */
 	}
 
-	VIOC_RDMA_SetImageOffset(pRDMABase, update->fmt, update->Image_width);
+	VIOC_RDMA_SetImageOffset(pRDMABase, update->fmt, update->Frame_width);
 	VIOC_RDMA_SetImageFormat(pRDMABase, update->fmt);
 
 	scale_x = 0;
@@ -913,27 +953,31 @@ void tcc_composite_update(struct tcc_lcdc_image_update *update)
 	//pLCDC_channel->LISR =((scale_y<<4) | scale_x);
 	VIOC_RDMA_SetImageScale(pRDMABase, scale_x, scale_y);
 	
-	VIOC_RDMA_SetImageSize(pRDMABase, update->Image_width, update->Image_height);
+	VIOC_RDMA_SetImageSize(pRDMABase, update->Frame_width, update->Frame_height);
 		
 	// position
 	//if(ISZERO(pLCDC->LCTRL, HwLCTRL_NI)) //--
-	if(1)//pDISPBase->uCTRL.nREG & HwDISP_NI)
-	{
-		VIOC_RDMA_SetImageIntl(pRDMABase, 0);
-		VIOC_WMIX_SetPosition(pWMIXBase, update->Lcdc_layer, update->offset_x, update->offset_y);
-	}
-	else
+#if 0//defined(CONFIG_TCC_VIDEO_DISPLAY_BY_VSYNC_INT) || defined(TCC_VIDEO_DISPLAY_BY_VSYNC_INT)
+	if(update->deinterlace_mode == 1 && update->output_toMemory == 0)
 	{
 		VIOC_RDMA_SetImageIntl(pRDMABase, 1);
 		VIOC_WMIX_SetPosition(pWMIXBase, update->Lcdc_layer,  update->offset_x, (update->offset_y/2) );
 	}
+	else
+#endif		
+	{
+		VIOC_RDMA_SetImageIntl(pRDMABase, 0);
+		VIOC_WMIX_SetPosition(pWMIXBase, update->Lcdc_layer, update->offset_x, update->offset_y);
+	}
 
 	// image address
 	VIOC_RDMA_SetImageBase(pRDMABase, update->addr0, update->addr1, update->addr2);
-
-	VIOC_WMIX_SetUpdate(pWMIXBase);
 	VIOC_RDMA_SetImageEnable(pRDMABase);
 
+	if(onthefly_using)
+		VIOC_SC_SetUpdate (pSC);
+
+	VIOC_WMIX_SetUpdate(pWMIXBase);
 }
 
 #if defined(CONFIG_TCC_EXCLUSIVE_UI_LAYER)
@@ -1233,7 +1277,8 @@ static long tcc_composite_ioctl(struct file *file, unsigned int cmd, void *arg)
 			tcc_composite_start(start.mode);
 
 #ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
-			tca_vsync_video_display_enable();
+			if( tcc_vsync_get_isVsyncRunning() )
+				tca_vsync_video_display_enable();
 #endif
 			
 			break;
@@ -1249,13 +1294,10 @@ static long tcc_composite_ioctl(struct file *file, unsigned int cmd, void *arg)
 			TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_COMPOSITE, Composite_LCDC_Num, FALSE);			
 						
 #ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
-			tca_vsync_video_display_disable();
+			if( tcc_vsync_get_isVsyncRunning() )
+				tca_vsync_video_display_disable();
 			tcc_vsync_set_firstFrameFlag(1);
 #endif
-			
-#if defined(TCC_VIDEO_DISPLAY_DEINTERLACE_MODE)
-			tcc_vsync_viqe_deinitialize();
-#endif /* TCC_VIDEO_DISPLAY_DEINTERLACE_MODE */
 			break;
 
 		case TCC_COMPOSITE_IOCTL_PROCESS:

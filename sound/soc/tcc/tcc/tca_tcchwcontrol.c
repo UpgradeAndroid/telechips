@@ -115,17 +115,20 @@ unsigned int tca_tcc_initport(void)
 		}
 	}
 	else {
-#if defined(CONFIG_MACH_TCC8920ST)
-
-#else
-	    /* SPDIF Tx */
+		/* SPDIF Tx */
+		if(machine_is_tcc8920st())
+		{
+	    	tcc_gpio_config(TCC_GPG(5), GPIO_FN1);
+		}
+		else
+		{
 	    //if (system_rev == 0x1006) {
             tcc_gpio_config(TCC_GPG(18), GPIO_FN1);		// SPDIF Planet 20120203
 	    //}
 	    //else {
 	    //    tcc_gpio_config(TCC_GPG(5), GPIO_FN1);
 	    //}
-#endif
+		}
 	    tcc_gpio_config(TCC_GPG(6), GPIO_FN1);
 	    tcc_gpio_config(TCC_GPG(7), GPIO_FN1);
 	    tcc_gpio_config(TCC_GPG(8), GPIO_FN1);

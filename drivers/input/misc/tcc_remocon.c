@@ -87,6 +87,8 @@ typedef struct
 	unsigned int Stat;	//Remocon Status
 }REM_DATA;
 
+static int remote_state = 0;
+
 static int startbit_time;
 static int prev_startbit_time;
 
@@ -504,7 +506,7 @@ static irqreturn_t remocon_handler(int irq, void *dev)
 
 	udelay(100); //Remocon can't be so faster!!!
 
-	RemoconInit();
+	RemoconInit(remote_state);
 
 	//tcc_remocon_GetTickCount();
 
@@ -556,7 +558,7 @@ static int remocon_probe(struct platform_device *pdev)
 	Init_IR_Port();
 	RemoconConfigure ();
 	RemoconStatus();
-	RemoconDivide();		//remocon clk divide and end_cout
+	RemoconDivide(remote_state);		//remocon clk divide and end_cout
 	RemoconCommandOpen();				
 	RemoconIntClear();
 	remocon_irq_init();
@@ -628,6 +630,9 @@ static int remocon_suspend(struct platform_device *pdev, pm_message_t state)
 {
 #if !defined(TCC_PM_SLEEP_WFI_USED) || !defined(CONFIG_SLEEP_MODE)
 	DisableRemocon();
+#else
+	remote_state = 1;
+	RemoconInit(remote_state);
 #endif
 
 	return 0;
@@ -639,11 +644,14 @@ static int remocon_resume(struct platform_device *pdev)
 	Init_IR_Port();
 	RemoconConfigure ();
 	RemoconStatus();
-	RemoconDivide();		//remocon clk divide and end_cout
+	RemoconDivide(remote_state);		//remocon clk divide and end_cout
 	RemoconCommandOpen();	
 	RemoconIntClear();
 	remocon_irq_init();
 #endif
+
+	remote_state = 0;
+	RemoconInit(remote_state);
 
 	return 0;
 }

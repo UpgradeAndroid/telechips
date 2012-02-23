@@ -58,7 +58,11 @@ void CIF_Clock_Get(void)
 {
 	#if	defined(CONFIG_ARCH_TCC892X)
 		//	In case of 892X, we have to add.
-		cifmc_clk = clk_get(NULL, "out0");	
+		if(system_rev == 0x1008)
+			cifmc_clk = clk_get(NULL, "out1");	
+		else
+			cifmc_clk = clk_get(NULL, "out0");	
+		
 		BUG_ON(cifmc_clk == NULL);
 	#else
 		cifmc_clk = clk_get(NULL, "cifmc");	
@@ -198,18 +202,20 @@ void CIF_Open(void)
 	BITCLR(pCamBusCfg->SoftResetRegister, HwCAMBUS_SWRESET_CIF);  // Normal
 	#endif
 #elif	defined(CONFIG_ARCH_TCC892X)
+
 	// VIN SW Reset
 	BITCSET(pVIOCCfg->uSOFTRESET.nREG[0], 0x03000000, (1<<24));
 	BITCSET(pVIOCCfg->uSOFTRESET.nREG[0], 0x03000000, (0<<24));
 	// Scaler Reset
-	BITCSET(pVIOCCfg->uSOFTRESET.nREG[0], 0x40000000, (1<<30));
-	BITCSET(pVIOCCfg->uSOFTRESET.nREG[0], 0x40000000, (0<<30));
+	BITCSET(pVIOCCfg->uSOFTRESET.nREG[0], 0x10000000, (1<<28));
+	BITCSET(pVIOCCfg->uSOFTRESET.nREG[0], 0x10000000, (0<<28));
 	// WMIX SW Reset
 	BITCSET(pVIOCCfg->uSOFTRESET.nREG[1], 0x00004000, (1<<14));
 	BITCSET(pVIOCCfg->uSOFTRESET.nREG[1], 0x00004000, (0<<14));
 	// WDMA Reset
 	BITCSET(pVIOCCfg->uSOFTRESET.nREG[1], 0x00000020, (1<<5));
-	BITCSET(pVIOCCfg->uSOFTRESET.nREG[1], 0x00000020, (0<<5));	
+	BITCSET(pVIOCCfg->uSOFTRESET.nREG[1], 0x00000020, (0<<5));
+
 #endif
 }
 

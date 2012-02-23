@@ -28,6 +28,8 @@ typedef enum
 
 /* Interface APIs */
 extern void VIOC_VIQE_SetImageSize(VIQE *pVIQE, unsigned int width, unsigned int height);
+extern void VIOC_VIQE_SetImageY2RMode(VIQE *pVIQE, unsigned int y2r_mode);
+extern void VIOC_VIQE_SetImageY2REnable(VIQE *pVIQE, unsigned int enable);
 extern void VIOC_VIQE_SetControlMisc(VIQE *pVIQE, unsigned int no_hor_intpl, unsigned int fmt_conv_disable, unsigned int fmt_conv_disable_using_fmt, unsigned int update_disable, unsigned int cfgupd, unsigned int h2h);
 extern void VIOC_VIQE_SetControlDontUse(VIQE *pVIQE, unsigned int global_en_dont_use, unsigned int top_size_dont_use, unsigned int stream_deintl_info_dont_use);
 extern void VIOC_VIQE_SetControlClockGate(VIQE *pVIQE, unsigned int deintl_dis, unsigned int d3d_dis, unsigned int pm_dis);

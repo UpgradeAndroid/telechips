@@ -25,6 +25,15 @@ void VIOC_VIQE_SetImageSize(VIQE *pVIQE, unsigned int width, unsigned int height
 
 }
 
+void VIOC_VIQE_SetImageY2RMode(VIQE *pVIQE, unsigned int y2r_mode)
+{
+	BITCSET(pVIQE->cVIQE_CTRL.nVIQE_CTRL_Y2R.nREG, 0x3<<9, y2r_mode << 9);
+}
+void VIOC_VIQE_SetImageY2REnable(VIQE *pVIQE, unsigned int enable)
+{
+	BITCSET(pVIQE->cVIQE_CTRL.nVIQE_CTRL_Y2R.nREG, 1<<8, enable << 8);
+}
+
 void VIOC_VIQE_SetControlMisc(VIQE *pVIQE, unsigned int no_hor_intpl, unsigned int fmt_conv_disable, unsigned int fmt_conv_disable_using_fmt, unsigned int update_disable, unsigned int cfgupd, unsigned int h2h)
 {
 	dprintk(KERN_INFO "%s\n", __FUNCTION__);
@@ -305,7 +314,7 @@ void VIOC_VIQE_InitDeintlCoreSpatial(VIQE *pVIQE)
 //	pVIQE->cDEINTL.nDI_CSIZE 		= 0x01200160;			//0x2E4  
 //	pVIQE->cDEINTL.nDI_FMT 		= 0x00000000;			//0x2E8  
 	*/
-	BITCSET(pVIQE->cDEINTL.nDI_CTRL, 0xFFFFFFFF, 0x00030a31);
+	BITCSET(pVIQE->cDEINTL.nDI_CTRL, 0xFFFFFFFF, 0x00030b31);
 	BITCSET(pVIQE->cDEINTL.nDI_ENGINE0, 0xFFFFFFFF, 0x02040408);
 	BITCSET(pVIQE->cDEINTL.nDI_ENGINE1, 0xFFFFFFFF, 0x2812050f);
 	BITCSET(pVIQE->cDEINTL.nDI_ENGINE2, 0xFFFFFFFF, 0x00800410);
@@ -348,7 +357,7 @@ void VIOC_VIQE_InitDeintlCoreTemporal(VIQE *pVIQE)
 //	pVIQE->cDEINTL.nDI_CSIZE 		= 0x01200160;			//0x2E4  
 //	pVIQE->cDEINTL.nDI_FMT 		= 0x00000000;			//0x2E8  
 	*/
-	BITCSET(pVIQE->cDEINTL.nDI_CTRL, 0xFFFFFFFF, 0x00010a31);
+	BITCSET(pVIQE->cDEINTL.nDI_CTRL, 0xFFFFFFFF, 0x00010b31);
 	BITCSET(pVIQE->cDEINTL.nDI_ENGINE0, 0xFFFFFFFF, 0x02040408);
 	BITCSET(pVIQE->cDEINTL.nDI_ENGINE1, 0xFFFFFFFF, 0x7f32050f);
 	BITCSET(pVIQE->cDEINTL.nDI_ENGINE2, 0xFFFFFFFF, 0x00800410);
@@ -381,7 +390,7 @@ void VIOC_VIQE_SetDeintlMode(VIQE *pVIQE, VIOC_VIQE_DEINTL_MODE mode)
 	}
 	else if(mode == VIOC_VIQE_DEINTL_MODE_2D)
 	{
-		BITCSET(pVIQE->cDEINTL.nDI_CTRL , 0xFFFFFFFF, 0x00030a31);
+		BITCSET(pVIQE->cDEINTL.nDI_CTRL , 0xFFFFFFFF, 0x00030b31);
 		BITCSET(pVIQE->cDEINTL.nDI_ENGINE1, 0xFFFFFFFF, 0x2812050f);
 
 		BITCSET(pVIQE->cDEINTL.nDI_CTRL, 0x02000000, (0<<29));						//bypass
@@ -389,7 +398,7 @@ void VIOC_VIQE_SetDeintlMode(VIQE *pVIQE, VIOC_VIQE_DEINTL_MODE mode)
 	}
 	else if(mode == VIOC_VIQE_DEINTL_MODE_3D)	//Temporal Mode - using 4-field frames.
 	{
-		BITCSET(pVIQE->cDEINTL.nDI_CTRL , 0xFFFFFFFF, 0x00010a31);
+		BITCSET(pVIQE->cDEINTL.nDI_CTRL , 0xFFFFFFFF, 0x00010b31);
 		BITCSET(pVIQE->cDEINTL.nDI_ENGINE1, 0xFFFFFFFF, 0x7f32050f);
 
 		BITCSET(pVIQE->cDEINTL.nDI_CTRL, 0x02000000, (0<<29));						//bypass

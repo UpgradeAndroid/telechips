@@ -86,8 +86,8 @@ ENTRY(IO_ARM_ChangeStackSRAM)
 
 	mov		r0, r13
 //	ldr		r13, =0xF0803FA0  			@	0x10000000 ~ 0x10003FFF SRAM(16KB)    
-//	ldr		r13, =0xEFF03FA0  			@	0x10000000 ~ 0x10003FFF SRAM(16KB)    
-	ldr		r13, =0xEFF00800 //;SHUTDOWN_STACK_ADDR+SHUTDOWN_STACK_SIZE
+//	ldr		r13, =0xF0A03FA0  			@	0x10000000 ~ 0x10003FFF SRAM(16KB)    
+	ldr		r13, =0xF0A00800 //;SHUTDOWN_STACK_ADDR+SHUTDOWN_STACK_SIZE
 	mov		pc, lr
 
 
@@ -427,7 +427,7 @@ ENTRY(tcc_mmu_switch)
 ENTRY(resore_cpu_reg)
 
 	//; cpu_reg/mmu data backup address
-	ldr r3, =0xEFF01850 //; REG_MMU_DATA_ADDR
+	ldr r3, =0xF0A01850 //; REG_MMU_DATA_ADDR
 
 	//; restore fiq_reg
 	mov r1, #Mode_FIQ | NOINT

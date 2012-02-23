@@ -211,7 +211,7 @@ static void tcc_dxb_ctrl_get_info(ST_CTRLINFO_ARG *pstCtrlInfo)
 	if(guiBoardType == BOARD_DVBT_DIB9090M_PA)
 		pstCtrlInfo->uiI2C = 4; //this is only for tcc9300cm
 	else	
-		pstCtrlInfo->uiI2C = 1;
+		pstCtrlInfo->uiI2C = 0;
 }
 
 static void tcc_dxb_ctrl_rf_path(unsigned int flag)

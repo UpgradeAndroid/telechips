@@ -909,6 +909,9 @@ int hdmi_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
             writeb(Bksv.ksv[3],HDCP_BKSV_3);
             writeb(Bksv.ksv[4],HDCP_BKSV_4);
 
+			dprintk(KERN_INFO "HDMI: Bksv.ksv[0]=0x%02x, Bksv.ksv[1]=0x%02x, Bksv.ksv[2]=0x%02x, Bksv.ksv[3]=0x%02x, Bksv.ksv[4]=0x%02x \n",
+				Bksv.ksv[0], Bksv.ksv[1], Bksv.ksv[2], Bksv.ksv[3], Bksv.ksv[4]);
+
             break;
         }
         case HDMI_IOC_SET_BCAPS:
@@ -940,6 +943,9 @@ int hdmi_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
             Aksv.ksv[2] = readb(HDCP_AKSV_2);
             Aksv.ksv[3] = readb(HDCP_AKSV_3);
             Aksv.ksv[4] = readb(HDCP_AKSV_4);
+
+			dprintk(KERN_INFO "HDMI: Aksv.ksv[0]=0x%02x, Aksv.ksv[1]=0x%02x, Aksv.ksv[2]=0x%02x, Aksv.ksv[3]=0x%02x, Aksv.ksv[4]=0x%02x \n",
+				Aksv.ksv[0], Aksv.ksv[1], Aksv.ksv[2], Aksv.ksv[3], Aksv.ksv[4]);
 
             // copy to user
             if ( (ret = copy_to_user((void*)arg,(const void*)&Aksv,sizeof(Aksv))) < 0)

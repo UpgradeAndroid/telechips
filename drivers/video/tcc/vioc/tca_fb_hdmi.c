@@ -228,6 +228,7 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 		RDMA_NUM = hdmi_lcdc ? (ImageInfo->Lcdc_layer + VIOC_SC_RDMA_04) : ImageInfo->Lcdc_layer;
 
 		if(!onthefly_using) {
+			dprintk(" %s  scaler 1 is plug in RDMA %d \n",__func__, RDMA_NUM);
 			onthefly_using = 1;
 			VIOC_CONFIG_PlugIn (VIOC_SC1, RDMA_NUM);			
 			VIOC_SC_SetBypass (pSC, OFF);
@@ -236,6 +237,16 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 		VIOC_SC_SetSrcSize(pSC, ImageInfo->Frame_width, ImageInfo->Frame_height);
 		VIOC_SC_SetDstSize (pSC, ImageInfo->Image_width, ImageInfo->Image_height);			// set destination size in scaler
 		VIOC_SC_SetOutSize (pSC, ImageInfo->Image_width, ImageInfo->Image_height);			// set output size in scaer
+	}
+
+	else
+	{
+		if(onthefly_using == 1)	{
+			dprintk(" %s  scaler 1 is plug  \n",__func__);
+			VIOC_RDMA_SetImageDisable(pRDMABase);
+			VIOC_CONFIG_PlugOut(VIOC_SC1);
+			onthefly_using = 0;
+		}
 	}
 
 		
@@ -275,10 +286,13 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 		
 	// position
 	//if(ISZERO(pLCDC->LCTRL, HwLCTRL_NI)) //--
-#if defined(CONFIG_TCC_VIDEO_DISPLAY_BY_VSYNC_INT) || defined(TCC_VIDEO_DISPLAY_BY_VSYNC_INT)
+#if 0//defined(CONFIG_TCC_VIDEO_DISPLAY_BY_VSYNC_INT) || defined(TCC_VIDEO_DISPLAY_BY_VSYNC_INT)
 	if(ImageInfo->deinterlace_mode == 1 && ImageInfo->output_toMemory == 0)
 	{
+		VIOC_RDMA_SetImageY2REnable(pRDMABase, FALSE);
+		VIOC_RDMA_SetImageY2RMode(pRDMABase, 0x02); /* Y2RMode Default 0 (Studio Color) */
 		VIOC_RDMA_SetImageIntl(pRDMABase, 1);
+		VIOC_RDMA_SetImageBfield(pRDMABase, ImageInfo->odd_first_flag);
 		VIOC_WMIX_SetPosition(pWMIXBase, ImageInfo->Lcdc_layer,  ImageInfo->offset_x, (ImageInfo->offset_y/2) );
 	}
 	else

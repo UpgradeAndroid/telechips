@@ -86,6 +86,7 @@ void TDD_CIF_Initialize()
 #elif	defined(CONFIG_ARCH_TCC892X)
 	//	In case of CAM4
 	volatile PGPION pGPIO_F = (PGPION)tcc_p2v(HwGPIOF_BASE);
+	volatile PGPION pGPIO_B = (PGPION)tcc_p2v(HwGPIOB_BASE);
 	volatile PGPION pGPIO_C = (PGPION)tcc_p2v(HwGPIOC_BASE);
 	volatile PGPION pGPIO_D = (PGPION)tcc_p2v(HwGPIOD_BASE);
 	volatile PGPION pGPIO_G = (PGPION)tcc_p2v(HwGPIOG_BASE);
@@ -118,7 +119,17 @@ void TDD_CIF_Initialize()
 
 			BITCSET(pGPIO_D->GPFN0.nREG, 0x00000FF0, 0x00000000);	// PWDN, 5M Reset, D[1] , STDBY, 1.3M PWDN, D[2]
 			BITCSET(pGPIO_G->GPFN0.nREG, 0x000000F0, 0x00000000);	// FL_EN, 5M PWDN, G[1] 
-			
+		}else if(system_rev == 0x1008){
+
+			// Change to Functional GPIO that GPIO_D
+			BITCSET(pGPIO_F->GPFN0.nREG, 0xFFFFFFFF, 0x11111111);  
+			BITCSET(pGPIO_F->GPFN1.nREG, 0x000FFFFF, 0x00011111);
+
+			BITCSET(pGPIO_B->GPFN3.nREG, 0x00F00000, 0x00C00000);	// CKO B[29]
+
+			BITCSET(pGPIO_C->GPFN0.nREG, 0x00FF0000, 0x00000000);	// 1.3M Reset, C[4] , 1.3M STDBY C[5]
+			BITCSET(pGPIO_C->GPFN1.nREG, 0x0000000F, 0x00000000);	// 5M RST, C[8] 
+			BITCSET(pGPIO_C->GPFN3.nREG, 0x000F0000, 0x00000000);	// 5M STDBY c[28]			
 		}
 		else{
 			// Change to Functional GPIO that GPIO_D

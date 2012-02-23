@@ -1934,17 +1934,9 @@ static int tcc_gmac_probe(struct platform_device *pdev)
 		MAC_addr[0]=0xF4;
 		MAC_addr[1]=0x50;
 		MAC_addr[2]=0xEB;
-
-		if(machine_is_tcc8800st()){
-			MAC_addr[3]= (gECID[2] >> 16) & 0xFF ;
-			MAC_addr[4]= (gECID[2] >> 8) & 0xFF;
-			MAC_addr[5]= (gECID[2] & 0xFF);
-		}
-		else {
 		MAC_addr[3]= (gECID[3] >>8) & 0xFF;
 		MAC_addr[4]= (gECID[3] & 0xFF);
 		MAC_addr[5]= (gECID[2] >> 24) & 0xFF ;
-		}
 
 		for(i=0;i<MAC_ADDRESS_LEN;i++)
 		{
