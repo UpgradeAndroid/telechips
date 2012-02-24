@@ -111,6 +111,11 @@ extern const struct tcc_freq_table_t gtHSIOClockLimitTable;
 
 #define OTG_DBG(msg...) do{ printk( KERN_ERR "DWC_OTG : " msg ); }while(0)
 
+#if defined(CONFIG_TCC_USB_TO_SATA)
+#define USB30_EN		TCC_GPF(10)
+#define USB30_VBUS_DET	TCC_GPD(13)
+#endif
+
 /*
  * For using gadget_wrapper of dwc_otg_pcd_linux.c
  */
@@ -754,6 +759,11 @@ static int tcc_usb_thread(void* _dwc_otg_device)
 		gpio_set_value(TCC_GPB(24), 1);
 	#endif
 	
+	#if defined(CONFIG_TCC_USB_TO_SATA)
+		tcc_gpio_config(USB30_EN, GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);
+		tcc_gpio_config(USB30_VBUS_DET, GPIO_FN(0)|GPIO_INPUT);
+	#endif
+		
 	while (!kthread_should_stop())
 	{
 		down(&dwc_otg_device->vbus_usb_task_lock);
@@ -825,6 +835,27 @@ static int tcc_usb_thread(void* _dwc_otg_device)
 #endif
 		}
 
+		#if defined(CONFIG_TCC_USB_TO_SATA)
+			if(gpio_get_value(USB30_VBUS_DET))
+			{
+				/* USB3.0 is detected */
+				if(!gpio_get_value(USB30_EN))
+				{
+					gpio_set_value(USB30_EN, 1);
+					printk("USB3.0 is detected, PC <--> USBtoSATA\n");
+				}
+			}
+			else
+			{
+				/* USB3.0 is disconnected */
+				if(gpio_get_value(USB30_EN))
+				{
+					gpio_set_value(USB30_EN, 0);
+					printk("USB3.0 is disconnected, TCC <--> USBtoSATA\n");
+				}
+			}
+ 		#endif
+		
 		up(&dwc_otg_device->vbus_usb_task_lock);
 	}
 
