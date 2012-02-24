@@ -31,6 +31,13 @@
 #include <asm/mach-types.h>
 #include <linux/earlysuspend.h>
 
+#if defined(CONFIG_REGULATOR_AXP192)
+#include <linux/regulator/axp192.h>
+#endif
+#if defined(CONFIG_REGULATOR_AXP202)
+#include <linux/regulator/axp202.h>
+#endif
+
 #define ENABLE_START_EN (1<<0)
 #define ECFLG_END (1<<15)
 
@@ -260,12 +267,6 @@ const int m805_892x_vol1[] = { // for m805 8923 system_rev 2001
 
 
 #if defined(CONFIG_REGULATOR_AXP192)
-extern int axp192_battery_voltage(void);
-extern int axp192_acin_detect(void);
-extern int axp192_charge_status(void);
-//extern int axp192_charging_current(void);
-//extern int axp192_discharging_current(void);
-
 const int m805_892x_vol[] = {
 	3700,  // 4.2v
 	3613,  // 4.1v
@@ -486,7 +487,7 @@ static unsigned long tcc_read_adc(void)
 			//printk(" original adc = %d \n", temp_adc);
 
 #if defined(CONFIG_REGULATOR_AXP192)
-			if(axp192_charge_status() != 0x02){
+			if(axp192_charge_status() != AXP192_CHG_OK){
 #endif
 			if(adcValue < pbattery_vols[5])
 				adcValue -= ADJUSTCHARGE1;
@@ -954,7 +955,7 @@ void tcc_ac_charger_detect_process(void)
 
 	      if( g_ac_plugin ) {
 #if defined(CONFIG_REGULATOR_AXP192)
-		  if(axp192_charge_status() == 0x02){
+		  if(axp192_charge_status() == AXP192_CHG_OK){
 		  	if( tcc_batt_info.rep.charging_source == CHARGER_AC ){
 		            tcc_cable_status_update(CHARGER_BATTERY);
 				batt_check_times = 1;
@@ -1141,7 +1142,7 @@ void tcc_battery_process(void)
 			//printk("### 90~100 ###\n");
 #if defined(CONFIG_REGULATOR_AXP192)
 			if( temp >= (pbattery_vols[0] + OVERCHARGE)){
-				if(axp192_charge_status() == 0x02)
+				if(axp192_charge_status() == AXP192_CHG_OK)
 					info.level = 100;
 
 				batt_charging_finish++;
@@ -1419,6 +1420,9 @@ static tcc_battery_adc_channel(void)
 
 void tcc_battery_early_suspend(struct early_suspend *h)
 {
+#if defined(CONFIG_REGULATOR_AXP192)
+//	axp192_charge_current(AXP192_CHG_CURR_1160mA);
+#endif
 	printk("%s in\n", __func__);
 	in_suspend = 1;
 	printk("%s out\n", __func__);
@@ -1429,12 +1433,16 @@ void tcc_battery_late_resume(struct early_suspend *h)
 	int i;
 	printk("%s in\n", __func__);
 
+#if defined(CONFIG_REGULATOR_AXP192)
+	axp192_charge_current(AXP192_CHG_CURR_780mA);
+#endif
+
 	gIndex = 0;
 	for(i=0;i<BATTVOLSAMPLE;i++)
 		tcc_read_adc();
 
-      tcc_ac_charger_detect_process();
-      tcc_battery_process();
+	tcc_ac_charger_detect_process();
+	tcc_battery_process();
   	in_suspend = 0;
 	printk("%s out\n", __func__);	
 }
@@ -1444,6 +1452,10 @@ static int tcc_battery_suspend(struct platform_device *dev, pm_message_t state)
 {
 	printk("%s in\n", __func__);	
 	/* flush all pending status updates */
+
+#if defined(CONFIG_REGULATOR_AXP192)
+	axp192_charge_current(AXP192_CHG_CURR_1160mA);
+#endif
 
 	if(machine_is_m801_88()) {
 		// for LED
@@ -1466,6 +1478,10 @@ static int tcc_battery_resume(struct platform_device *dev)
 		gpio_set_value(TCC_GPF(15), 1);
 		gpio_set_value(TCC_GPF(16), 1);			
 	}
+
+#if defined(CONFIG_REGULATOR_AXP192)
+	axp192_charge_current(AXP192_CHG_CURR_780mA);
+#endif
 
 	printk("%s out\n", __func__);	
 	return 0;
