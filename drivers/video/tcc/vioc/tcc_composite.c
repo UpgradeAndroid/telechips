@@ -110,8 +110,9 @@ static int				Composite_LCDC_Num = -1;
 static struct clk *composite_lcdc0_clk;
 static struct clk *composite_lcdc1_clk;
 static struct clk *composite_dac_clk;
+static struct clk *composite_ntscpal_clk;
 
-static TCC_COMPOSITE_MODE_TYPE tcc_composite_mode;
+static char tcc_composite_mode = COMPOSITE_MAX_M;
 
 static char composite_plugout = 0;
 static char composite_plugout_count = 0;
@@ -575,8 +576,6 @@ void tcc_composite_set_lcd2tv(COMPOSITE_MODE_TYPE type)
 	{
 		VIOC_OUTCFG_SetOutConfig(VIOC_OUTCFG_SDVENC, VIOC_OUTCFG_DISP0);
 	}
-
-	TCC_OUTPUT_UPDATE_OnOff(1, TCC_OUTPUT_COMPOSITE);
 }
 
 /*****************************************************************************
@@ -1238,7 +1237,7 @@ void tcc_composite_clock_onoff(char OnOff)
 			clk_enable(composite_lcdc0_clk);
 		
 		clk_enable(composite_dac_clk);
-
+		clk_enable(composite_ntscpal_clk);
 	}
 	else
 	{
@@ -1248,6 +1247,7 @@ void tcc_composite_clock_onoff(char OnOff)
 			clk_disable(composite_lcdc0_clk);
 
 		clk_disable(composite_dac_clk);
+		clk_disable(composite_ntscpal_clk);
 	}
 }
 
@@ -1275,6 +1275,8 @@ static long tcc_composite_ioctl(struct file *file, unsigned int cmd, void *arg)
 				tcc_composite_clock_onoff(TRUE);
 			}
 			tcc_composite_start(start.mode);
+
+			TCC_OUTPUT_UPDATE_OnOff(1, TCC_OUTPUT_COMPOSITE);
 
 #ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
 			if( tcc_vsync_get_isVsyncRunning() )
@@ -1314,6 +1316,30 @@ static long tcc_composite_ioctl(struct file *file, unsigned int cmd, void *arg)
 	}
 
 	return 0;
+}
+
+/*****************************************************************************
+ Function Name : tcc_composite_attach()
+******************************************************************************/
+void tcc_composite_attach(char lcdc_num, char onoff)
+{
+	char composite_mode;
+
+	if(onoff)
+	{
+		if(tcc_composite_mode == COMPOSITE_MAX_M)
+			composite_mode = COMPOSITE_NTST_M;
+		else
+			composite_mode = tcc_composite_mode;
+
+		tcc_composite_set_lcdc(lcdc_num);
+		tcc_composite_clock_onoff(TRUE);
+		tcc_composite_start(COMPOSITE_NTST_M);
+	}
+	else
+	{
+		tcc_composite_end();
+	}
 }
 
 /*****************************************************************************
@@ -1363,6 +1389,8 @@ int __init tcc_composite_init(void)
 	BUG_ON(composite_lcdc1_clk == NULL);
 	composite_dac_clk = clk_get(0, "vdac_phy");
 	BUG_ON(composite_dac_clk == NULL);
+	composite_ntscpal_clk = clk_get(0, "ntscpal");
+	BUG_ON(composite_ntscpal_clk == NULL);
 
 	register_chrdev(MAJOR_ID, DEVICE_NAME, &tcc_composite_fops);
 	tcc_composite_class = class_create(THIS_MODULE, DEVICE_NAME);
@@ -1398,6 +1426,8 @@ void __exit tcc_composite_cleanup(void)
 		clk_put(composite_lcdc1_clk);
 	if(composite_dac_clk =! NULL)
 		clk_put(composite_dac_clk);
+	if(composite_ntscpal_clk =! NULL)
+		clk_put(composite_ntscpal_clk);
 
 	return;
 }

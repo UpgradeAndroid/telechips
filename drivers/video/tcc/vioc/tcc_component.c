@@ -124,6 +124,8 @@ static int				Component_FID = 0;
 static struct clk *component_lcdc0_clk;
 static struct clk *component_lcdc1_clk;
 
+static char tcc_component_mode = COMPONENT_MAX;
+
 static char component_start = 0;
 static char component_plugout = 0;
 static char component_plugout_count = 0;
@@ -790,8 +792,6 @@ void tcc_component_set_lcd2tv(COMPONENT_MODE_TYPE mode)
 		VIOC_WMIX_SetPosition(pComponent_WMIX, 0, 0, 0);
 		VIOC_WMIX_SetChromaKey(pComponent_WMIX, 0, 0, 0, 0, 0, 0xF8, 0xFC, 0xF8);
 		VIOC_WMIX_SetUpdate(pComponent_WMIX);
-
-		TCC_OUTPUT_UPDATE_OnOff(1, TCC_OUTPUT_COMPONENT);
 	#else // defined(CONFIG_ARCH_TCC892X)
 		BITCSET(pComponent_HwLCDC->LCLKDIV, 0x00FF0000, 0<<16);
 		BITCSET(pComponent_HwLCDC->LCLKDIV, 0x000000FF, 0);
@@ -1792,6 +1792,8 @@ void tcc_component_start(TCC_COMPONENT_MODE_TYPE mode)
 
 	dprintk("%s, mode=%d\n", __func__, mode);
 
+	tcc_component_mode = mode;
+
 	switch(mode)
 	{
 		case COMPONENT_NTST_M:
@@ -1937,6 +1939,8 @@ static long tcc_component_ioctl(struct file *file, unsigned int cmd, void *arg)
 			}
 
 			tcc_component_start(start.mode);
+
+			TCC_OUTPUT_UPDATE_OnOff(1, TCC_OUTPUT_COMPONENT);
 			
 #ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
 			if( tcc_vsync_get_isVsyncRunning() )
@@ -1984,6 +1988,30 @@ static long tcc_component_ioctl(struct file *file, unsigned int cmd, void *arg)
 	}
 
 	return 0;
+}
+
+/*****************************************************************************
+ Function Name : tcc_component_attach()
+******************************************************************************/
+void tcc_component_attach(char lcdc_num, char onoff)
+{
+	char component_mode;
+
+	if(onoff)
+	{
+		if(tcc_component_mode == COMPONENT_MAX)
+			component_mode = COMPONENT_720P;
+		else
+			component_mode = tcc_component_mode;
+
+		tcc_component_set_lcdc(lcdc_num);
+		tcc_component_clock_onoff(TRUE);
+		tcc_component_start(component_mode);
+	}
+	else
+	{
+		tcc_component_end();
+	}
 }
 
 /*****************************************************************************

@@ -1597,12 +1597,16 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 					return -EFAULT;
 
 				TCC_OUTPUT_FB_Set3DMode(TRUE, mode);
+				TCC_OUTPUT_FB_Update(fb_info->fb->var.xres, fb_info->fb->var.yres, fb_info->fb->var.bits_per_pixel, Output_BaseAddr, Output_SelectMode);
+				TCC_OUTPUT_FB_UpdateSync(Output_SelectMode);
 			}
 			break;
 			
 		case TCC_LCDC_3D_UI_DISABLE:
 			{
 				TCC_OUTPUT_FB_Set3DMode(FALSE, 0);
+				TCC_OUTPUT_FB_Update(fb_info->fb->var.xres, fb_info->fb->var.yres, fb_info->fb->var.bits_per_pixel, Output_BaseAddr, Output_SelectMode);
+				TCC_OUTPUT_FB_UpdateSync(Output_SelectMode);
 			}
 			break;
 			
