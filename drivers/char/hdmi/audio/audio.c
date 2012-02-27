@@ -826,7 +826,7 @@ static unsigned int io_ckc_get_dai_clock(unsigned int freq)
 }
 
 
-#if defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 void tcc_hdmi_audio_set_clock(unsigned int output, unsigned int clock_rate)
 {
     unsigned int clk_rate;
@@ -836,7 +836,7 @@ void tcc_hdmi_audio_set_clock(unsigned int output, unsigned int clock_rate)
 
     clk_set_rate(hdmi_audio_clk, clk_rate);
 }
-#elif defined(CONFIG_ARCH_TCC892X)
+#elif (0)// defined(CONFIG_ARCH_TCC892X)
 void tcc_hdmi_audio_set_clock(unsigned int output, unsigned int clock_rate)
 {
 	PCKC				pCKC ;

@@ -1525,18 +1525,15 @@ void tcc_hdmi_power_on(void)
 		PCKC				pCKC ;
 		pCKC = (CKC *)tcc_p2v(HwCKC_BASE);
 
-		pCKC->PCLKCTRL17.nREG = 0x2D000000;
-//		pCKC->PCLKCTRL18.nREG = 0xBD000001;
-
 		if(hdmi_dev->hdmi_lcdc_num)
 			pCKC->PCLKCTRL05.nREG = 0x2C000000;
 		else
 			pCKC->PCLKCTRL03.nREG = 0x2C000000;
 	}
-	#else
-		if (hdmi_clk)
-			clk_set_rate(hdmi_clk, 1*1000*1000);
-	#endif//
+	#endif
+
+	if (hdmi_clk)
+		clk_set_rate(hdmi_clk, 1*1000*1000);
 	
     #if defined (CONFIG_ARCH_TCC92XX)
 	regl = readl(PMU_PWROFF);
