@@ -1743,7 +1743,7 @@ int tccxxx_vioc_scaler_set(VIOC_SC *pSC, VIOC_VIN *pVIN, VIOC_WMIX *pWMIX, uint 
 	struct TCCxxxCIF *data = (struct TCCxxxCIF *) &hardware_data;
 
 	dprintk("pVIN[0x%x] HWVIN0[0x%x] \n", pVIN, tcc_p2v(HwVIOC_VIN00));
-
+	
 	if ((uint)pVIN == (uint)tcc_p2v(HwVIOC_VIN00)) {
 		dw = data->cif_cfg.main_set.target_x;
 		dh = data->cif_cfg.main_set.target_y;
@@ -2499,7 +2499,8 @@ int tccxxx_cif_start_stream(void)
 
 			tccxxx_vioc_vin_wdma_set(pWDMABase);
 		#else // CONFIG_VIDEO_ATV_SENSOR_TVP5150
-			if(data->cif_cfg.cap_status == CAPTURE_DONE) {
+			// We have to throw out first frame in VIOC, Because of stable operation
+			{
 				VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_ALL_MASK, 0x1);
 		
 				// Disable WDMA
@@ -2710,7 +2711,7 @@ int tccxxx_cif_capture(int quality)
 	struct TCCxxxCIF *data = (struct TCCxxxCIF *) &hardware_data;
 	unsigned int target_width, target_height;
 	unsigned int ens_addr;
-	int skip_frame = 0;
+	int skip_frame = 0, nCnt;
 	#if	defined(CONFIG_ARCH_TCC892X)
 		uint    sc_plug_in0;
 	#endif
@@ -2798,6 +2799,7 @@ int tccxxx_cif_capture(int quality)
 	}
 	#else // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
 	if(target_width >= CAM_CAPCHG_WIDTH && !(data->cif_cfg.retry_cnt)) {
+		dprintk("Capture Mode!!\n");
 		sensor_if_change_mode(OPER_CAPTURE);
 		//msleep(300);
 	}
@@ -2816,8 +2818,27 @@ int tccxxx_cif_capture(int quality)
 		#endif // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
 	}
 
-	cif_set_frameskip(skip_frame, 0);
-	data->cif_cfg.cap_status = CAPTURE_NONE;
+	cif_set_frameskip(skip_frame, 0);	
+
+	// We have to throw out first frame in VIOC, Because of stable operation
+	{
+		VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_ALL_MASK, 0x1);
+
+		// Disable WDMA
+		BITCSET(pWDMABase->uCTRL.nREG, 1<<28, 0<<28);
+
+		BITCSET(pWDMABase->uCTRL.nREG, 1<<16, 1<<16);
+
+		// Before camera quit, we have to wait WMDA's SEN signal to LOW.
+		while(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_STSEN_MASK) {
+			for(nCnt=0; nCnt<10000; nCnt++);
+		}
+
+		// Disable VIN
+		VIOC_VIN_SetEnable(pVINBase, OFF);
+			
+		data->cif_cfg.cap_status = CAPTURE_NONE;
+	}
 
 	tccxxx_vioc_vin_main(pVINBase);
 	tccxxx_vioc_scaler_set(pSCBase, pVINBase, pWMIXBase, sc_plug_in0);
