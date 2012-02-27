@@ -200,11 +200,11 @@ void tca_ckc_init(void)
     pCKC->CLKDIVC1.nREG    = 0x01010101;    // PLL4,PLL5,XIN,XTIN
 #endif
 
-    stHDMIReg.nREG = 0;
-    stHDMIAudReg.nREG = 0;
-
     if (initialized)
         return;
+
+    stHDMIReg.nREG = 0x24000000;
+    stHDMIAudReg.nREG = 0x24000000;
 
     for (i=0 ; i<MAX_TCC_PLL ; i++) {
         if (i == CPU_SRC_CH) {
@@ -933,8 +933,8 @@ unsigned int tca_ckc_setperi(unsigned int periname,unsigned int isenable, unsign
 
         if (periname == PERI_HDMI) {
             stHDMIReg.bREG.EN = 0;
-            stHDMIReg.bREG.DIV = clkdiv;
-            stHDMIReg.bREG.SEL = clksrc;
+            stHDMIReg.bREG.DIV = 0;
+            stHDMIReg.bREG.SEL = PCHDMI;
             if (isenable)
                 stHDMIReg.bREG.EN = 1;
 	    pPCLKCTRL_XXX->nREG = stHDMIReg.nREG;

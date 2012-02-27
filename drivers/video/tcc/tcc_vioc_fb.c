@@ -1698,10 +1698,14 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 					TCC_HDMI_DISPLAY_UPDATE(EX_OUT_LCDC, (struct tcc_lcdc_image_update *)&ImageInfo);
 				}
 				else if(Output_SelectMode == TCC_OUTPUT_COMPOSITE){
-					tcc_component_update((struct tcc_lcdc_image_update *)&ImageInfo);
+					#if defined(CONFIG_FB_TCC_COMPOSITE)
+					tcc_composite_update((struct tcc_lcdc_image_update *)&ImageInfo);
+					#endif
 				}
 				else if(Output_SelectMode == TCC_OUTPUT_COMPONENT){
+					#if defined(CONFIG_FB_TCC_COMPONENT)
 					tcc_component_update((struct tcc_lcdc_image_update *)&ImageInfo);
+					#endif
 				}
 			}
 			/*
