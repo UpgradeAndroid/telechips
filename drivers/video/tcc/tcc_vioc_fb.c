@@ -1688,13 +1688,34 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 			tccvid_vsync.nTimeGapToNextField = 0;
 			tccvid_vsync.isVsyncRunning = 0;
 
+			{
+				struct tcc_lcdc_image_update ImageInfo;
+				memset(&ImageInfo, 0x00, sizeof(struct tcc_lcdc_image_update));
+				ImageInfo.Lcdc_layer = 2;
+				ImageInfo.enable = 0;
 
+				if(Output_SelectMode == TCC_OUTPUT_HDMI){
+					TCC_HDMI_DISPLAY_UPDATE(EX_OUT_LCDC, (struct tcc_lcdc_image_update *)&ImageInfo);
+				}
+				else if(Output_SelectMode == TCC_OUTPUT_COMPOSITE){
+					#if defined(CONFIG_FB_TCC_COMPOSITE)
+					tcc_composite_update((struct tcc_lcdc_image_update *)&ImageInfo);
+					#endif
+				}
+				else if(Output_SelectMode == TCC_OUTPUT_COMPONENT){
+					#if defined(CONFIG_FB_TCC_COMPONENT)
+					tcc_component_update((struct tcc_lcdc_image_update *)&ImageInfo);
+					#endif
+				}
+			}
+			/*
 			if(Output_SelectMode == TCC_OUTPUT_NONE)
 			{
 				struct tcc_lcdc_image_update ImageInfo;
 				memset(&ImageInfo, 0x00, sizeof(struct tcc_lcdc_image_update));
 				TCC_HDMI_DISPLAY_UPDATE(EX_OUT_LCDC, &ImageInfo);
 			}
+			*/
 
 		}
 		break ;
@@ -1778,12 +1799,17 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 			//				tccvid_vsync.vsync_buffer.valid_buff_count,
 			//				tccvid_vsync.vsync_buffer.max_buff_num,
 			//				input_image.time_stamp, input_image.sync_time, input_image.buffer_unique_id);
-			/*if(!tccvid_vsync.isVsyncRunning )
+			if(!tccvid_vsync.isVsyncRunning )
 			{
-				printk("vsync already ended !! %d\n",input_image.time_stamp);
-				input_image.time_stamp = 0;
-				return 0;
-			}*/
+				printk("vsync already ended !! %d buffer_unique_id %d \n",input_image.time_stamp, input_image.buffer_unique_id);
+				
+				spin_lock_irq(&vsync_lockDisp) ;
+				tccvid_vsync.vsync_buffer.last_cleared_buff_id = input_image.buffer_unique_id;
+				spin_unlock_irq(&vsync_lockDisp) ;
+				goto TCC_VSYNC_PUSH_ERROR;
+				//input_image.time_stamp = 0;
+				//return 0;
+			}
 
 			spin_lock_irq(&vsync_lock) ;
 			check_time = abs(tcc_vsync_get_time() - input_image.sync_time);

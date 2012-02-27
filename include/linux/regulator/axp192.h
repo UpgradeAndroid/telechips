@@ -50,20 +50,23 @@ struct axp192_platform_data {
 	int (*init_irq)(int irq_num);
 };
 
-#define AXP192_CHG_CURR_100mA	0x00
-#define AXP192_CHG_CURR_190mA	0x01
-#define AXP192_CHG_CURR_280mA	0x02
-#define AXP192_CHG_CURR_360mA	0x03
-#define AXP192_CHG_CURR_450mA	0x04
-#define AXP192_CHG_CURR_550mA	0x05
-#define AXP192_CHG_CURR_630mA	0x06
-#define AXP192_CHG_CURR_700mA	0x07
-#define AXP192_CHG_CURR_780mA	0x08
-#define AXP192_CHG_CURR_880mA	0x09
-#define AXP192_CHG_CURR_960mA	0x0A
-#define AXP192_CHG_CURR_1000mA	0x0B
-#define AXP192_CHG_CURR_1080mA	0x0C
-#define AXP192_CHG_CURR_1160mA	0x0D
+enum {
+	AXP192_CHG_CURR_100mA = 0,
+	AXP192_CHG_CURR_190mA,
+	AXP192_CHG_CURR_280mA,
+	AXP192_CHG_CURR_360mA,
+	AXP192_CHG_CURR_450mA,
+	AXP192_CHG_CURR_550mA,
+	AXP192_CHG_CURR_630mA,
+	AXP192_CHG_CURR_700mA,
+	AXP192_CHG_CURR_780mA,
+	AXP192_CHG_CURR_880mA,
+	AXP192_CHG_CURR_960mA,
+	AXP192_CHG_CURR_1000mA,
+	AXP192_CHG_CURR_1080mA,
+	AXP192_CHG_CURR_1160mA,
+	AXP192_CHG_CURR_MAX
+};
 
 #define AXP192_CHG_OK			0x02
 #define AXP192_CHG_ING			0x01
@@ -71,7 +74,6 @@ struct axp192_platform_data {
 
 extern int axp192_battery_voltage(void);
 extern int axp192_acin_detect(void);
-extern int axp192_vbus_voltage(void);
 extern void axp192_power_off(void);
 extern void axp192_charge_current(unsigned char val);
 extern int axp192_charge_status(void);
