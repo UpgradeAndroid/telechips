@@ -54,7 +54,7 @@
 /****************************************************************************
 DEFINITION
 ****************************************************************************/
-#define dprintk(msg...)	printk(msg)
+#define dprintk(msg...)	//printk(msg)
 
 #define DEVICE_NAME		"ccfb"
 #define DEV_MINOR		204
