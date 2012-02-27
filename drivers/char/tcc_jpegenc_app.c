@@ -1585,7 +1585,7 @@ int TCCXXX_JPEG_Make_Header(unsigned int jpeg_BufferAddr, jpeg_encode_option_typ
 		*Thumbnail_Offset_Address ++= Thumbnail_Offset;
 		*Thumbnail_Offset_Address ++= Thumbnail_Offset>>8;
 
-        #if !defined(CONFIG_ARCH_TCC892X)
+        #if !defined(CONFIG_ARCH_TCC892X)  // 2012/02/27
 		Thumbnail_Enc_Info_Size = Make_Thumbnail_Enc_Info((uint32)Jpeg_Header, EncodeOption->ThumbnailInfo.thumbnail_width,
 														EncodeOption->ThumbnailInfo.thumbnail_height, EncodeOption->Q_FactorValue);
 		Jpeg_Header += Thumbnail_Enc_Info_Size;
