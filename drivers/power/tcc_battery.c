@@ -1668,7 +1668,10 @@ static tcc_battery_adc_channel(void)
 
 void tcc_battery_early_suspend(struct early_suspend *h)
 {
+#if defined(CONFIG_REGULATOR_AXP192) || defined(CONFIG_REGULATOR_AXP202)
 	charge_current(Charger_Current_High);
+#endif
+
 	printk("%s in\n", __func__);
 	in_suspend = 1;
 	printk("%s out\n", __func__);
@@ -1678,8 +1681,9 @@ void tcc_battery_late_resume(struct early_suspend *h)
 {
 	int i;
 	printk("%s in\n", __func__);
-
+#if defined(CONFIG_REGULATOR_AXP192) || defined(CONFIG_REGULATOR_AXP202)
 	charge_current(Charger_Current_Normal);
+#endif
 
 #if BATT_SPECIFIC_CUSTOMER
 	gIndex = 0;
