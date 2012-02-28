@@ -1539,11 +1539,11 @@ void tcc_component_update(struct tcc_lcdc_image_update *update)
 		VIOC_WMIX_SetPosition(pComponent_WMIX, update->Lcdc_layer, win_offset_x, win_offset_y/2);
 	}
 	else
+#endif
 	{
 		VIOC_RDMA_SetImageIntl(pComponent_RDMA_VIDEO, FALSE);
 		VIOC_WMIX_SetPosition(pComponent_WMIX, update->Lcdc_layer, win_offset_x, win_offset_y);
 }
-#endif
 
 		// image enable
 		if(update->enable)
