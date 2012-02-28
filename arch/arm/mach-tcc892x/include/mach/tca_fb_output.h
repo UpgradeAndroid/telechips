@@ -29,6 +29,8 @@ extern
 #if defined(CONFIG_TCC_OUTPUT_STARTER)
 	#if defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION)
 	#define TCC_OUTPUT_STARTER_AUTO_DETECT
+	#elif defined(CONFIG_TCC_OUTPUT_ATTACH)
+	#define TCC_OUTPUT_STARTER_DUAL
 	#else
 	//#define TCC_OUTPUT_STARTER_DUAL
 	#define TCC_OUTPUT_STARTER_SINGLE
@@ -107,7 +109,8 @@ extern int TCC_OUTPUT_FB_MouseSetIcon(tcc_mouse_icon *mouse_icon);
 extern int TCC_OUTPUT_FB_Set3DMode(char enable, char mode);
 extern int TCC_OUTPUT_FB_Get3DMode(char *mode);
 
-extern void TCC_OUTPUT_FB_AttachOutput(char src_lcdc_num, char output_type, char onoff);
+extern void TCC_OUTPUT_FB_AttachOutput(char src_lcdc_num, char output_type);
+extern void TCC_OUTPUT_FB_DetachOutput(void);
 extern void TCC_OUTPUT_FB_AttachUpdate(char src_lcdc_num);
 
 #ifdef __cplusplus

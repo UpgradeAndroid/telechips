@@ -566,6 +566,8 @@ void tcc_composite_set_lcd2tv(COMPOSITE_MODE_TYPE type)
 	VIOC_WMIX_SetOverlayPriority(pWIXBase, 0);
 	VIOC_WMIX_SetBGColor(pWIXBase, 0x00, 0x00, 0x00, 0xff);
 	VIOC_WMIX_SetSize(pWIXBase, width, height);
+	VIOC_WMIX_SetPosition(pWIXBase, 0, 0, 0);
+	VIOC_WMIX_SetChromaKey(pWIXBase, 0, 0, 0, 0, 0, 0xF8, 0xFC, 0xF8);
 	VIOC_WMIX_SetUpdate(pWIXBase);
 
 	if(Composite_LCDC_Num)	
@@ -1267,6 +1269,10 @@ static long tcc_composite_ioctl(struct file *file, unsigned int cmd, void *arg)
 		case TCC_COMPOSITE_IOCTL_START:
 			copy_from_user(&start,arg,sizeof(start));
 
+			#if defined(CONFIG_TCC_OUTPUT_ATTACH)
+				TCC_OUTPUT_FB_DetachOutput();
+			#endif
+			
 			TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_COMPOSITE, start.lcdc, TRUE);
 
 			if(start.lcdc != Composite_LCDC_Num)

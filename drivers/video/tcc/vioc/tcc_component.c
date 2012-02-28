@@ -1930,6 +1930,10 @@ static long tcc_component_ioctl(struct file *file, unsigned int cmd, void *arg)
 				}
 			#endif
 			
+			#if defined(CONFIG_TCC_OUTPUT_ATTACH)
+				TCC_OUTPUT_FB_DetachOutput();
+			#endif
+			
 			TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_COMPONENT, start.lcdc, TRUE);
 			
 			if(start.lcdc != Component_LCDC_Num)

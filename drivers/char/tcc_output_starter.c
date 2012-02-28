@@ -2658,23 +2658,33 @@ int __init tcc_output_starter_init(void)
 	#endif
 
 	#if defined(TCC_OUTPUT_STARTER_DUAL)
-		/* 2nd Output Setting */
 		#if defined(CONFIG_ARCH_TCC892X)
-			/* 1st Output Setting */
 			if(tcc_display_data.output == STARTER_OUTPUT_COMPONENT)
 			{
-				tcc_output_starter_component(lcdc_1st, STARTER_COMPONENT_720P+tcc_display_data.component_resolution);
+				/* 1st Output Setting */
+				if(tcc_display_data.output >= STARTER_OUTPUT_MAX)
+					tcc_output_starter_hdmi(lcdc_2nd, STARTER_HDMI_640x480P);
+				else
+					tcc_output_starter_hdmi(lcdc_2nd, tcc_display_data.hdmi_resolution);
+
+				/* 2nd Output Setting */
+				#if defined(CONFIG_TCC_OUTPUT_ATTACH)
+					TCC_OUTPUT_FB_AttachOutput(lcdc_2nd, TCC_OUTPUT_COMPONENT);
+				#endif
 			}
 			else
 			{
+				/* 1st Output Setting */
 				if(tcc_display_data.output >= STARTER_OUTPUT_MAX)
 					tcc_output_starter_hdmi(lcdc_1st, STARTER_HDMI_640x480P);
 				else
 					tcc_output_starter_hdmi(lcdc_1st, tcc_display_data.hdmi_resolution);
-			}
 				
-			/* 2nd Output Setting */
-			TCC_OUTPUT_FB_AttachOutput(lcdc_1st, TCC_OUTPUT_COMPOSITE, 1);
+				/* 2nd Output Setting */
+				#if defined(CONFIG_TCC_OUTPUT_ATTACH)
+					TCC_OUTPUT_FB_AttachOutput(lcdc_1st, TCC_OUTPUT_COMPOSITE);
+				#endif
+			}
 		#else
 			/* 1st Output Setting */
 			if(tcc_display_data.output >= STARTER_OUTPUT_MAX)

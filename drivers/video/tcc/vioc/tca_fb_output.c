@@ -233,6 +233,8 @@ extern unsigned int tca_get_hdmi_lcdc_num(viod);
 
 char tcc_output_attach_state = 0;
 char tcc_output_attach_index = 0;
+char tcc_output_attach_lcdc = 0;
+char tcc_output_attach_output = 0;
 extern struct display_platform_data tcc_display_data;
 #if defined(CONFIG_FB_TCC_COMPOSITE)
 extern void tcc_composite_attach(int lcdc_num, char onoff);
@@ -775,18 +777,14 @@ void TCC_OUTPUT_LCDC_OutputEnable(char output_lcdc, unsigned int onoff)
 		VIOC_DISP_TurnOn(pDISP);
 	else
 		VIOC_DISP_TurnOff(pDISP);
-	#if defined(CONFIG_TCC_OUTPUT_ATTACH)
+
+	#if 0//defined(CONFIG_TCC_OUTPUT_ATTACH)
+		TCC_OUTPUT_FB_DetachOutput();
+
 		if(tcc_display_data.output == 3)
-		{
-			TCC_OUTPUT_FB_AttachOutput(output_lcdc, TCC_OUTPUT_COMPONENT, 0);
-			TCC_OUTPUT_FB_AttachOutput(output_lcdc, TCC_OUTPUT_COMPONENT, 1);
-		}
+			TCC_OUTPUT_FB_AttachOutput(output_lcdc, TCC_OUTPUT_COMPONENT);
 		else
-		/* composite output */
-		{
-			TCC_OUTPUT_FB_AttachOutput(output_lcdc, TCC_OUTPUT_COMPOSITE, 0);
-			TCC_OUTPUT_FB_AttachOutput(output_lcdc, TCC_OUTPUT_COMPOSITE, 1);
-		}
+			TCC_OUTPUT_FB_AttachOutput(output_lcdc, TCC_OUTPUT_COMPOSITE);
 	#endif
 }
 
@@ -1407,15 +1405,21 @@ int TCC_OUTPUT_FB_Get3DMode(char *mode)
 	return output_3d_ui_flag;
 }
 
-void TCC_OUTPUT_FB_AttachOutput(char src_lcdc_num, char dst_output, char onoff)
+void TCC_OUTPUT_FB_AttachOutput(char src_lcdc_num, char dst_output)
 {
 	PVIOC_DISP	pDISP;
 	PVIOC_WMIX	pWMIX;
 	PVIOC_RDMA	pRDMA, pRDMA1, pRDMA2, pRDMA3;
-	PVIOC_WDMA	pWDMA;
 	int dst_lcdc_num, fmt, src_wd, src_ht, dst_wd, dst_ht;
 
-	printk("%s, src_lcdc_num=%d, output_type=%d, onoff=%d\n", __func__, src_lcdc_num, dst_output, onoff);
+	printk("%s, src_lcdc_num=%d, dst_output=%d\n", __func__, src_lcdc_num, dst_output);
+
+	/* check the flag */
+	if(tcc_output_attach_state)
+	{
+		printk("%s, output(%d) was already attached!!\n", __func__, tcc_output_attach_output);
+		return;
+	}
 
 	if((dst_output != TCC_OUTPUT_COMPOSITE) && (dst_output != TCC_OUTPUT_COMPONENT))
 	{
@@ -1423,29 +1427,14 @@ void TCC_OUTPUT_FB_AttachOutput(char src_lcdc_num, char dst_output, char onoff)
 		return;
 	}
 
-	#if 0
-	/* check the flag */
-	if(tcc_output_attach_state)
-	{
-		printk("%s, output was already attached!!\n", __func__);
-		return;
-	}
-	#endif
-
 	/* set the flag */
 	//tcc_output_attach_state = 1;
 	
 	/* get the source resolution */
 	if(src_lcdc_num)
-	{
 		pDISP = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP1);
-		pWDMA = (VIOC_WDMA *)tcc_p2v(HwVIOC_WDMA01);
-	}
 	else
-	{
 		pDISP = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP0);
-		pWDMA = (VIOC_WDMA *)tcc_p2v(HwVIOC_WDMA00);
-	}
 
 	src_wd = (pDISP->uLSIZE.nREG & 0xFFFF);
 	src_ht = ((pDISP->uLSIZE.nREG>>16) & 0xFFFF);
@@ -1478,97 +1467,130 @@ void TCC_OUTPUT_FB_AttachOutput(char src_lcdc_num, char dst_output, char onoff)
 
 	BITCSET(pDISP->uCTRL.nREG, 0xFFFFFFFF, 0);
 
-	if(onoff)
+	#if 0
+	/* set WDMA */
+	VIOC_WDMA_SetImageFormat(pWDMA, fmt);
+	VIOC_WDMA_SetImageSize(pWDMA, src_wd, src_ht);
+	VIOC_WDMA_SetImageOffset(pWDMA, fmt, src_wd);
+	VIOC_WDMA_SetImageBase(pWDMA, output_attach_pbuf0, NULL, NULL);
+	VIOC_WDMA_SetImageEnable(pWDMA, 0 /* OFF */);
+	pWDMA->uIRQSTS.nREG = 0xFFFFFFFF; // wdma status register all clear.
+	#endif
+
+	VIOC_RDMA_SetImageDisable(pRDMA);
+	VIOC_RDMA_SetImageDisable(pRDMA1);
+	VIOC_RDMA_SetImageDisable(pRDMA2);
+	VIOC_RDMA_SetImageDisable(pRDMA3);
+
+	if(dst_output == TCC_OUTPUT_COMPOSITE)
 	{
-		/* set the flag */
-		tcc_output_attach_state = 1;
-	
-		#if 0
-		/* set WDMA */
-		VIOC_WDMA_SetImageFormat(pWDMA, fmt);
-		VIOC_WDMA_SetImageSize(pWDMA, src_wd, src_ht);
-		VIOC_WDMA_SetImageOffset(pWDMA, fmt, src_wd);
-		VIOC_WDMA_SetImageBase(pWDMA, output_attach_pbuf0, NULL, NULL);
-		VIOC_WDMA_SetImageEnable(pWDMA, 0 /* OFF */);
-		pWDMA->uIRQSTS.nREG = 0xFFFFFFFF; // wdma status register all clear.
+		#if defined(CONFIG_FB_TCC_COMPOSITE)
+		tcc_composite_attach(dst_lcdc_num, 1);
 		#endif
-	
-		VIOC_RDMA_SetImageDisable(pRDMA);
-		VIOC_RDMA_SetImageDisable(pRDMA1);
-		VIOC_RDMA_SetImageDisable(pRDMA2);
-		VIOC_RDMA_SetImageDisable(pRDMA3);
-
-		if(dst_output == TCC_OUTPUT_COMPOSITE)
-		{
-			#if defined(CONFIG_FB_TCC_COMPOSITE)
-			tcc_composite_attach(dst_lcdc_num, 1);
-			#endif
-		}
-		else
-		{
-			#if defined(CONFIG_FB_TCC_COMPONENT)
-			tcc_component_attach(dst_lcdc_num, 1);
-			#endif
-		}
-		
-		/* get the destination resolution */
-		dst_wd = (pDISP->uLSIZE.nREG & 0xFFFF);
-		dst_ht = ((pDISP->uLSIZE.nREG>>16) & 0xFFFF);
-			
-		/* set RDMA */
-		VIOC_RDMA_SetImageAlphaSelect(pRDMA, 1);
-		VIOC_RDMA_SetImageAlphaEnable(pRDMA, 1);
-		VIOC_RDMA_SetImageFormat(pRDMA, fmt);
-		VIOC_RDMA_SetImageSize(pRDMA, src_wd, src_ht);
-		VIOC_RDMA_SetImageIntl(pRDMA, 0);
-		VIOC_RDMA_SetImageOffset(pRDMA, fmt, src_wd);
-		VIOC_RDMA_SetImageBase(pRDMA, output_attach_pbuf0, NULL, NULL);
-		VIOC_RDMA_SetImageEnable(pRDMA);
-
-		VIOC_DISP_TurnOn(pDISP);
 	}
 	else
 	{
-		int i = 0;
-
-		/* clear the flag */
-		tcc_output_attach_state = 0;
-	
-		if(dst_output == TCC_OUTPUT_COMPOSITE)
-		{
-			#if defined(CONFIG_FB_TCC_COMPOSITE)
-			if(OutputType != TCC_OUTPUT_COMPOSITE)	
-				tcc_composite_attach(dst_lcdc_num, 0);
-			#endif
-		}
-		else
-		{
-			#if defined(CONFIG_FB_TCC_COMPONENT)
-			if(OutputType != TCC_OUTPUT_COMPONENT)	
-				tcc_component_attach(dst_lcdc_num, 0);
-			#endif
-		}
-		
-		VIOC_DISP_TurnOff(pDISP);
-		VIOC_RDMA_SetImageDisable(pRDMA);
-
-		while(i < 0xF0000)
-		{
-			volatile unsigned int status;
-
-			status = pDISP->uLSTATUS.nREG;
-			if(status & HwLSTATUS_DD)
-			{
-				dprintk("%s, lcdc disabled!!\n", __func__);
-				break;
-			}
-
-			i++;
-		}
-
-		/* disable WDMA */
-		BITCLR(pWDMA->uCTRL.nREG, (Hw28 | Hw16));
+		#if defined(CONFIG_FB_TCC_COMPONENT)
+		tcc_component_attach(dst_lcdc_num, 1);
+		#endif
 	}
+	
+	/* get the destination resolution */
+	dst_wd = (pDISP->uLSIZE.nREG & 0xFFFF);
+	dst_ht = ((pDISP->uLSIZE.nREG>>16) & 0xFFFF);
+		
+	/* set RDMA */
+	VIOC_RDMA_SetImageAlphaSelect(pRDMA, 1);
+	VIOC_RDMA_SetImageAlphaEnable(pRDMA, 1);
+	VIOC_RDMA_SetImageFormat(pRDMA, fmt);
+	VIOC_RDMA_SetImageSize(pRDMA, src_wd, src_ht);
+	VIOC_RDMA_SetImageIntl(pRDMA, 0);
+	VIOC_RDMA_SetImageOffset(pRDMA, fmt, src_wd);
+	VIOC_RDMA_SetImageBase(pRDMA, output_attach_pbuf0, NULL, NULL);
+	VIOC_RDMA_SetImageEnable(pRDMA);
+
+	VIOC_DISP_TurnOn(pDISP);
+
+	/* set the flag */
+	tcc_output_attach_state = 1;
+	/* set the number of lcdc */
+	tcc_output_attach_lcdc = dst_lcdc_num;
+	/* set the output type */
+	tcc_output_attach_output = dst_output;
+}
+
+void TCC_OUTPUT_FB_DetachOutput(void)
+{
+	int i = 0;
+	PVIOC_DISP	pDISP;
+	PVIOC_RDMA	pRDMA;
+	PVIOC_WDMA	pWDMA;
+
+	printk("%s, src_lcdc_num=%d, dst_output=%d\n", __func__, tcc_output_attach_lcdc, tcc_output_attach_output);
+
+	/* check the flag */
+	if(tcc_output_attach_state == 0)
+	{
+		printk("%s, output(%d) was already detached!!\n", __func__, tcc_output_attach_output);
+		return;
+	}
+
+	/* set the flag */
+	//tcc_output_attach_state = 0;
+	
+	/* set the register */
+	if(tcc_output_attach_lcdc)
+	{
+		pWDMA = (VIOC_WDMA *)tcc_p2v(HwVIOC_WDMA00);
+		pDISP = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP1);
+		pRDMA = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA04);
+	}
+	else
+	{
+		pWDMA = (VIOC_WDMA *)tcc_p2v(HwVIOC_WDMA01);
+		pDISP = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP0);
+		pRDMA = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA00);
+	}
+
+	BITCSET(pDISP->uCTRL.nREG, 0xFFFFFFFF, 0);
+
+	/* clear the flag */
+	tcc_output_attach_state = 0;
+
+	if(tcc_output_attach_output == TCC_OUTPUT_COMPOSITE)
+	{
+		#if defined(CONFIG_FB_TCC_COMPOSITE)
+		if(OutputType != TCC_OUTPUT_COMPOSITE)	
+			tcc_composite_attach(tcc_output_attach_lcdc, 0);
+		#endif
+	}
+	else
+	{
+		#if defined(CONFIG_FB_TCC_COMPONENT)
+		if(OutputType != TCC_OUTPUT_COMPONENT)	
+			tcc_component_attach(tcc_output_attach_lcdc, 0);
+		#endif
+	}
+	
+	VIOC_DISP_TurnOff(pDISP);
+	VIOC_RDMA_SetImageDisable(pRDMA);
+
+	while(i < 0xF0000)
+	{
+		volatile unsigned int status;
+
+		status = pDISP->uLSTATUS.nREG;
+		if(status & HwLSTATUS_DD)
+		{
+			dprintk("%s, lcdc disabled!!\n", __func__);
+			break;
+		}
+
+		i++;
+	}
+
+	/* disable WDMA */
+	BITCLR(pWDMA->uCTRL.nREG, (Hw28 | Hw16));
 }
 
 void TCC_OUTPUT_FB_AttachUpdate(char src_lcdc_num)
