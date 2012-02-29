@@ -600,7 +600,9 @@ static void DisplayUpdateWithDeinterlace(void)
 				{
 					TCC_VIQE_DI_Run60Hz(pNextImage->on_the_fly, pNextImage->addr0, pNextImage->addr1, pNextImage->addr2,
 										pNextImage->Frame_width, pNextImage->Frame_height,
-										pNextImage->crop_top,pNextImage->crop_bottom, pNextImage->crop_left, pNextImage->crop_right, pNextImage->odd_first_flag);
+										pNextImage->crop_top,pNextImage->crop_bottom, pNextImage->crop_left, pNextImage->crop_right, 
+										pNextImage->Image_width, pNextImage->Image_height, 
+										pNextImage->offset_x, pNextImage->offset_y, pNextImage->odd_first_flag);
 				}
 				/*
 				else
@@ -654,7 +656,9 @@ static void DisplayUpdateWithDeinterlace(void)
 			{
 				TCC_VIQE_DI_Run60Hz(pNextImage->on_the_fly, pNextImage->addr0, pNextImage->addr1, pNextImage->addr2,
 									pNextImage->Frame_width, pNextImage->Frame_height,
-									pNextImage->crop_top,pNextImage->crop_bottom, pNextImage->crop_left, pNextImage->crop_right, pNextImage->odd_first_flag^0x01);
+									pNextImage->crop_top,pNextImage->crop_bottom, pNextImage->crop_left, pNextImage->crop_right, 
+									pNextImage->Image_width, pNextImage->Image_height,
+									pNextImage->offset_x, pNextImage->offset_y, pNextImage->odd_first_flag^0x01);
 			}
 			/*
 			else
@@ -1733,16 +1737,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 
 			//if(tccvid_vsync.firstFrameFlag == 0)
 			{
-#ifdef TCC_VIDEO_DISPLAY_DEINTERLACE_MODE
-				if(tccvid_vsync.deinterlace_mode && !tccvid_vsync.output_toMemory)
-					TCC_VIQE_DI_DeInit60Hz();
-#endif
 				spin_lock_irq(&vsync_lock) ;
-				tccvid_vsync.firstFrameFlag = 1;
-				tccvid_vsync.deinterlace_mode = -1;
-				tccvid_vsync.m2m_mode = -1;
-				tccvid_vsync.output_toMemory = -1;
-
 				// have to add code about pop all buffer.
 				tcc_vsync_pop_all_buffer(&tccvid_vsync.vsync_buffer);
 				printk("### vsync pop all buffer success!\n");
