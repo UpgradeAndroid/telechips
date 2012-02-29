@@ -1076,6 +1076,7 @@ void tcc_ac_charger_detect_process(void)
 	        if( tcc_batt_info.rep.charging_source == CHARGER_BATTERY ) {
 	            tcc_cable_status_update(CHARGER_AC);
 			batt_check_times = 10;	
+			#if 0 // not yet
 			msleep(10000);
 			gIndex = 0;
 			for(i=0;i<BATTVOLSAMPLE;i++)
@@ -1083,6 +1084,7 @@ void tcc_ac_charger_detect_process(void)
 
 		      tcc_ac_charger_detect_process();
 		      tcc_battery_process();			
+			#endif
 				//if( machine_is_m801() )
 				//	HwGPIOD->GPDAT |= Hw11;
 	        }
@@ -1094,6 +1096,7 @@ void tcc_ac_charger_detect_process(void)
 	            tcc_cable_status_update(CHARGER_BATTERY);
 			batt_charging_finish = 0;
 			batt_check_times = 10;
+			#if 0 // not yet
 			msleep(10000);
 			gIndex = 0;
 			for(i=0;i<BATTVOLSAMPLE;i++)
@@ -1101,6 +1104,7 @@ void tcc_ac_charger_detect_process(void)
 
 		      tcc_ac_charger_detect_process();
 		      tcc_battery_process();
+			#endif
 				//if( machine_is_m801() )
 				//	HwGPIOD->GPDAT &= ~Hw11;
 	        	}
@@ -1615,6 +1619,10 @@ static int tcc_battery_thread(void *v)
 		msleep(BATT_CHECK_LOOP);
 		power_supply_changed(&tcc_power_supplies[CHARGER_BATTERY]);
 #endif
+	}
+	else
+	{
+		msleep(BATT_CHECK_LOOP);
 	}
     }
 
