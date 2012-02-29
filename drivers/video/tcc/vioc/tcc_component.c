@@ -1529,7 +1529,7 @@ void tcc_component_update(struct tcc_lcdc_image_update *update)
 	dprintk("%s, img_widht:%d, img_height:%d, win_offset_x:%d, win_offset_y:%d\n", __func__, img_width, img_height, win_offset_x, win_offset_y);
 	
 	#if defined(CONFIG_ARCH_TCC892X)
-		VIOC_RDMA_SetImageSize(pComponent_RDMA_VIDEO, img_width, img_height);
+		VIOC_RDMA_SetImageSize(pComponent_RDMA_VIDEO, update->Frame_width, update->Frame_height);
 		
 		// image position
 #if 0//defined(CONFIG_TCC_VIDEO_DISPLAY_BY_VSYNC_INT) || defined(TCC_VIDEO_DISPLAY_BY_VSYNC_INT)
