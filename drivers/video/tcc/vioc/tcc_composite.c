@@ -100,6 +100,11 @@ static int				Composite_LCDC_Num = -1;
 #define COMPOSITE_DETECT_EINTSEL	SEL_GPIOF27
 #define COMPOSITE_DETECT_EINTNUM	7
 #define COMPOSITE_DETECT_EINT		HwINT1_EI7
+#elif defined (CONFIG_MACH_TCC8920ST)
+#define COMPOSITE_DETECT_GPIO		TCC_GPF(1)
+#define COMPOSITE_DETECT_EINTSEL	EXTINT_GPIOF_01
+#define COMPOSITE_DETECT_EINTNUM	INT_EI7
+#define COMPOSITE_DETECT_EINT		1<<INT_EI7
 #else
 #define COMPOSITE_DETECT_GPIO		NULL
 #define COMPOSITE_DETECT_EINTSEL	NULL
@@ -152,8 +157,11 @@ extern int tcc_vsync_get_isVsyncRunning(void);
 ******************************************************************************/
 static irqreturn_t tcc_composite_ext_handler(int irq, void *dev_id)
 {
-#if defined(CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST)
+	#if defined(CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST)
 	PPIC pHwPIC = (volatile PPIC)tcc_p2v(HwVPIC_BASE);
+	#elif defined(CONFIG_MACH_TCC8920ST)
+	PPIC pHwPIC = (volatile PPIC)tcc_p2v(HwPIC_BASE);
+	#endif
 	
 	dprintk("%s, composite_plugout_count=%d\n", __func__, composite_plugout_count);
 
@@ -167,21 +175,26 @@ static irqreturn_t tcc_composite_ext_handler(int irq, void *dev_id)
         BITCLR(pHwPIC->INTMSK0, COMPOSITE_DETECT_EINT);
         BITCLR(pHwPIC->IEN0, COMPOSITE_DETECT_EINT);
 		BITSET(pHwPIC->CLR0, COMPOSITE_DETECT_EINT);
-	#else
+	#elif defined(CONFIG_MACH_TCC8800ST)
         BITCLR(pHwPIC->INTMSK1, COMPOSITE_DETECT_EINT);
         BITCLR(pHwPIC->IEN1, COMPOSITE_DETECT_EINT);
 		BITSET(pHwPIC->CLR1, COMPOSITE_DETECT_EINT);
- 	#endif
+	#elif defined(CONFIG_MACH_TCC8920ST)
+        BITCLR(pHwPIC->INTMSK0.nREG, COMPOSITE_DETECT_EINT);
+        BITCLR(pHwPIC->IEN0.nREG, COMPOSITE_DETECT_EINT);
+		BITSET(pHwPIC->CLR0.nREG, COMPOSITE_DETECT_EINT);
+	#endif
 	}
 	else
 	{
 	#if defined(CONFIG_MACH_TCC9300ST)
 		BITSET(pHwPIC->CLR0, COMPOSITE_DETECT_EINT);
-	#else
+	#elif defined(CONFIG_MACH_TCC8800ST)
 		BITSET(pHwPIC->CLR1, COMPOSITE_DETECT_EINT);
+	#elif defined(CONFIG_MACH_TCC8920ST)
+		BITSET(pHwPIC->CLR0.nREG, COMPOSITE_DETECT_EINT);
 	#endif
 	}
-#endif
 
 	return IRQ_HANDLED;
 }
@@ -227,6 +240,8 @@ void tcc_composite_ext_interrupt_sel(char ext_int_num, char ext_int_sel)
 		BITCSET(pHwGPIOINT->EINTSEL3, 0x7F<<shift_bit, ext_int_sel<<shift_bit);
 	}
 	#endif
+#elif defined(CONFIG_MACH_TCC8920ST)
+    tcc_gpio_config_ext_intr(ext_int_num, ext_int_sel);
 #endif
 }
 
@@ -235,9 +250,13 @@ void tcc_composite_ext_interrupt_sel(char ext_int_num, char ext_int_sel)
 ******************************************************************************/
 void tcc_composite_ext_interrupt_set(char onoff)
 {
-#if defined(CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST)
+#if defined(CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST) || defined(CONFIG_MACH_TCC8920ST)
 	int ret, irq_num;
+	#if defined(CONFIG_MACH_TCC8920ST)
+	PPIC pHwPIC = (volatile PPIC)tcc_p2v(HwPIC_BASE);
+	#else
 	PPIC pHwPIC = (volatile PPIC)tcc_p2v(HwVPIC_BASE);
+	#endif
 	
 	composite_plugout_count = 0;
 
@@ -259,11 +278,16 @@ void tcc_composite_ext_interrupt_set(char onoff)
 		BITCLR(pHwPIC->MODE0, COMPOSITE_DETECT_EINT);
 		BITCLR(pHwPIC->MODEA0, COMPOSITE_DETECT_EINT);
 		BITSET(pHwPIC->SEL0, COMPOSITE_DETECT_EINT);
-	#else
+	#elif defined(CONFIG_MACH_TCC8800ST)
 		BITCLR(pHwPIC->POL1, COMPOSITE_DETECT_EINT);
 		BITCLR(pHwPIC->MODE1, COMPOSITE_DETECT_EINT);
 		BITCLR(pHwPIC->MODEA1, COMPOSITE_DETECT_EINT);
 		BITSET(pHwPIC->SEL1, COMPOSITE_DETECT_EINT);
+	#elif defined(CONFIG_MACH_TCC8920ST)
+		BITCLR(pHwPIC->POL0.nREG, COMPOSITE_DETECT_EINT);
+		BITCLR(pHwPIC->MODE0.nREG, COMPOSITE_DETECT_EINT);
+		BITCLR(pHwPIC->MODEA0.nREG, COMPOSITE_DETECT_EINT);
+		BITSET(pHwPIC->SEL0.nREG, COMPOSITE_DETECT_EINT);
 	#endif
 
 		if(ret = request_irq(irq_num, tcc_composite_ext_handler, IRQF_SHARED, "TCC_COMPOSITE_EXT", tcc_composite_ext_handler))	
@@ -275,10 +299,14 @@ void tcc_composite_ext_interrupt_set(char onoff)
 		BITSET(pHwPIC->CLR0, COMPOSITE_DETECT_EINT);
 		BITSET(pHwPIC->INTMSK0, COMPOSITE_DETECT_EINT);	
         BITSET(pHwPIC->IEN0, COMPOSITE_DETECT_EINT);
-	#else
+	#elif defined(CONFIG_MACH_TCC8800ST)
 		BITSET(pHwPIC->CLR1, COMPOSITE_DETECT_EINT);
 		BITSET(pHwPIC->INTMSK1, COMPOSITE_DETECT_EINT);	
         BITSET(pHwPIC->IEN1, COMPOSITE_DETECT_EINT);
+	#elif defined(CONFIG_MACH_TCC8920ST)
+        BITSET(pHwPIC->CLR0.nREG, COMPOSITE_DETECT_EINT);
+		BITSET(pHwPIC->INTMSK0.nREG, COMPOSITE_DETECT_EINT);	
+        BITSET(pHwPIC->IEN0.nREG, COMPOSITE_DETECT_EINT);
 	#endif
 
 		composite_ext_interrupt = 1;
@@ -294,10 +322,14 @@ void tcc_composite_ext_interrupt_set(char onoff)
         BITCLR(pHwPIC->INTMSK0, COMPOSITE_DETECT_EINT);
         BITCLR(pHwPIC->IEN0, COMPOSITE_DETECT_EINT);
         BITSET(pHwPIC->CLR0, COMPOSITE_DETECT_EINT);
-	#else
+	#elif defined(CONFIG_MACH_TCC8800ST)
         BITCLR(pHwPIC->INTMSK1, COMPOSITE_DETECT_EINT);
         BITCLR(pHwPIC->IEN1, COMPOSITE_DETECT_EINT);
         BITSET(pHwPIC->CLR1, COMPOSITE_DETECT_EINT);
+	#elif defined(CONFIG_MACH_TCC8920ST)
+        BITCLR(pHwPIC->INTMSK0.nREG, COMPOSITE_DETECT_EINT);
+        BITCLR(pHwPIC->IEN0.nREG, COMPOSITE_DETECT_EINT);
+        BITSET(pHwPIC->CLR0.nREG, COMPOSITE_DETECT_EINT);
 	#endif
 
 		composite_ext_interrupt = 0;
@@ -314,7 +346,7 @@ int tcc_composite_detect(void)
 {
 	int detect = true;
 
-	#if defined (CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST)
+	#if defined (CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST) || defined(CONFIG_MACH_TCC8920ST)
 		#if defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION)
 			if(composite_plugout)
 			{
@@ -1269,9 +1301,7 @@ static long tcc_composite_ioctl(struct file *file, unsigned int cmd, void *arg)
 		case TCC_COMPOSITE_IOCTL_START:
 			copy_from_user(&start,arg,sizeof(start));
 
-			#if defined(CONFIG_TCC_OUTPUT_ATTACH)
-				TCC_OUTPUT_FB_DetachOutput();
-			#endif
+			TCC_OUTPUT_FB_DetachOutput();
 			
 			TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_COMPOSITE, start.lcdc, TRUE);
 
@@ -1288,7 +1318,6 @@ static long tcc_composite_ioctl(struct file *file, unsigned int cmd, void *arg)
 			if( tcc_vsync_get_isVsyncRunning() )
 				tca_vsync_video_display_enable();
 #endif
-			
 			break;
 
 		case TCC_COMPOSITE_IOCTL_UPDATE:

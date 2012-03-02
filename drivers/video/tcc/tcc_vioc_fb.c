@@ -1289,9 +1289,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 	switch(cmd)
 	{
 		case TCC_LCDC_HDMI_START:
-			#if defined(CONFIG_TCC_OUTPUT_ATTACH)
 			TCC_OUTPUT_FB_DetachOutput();
-			#endif
 			TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_HDMI, EX_OUT_LCDC, 1);
 			#ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
 			if(tccvid_vsync.isVsyncRunning)

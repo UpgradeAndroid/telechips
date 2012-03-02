@@ -1149,10 +1149,8 @@ void TCC_OUTPUT_FB_UpdateSync(unsigned int type)
 
 	VIOC_RDMA_SetImageBase(pDISP_OUTPUT[type].pVIOC_RDMA_FB, FBimg_buf_addr, 0, 0);
 
-	#if defined(CONFIG_TCC_OUTPUT_ATTACH)
-		if(tcc_output_attach_state)
-			TCC_OUTPUT_FB_AttachUpdate(pDISP_OUTPUT[type].LCDC_N);
-	#endif
+	if(tcc_output_attach_state)
+		TCC_OUTPUT_FB_AttachUpdate(pDISP_OUTPUT[type].LCDC_N);
 	
 	FBimg_buf_addr = 0;
 
@@ -1465,7 +1463,12 @@ void TCC_OUTPUT_FB_AttachOutput(char src_lcdc_num, char dst_output)
 		pRDMA3 = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA03);
 	}
 
-	BITCSET(pDISP->uCTRL.nREG, 0xFFFFFFFF, 0);
+	VIOC_DISP_TurnOff(pDISP);
+
+	VIOC_RDMA_SetImageDisable(pRDMA);
+	VIOC_RDMA_SetImageDisable(pRDMA1);
+	VIOC_RDMA_SetImageDisable(pRDMA2);
+	VIOC_RDMA_SetImageDisable(pRDMA3);
 
 	#if 0
 	/* set WDMA */
@@ -1476,11 +1479,6 @@ void TCC_OUTPUT_FB_AttachOutput(char src_lcdc_num, char dst_output)
 	VIOC_WDMA_SetImageEnable(pWDMA, 0 /* OFF */);
 	pWDMA->uIRQSTS.nREG = 0xFFFFFFFF; // wdma status register all clear.
 	#endif
-
-	VIOC_RDMA_SetImageDisable(pRDMA);
-	VIOC_RDMA_SetImageDisable(pRDMA1);
-	VIOC_RDMA_SetImageDisable(pRDMA2);
-	VIOC_RDMA_SetImageDisable(pRDMA3);
 
 	if(dst_output == TCC_OUTPUT_COMPOSITE)
 	{
@@ -1564,7 +1562,7 @@ void TCC_OUTPUT_FB_DetachOutput(void)
 			tcc_composite_attach(tcc_output_attach_lcdc, 0);
 		#endif
 	}
-	else
+	else if(tcc_output_attach_output == TCC_OUTPUT_COMPONENT)
 	{
 		#if defined(CONFIG_FB_TCC_COMPONENT)
 		if(OutputType != TCC_OUTPUT_COMPONENT)	
