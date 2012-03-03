@@ -549,8 +549,11 @@ static void tcc8920_mmc_port_setup(void)
 	}
 	else if(system_rev == 0x1008)
 	{
-		#if defined(CONFIG_MMC_TCC_SUPPORT_EMMC)	// eMMC(SD0) + SD(SD1)
+		#if defined(CONFIG_MMC_TCC_SUPPORT_EMMC)	// eMMC(SD0) + SDHC(SD2)
 		tccUsedSDportNum = 2;
+
+		// for eMMC
+		tcc8920_mmc_platform_data[TCC_MMC_TYPE_EMMC].caps |= (MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED);
 
 		// for SDHC
 		mmc_ports[TCC_MMC_TYPE_SD].cd = TCC_GPE(0);
@@ -560,7 +563,7 @@ static void tcc8920_mmc_port_setup(void)
 
 		#else
 
-		#if 1	// SDHC(SD0) + WiFi(SD1)
+		#if 1	// SDHC(SD0) + WiFi(SD2)
 		// for SDHC
 		mmc_ports[TCC_MMC_TYPE_SD].data0 = TCC_GPD(18);
 		mmc_ports[TCC_MMC_TYPE_SD].data1 = TCC_GPD(17);
@@ -596,7 +599,7 @@ static void tcc8920_mmc_port_setup(void)
 		tcc8920_mmc_platform_data[TCC_MMC_TYPE_WIFI].io_name = RB_SDMMC1CONTROLLER;
 		tcc8920_mmc_platform_data[TCC_MMC_TYPE_WIFI].pic = HwINT1_SD1;
 
-		#else	// Only SD1 (SD+WiFi)
+		#else	// Only SDHC(SD2) (SD&WiFi)
 
 		tccUsedSDportNum = 1;
 		#endif
