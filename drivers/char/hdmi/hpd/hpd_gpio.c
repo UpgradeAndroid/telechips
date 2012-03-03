@@ -177,7 +177,7 @@ static int hpd_probe(struct platform_device *pdev)
 
 	gpio_request(hpd_port, "hpd");
 	
-	tcc_gpio_config(hpd_port, GPIO_FN(0));
+	tcc_gpio_config(hpd_port, GPIO_FN(0)|GPIO_PULLDOWN);
 
 	gpio_direction_input(hpd_port);
 
