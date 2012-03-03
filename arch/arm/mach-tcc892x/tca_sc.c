@@ -45,31 +45,37 @@
 #include <mach/tcc_pca953x.h>
 #include <mach/gpio.h>
 
+#if defined(CONFIG_MACH_TCC8920)
+#define GPIO_SC_CLK			TCC_GPC(24)
+#define GPIO_SC_DATA		TCC_GPC(23)
+#define GPIO_SC_CMDVCC		TCC_GPEXT2(7)
+#define GPIO_SC_RST			TCC_GPEXT2(6)
+#define GPIO_SC_DETECT		TCC_GPB(16)
+#elif defined(CONFIG_MACH_TCC8920ST)
 #define GPIO_SC_CLK			TCC_GPB(26)
+#define GPIO_SC_DATA		TCC_GPB(25)
+#define GPIO_SC_CMDVCC		TCC_GPB(20)
+#define GPIO_SC_RST		TCC_GPB(27)
+#define GPIO_SC_DETECT		TCC_GPG(16)
+#else
+#endif
 #define SC_CLK_OUTPUT		gpio_direction_output(GPIO_SC_CLK, 1)
 #define SC_CLK_LOW			gpio_set_value(GPIO_SC_CLK, 0)
 #define SC_CLK_HIGH			gpio_set_value(GPIO_SC_CLK, 1)
 
-#define GPIO_SC_DATA		TCC_GPB(25)
 #define SC_DATA_OUTPUT		gpio_direction_output(GPIO_SC_DATA, 1)
 #define SC_DATA_LOW		gpio_set_value(GPIO_SC_DATA, 0)
 #define SC_DATA_HIGH		gpio_set_value(GPIO_SC_DATA, 1)
-
-#define GPIO_SC_CMDVCC		TCC_GPB(20)
 
 #define SC_CMDVCC_INPUT		gpio_direction_input(GPIO_SC_CMDVCC)
 #define SC_CMDVCC_OUTPUT		gpio_direction_output(GPIO_SC_CMDVCC, 1)
 #define SC_CMDVCC_LOW		gpio_set_value(GPIO_SC_CMDVCC, 0)
 #define SC_CMDVCC_HIGH		gpio_set_value(GPIO_SC_CMDVCC, 1)
 
-#define GPIO_SC_RST		TCC_GPB(27)
-
 #define SC_RESET_INPUT		gpio_direction_input(GPIO_SC_RST)
 #define SC_RESET_OUTPUT		gpio_direction_output(GPIO_SC_RST, 1)
 #define SC_RESET_LOW		gpio_set_value(GPIO_SC_RST, 0)
 #define SC_RESET_HIGH		gpio_set_value(GPIO_SC_RST, 1)
-
-#define GPIO_SC_DETECT		TCC_GPG(16)
 
 #define SC_DETECT_INPUT	gpio_direction_input(GPIO_SC_DETECT)
 #define SC_DETECT_OUTPUT	gpio_direction_output(GPIO_SC_DETECT, 1)
@@ -85,9 +91,6 @@
 #define SC_VCCSEL_OUTPUT	NULL
 #define SC_VCCSEL_LOW		NULL
 #define SC_VCCSEL_HIGH		NULL
-
-#define GPIO_CAS_DATA		TCC_GPD(23)
-#define GPIO_CAS_CLK		TCC_GPD(24)
 
 #define HwINT1_UART 				Hw15										// R/W, UART interrupt enable
 
@@ -710,10 +713,17 @@ int tca_sc_enable(void)
 	if (uUartPort > 7)
 		return;
 
+#if defined(CONFIG_MACH_TCC8920)
 	if(uUartPort < 4)
-		BITCSET(pPORT->PCFG0.nREG, (0xFF<<(8*uUartPort)), Hw3);
+		BITCSET(pPORT->PCFG0.nREG, (0xFF<<(8*uUartPort)), 11);
 	else
-		BITCSET(pPORT->PCFG1.nREG, (0xFF<<(8*(uUartPort-4))), Hw3);
+		BITCSET(pPORT->PCFG1.nREG, (0xFF<<(8*(uUartPort-4))), 11);
+#elif defined(CONFIG_MACH_TCC8920ST)
+	if(uUartPort < 4)
+		BITCSET(pPORT->PCFG0.nREG, (0xFF<<(8*uUartPort)), 8);
+	else
+		BITCSET(pPORT->PCFG1.nREG, (0xFF<<(8*(uUartPort-4))), 8);
+#endif
 
 	switch(uUartPort){
 		case 0: phy_port = pPORT->PCFG0.bREG.UART0; break;
