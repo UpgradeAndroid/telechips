@@ -1495,6 +1495,7 @@ int TCCXXX_JPEG_Make_Header(unsigned int jpeg_BufferAddr, jpeg_encode_option_typ
 		temp = (EncodeOption->GpsInfo.time_stamp.year%1000)/100;
         	year[1] = temp+0x30;
 		temp = ((EncodeOption->GpsInfo.time_stamp.year%1000)%100)/10;
+         	year[2] = temp+0x30; 
 		temp = EncodeOption->GpsInfo.time_stamp.year%10;
 		year[3] = temp+0x30;
 
