@@ -176,8 +176,12 @@ static int hpd_probe(struct platform_device *pdev)
 	hpd_port = hpd_dev->hpd_port;
 
 	gpio_request(hpd_port, "hpd");
-	
+
+	#if defined(CONFIG_MACH_M805_892X)
 	tcc_gpio_config(hpd_port, GPIO_FN(0)|GPIO_PULLDOWN);
+	#else
+	tcc_gpio_config(hpd_port, GPIO_FN(0));
+	#endif
 
 	gpio_direction_input(hpd_port);
 
