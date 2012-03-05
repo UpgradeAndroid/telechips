@@ -903,7 +903,8 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 					#if defined(CONFIG_VIDEO_ATV_SENSOR_TVP5150)
 						if((frm_cnt == 1) && (bfield == 0)) {
 							dprintk("Deintl Initialization\n");
-							VIOC_VIQE_InitDeintlCoreNormal((VIQE *)pVIQEBase);
+							//VIOC_VIQE_InitDeintlCoreNormal((VIQE *)pVIQEBase);
+							VIOC_VIQE_InitDeintlCoreTemporal((VIQE *)pVIQEBase);
 
 							// if we want to operate temporal deinterlacer mode,
 							// initial 3 field are operated by spatial, then 
@@ -1743,7 +1744,7 @@ int tccxxx_vioc_scaler_set(VIOC_SC *pSC, VIOC_VIN *pVIN, VIOC_WMIX *pWMIX, uint 
 	struct TCCxxxCIF *data = (struct TCCxxxCIF *) &hardware_data;
 
 	dprintk("pVIN[0x%x] HWVIN0[0x%x] \n", pVIN, tcc_p2v(HwVIOC_VIN00));
-	
+
 	if ((uint)pVIN == (uint)tcc_p2v(HwVIOC_VIN00)) {
 		dw = data->cif_cfg.main_set.target_x;
 		dh = data->cif_cfg.main_set.target_y;
@@ -1887,7 +1888,7 @@ int tccxxx_vioc_viqe_main(uint use_top_size)
 
 	VIOC_VIQE_SetControlRegister((VIQE *)(pVIQEBase), width, height, fmt);
 
-	VIOC_VIQE_SetDeintlRegister((VIQE *)(pVIQEBase), fmt, width, height, bypass_deintl,
+	VIOC_VIQE_SetDeintlRegister((VIQE *)(pVIQEBase), fmt, OFF, width, height, bypass_deintl,
 			deintl_base0, deintl_base1, deintl_base2, deintl_base3);
 	VIOC_VIQE_SetDenoise((VIQE *)(pVIQEBase), fmt, width, height, bypass_d3d, frmnum,
 			denoise_base0, denoise_base1);
