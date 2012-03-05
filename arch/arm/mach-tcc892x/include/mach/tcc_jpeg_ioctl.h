@@ -88,7 +88,7 @@ typedef struct {
 	GPS_LATITUDE_TYPE 	Latitude;
 	GPS_LONGITUDE_TYPE 	Longitude;
 	int 				Altitude;
-	unsigned int 		Timestamp;
+        TCCXXX_JPEG_TIMESTAMP_TYPE time_stamp;
 	char 				Processing_Method[128];
 } TCCXXX_JPEG_GPS_INFO;
 

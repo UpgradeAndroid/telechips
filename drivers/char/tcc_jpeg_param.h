@@ -47,7 +47,7 @@ typedef struct {
 	GPS_LATITUDE_TYPE 	Latitude;
 	GPS_LONGITUDE_TYPE 	Longitude;
 	int 				Altitude;
-	unsigned int 		Timestamp;
+        jpeg_encode_time_type   time_stamp;
 	char 				Processing_Method[128];
 } jpeg_encode_gps_info_type;
 
