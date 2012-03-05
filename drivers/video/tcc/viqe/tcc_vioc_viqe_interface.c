@@ -43,6 +43,8 @@ static int gVIQE_RDMA_num = 0;
 static int gSC_RDMA_num = 0;
 static int gSCALER_reg = 0;
 static int gSCALER_num = 0;
+static int gusingScale = 0;
+static int gLcdc_layer = -1;
 static unsigned int gPMEM_VIQE_BASE;
 static unsigned int gPMEM_VIQE_SIZE;
 
@@ -313,7 +315,7 @@ void TCC_VIQE_DI_Init60Hz(int lcdCtrlNum, int Lcdc_layer, int useSCALER, unsigne
 
 	framebufWidth = ((srcWidth - crop_left - crop_right) >> 3) << 3;			// 8bit align
 	framebufHeight = ((srcHeight - crop_top - crop_bottom) >> 1) << 1;		// 2bit align
-	printk("TCC_VIQE_DI_Init60Hz, W:%d, H:%d, FMT:%d, VFMT:%s, OddFirst:%d, RDMA:%d\n", framebufWidth, framebufHeight, img_fmt, (viqe_fmt?"YUV422":"YUV420"), OddFirst, ((gRDMA_reg-HwVIOC_RDMA00)/256));
+	printk("TCC_VIQE_DI_Init60Hz, W:%d, H:%d, DW:%d, DH:%d, FMT:%d, VFMT:%s, OddFirst:%d, RDMA:%d\n", framebufWidth, framebufHeight, destWidth, destHeight, img_fmt, (viqe_fmt?"YUV422":"YUV420"), OddFirst, ((gRDMA_reg-HwVIOC_RDMA00)/256));
 
 #if 1
 	VIOC_DISP_GetSize(pDISPBase, &lcd_width, &lcd_height);
@@ -330,6 +332,7 @@ void TCC_VIQE_DI_Init60Hz(int lcdCtrlNum, int Lcdc_layer, int useSCALER, unsigne
 		
 		VIOC_SC_SetDstSize (pSCALERBase, destWidth, destHeight);			// set destination size in scaler
 		VIOC_SC_SetOutSize (pSCALERBase, destWidth, destHeight);			// set output size in scaer
+		gusingScale = 1;
 	}
 
 		
@@ -370,6 +373,7 @@ void TCC_VIQE_DI_Init60Hz(int lcdCtrlNum, int Lcdc_layer, int useSCALER, unsigne
 		VIOC_SC_SetUpdate (pSCALERBase);
 
 	VIOC_WMIX_SetUpdate(pWMIXBase);
+	gLcdc_layer = Lcdc_layer;
 
 
 	if(DI_mode == VIOC_VIQE_DEINTL_S)
@@ -398,7 +402,7 @@ void TCC_VIQE_DI_Init60Hz(int lcdCtrlNum, int Lcdc_layer, int useSCALER, unsigne
 		
 	if(DI_mode == VIOC_VIQE_DEINTL_S)
 	{
-		VIOC_API_VIQE_SetPlugIn(VIOC_DEINTLS, gVIQE_RDMA_num);
+		VIOC_CONFIG_PlugIn(VIOC_DEINTLS, gVIQE_RDMA_num);
 	}
 	else
 	{
@@ -407,7 +411,7 @@ void TCC_VIQE_DI_Init60Hz(int lcdCtrlNum, int Lcdc_layer, int useSCALER, unsigne
 		VIOC_VIQE_SetControlEnable(pVIQE, OFF, OFF, OFF, OFF, ON);
 		VIOC_VIQE_SetImageY2REnable(pVIQE, TRUE);
 		VIOC_VIQE_SetImageY2RMode(pVIQE, 0x02);
-		VIOC_API_VIQE_SetPlugIn(VIOC_VIQE, gVIQE_RDMA_num);
+		VIOC_CONFIG_PlugIn(VIOC_VIQE, gVIQE_RDMA_num);
 	}
 
 	gFrmCnt= 0;		
@@ -416,13 +420,62 @@ void TCC_VIQE_DI_Init60Hz(int lcdCtrlNum, int Lcdc_layer, int useSCALER, unsigne
 
 void TCC_VIQE_DI_Run60Hz(int useSCALER, unsigned int addr0, unsigned int addr1, unsigned int addr2,
 						unsigned int srcWidth, unsigned int srcHeight,	
-						int crop_top, int crop_bottom, int crop_left, int crop_right, int OddFirst)
+						int crop_top, int crop_bottom, int crop_left, int crop_right, 
+						unsigned int destWidth, unsigned int destHeight, 
+						unsigned int offset_x, unsigned int offset_y, int OddFirst)
 {
+	unsigned int lcd_width = 0, lcd_height = 0, lcd_h_pos = 0, lcd_w_pos = 0, scale_x = 0, scale_y = 0;
+
 	if(gFrmCnt == 0)
 		printk("TCC_VIQE_DI_Run60Hz\n");
 
 	if(gFrmCnt == 3)
 		VIOC_VIQE_SetDeintlMode(pVIQE, VIOC_VIQE_DEINTL_MODE_3D);
+	
+	if(useSCALER)
+	{
+		if(!gusingScale) {
+			gusingScale = 1;
+			VIOC_CONFIG_PlugIn (gSCALER_num, gSC_RDMA_num);			
+			VIOC_SC_SetBypass (pSCALERBase, OFF);
+		}
+		
+		VIOC_SC_SetDstSize (pSCALERBase, destWidth, destHeight);			// set destination size in scaler
+		VIOC_SC_SetOutSize (pSCALERBase, destWidth, destHeight);			// set output size in scaer
+		VIOC_SC_SetUpdate (pSCALERBase);
+	}
+
+	else
+	{
+		if(gusingScale == 1)	{
+			VIOC_RDMA_SetImageDisable(pRDMABase);
+			VIOC_CONFIG_PlugOut(VIOC_SC1);
+			gusingScale = 0;
+		}
+	}
+
+	VIOC_DISP_GetSize(pDISPBase, &lcd_width, &lcd_height);
+	if((!lcd_width) || (!lcd_height))
+	{
+		printk("%s invalid lcd size\n", __func__);
+		return;
+	}
+
+	lcd_h_pos = 0;
+	lcd_w_pos = 0;
+
+	if(lcd_width > destWidth)
+		lcd_w_pos = (lcd_width - destWidth)/2;
+	
+	if(lcd_height > destHeight)
+		lcd_h_pos = (lcd_height - destHeight)/2;
+
+	dprintk("%s lcd_width:%d, lcd_height:%d, lcd_w_pos:%d, lcd_h_pos:%d\n\n", __func__, lcd_width, lcd_height, lcd_w_pos, lcd_h_pos);
+	
+	// position
+	VIOC_WMIX_SetPosition(pWMIXBase, gLcdc_layer, lcd_w_pos, lcd_h_pos);
+	VIOC_WMIX_SetPosition(pWMIXBase, gLcdc_layer,  offset_x, (offset_y/2) );
+	VIOC_WMIX_SetUpdate(pWMIXBase);
 
 	VIOC_RDMA_SetImageBfield(pRDMABase, OddFirst);
 	// image address
@@ -444,16 +497,17 @@ void TCC_VIQE_DI_DeInit60Hz(void)
 	VIOC_RDMA_SetImageY2REnable(pRDMABase, TRUE);
 	VIOC_RDMA_SetImageY2RMode(pRDMABase, 0x02); /* Y2RMode Default 0 (Studio Color) */
 	VIOC_CONFIG_PlugOut(gSCALER_num);
+	gusingScale = 0;
 	
 	if(DI_mode == VIOC_VIQE_DEINTL_S)
 	{
-		VIOC_API_VIQE_SetPlugOut(VIOC_DEINTLS);
+		VIOC_CONFIG_PlugOut(VIOC_DEINTLS);
 		BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<17), (0x01<<17)); // DEINTLS reset
 		BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<17), (0x00<<17)); // DEINTLS reset
 	}
 	else
 	{
-		VIOC_API_VIQE_SetPlugOut(VIOC_VIQE);
+		VIOC_CONFIG_PlugOut(VIOC_VIQE);
 		BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<16), (0x01<<16)); // VIQE reset
 		BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<16), (0x00<<16)); // VIQE reset
 	}

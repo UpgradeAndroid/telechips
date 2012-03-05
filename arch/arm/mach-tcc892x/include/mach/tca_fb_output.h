@@ -29,9 +29,11 @@ extern
 #if defined(CONFIG_TCC_OUTPUT_STARTER)
 	#if defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION)
 	#define TCC_OUTPUT_STARTER_AUTO_DETECT
-	#else
+	#elif defined(CONFIG_TCC_OUTPUT_ATTACH)
 	#define TCC_OUTPUT_STARTER_DUAL
-	//#define TCC_OUTPUT_STARTER_SINGLE
+	#else
+	//#define TCC_OUTPUT_STARTER_DUAL
+	#define TCC_OUTPUT_STARTER_SINGLE
 	//#define TCC_OUTPUT_STARTER_AUTO_DETECT
 	#endif
 #endif
@@ -99,48 +101,6 @@ extern int TCC_OUTPUT_SetOutputResizeMode(int mode);
 extern int TCC_OUTPUT_FB_BackupVideoImg(char output_type);
 extern int TCC_OUTPUT_FB_RestoreVideoImg(char output_type);
 
-extern int TCC_OUTPUT_FB_Set3DMode(char enable, char mode);
-extern int TCC_OUTPUT_FB_Get3DMode(char *mode);
-
-#if defined(CONFIG_TCC_EXCLUSIVE_UI_LAYER)
-extern int TCC_OUTPUT_EXCLUSIVE_UI_Init(void);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_GetAddr(unsigned int *pBaseAddr);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_SetParam(exclusive_ui_params exclusive_ui_param);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_GetParam(exclusive_ui_params *pExclusive_ui_param);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_SetEnable(char enable);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_GetEnable(void);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_SetSize(exclusive_ui_size ui_size);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_SetInterlace(unsigned int interlace);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_GetInterlace(void);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_SetImage(struct tcc_lcdc_image_update *ImageInfo);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_Ctrl(unsigned int enable);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_SetUpdate(char value);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_GetUpdate(void);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_SetRatio(char aspect_ratio);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_GetRatio(void);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_SetAR(unsigned int aspect_ratio_x, unsigned int aspect_ratio_y);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_GetAR(exclusive_ui_ar_params *aspect_ratio);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_CfgAR(char lcdc_num, unsigned int width, unsigned int height, exclusive_ui_ar_params *aspect_ratio);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_SetBypass(char bypass);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_GetBypass(void);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_ViqeMtoM(char lcdc_num, unsigned int width, unsigned int height);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_Restore_Viqe(struct tcc_lcdc_image_update *ImageInfo, char lcdc_num, unsigned int width, unsigned int height, char index);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_Restore_Mixer(struct tcc_lcdc_image_update *ImageInfo, char lcdc_num, unsigned int width, unsigned int height, char index);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_Update(exclusive_ui_frame ui_frame);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_Update_Force(void);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_Update_Mixer(void);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_Clear(void);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_Clear_Force(char clear_force);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_SetOnTheFly_Scaler(char lcdc_num, char scaler_num, char OnOff);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_SetOnTheFly_Viqe(char lcdc_num, char scaler_num, char OnOff);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_Direct(char lcdc_num, char enable);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_Mixer(struct tcc_lcdc_image_update *ImageInfo, char index, char lastflag);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_Scaler(struct tcc_lcdc_image_update *ImageInfo, char scaler_num, unsigned int width, unsigned int height, char index, char lastflag);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_Scaler_Viqe(struct tcc_lcdc_image_update *ImageInfo, unsigned int width, unsigned int height, char index, char lcdc_num);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_Scaler_OnTheFly(struct tcc_lcdc_image_update *ImageInfo, char lcdc_num);
-extern int TCC_OUTPUT_EXCLUSIVE_UI_Process_Deinterlace(struct tcc_lcdc_image_update *ImageInfo, char force_update);
-#endif //CONFIG_TCC_EXCLUSIVE_UI_LAYER
-
 extern void TCC_OUTPUT_FB_Update_Disable(unsigned int disable);
 
 extern int TCC_OUTPUT_FB_MouseShow(unsigned int enable, unsigned int type);
@@ -148,6 +108,10 @@ extern int TCC_OUTPUT_FB_MouseMove(unsigned int width, unsigned int height, tcc_
 extern int TCC_OUTPUT_FB_MouseSetIcon(tcc_mouse_icon *mouse_icon);
 extern int TCC_OUTPUT_FB_Set3DMode(char enable, char mode);
 extern int TCC_OUTPUT_FB_Get3DMode(char *mode);
+
+extern void TCC_OUTPUT_FB_AttachOutput(char src_lcdc_num, char output_type);
+extern void TCC_OUTPUT_FB_DetachOutput(void);
+extern void TCC_OUTPUT_FB_AttachUpdate(char src_lcdc_num);
 
 #ifdef __cplusplus
  } 

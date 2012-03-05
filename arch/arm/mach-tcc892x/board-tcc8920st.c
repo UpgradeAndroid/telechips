@@ -354,7 +354,7 @@ static struct tcc_i2c_platform_data tcc8920_core1_platform_data = {
     .core_clk_rate      = 4*1000*1000,    /* core clock rate: 4MHz */
     .core_clk_name      = "i2c1",
     .smu_i2c_flag       = 0,
-    .i2c_ch_clk_rate[0] = 100,      /* SCL clock rate : 100kHz */
+    .i2c_ch_clk_rate[0] = 400,      /* SCL clock rate : 400kHz */
 };
 #endif
 #if defined(CONFIG_I2C_TCC_CORE2)

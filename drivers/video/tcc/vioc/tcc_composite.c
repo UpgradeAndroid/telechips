@@ -100,6 +100,11 @@ static int				Composite_LCDC_Num = -1;
 #define COMPOSITE_DETECT_EINTSEL	SEL_GPIOF27
 #define COMPOSITE_DETECT_EINTNUM	7
 #define COMPOSITE_DETECT_EINT		HwINT1_EI7
+#elif defined (CONFIG_MACH_TCC8920ST)
+#define COMPOSITE_DETECT_GPIO		TCC_GPF(1)
+#define COMPOSITE_DETECT_EINTSEL	EXTINT_GPIOF_01
+#define COMPOSITE_DETECT_EINTNUM	INT_EI7
+#define COMPOSITE_DETECT_EINT		1<<INT_EI7
 #else
 #define COMPOSITE_DETECT_GPIO		NULL
 #define COMPOSITE_DETECT_EINTSEL	NULL
@@ -110,8 +115,9 @@ static int				Composite_LCDC_Num = -1;
 static struct clk *composite_lcdc0_clk;
 static struct clk *composite_lcdc1_clk;
 static struct clk *composite_dac_clk;
+static struct clk *composite_ntscpal_clk;
 
-static TCC_COMPOSITE_MODE_TYPE tcc_composite_mode;
+static char tcc_composite_mode = COMPOSITE_MAX_M;
 
 static char composite_plugout = 0;
 static char composite_plugout_count = 0;
@@ -151,8 +157,11 @@ extern int tcc_vsync_get_isVsyncRunning(void);
 ******************************************************************************/
 static irqreturn_t tcc_composite_ext_handler(int irq, void *dev_id)
 {
-#if defined(CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST)
+	#if defined(CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST)
 	PPIC pHwPIC = (volatile PPIC)tcc_p2v(HwVPIC_BASE);
+	#elif defined(CONFIG_MACH_TCC8920ST)
+	PPIC pHwPIC = (volatile PPIC)tcc_p2v(HwPIC_BASE);
+	#endif
 	
 	dprintk("%s, composite_plugout_count=%d\n", __func__, composite_plugout_count);
 
@@ -166,21 +175,26 @@ static irqreturn_t tcc_composite_ext_handler(int irq, void *dev_id)
         BITCLR(pHwPIC->INTMSK0, COMPOSITE_DETECT_EINT);
         BITCLR(pHwPIC->IEN0, COMPOSITE_DETECT_EINT);
 		BITSET(pHwPIC->CLR0, COMPOSITE_DETECT_EINT);
-	#else
+	#elif defined(CONFIG_MACH_TCC8800ST)
         BITCLR(pHwPIC->INTMSK1, COMPOSITE_DETECT_EINT);
         BITCLR(pHwPIC->IEN1, COMPOSITE_DETECT_EINT);
 		BITSET(pHwPIC->CLR1, COMPOSITE_DETECT_EINT);
- 	#endif
+	#elif defined(CONFIG_MACH_TCC8920ST)
+        BITCLR(pHwPIC->INTMSK0.nREG, COMPOSITE_DETECT_EINT);
+        BITCLR(pHwPIC->IEN0.nREG, COMPOSITE_DETECT_EINT);
+		BITSET(pHwPIC->CLR0.nREG, COMPOSITE_DETECT_EINT);
+	#endif
 	}
 	else
 	{
 	#if defined(CONFIG_MACH_TCC9300ST)
 		BITSET(pHwPIC->CLR0, COMPOSITE_DETECT_EINT);
-	#else
+	#elif defined(CONFIG_MACH_TCC8800ST)
 		BITSET(pHwPIC->CLR1, COMPOSITE_DETECT_EINT);
+	#elif defined(CONFIG_MACH_TCC8920ST)
+		BITSET(pHwPIC->CLR0.nREG, COMPOSITE_DETECT_EINT);
 	#endif
 	}
-#endif
 
 	return IRQ_HANDLED;
 }
@@ -226,6 +240,8 @@ void tcc_composite_ext_interrupt_sel(char ext_int_num, char ext_int_sel)
 		BITCSET(pHwGPIOINT->EINTSEL3, 0x7F<<shift_bit, ext_int_sel<<shift_bit);
 	}
 	#endif
+#elif defined(CONFIG_MACH_TCC8920ST)
+    tcc_gpio_config_ext_intr(ext_int_num, ext_int_sel);
 #endif
 }
 
@@ -234,9 +250,13 @@ void tcc_composite_ext_interrupt_sel(char ext_int_num, char ext_int_sel)
 ******************************************************************************/
 void tcc_composite_ext_interrupt_set(char onoff)
 {
-#if defined(CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST)
+#if defined(CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST) || defined(CONFIG_MACH_TCC8920ST)
 	int ret, irq_num;
+	#if defined(CONFIG_MACH_TCC8920ST)
+	PPIC pHwPIC = (volatile PPIC)tcc_p2v(HwPIC_BASE);
+	#else
 	PPIC pHwPIC = (volatile PPIC)tcc_p2v(HwVPIC_BASE);
+	#endif
 	
 	composite_plugout_count = 0;
 
@@ -258,11 +278,16 @@ void tcc_composite_ext_interrupt_set(char onoff)
 		BITCLR(pHwPIC->MODE0, COMPOSITE_DETECT_EINT);
 		BITCLR(pHwPIC->MODEA0, COMPOSITE_DETECT_EINT);
 		BITSET(pHwPIC->SEL0, COMPOSITE_DETECT_EINT);
-	#else
+	#elif defined(CONFIG_MACH_TCC8800ST)
 		BITCLR(pHwPIC->POL1, COMPOSITE_DETECT_EINT);
 		BITCLR(pHwPIC->MODE1, COMPOSITE_DETECT_EINT);
 		BITCLR(pHwPIC->MODEA1, COMPOSITE_DETECT_EINT);
 		BITSET(pHwPIC->SEL1, COMPOSITE_DETECT_EINT);
+	#elif defined(CONFIG_MACH_TCC8920ST)
+		BITCLR(pHwPIC->POL0.nREG, COMPOSITE_DETECT_EINT);
+		BITCLR(pHwPIC->MODE0.nREG, COMPOSITE_DETECT_EINT);
+		BITCLR(pHwPIC->MODEA0.nREG, COMPOSITE_DETECT_EINT);
+		BITSET(pHwPIC->SEL0.nREG, COMPOSITE_DETECT_EINT);
 	#endif
 
 		if(ret = request_irq(irq_num, tcc_composite_ext_handler, IRQF_SHARED, "TCC_COMPOSITE_EXT", tcc_composite_ext_handler))	
@@ -274,10 +299,14 @@ void tcc_composite_ext_interrupt_set(char onoff)
 		BITSET(pHwPIC->CLR0, COMPOSITE_DETECT_EINT);
 		BITSET(pHwPIC->INTMSK0, COMPOSITE_DETECT_EINT);	
         BITSET(pHwPIC->IEN0, COMPOSITE_DETECT_EINT);
-	#else
+	#elif defined(CONFIG_MACH_TCC8800ST)
 		BITSET(pHwPIC->CLR1, COMPOSITE_DETECT_EINT);
 		BITSET(pHwPIC->INTMSK1, COMPOSITE_DETECT_EINT);	
         BITSET(pHwPIC->IEN1, COMPOSITE_DETECT_EINT);
+	#elif defined(CONFIG_MACH_TCC8920ST)
+        BITSET(pHwPIC->CLR0.nREG, COMPOSITE_DETECT_EINT);
+		BITSET(pHwPIC->INTMSK0.nREG, COMPOSITE_DETECT_EINT);	
+        BITSET(pHwPIC->IEN0.nREG, COMPOSITE_DETECT_EINT);
 	#endif
 
 		composite_ext_interrupt = 1;
@@ -293,10 +322,14 @@ void tcc_composite_ext_interrupt_set(char onoff)
         BITCLR(pHwPIC->INTMSK0, COMPOSITE_DETECT_EINT);
         BITCLR(pHwPIC->IEN0, COMPOSITE_DETECT_EINT);
         BITSET(pHwPIC->CLR0, COMPOSITE_DETECT_EINT);
-	#else
+	#elif defined(CONFIG_MACH_TCC8800ST)
         BITCLR(pHwPIC->INTMSK1, COMPOSITE_DETECT_EINT);
         BITCLR(pHwPIC->IEN1, COMPOSITE_DETECT_EINT);
         BITSET(pHwPIC->CLR1, COMPOSITE_DETECT_EINT);
+	#elif defined(CONFIG_MACH_TCC8920ST)
+        BITCLR(pHwPIC->INTMSK0.nREG, COMPOSITE_DETECT_EINT);
+        BITCLR(pHwPIC->IEN0.nREG, COMPOSITE_DETECT_EINT);
+        BITSET(pHwPIC->CLR0.nREG, COMPOSITE_DETECT_EINT);
 	#endif
 
 		composite_ext_interrupt = 0;
@@ -313,7 +346,7 @@ int tcc_composite_detect(void)
 {
 	int detect = true;
 
-	#if defined (CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST)
+	#if defined (CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST) || defined(CONFIG_MACH_TCC8920ST)
 		#if defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION)
 			if(composite_plugout)
 			{
@@ -565,6 +598,8 @@ void tcc_composite_set_lcd2tv(COMPOSITE_MODE_TYPE type)
 	VIOC_WMIX_SetOverlayPriority(pWIXBase, 0);
 	VIOC_WMIX_SetBGColor(pWIXBase, 0x00, 0x00, 0x00, 0xff);
 	VIOC_WMIX_SetSize(pWIXBase, width, height);
+	VIOC_WMIX_SetPosition(pWIXBase, 0, 0, 0);
+	VIOC_WMIX_SetChromaKey(pWIXBase, 0, 0, 0, 0, 0, 0xF8, 0xFC, 0xF8);
 	VIOC_WMIX_SetUpdate(pWIXBase);
 
 	if(Composite_LCDC_Num)	
@@ -575,8 +610,6 @@ void tcc_composite_set_lcd2tv(COMPOSITE_MODE_TYPE type)
 	{
 		VIOC_OUTCFG_SetOutConfig(VIOC_OUTCFG_SDVENC, VIOC_OUTCFG_DISP0);
 	}
-
-	TCC_OUTPUT_UPDATE_OnOff(1, TCC_OUTPUT_COMPOSITE);
 }
 
 /*****************************************************************************
@@ -1238,7 +1271,7 @@ void tcc_composite_clock_onoff(char OnOff)
 			clk_enable(composite_lcdc0_clk);
 		
 		clk_enable(composite_dac_clk);
-
+		clk_enable(composite_ntscpal_clk);
 	}
 	else
 	{
@@ -1248,6 +1281,7 @@ void tcc_composite_clock_onoff(char OnOff)
 			clk_disable(composite_lcdc0_clk);
 
 		clk_disable(composite_dac_clk);
+		clk_disable(composite_ntscpal_clk);
 	}
 }
 
@@ -1267,6 +1301,8 @@ static long tcc_composite_ioctl(struct file *file, unsigned int cmd, void *arg)
 		case TCC_COMPOSITE_IOCTL_START:
 			copy_from_user(&start,arg,sizeof(start));
 
+			TCC_OUTPUT_FB_DetachOutput();
+			
 			TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_COMPOSITE, start.lcdc, TRUE);
 
 			if(start.lcdc != Composite_LCDC_Num)
@@ -1276,11 +1312,12 @@ static long tcc_composite_ioctl(struct file *file, unsigned int cmd, void *arg)
 			}
 			tcc_composite_start(start.mode);
 
+			TCC_OUTPUT_UPDATE_OnOff(1, TCC_OUTPUT_COMPOSITE);
+
 #ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
 			if( tcc_vsync_get_isVsyncRunning() )
 				tca_vsync_video_display_enable();
 #endif
-			
 			break;
 
 		case TCC_COMPOSITE_IOCTL_UPDATE:
@@ -1314,6 +1351,30 @@ static long tcc_composite_ioctl(struct file *file, unsigned int cmd, void *arg)
 	}
 
 	return 0;
+}
+
+/*****************************************************************************
+ Function Name : tcc_composite_attach()
+******************************************************************************/
+void tcc_composite_attach(char lcdc_num, char onoff)
+{
+	char composite_mode;
+
+	if(onoff)
+	{
+		if(tcc_composite_mode == COMPOSITE_MAX_M)
+			composite_mode = COMPOSITE_NTST_M;
+		else
+			composite_mode = tcc_composite_mode;
+
+		tcc_composite_set_lcdc(lcdc_num);
+		tcc_composite_clock_onoff(TRUE);
+		tcc_composite_start(COMPOSITE_NTST_M);
+	}
+	else
+	{
+		tcc_composite_end();
+	}
 }
 
 /*****************************************************************************
@@ -1363,6 +1424,8 @@ int __init tcc_composite_init(void)
 	BUG_ON(composite_lcdc1_clk == NULL);
 	composite_dac_clk = clk_get(0, "vdac_phy");
 	BUG_ON(composite_dac_clk == NULL);
+	composite_ntscpal_clk = clk_get(0, "ntscpal");
+	BUG_ON(composite_ntscpal_clk == NULL);
 
 	register_chrdev(MAJOR_ID, DEVICE_NAME, &tcc_composite_fops);
 	tcc_composite_class = class_create(THIS_MODULE, DEVICE_NAME);
@@ -1398,6 +1461,8 @@ void __exit tcc_composite_cleanup(void)
 		clk_put(composite_lcdc1_clk);
 	if(composite_dac_clk =! NULL)
 		clk_put(composite_dac_clk);
+	if(composite_ntscpal_clk =! NULL)
+		clk_put(composite_ntscpal_clk);
 
 	return;
 }

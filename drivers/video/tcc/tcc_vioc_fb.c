@@ -402,20 +402,12 @@ inline static int tcc_vsync_is_empty_buffer(tcc_vsync_buffer_t * buffer_t)
 static void tcc_check_interlace_output(int output_mode)
 {
 	VIOC_DISP * pDISPBase;
-	char hdmi_lcdc = EX_OUT_LCDC;
+	char output_lcdc = EX_OUT_LCDC;
 
-	if( output_mode == TCC_OUTPUT_HDMI ){
-		if(hdmi_lcdc)
-			pDISPBase = (VIOC_DISP*)tcc_p2v(HwVIOC_DISP1);
-		else
-			pDISPBase = (VIOC_DISP*)tcc_p2v(HwVIOC_DISP0);
-	}
-	else if( (output_mode == TCC_OUTPUT_COMPONENT) || (output_mode == TCC_OUTPUT_COMPOSITE) ){
-		if(hdmi_lcdc)
-			pDISPBase = (VIOC_DISP*)tcc_p2v(HwVIOC_DISP0);
-		else
-			pDISPBase = (VIOC_DISP*)tcc_p2v(HwVIOC_DISP1);
-	}
+	if(output_lcdc)
+		pDISPBase = (VIOC_DISP*)tcc_p2v(HwVIOC_DISP1);
+	else
+		pDISPBase = (VIOC_DISP*)tcc_p2v(HwVIOC_DISP0);
 	
 	if(pDISPBase->uCTRL.nREG & HwDISP_NI)
 		tccvid_vsync.interlace_output = 0;
@@ -600,7 +592,9 @@ static void DisplayUpdateWithDeinterlace(void)
 				{
 					TCC_VIQE_DI_Run60Hz(pNextImage->on_the_fly, pNextImage->addr0, pNextImage->addr1, pNextImage->addr2,
 										pNextImage->Frame_width, pNextImage->Frame_height,
-										pNextImage->crop_top,pNextImage->crop_bottom, pNextImage->crop_left, pNextImage->crop_right, pNextImage->odd_first_flag);
+										pNextImage->crop_top,pNextImage->crop_bottom, pNextImage->crop_left, pNextImage->crop_right, 
+										pNextImage->Image_width, pNextImage->Image_height, 
+										pNextImage->offset_x, pNextImage->offset_y, pNextImage->odd_first_flag);
 				}
 				/*
 				else
@@ -654,7 +648,9 @@ static void DisplayUpdateWithDeinterlace(void)
 			{
 				TCC_VIQE_DI_Run60Hz(pNextImage->on_the_fly, pNextImage->addr0, pNextImage->addr1, pNextImage->addr2,
 									pNextImage->Frame_width, pNextImage->Frame_height,
-									pNextImage->crop_top,pNextImage->crop_bottom, pNextImage->crop_left, pNextImage->crop_right, pNextImage->odd_first_flag^0x01);
+									pNextImage->crop_top,pNextImage->crop_bottom, pNextImage->crop_left, pNextImage->crop_right, 
+									pNextImage->Image_width, pNextImage->Image_height,
+									pNextImage->offset_x, pNextImage->offset_y, pNextImage->odd_first_flag^0x01);
 			}
 			/*
 			else
@@ -1293,6 +1289,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 	switch(cmd)
 	{
 		case TCC_LCDC_HDMI_START:
+			TCC_OUTPUT_FB_DetachOutput();
 			TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_HDMI, EX_OUT_LCDC, 1);
 			#ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
 			if(tccvid_vsync.isVsyncRunning)
@@ -1597,12 +1594,16 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 					return -EFAULT;
 
 				TCC_OUTPUT_FB_Set3DMode(TRUE, mode);
+				TCC_OUTPUT_FB_Update(fb_info->fb->var.xres, fb_info->fb->var.yres, fb_info->fb->var.bits_per_pixel, Output_BaseAddr, Output_SelectMode);
+				TCC_OUTPUT_FB_UpdateSync(Output_SelectMode);
 			}
 			break;
 			
 		case TCC_LCDC_3D_UI_DISABLE:
 			{
 				TCC_OUTPUT_FB_Set3DMode(FALSE, 0);
+				TCC_OUTPUT_FB_Update(fb_info->fb->var.xres, fb_info->fb->var.yres, fb_info->fb->var.bits_per_pixel, Output_BaseAddr, Output_SelectMode);
+				TCC_OUTPUT_FB_UpdateSync(Output_SelectMode);
 			}
 			break;
 			
@@ -1726,16 +1727,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 
 			//if(tccvid_vsync.firstFrameFlag == 0)
 			{
-#ifdef TCC_VIDEO_DISPLAY_DEINTERLACE_MODE
-				if(tccvid_vsync.deinterlace_mode && !tccvid_vsync.output_toMemory)
-					TCC_VIQE_DI_DeInit60Hz();
-#endif
 				spin_lock_irq(&vsync_lock) ;
-				tccvid_vsync.firstFrameFlag = 1;
-				tccvid_vsync.deinterlace_mode = -1;
-				tccvid_vsync.m2m_mode = -1;
-				tccvid_vsync.output_toMemory = -1;
-
 				// have to add code about pop all buffer.
 				tcc_vsync_pop_all_buffer(&tccvid_vsync.vsync_buffer);
 				printk("### vsync pop all buffer success!\n");
@@ -1854,7 +1846,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 				unsigned int lcdCtrlNum, lcd_width, lcd_height;
 				VIOC_DISP * pDISPBase;
 						
-				if((tccvid_vsync.outputMode == TCC_OUTPUT_NONE) || (tccvid_vsync.outputMode == TCC_OUTPUT_COMPONENT) || (tccvid_vsync.outputMode == TCC_OUTPUT_COMPOSITE))
+				if((tccvid_vsync.outputMode == TCC_OUTPUT_NONE))
 					lcdCtrlNum = LCD_LCDC_NUM;
 				else
 					lcdCtrlNum = EX_OUT_LCDC; 
@@ -1973,7 +1965,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 				int lcdCtrlNum;
 				printk("first TCC_excuteVIQE_60Hz \n") ;
 
-				if((tccvid_vsync.outputMode == TCC_OUTPUT_NONE) || (tccvid_vsync.outputMode == TCC_OUTPUT_COMPONENT) || (tccvid_vsync.outputMode == TCC_OUTPUT_COMPOSITE))
+				if((tccvid_vsync.outputMode == TCC_OUTPUT_NONE))
 					lcdCtrlNum = LCD_OUT_LCDC;
 				else
 					lcdCtrlNum = EX_OUT_LCDC;	

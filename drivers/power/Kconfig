@@ -241,4 +241,10 @@ config BATTERY_TCC
 	help
 	  Say Y here to enable support for the battery on Telechips evaluation board.
 
+config BATTERY_COBY
+	tristate "Coby battery /charger driver"
+	depends on BATTERY_TCC
+	help
+	  Say Y here to enable support for the battery on Coby Device.
+
 endif # POWER_SUPPLY
