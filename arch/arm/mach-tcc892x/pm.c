@@ -2088,6 +2088,8 @@ static void tcc_pm_power_off(void)
 #elif defined(CONFIG_REGULATOR_RN5T614)
 	extern void rn5t614_power_off(void);
 	rn5t614_power_off();
+	if(system_rev == 0x1008)
+	    gpio_set_value(TCC_GPC(9),0);
 #endif
 
 	if(machine_is_m801_88() || machine_is_m803()){
