@@ -252,6 +252,21 @@ static struct regulator_init_data rn5t614_dcdc1_info = {
 	.consumer_supplies     = &rn5t614_consumer,
 };
 
+static struct regulator_consumer_supply rn5t614_consumer_wifi = {
+	.supply = "vdd_wifi30",
+};
+
+static struct regulator_init_data rn5t614_ldo5_info = {
+	.constraints = {
+		.name = "vdd_wifi30",
+		.min_uV = 3000000,
+		.max_uV = 3000000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS,
+	},
+	.num_consumer_supplies = 1,
+	.consumer_supplies     = &rn5t614_consumer_wifi,
+};
+
 static struct regulator_consumer_supply rn5t614_consumer_hdmi_osc = {
 	.supply = "vdd_sata33",
 };
@@ -272,6 +287,11 @@ static struct rn5t614_subdev_data rn5t614_subdev[] = {
 		.name = "vdd_core",
 		.id   = RN5T614_ID_DCDC1,
 		.platform_data = &rn5t614_dcdc1_info,
+	},
+	{
+		.name = "vdd_wifi30",
+		.id   = RN5T614_ID_LDO5,
+		.platform_data = &rn5t614_ldo5_info,
 	},
 	{
 		.name = "vdd_sata33",
@@ -303,7 +323,7 @@ static int rn5t614_port_init(int irq_num)
 }
 
 static struct rn5t614_platform_data rn5t614_info = {
-	.num_subdevs = 1,
+	.num_subdevs = 2,
 	.subdevs     = rn5t614_subdev,
 	.init_port   = rn5t614_port_init,
 };

@@ -37,7 +37,7 @@ static int      wifi_major = WIFI_PWR_DEV_MAJOR;
 static dev_t    dev;
 static struct   cdev  wifi_cdev;
 static struct   class *wifi_class;
-static struct   regulator *vdd_wifi_osc = NULL;
+static struct   regulator *vdd_wifi = NULL;
 extern int axp192_ldo_set_wifipwd(int mode);
 int wifi_stat = 0;
 EXPORT_SYMBOL(wifi_stat);
@@ -47,15 +47,15 @@ static int wifi_pwr_open (struct inode *inode, struct file *filp)
 {
     printk("%s\n", __func__); 
 
-#ifdef PMU_WIFI_SWITCH
-    vdd_wifi_osc =  regulator_get(NULL, "vdd_wifi_osc");
-    if( IS_ERR( vdd_wifi_osc))
-	{
-	    vdd_wifi_osc = NULL;
-        printk("vdd_wifi_osc--ERROR!!!\n"); 
+#if defined(CONFIG_REGULATOR)
+	if(system_rev == 0x2002) {
+	    vdd_wifi =  regulator_get(NULL, "vdd_wifi30");
+    	if( IS_ERR(vdd_wifi))
+		{
+		    vdd_wifi = NULL;
+	        printk("vdd_wifi--get ERROR!!!\n"); 
+		}
 	}
-#else
-//	gpio_direction_output(GPIO_WF_EN, 1);	
 #endif
 
     return 0;  
@@ -63,7 +63,8 @@ static int wifi_pwr_open (struct inode *inode, struct file *filp)
 
 static int wifi_pwr_release (struct inode *inode, struct file *filp)  
 {  
-    vdd_wifi_osc = NULL;
+	if(system_rev == 0x2002)
+	    vdd_wifi = NULL;
     printk("%s\n", __func__); 
     return 0;  
 }  
@@ -74,41 +75,23 @@ int wifi_pwr_ioctl_hw( unsigned int cmd)
     switch( cmd )  
     {  
         case 1 : // WIFI_On
-#ifdef PMU_WIFI_SWITCH		
-	        if (vdd_wifi_osc)
-			{			
-            regulator_enable(vdd_wifi_osc);
-			axp192_ldo_set_wifipwd(1);	
-
-		    gpio_direction_output(TCC_GPG(11), 1);							
-		    msleep(20);
-		    gpio_direction_output(TCC_GPG(11), 0);			
-		    msleep(20);
-		    gpio_direction_output(TCC_GPG(11), 1);
-		    msleep(20);					
-		    gpio_direction_output(TCC_GPG(10), 1);				
-		    msleep(20);				
-			}
-			sys_sched_yield();
-#else
-            //regulator_enable(vdd_wifi_osc);
-			gpio_direction_output(GPIO_WF_EN, 1);	
+#ifdef CONFIG_REGULATOR
+			if(system_rev == 0x2002) {
+		        if (vdd_wifi)			
+		            regulator_enable(vdd_wifi);
+			}else
 #endif			
+				gpio_direction_output(GPIO_WF_EN, 1);	
             break;   
-			
         case 0 : // WIFI_Off
-#ifdef PMU_WIFI_SWITCH	
-	        if (vdd_wifi_osc)
-			{
-			
-            regulator_force_disable(vdd_wifi_osc);
-            }
-#else
-			//axp192_ldo_set_wifipwd(0);
+#ifdef CONFIG_REGULATOR	
+			if(system_rev == 0x2002) {
+	        	if (vdd_wifi)
+            		regulator_disable(vdd_wifi);
+			}else
+#endif
 			gpio_direction_output(GPIO_WF_EN, 0);	
-#endif			
             break;
-
         default :
             break;
     };
@@ -204,13 +187,14 @@ static void __exit wifi_pwr_exit(void)
     cdev_del(&wifi_cdev);
     unregister_chrdev_region(dev, 1);
 
-#ifdef PMU_WIFI_SWITCH
-	        if (vdd_wifi_osc)
-            regulator_disable(vdd_wifi_osc);
-			vdd_wifi_osc = NULL;
-#else
-	gpio_direction_output(GPIO_WF_EN, 1);
+#ifdef CONFIG_REGULATOR
+	if(system_rev == 0x2002) {
+		if (vdd_wifi)
+			regulator_disable(vdd_wifi);
+		vdd_wifi = NULL;
+	}else
 #endif
+	gpio_direction_output(GPIO_WF_EN, 1);
 			
     printk("wifi_pwr_ctl driver unloaded");
 }  
