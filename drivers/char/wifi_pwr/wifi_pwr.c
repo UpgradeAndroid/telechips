@@ -45,21 +45,6 @@ EXPORT_SYMBOL(wifi_stat);
 
 static int wifi_pwr_open (struct inode *inode, struct file *filp)  
 {
-    printk("%s\n", __func__); 
-
-#if defined(CONFIG_REGULATOR)
-	if(system_rev == 0x2002) {
-	    vdd_wifi =  regulator_get(NULL, "vdd_wifi30");
-    	if( IS_ERR(vdd_wifi))
-		{
-		    vdd_wifi = NULL;
-	        printk("vdd_wifi--get ERROR!!!\n"); 
-		}
-		regulator_disable(vdd_wifi);	// default is off
-	}
-#endif
-
-	
     return 0;  
 }
 
@@ -166,10 +151,24 @@ static int __init wifi_pwr_init(void)
     device_create(wifi_class, NULL, MKDEV(wifi_major, MINOR(dev)), NULL,
                   WIFI_GPIO_DEV_NAME);
 
+#if defined(CONFIG_REGULATOR)
+    if(system_rev == 0x2002) {
+        vdd_wifi =  regulator_get(NULL, "vdd_wifi30");
+        if( IS_ERR(vdd_wifi))
+        {
+            vdd_wifi = NULL;
+            printk("vdd_wifi--get ERROR!!!\n");
+        }
+        regulator_enable(vdd_wifi);    // default is on
+        regulator_disable(vdd_wifi);    // default is off
+    }else   
+#endif
+    {
 	tcc_gpio_config(GPIO_WF_EN, GPIO_FN(0) );
 	gpio_request(GPIO_WF_EN,"wifi_pwr");
 	
 	gpio_direction_output(GPIO_WF_EN, 0);//default-openit.	
+    }
     if (result < 0)
         return result;  
 
