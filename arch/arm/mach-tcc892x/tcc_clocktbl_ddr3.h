@@ -83,7 +83,7 @@ const struct tcc_freq_table_t gtVpuNormalClockLimitTable[] =
 	/*  CPU /   DDI /   MEM /   GPU /    IO /  VBUS /  VCOD /   SMU /  HSIO */	
 	{ 343750, 189010, 322885,      0, 118735, 167800, 167800,      0,      0 },	// Core 1.05V  (166/166)
 	{ 401250, 222860, 380710,      0, 140000, 197860, 197860,      0,      0 },	// Core 1.10V  (168/168)
-	{ 401250, 386880, 533000,      0, 243040, 343480, 343480,      0,      0 },	// Core 1.30V  (336/336)
+	{ 401250, 386880, 600000,      0, 243040, 343480, 343480,      0,      0 },	// Core 1.30V  (336/336)
 };
 
 const struct tcc_freq_table_t gtVpu_480p_ClockLimitTable[] =
