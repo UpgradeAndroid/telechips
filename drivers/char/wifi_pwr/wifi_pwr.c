@@ -55,9 +55,11 @@ static int wifi_pwr_open (struct inode *inode, struct file *filp)
 		    vdd_wifi = NULL;
 	        printk("vdd_wifi--get ERROR!!!\n"); 
 		}
+		regulator_disable(vdd_wifi);	// default is off
 	}
 #endif
 
+	
     return 0;  
 }
 
@@ -166,7 +168,6 @@ static int __init wifi_pwr_init(void)
 
 	tcc_gpio_config(GPIO_WF_EN, GPIO_FN(0) );
 	gpio_request(GPIO_WF_EN,"wifi_pwr");
-	
 	
 	gpio_direction_output(GPIO_WF_EN, 0);//default-openit.	
     if (result < 0)
