@@ -36,7 +36,7 @@ static struct tcc_freq_table_t gtClockLimitTable[] = {
 	{ 718750,      0, 533000,      0, 219520,      0,      0, 100000,      0 },	// Core 1.25V
 	#if !defined(CONFIG_STB_BOARD_DONGLE)
 	{ 812500,      0, 600000,      0, 243040,      0,      0, 100000,      0 },	// Core 1.30V
-	#if !defined(CONFIG_STB_BOARD_HDB892S)
+	#if !defined(CONFIG_STB_BOARD_HDB892S) && !defined(CONFIG_STB_BOARD_HDB892F)
 	{ 937500,      0, 600000,      0, 243040,      0,      0, 100000,      0 },	// Core 1.40V
 	#endif
 	#endif

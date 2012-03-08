@@ -235,7 +235,11 @@ int tcc_ehci_vbus_ctrl(int on)
 	{
 		int gpio_host1_vbus_en;
 		 	
+		#if defined(CONFIG_STB_BOARD_HDB892F) 	
+		gpio_host1_vbus_en = TCC_GPE(21);
+		#else
 		gpio_host1_vbus_en = TCC_GPC(25);
+		#endif
 
 		tcc_gpio_config(gpio_host1_vbus_en, GPIO_FN(0));
 		gpio_request(gpio_host1_vbus_en, "host1_vbus_en");

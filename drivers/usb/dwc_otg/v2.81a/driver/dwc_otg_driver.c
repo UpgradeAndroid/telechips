@@ -111,6 +111,14 @@ extern const struct tcc_freq_table_t gtHSIOClockLimitTable;
 
 #define OTG_DBG(msg...) do{ printk( KERN_ERR "DWC_OTG : " msg ); }while(0)
 
+#if defined(CONFIG_STB_BOARD_HDB892S)
+	#define OTG0_ID		TCC_GPF(13)
+	#define LED_F_PN	TCC_GPB(24)
+#elif defined(CONFIG_STB_BOARD_HDB892F)
+	#define OTG0_ID		TCC_GPD(13)
+	#define LED_F_PN	TCC_GPF(03)	
+#endif
+
 #if defined(CONFIG_TCC_USB_TO_SATA)
 #define USB30_EN		TCC_GPF(10)
 #define USB30_VBUS_DET	TCC_GPD(13)
@@ -754,9 +762,11 @@ static int tcc_usb_thread(void* _dwc_otg_device)
 	dwc_otg_device->flagID = -1;
 	dwc_otg_device->flagDeviceAttach = 0;
 
-	#if defined(CONFIG_MACH_TCC8920ST)
-		gpio_set_value(TCC_GPF(13), 0);
-		gpio_set_value(TCC_GPB(24), 1);
+	#if defined(CONFIG_STB_BOARD_HDB892S) || defined(CONFIG_STB_BOARD_HDB892F)
+		tcc_gpio_config(OTG0_ID, GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);
+		tcc_gpio_config(LED_F_PN, GPIO_FN(0)|GPIO_OUTPUT|GPIO_HIGH);
+		gpio_set_value(OTG0_ID, 0);
+		gpio_set_value(LED_F_PN, 1);
 	#endif
 	
 	#if defined(CONFIG_TCC_USB_TO_SATA)
