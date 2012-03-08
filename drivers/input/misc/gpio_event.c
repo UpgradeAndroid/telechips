@@ -267,7 +267,7 @@ static int gpio_event_resume(struct platform_device *pdev)
 	int is_wakeup_by_powerkey = 0;
 	PPMU pPMU = (PPMU)tcc_p2v(HwPMU_BASE);
 
-#if defined(CONFIG_REGULATOR_AXP192_PEK)
+#if defined(CONFIG_REGULATOR_AXP192_PEK) || defined(CONFIG_REGULATOR_AXP202_PEK)
 	return 0;
 #endif
 
