@@ -293,10 +293,12 @@ int __init tcc8920_init_panel(void)
 	if (ret)
 		return ret;
 
+#if !defined(CONFIG_MACH_TCC8920ST)
 	platform_device_register(&tcc8920_backlight);
 	ret = platform_driver_register(&tcc8920_backlight_driver);
 	if (ret)
 		return ret;
+#endif
 
 	return 0;
 }
