@@ -68,7 +68,7 @@ static struct mmc_port_config mmc_ports[] = {
 		.pwr	= GPIO_SD0_ON,
 	},
 	#if defined(TCC_MMC_SDIO_WIFI_USED)
-	#if defined(CONFIG_STB_BOARD_DONGLE)
+	#if defined(CONFIG_STB_BOARD_DONGLE) || defined(CONFIG_STB_BOARD_HDB892F)
 	[TCC_MMC_TYPE_WIFI] = {
 		.data0	= TCC_GPD(18),
 		.data1	= TCC_GPD(17),
@@ -83,7 +83,11 @@ static struct mmc_port_config mmc_ports[] = {
 		.func	= GPIO_FN(2),
 		.width	= TCC_MMC_BUS_WIDTH_4,
 
+		#if defined(CONFIG_STB_BOARD_DONGLE)
 		.cd	= TCC_MMC_PORT_NULL,
+		#elif defined(CONFIG_STB_BOARD_HDB892F)
+		.cd	= TCC_GPF(2),
+		#endif
 		.pwr	= TCC_GPD(21),
 	},
 	#else
@@ -116,7 +120,7 @@ int tcc8920_mmc_init(struct device *dev, int id)
 		gpio_request(mmc_ports[id].pwr, "sd_power");
 
 	#if defined(TCC_MMC_SDIO_WIFI_USED)
-	#if defined(CONFIG_STB_BOARD_DONGLE)
+	#if defined(CONFIG_STB_BOARD_DONGLE) || defined(CONFIG_STB_BOARD_HDB892F)
 	if(id == TCC_MMC_TYPE_WIFI)
 	{
 		gpio_request(TCC_GPD(20), "wifi_pre_power");
@@ -269,7 +273,7 @@ struct tcc_mmc_platform_data tcc8920_mmc_platform_data[] = {
 		.pic = HwINT1_SD1,
 	},
 	#if defined(TCC_MMC_SDIO_WIFI_USED)
-	#if defined(CONFIG_STB_BOARD_DONGLE)
+	#if defined(CONFIG_STB_BOARD_DONGLE) || defined(CONFIG_STB_BOARD_HDB892F)
 	[TCC_MMC_TYPE_WIFI] = {
 		.slot	= 4,
 		.caps	= MMC_CAP_SDIO_IRQ | MMC_CAP_4_BIT_DATA

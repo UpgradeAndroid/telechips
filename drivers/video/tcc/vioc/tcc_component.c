@@ -114,6 +114,11 @@ static int				Component_FID = 0;
 #define COMPONENT_DETECT_EINTSEL	SEL_GPIOF26
 #define COMPONENT_DETECT_EINTNUM	6
 #define COMPONENT_DETECT_EINT		HwINT1_EI6
+#elif defined (CONFIG_MACH_TCC8920ST)
+#define COMPONENT_DETECT_GPIO		TCC_GPB(29)
+#define COMPONENT_DETECT_EINTSEL	EXTINT_GPIOB_29
+#define COMPONENT_DETECT_EINTNUM	INT_EI6
+#define COMPONENT_DETECT_EINT		1<<INT_EI6
 #else
 #define COMPONENT_DETECT_GPIO		NULL
 #define COMPONENT_DETECT_EINTSEL	NULL
@@ -173,6 +178,8 @@ static irqreturn_t tcc_component_ext_handler(int irq, void *dev_id)
 {
 	#if defined(CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST)
 	PPIC pHwPIC = (volatile PPIC)tcc_p2v(HwVPIC_BASE);
+	#elif defined(CONFIG_MACH_TCC8920ST)
+	PPIC pHwPIC = (volatile PPIC)tcc_p2v(HwPIC_BASE);
 	#endif
 	
 	dprintk("%s, component_plugout_count=%d\n", __func__, component_plugout_count);
@@ -192,6 +199,9 @@ static irqreturn_t tcc_component_ext_handler(int irq, void *dev_id)
         BITCLR(pHwPIC->IEN1, COMPONENT_DETECT_EINT);
 		BITSET(pHwPIC->CLR1, COMPONENT_DETECT_EINT);
 	#elif defined(CONFIG_MACH_TCC8920ST)
+        BITCLR(pHwPIC->INTMSK0.nREG, COMPONENT_DETECT_EINT);
+        BITCLR(pHwPIC->IEN0.nREG, COMPONENT_DETECT_EINT);
+		BITSET(pHwPIC->CLR0.nREG, COMPONENT_DETECT_EINT);
 	#endif
 	}
 	else
@@ -201,6 +211,7 @@ static irqreturn_t tcc_component_ext_handler(int irq, void *dev_id)
 	#elif defined(CONFIG_MACH_TCC8800ST)
 		BITSET(pHwPIC->CLR1, COMPONENT_DETECT_EINT);
 	#elif defined(CONFIG_MACH_TCC8920ST)
+		BITSET(pHwPIC->CLR0.nREG, COMPONENT_DETECT_EINT);
 	#endif
 	}
 
@@ -248,6 +259,8 @@ void tcc_component_ext_interrupt_sel(char ext_int_num, char ext_int_sel)
 		BITCSET(pHwGPIOINT->EINTSEL3, 0x7F<<shift_bit, ext_int_sel<<shift_bit);
 	}
 	#endif
+#elif defined(CONFIG_MACH_TCC8920ST)
+    tcc_gpio_config_ext_intr(ext_int_num, ext_int_sel);
 #endif
 }
 
@@ -256,9 +269,13 @@ void tcc_component_ext_interrupt_sel(char ext_int_num, char ext_int_sel)
 ******************************************************************************/
 void tcc_component_ext_interrupt_set(char onoff)
 {
-#if defined(CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST)
+#if defined(CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST) || defined(CONFIG_MACH_TCC8920ST)
 	int ret, irq_num;
+	#if defined(CONFIG_MACH_TCC8920ST)
+	PPIC pHwPIC = (volatile PPIC)tcc_p2v(HwPIC_BASE);
+	#else
 	PPIC pHwPIC = (volatile PPIC)tcc_p2v(HwVPIC_BASE);
+	#endif
 	
 	component_plugout_count = 0;
 
@@ -280,11 +297,16 @@ void tcc_component_ext_interrupt_set(char onoff)
 		BITCLR(pHwPIC->MODE0, COMPONENT_DETECT_EINT);
 		BITCLR(pHwPIC->MODEA0, COMPONENT_DETECT_EINT);
 		BITSET(pHwPIC->SEL0, COMPONENT_DETECT_EINT);
-	#else
+	#elif defined(CONFIG_MACH_TCC8800ST)
 		BITCLR(pHwPIC->POL1, COMPONENT_DETECT_EINT);
 		BITCLR(pHwPIC->MODE1, COMPONENT_DETECT_EINT);
 		BITCLR(pHwPIC->MODEA1, COMPONENT_DETECT_EINT);
 		BITSET(pHwPIC->SEL1, COMPONENT_DETECT_EINT);
+	#elif defined(CONFIG_MACH_TCC8920ST)
+		BITCLR(pHwPIC->POL0.nREG, COMPONENT_DETECT_EINT);
+		BITCLR(pHwPIC->MODE0.nREG, COMPONENT_DETECT_EINT);
+		BITCLR(pHwPIC->MODEA0.nREG, COMPONENT_DETECT_EINT);
+		BITSET(pHwPIC->SEL0.nREG, COMPONENT_DETECT_EINT);
 	#endif
 
 		if(ret = request_irq(irq_num, tcc_component_ext_handler, IRQF_SHARED, "TCC_COMPONENT_EXT", tcc_component_ext_handler))	
@@ -296,10 +318,14 @@ void tcc_component_ext_interrupt_set(char onoff)
         BITSET(pHwPIC->CLR0, COMPONENT_DETECT_EINT);
 		BITSET(pHwPIC->INTMSK0, COMPONENT_DETECT_EINT);	
         BITSET(pHwPIC->IEN0, COMPONENT_DETECT_EINT);
-	#else
+	#elif defined(CONFIG_MACH_TCC8800ST)
         BITSET(pHwPIC->CLR1, COMPONENT_DETECT_EINT);
 		BITSET(pHwPIC->INTMSK1, COMPONENT_DETECT_EINT);	
         BITSET(pHwPIC->IEN1, COMPONENT_DETECT_EINT);
+	#elif defined(CONFIG_MACH_TCC8920ST)
+        BITSET(pHwPIC->CLR0.nREG, COMPONENT_DETECT_EINT);
+		BITSET(pHwPIC->INTMSK0.nREG, COMPONENT_DETECT_EINT);	
+        BITSET(pHwPIC->IEN0.nREG, COMPONENT_DETECT_EINT);
 	#endif
 
 		component_ext_interrupt = 1;
@@ -315,10 +341,14 @@ void tcc_component_ext_interrupt_set(char onoff)
         BITCLR(pHwPIC->INTMSK0, COMPONENT_DETECT_EINT);
         BITCLR(pHwPIC->IEN0, COMPONENT_DETECT_EINT);
         BITSET(pHwPIC->CLR0, COMPONENT_DETECT_EINT);
-	#else
+	#elif defined(CONFIG_MACH_TCC8800ST)
         BITCLR(pHwPIC->INTMSK1, COMPONENT_DETECT_EINT);
         BITCLR(pHwPIC->IEN1, COMPONENT_DETECT_EINT);
         BITSET(pHwPIC->CLR1, COMPONENT_DETECT_EINT);
+	#elif defined(CONFIG_MACH_TCC8920ST)
+        BITCLR(pHwPIC->INTMSK0.nREG, COMPONENT_DETECT_EINT);
+        BITCLR(pHwPIC->IEN0.nREG, COMPONENT_DETECT_EINT);
+        BITSET(pHwPIC->CLR0.nREG, COMPONENT_DETECT_EINT);
 	#endif
 
 		component_ext_interrupt = 0;
@@ -335,7 +365,7 @@ int tcc_component_detect(void)
 {
 	int detect = true;
 
-	#if defined (CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST)
+	#if defined (CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST) || defined(CONFIG_MACH_TCC8920ST)
 		#if defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION)
 			if(component_plugout)
 			{
@@ -1529,7 +1559,7 @@ void tcc_component_update(struct tcc_lcdc_image_update *update)
 	dprintk("%s, img_widht:%d, img_height:%d, win_offset_x:%d, win_offset_y:%d\n", __func__, img_width, img_height, win_offset_x, win_offset_y);
 	
 	#if defined(CONFIG_ARCH_TCC892X)
-		VIOC_RDMA_SetImageSize(pComponent_RDMA_VIDEO, img_width, img_height);
+		VIOC_RDMA_SetImageSize(pComponent_RDMA_VIDEO, update->Frame_width, update->Frame_height);
 		
 		// image position
 #if 0//defined(CONFIG_TCC_VIDEO_DISPLAY_BY_VSYNC_INT) || defined(TCC_VIDEO_DISPLAY_BY_VSYNC_INT)
@@ -1930,9 +1960,7 @@ static long tcc_component_ioctl(struct file *file, unsigned int cmd, void *arg)
 				}
 			#endif
 			
-			#if defined(CONFIG_TCC_OUTPUT_ATTACH)
-				TCC_OUTPUT_FB_DetachOutput();
-			#endif
+			TCC_OUTPUT_FB_DetachOutput();
 			
 			TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_COMPONENT, start.lcdc, TRUE);
 			

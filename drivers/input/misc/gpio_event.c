@@ -263,6 +263,7 @@ static int gpio_event_suspend(struct platform_device *pdev, pm_message_t state)
 
 static int gpio_event_resume(struct platform_device *pdev)
 {
+#if 0	//Often does not wakeup in user mode. so, has commented. - 120303, hjbae
 	int is_wakeup_by_powerkey = 0;
 	PPMU pPMU = (PPMU)tcc_p2v(HwPMU_BASE);
 
@@ -311,6 +312,7 @@ static int gpio_event_resume(struct platform_device *pdev)
 
 		printk("[Wakeup by Short PowerKey!!!]\n");
 	}
+#endif
 
 	return 0;
 }

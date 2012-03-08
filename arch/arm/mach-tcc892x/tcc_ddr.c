@@ -892,9 +892,14 @@ static void copy_change_clock(void)
 
 //--------------------------------------------------------------
 // disable LCD
-#if 1//defined(CONFIG_DRAM_DDR2) || defined(CONFIG_MACH_TCC8920ST)
+#if 1//defined(CONFIG_DRAM_DDR2)
+	#if defined(CONFIG_MACH_TCC8920ST)
+	DEV_LCDC_Wait_signal(1);
+	DEV_LCDC_Wait_signal(0);
+	#else
 	DEV_LCDC_Wait_signal(0);
 	DEV_LCDC_Wait_signal(1);
+	#endif
 #endif
 
 //--------------------------------------------------------------

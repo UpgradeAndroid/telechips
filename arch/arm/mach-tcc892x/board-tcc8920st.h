@@ -21,8 +21,13 @@
 	GPIO Port
 **************************************************************/
 
+#if defined(CONFIG_STB_BOARD_HDB892F)
+// PWR KEY
+#define GPIO_PWR_KEY		TCC_GPE(20)
+#else
 // PWR KEY
 #define GPIO_PWR_KEY		TCC_GPD(14)
+#endif /* CONFIG_STB_BOARD_HDB892F */
 
 // Nand
 #define GPIO_NAND_RDY0		TCC_GPA(16)

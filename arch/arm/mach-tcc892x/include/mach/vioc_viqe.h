@@ -27,6 +27,7 @@ typedef enum
 
 
 /* Interface APIs */
+extern void VIOC_VIQE_InitDeintlCoreTemporal(VIQE *pVIQE); 
 extern void VIOC_VIQE_SetImageSize(VIQE *pVIQE, unsigned int width, unsigned int height);
 extern void VIOC_VIQE_SetImageY2RMode(VIQE *pVIQE, unsigned int y2r_mode);
 extern void VIOC_VIQE_SetImageY2REnable(VIQE *pVIQE, unsigned int enable);

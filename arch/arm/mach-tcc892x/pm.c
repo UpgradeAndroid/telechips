@@ -87,9 +87,17 @@ FUNCTION
 static void tcc_stb_suspend(void)
 {
 #if defined(TCC_PM_MEMQ_PWR_CTRL)
+#if defined(CONFIG_STB_BOARD_HDB892F)
+    BITCLR(((PGPIO)HwGPIO_BASE)->GPFDAT.nREG, 1<<9); //VDDQ_MEM_ON : low
+#else
     BITCLR(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //VDDQ_MEM_ON : low
+#endif /* CONFIG_STB_BOARD_HDB892F */
 #endif    
+#if defined(CONFIG_STB_BOARD_HDB892F)
+   	BITCLR(((PGPIO)HwGPIO_BASE)->GPFDAT.nREG, 1<<8); //SLEEP_MODE_CTL : low
+#else
    	BITCLR(((PGPIO)HwGPIO_BASE)->GPFDAT.nREG, 1<<16); //SLEEP_MODE_CTL : low
+#endif /* CONFIG_STB_BOARD_HDB892F */
 	BITCLR(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<19); //CORE1_ON : low
 	BITCLR(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<21); //CORE2_ON : low
 }
@@ -97,9 +105,17 @@ static void tcc_stb_suspend(void)
 static void tcc_stb_resume(void)
 {
 #if defined(TCC_PM_MEMQ_PWR_CTRL)
+#if defined(CONFIG_STB_BOARD_HDB892F)
+    BITSET(((PGPIO)HwGPIO_BASE)->GPFDAT.nREG, 1<<9); //VDDQ_MEM_ON : high
+#else
     BITSET(((PGPIO)HwGPIO_BASE)->GPCDAT.nREG, 1<<22); //VDDQ_MEM_ON : high
+#endif /* CONFIG_STB_BOARD_HDB892F */
 #endif        
+#if defined(CONFIG_STB_BOARD_HDB892F)
+  	BITSET(((PGPIO)HwGPIO_BASE)->GPFDAT.nREG, 1<<8); //SLEEP_MODE_CTL : high
+#else
    	BITSET(((PGPIO)HwGPIO_BASE)->GPFDAT.nREG, 1<<16); //SLEEP_MODE_CTL : high
+#endif /* CONFIG_STB_BOARD_HDB892F */
 	BITSET(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<19); //CORE1_ON : high
 	BITSET(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<21); //CORE2_ON : high	
 }
@@ -2088,6 +2104,8 @@ static void tcc_pm_power_off(void)
 #elif defined(CONFIG_REGULATOR_RN5T614)
 	extern void rn5t614_power_off(void);
 	rn5t614_power_off();
+	if(system_rev == 0x1008)
+	    gpio_set_value(TCC_GPC(9),0);
 #endif
 
 	if(machine_is_m801_88() || machine_is_m803()){
