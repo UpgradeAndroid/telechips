@@ -158,7 +158,7 @@ static unsigned int rn5t614_suspend_status = 0;
 ********************************************************************/
 int rn5t614_battery_voltage(void)
 {
-	signed long data[2];
+	//signed long data[2];
 	int ret = 4200;
 
 	if (rn5t614_i2c_client) {
@@ -183,10 +183,10 @@ void rn5t614_power_off(void)
 
 void rn5t614_charge_current(unsigned char val)
 {
-    unsigned char temp;
+    //unsigned char temp;
 
 //    temp = RN5T614_CHG_EN|RN5T614_CHG_VOL_4_20V|RN5T614_CHG_OFF_CUR_10PER|(val&0x0f);
-    i2c_smbus_write_byte_data(rn5t614_i2c_client, RN5T614_FET2CNT_REG, temp);
+    //i2c_smbus_write_byte_data(rn5t614_i2c_client, RN5T614_FET2CNT_REG, temp);
 }
 
 /* Test API */
@@ -217,7 +217,7 @@ static void rn5t614_work_func(struct work_struct *work)
 
 	data[0] = (unsigned char)i2c_smbus_read_byte_data(rn5t614->client, RN5T614_CHGIR1_REG);
 	data[1] = (unsigned char)i2c_smbus_read_byte_data(rn5t614->client, RN5T614_CHGIR2_REG);
-	//data[2] = (unsigned char)i2c_smbus_read_byte_data(rn5t614->client, RN5T614_CHGMON1_REG);
+	data[2] = 0;	//(unsigned char)i2c_smbus_read_byte_data(rn5t614->client, RN5T614_CHGMON1_REG);
 
 	if (data[0] & 0xFF)
 		i2c_smbus_write_byte_data(rn5t614->client, RN5T614_CHGIR1_REG, data[0]);
@@ -759,6 +759,29 @@ static int rn5t614_pmic_probe(struct i2c_client *client, const struct i2c_device
 
 	// init settings...
 	// TODO:
+	if(system_rev == 0x2002)	//for Current Optimizing - 120308, hjbae
+	{
+		u8 new_value, old_value;
+
+		// LDO
+		old_value = (u8)i2c_smbus_read_byte_data(rn5t614->client, RN5T614_LDOON_REG);
+		new_value = old_value & ~(0x56);	// OFF : LDO7(0x40), LDO5(0x10), LDO3(0x04), LDO2(0x02)
+
+		printk("RICOH - LDOON Reg. : 0x%02X -> 0x%02X\n", old_value, new_value);
+
+		i2c_smbus_write_byte_data(rn5t614->client, RN5T614_LDOON_REG, new_value);
+
+		#if 0	//forTEST
+		// DCDC
+		old_value = (u8)i2c_smbus_read_byte_data(rn5t614->client, RN5T614_DDCTL1_REG);
+		new_value = old_value & ~(0x04);
+
+		printk("RICOH : DCDC : %x -> %x\n", old_value, new_value);
+
+		i2c_smbus_write_byte_data(rn5t614->client, RN5T614_DDCTL1_REG, new_value);
+		//i2c_smbus_write_byte_data(rn5t614->client, RN5T614_DDCTL2_REG, 0x00);
+		#endif
+	}
 
 	if (client->irq) {
 		/* irq enable */
