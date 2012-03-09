@@ -87,7 +87,9 @@ endif
 DEFINES += -DMALI_OS_MEMORY_KERNEL_BUFFER_SIZE_IN_MB=$(OS_MEMORY_KERNEL_BUFFER_SIZE_IN_MB)
 ifneq ($(call submodule_enabled, $(src), PMU),0)
         MALI_PLATFORM_FILE = platform/$(TARGET_PLATFORM)/mali_platform.c
+ifeq ($(CONFIG_ARCH_TCC892X),y)
 	USING_MALI_PMU = 1
+endif
 else
         MALI_PLATFORM_FILE = platform/default/mali_platform.c
 endif
