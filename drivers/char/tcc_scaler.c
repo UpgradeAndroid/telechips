@@ -287,8 +287,28 @@ void tccxxx_scaler_GetAddress(unsigned char format, unsigned int base_Yaddr, uns
 {
 	unsigned int Uaddr, Vaddr, Yoffset, UVoffset, start_yPos;
 
+
 	start_yPos = (start_y>>1)<<1;
 	Yoffset = (src_imgx * start_yPos) + start_x;
+
+	//RGB format 
+	if((format >= SC_IMG_FMT_RGB332) && (format <= SC_IMG_FMT_ARGB6666))
+	{
+		int Bpp;
+
+		if(format == SC_IMG_FMT_RGB332)
+			Bpp = 1;
+		else if((format >= SC_IMG_FMT_RGB444) && (format <= SC_IMG_FMT_RGB555))
+			Bpp = 2;
+		else if((format >= SC_IMG_FMT_ARGB8888) && (format <= SC_IMG_FMT_ARGB6666))
+			Bpp = 4;
+		else 
+			Bpp = 2;
+		
+		*Y = base_Yaddr + Yoffset * Bpp;
+		
+		return 0;
+	}
 
 	if((format == SC_IMG_FMT_YCbCr422_SEQ_UYVY) || (format == SC_IMG_FMT_YCbCr422_SEQ_VYUY)
 		|| (format == SC_IMG_FMT_YCbCr422_SEQ_YUYV) || (format == SC_IMG_FMT_YCbCr422_SEQ_YVYU))
@@ -382,7 +402,8 @@ char M2M_Scaler_Ctrl_Detail(SCALER_TYPE *scale_img)
 	// set to VRDMA
 	VIOC_RDMA_SetImageAlphaEnable(pRDMABase, 1);
 	VIOC_RDMA_SetImageFormat(pRDMABase, scale_img->src_fmt);
-	VIOC_RDMA_SetImageSize(pRDMABase, scale_img->src_ImgWidth, scale_img->src_ImgHeight);
+
+	VIOC_RDMA_SetImageSize(pRDMABase,scale_img->src_winRight- scale_img->src_winLeft, scale_img->src_winBottom - scale_img->src_winTop);
 	VIOC_RDMA_SetImageOffset(pRDMABase, scale_img->src_fmt, scale_img->src_ImgWidth);
 	VIOC_RDMA_SetImageBase(pRDMABase, pSrcBase0, pSrcBase1, pSrcBase2);
 	//VIOC_RDMA_SetImageEnable(pRDMABase);

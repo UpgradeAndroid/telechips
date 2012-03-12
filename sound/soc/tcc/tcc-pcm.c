@@ -73,7 +73,7 @@ static const struct snd_pcm_hardware tcc_pcm_hardware_play = {
              | SNDRV_PCM_INFO_PAUSE
              | SNDRV_PCM_INFO_RESUME),
 
-    .formats = (SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S24_LE | SNDRV_PCM_FMTBIT_IEC958_SUBFRAME_LE),
+    .formats = (SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_U16_LE | SNDRV_PCM_FMTBIT_S24_LE | SNDRV_PCM_FMTBIT_IEC958_SUBFRAME_LE),	// Planet 20120306
 #if defined(CONFIG_SND_SOC_TCC_MULTICHANNEL)
     .rates        = SNDRV_PCM_RATE_8000_192000,
     .rate_min     = 8000,
@@ -1013,7 +1013,7 @@ static struct snd_soc_dai_driver iec958_dai = {
         .rates    = SNDRV_PCM_RATE_8000_96000,
         .rate_max = 96000,
 #endif
-		.formats  = (SNDRV_PCM_FMTBIT_S16_LE),},
+		.formats  = (SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_U16_LE),},	// Planet 20120306
     .ops = &iec958_dai_ops,
 };
 

@@ -594,7 +594,7 @@ static struct snd_soc_dai_driver tcc_i2s_dai[] = {
             .channels_max = 2,
 #endif
             .rates = TCC_I2S_RATES,
-            .formats = SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_IEC958_SUBFRAME_LE,},  //should be change? phys:32 width:16
+            .formats = SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_U16_LE | SNDRV_PCM_FMTBIT_IEC958_SUBFRAME_LE,},  //should be change? phys:32 width:16	 // Planet 20120306
         .ops   = &tcc_spdif_ops,
     },
 };

@@ -670,7 +670,6 @@ static int tcc_cpufreq_resume(struct cpufreq_policy *policy)
 {
 #if !defined(CONFIG_REGULATOR)
 	int ret;
-#endif
 	struct tcc_freq_table_t freqs;
 
 	if (cpufreq_is_performace_governor())
@@ -686,13 +685,11 @@ static int tcc_cpufreq_resume(struct cpufreq_policy *policy)
 		freqs.cpu_freq = TCC_CPU_FREQ_NORMAL_SPEED;
 #endif
 
-#if !defined(CONFIG_REGULATOR)
 	ret = tcc_cpufreq_set_voltage(tcc_cpufreq_get_voltage_table(&freqs));
 	if (ret != 0) {
 		pr_err("cpufreq: regulator_set_voltage failed\n");
 		return -1;
 	}
-#endif
 
 	clk_set_rate(mem_clk, freqs.mem_freq * 1000);
 	clk_set_rate(cpu_clk, freqs.cpu_freq * 1000);
@@ -703,6 +700,7 @@ static int tcc_cpufreq_resume(struct cpufreq_policy *policy)
 	clk_set_rate(hsio_clk, freqs.hsio_freq * 1000);
 
 	memcpy(&tcc_freq_old_table, &freqs, sizeof(struct tcc_freq_table_t));
+#endif
 	return 0;
 }
 
