@@ -231,6 +231,13 @@ static const struct hc_driver ehci_tcc_hc_driver = {
 };
 
 #ifdef CONFIG_PM
+#if defined(CONFIG_MACH_M805_892X) && defined(CONFIG_WIFI_PWR_CTL)
+#include <linux/err.h>
+#include <linux/regulator/machine.h>
+#include <linux/regulator/consumer.h>
+#include <linux/gpio.h>
+extern int wifi_stat;
+#endif
 static int ehci_hcd_tcc_drv_suspend(struct device *dev)
 {
 	struct usb_hcd *hcd = dev_get_drvdata(dev);
@@ -259,6 +266,26 @@ static int ehci_hcd_tcc_drv_suspend(struct device *dev)
 	tcc_ehci_vbus_ctrl(0);
 	tcc_ehci_vbus_exit();
 
+#if defined(CONFIG_MACH_M805_892X) && defined(CONFIG_WIFI_PWR_CTL)
+	if(system_rev == 0x2002) {
+		if(wifi_stat == 1) {
+			#if defined(CONFIG_REGULATOR)
+			struct regulator *vdd_wifi = NULL;
+			vdd_wifi = regulator_get(NULL, "vdd_wifi30");
+			if (IS_ERR(vdd_wifi)) {
+				printk("Failed to obtain vdd_wifi30\n");
+				vdd_wifi = NULL;
+			}
+			if (vdd_wifi) {
+				regulator_disable(vdd_wifi);
+				printk("regulator_disable(vdd_wifi)\n");
+			}
+		}
+		#endif
+	} else
+		gpio_direction_output(TCC_GPE(3), 0);
+#endif
+
 	return 0;
 }
 
@@ -266,6 +293,26 @@ static int ehci_hcd_tcc_drv_resume(struct device *dev)
 {
 	struct usb_hcd *hcd = dev_get_drvdata(dev);
 	struct ehci_hcd *ehci = hcd_to_ehci(hcd);
+
+#if defined(CONFIG_MACH_M805_892X) && defined(CONFIG_WIFI_PWR_CTL)
+	if(wifi_stat==1) {
+		if(system_rev == 0x2002) {
+			#if defined(CONFIG_REGULATOR)
+			struct regulator *vdd_wifi = NULL;
+			vdd_wifi = regulator_get(NULL, "vdd_wifi30");
+			if (IS_ERR(vdd_wifi)) {
+				printk("Failed to obtain vdd_wifi30\n");
+				vdd_wifi = NULL;
+			}
+			if (vdd_wifi) {
+				regulator_enable(vdd_wifi);
+				printk("regulator_enable(vdd_wifi)\n");
+			}
+			#endif
+		} else
+			gpio_direction_output(TCC_GPE(3), 1);
+	}
+#endif
 
 	/* Telechips specific routine */
 	tcc_ehci_vbus_init();

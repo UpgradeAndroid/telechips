@@ -340,15 +340,6 @@ int pm_suspend(suspend_state_t state)
 }
 EXPORT_SYMBOL(pm_suspend);
 
-#if defined(CONFIG_MACH_M805_892X) && defined(CONFIG_WIFI_PWR_CTL)
-#include <linux/err.h>
-#include <linux/regulator/machine.h>
-#include <linux/regulator/consumer.h>
-
-#include <linux/gpio.h>
-extern wifi_stat;
-#endif
-
 #if defined(CONFIG_USB_EHCI_HCD_MODULE)
 int tcc_umh_ehci_module(int flag)
 {
@@ -378,30 +369,6 @@ int tcc_umh_ehci_module(int flag)
 	}
 
 	if (flag) {
-#if defined(CONFIG_MACH_M805_892X) && defined(CONFIG_WIFI_PWR_CTL)
-		if(wifi_stat==1)
-		{
-			if(system_rev == 0x2002)
-			{
-				#if defined(CONFIG_REGULATOR)
-				struct regulator *vdd_wifi = NULL;
-				vdd_wifi = regulator_get(NULL, "vdd_wifi30");
-				if (IS_ERR(vdd_wifi)) {
-					printk("Failed to obtain vdd_wifi30\n");
-					vdd_wifi = NULL;
-				}
-				if (vdd_wifi) {
-					regulator_enable(vdd_wifi);
-					printk("regulator_enable(vdd_wifi)\n");
-				}
-				#endif
-			}
-			else
-			{
-				gpio_direction_output(TCC_GPE(3), 1);
-			}
-		}
-#endif
 		retval = call_usermodehelper_exec(sub_info_hs, UMH_WAIT_PROC);
 		if(retval) printk("-> [%s:%d] retval:%d\n", __func__, __LINE__, retval);
 		retval |= call_usermodehelper_exec(sub_info_fs, UMH_WAIT_PROC);
@@ -411,29 +378,6 @@ int tcc_umh_ehci_module(int flag)
 		if(retval) printk("-> [%s:%d] retval:%d\n", __func__, __LINE__, retval);
 		retval |= call_usermodehelper_exec(sub_info_hs, UMH_WAIT_PROC);
 		if(retval) printk("-> [%s:%d] retval:%d\n", __func__, __LINE__, retval);
-#if defined(CONFIG_MACH_M805_892X) && defined(CONFIG_WIFI_PWR_CTL)
-		if(system_rev == 0x2002)
-		{
-			if(wifi_stat == 1) {
-				#if defined(CONFIG_REGULATOR)
-				struct regulator *vdd_wifi = NULL;
-				vdd_wifi = regulator_get(NULL, "vdd_wifi30");
-				if (IS_ERR(vdd_wifi)) {
-					printk("Failed to obtain vdd_wifi30\n");
-					vdd_wifi = NULL;
-				}
-				if (vdd_wifi) {
-					regulator_disable(vdd_wifi);
-					printk("regulator_disable(vdd_wifi)\n");
-				}
-			}
-			#endif
-		}
-		else
-		{
-			gpio_direction_output(TCC_GPE(3), 0);
-		}
-#endif
 	}
 #endif /* CONFIG_ARCH_TCC88XX */
 
