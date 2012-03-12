@@ -590,6 +590,16 @@ static struct tcc_adc_ts_platform_data tcc_touchscreen_pdata = {
 #endif
 };
 
+static struct platform_device tcc_bluetooth_device = {	
+	.name = "tcc_bluetooth_rfkill",	
+	.id = -1,
+};
+
+static void tcc_add_bluetooth_device(void)
+{
+	platform_device_register(&tcc_bluetooth_device);
+}
+
 static struct platform_device tcc8920_touchscreen_device = {
 	.name		= "tcc-ts",
 	.id		= -1,
@@ -767,7 +777,7 @@ static void __init tcc8920_init_machine(void)
 	/* BT: use UART1 and TX DMA */
 	platform_device_add_data(&tcc8920_uart1_device, &uart1_data_bt, sizeof(struct tcc_uart_platform_data));
 #endif
-
+	tcc_add_bluetooth_device();
 #if defined(CONFIG_TCC_UART2_DMA)
 	platform_device_add_data(&tcc8920_uart2_device, &uart2_data, sizeof(struct tcc_uart_platform_data));
 #endif
