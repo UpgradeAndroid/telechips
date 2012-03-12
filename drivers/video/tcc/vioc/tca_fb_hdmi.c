@@ -65,6 +65,8 @@
 #define GET_ADDR_YUV420_spV(Uaddr, x, y) 		(((((unsigned int)Uaddr+(x*y/4)) + ALIGN_BIT) >> BIT_0)<<BIT_0)
 #endif
 
+//#define Crop_Test
+
 
 #if 0
 #define dprintk(msg...)	 { printk( "tca_hdmi: " msg); }
@@ -364,8 +366,7 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 	//pLCDC_channel->LISR =((scale_y<<4) | scale_x);
 	VIOC_RDMA_SetImageScale(pRDMABase, scale_x, scale_y);
 
-
-	//image crop
+	#if 0 //image crop
 	if (ImageInfo->ImageCrop)
 	{
 		int addr_Y = (unsigned int)ImageInfo->addr0;
@@ -379,6 +380,7 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 		VIOC_RDMA_SetImageBase(pRDMABase, addr_Y, addr_U, addr_V);
 	}
 	else
+	#endif
 	{
 		VIOC_RDMA_SetImageSize(pRDMABase, ImageInfo->Frame_width, ImageInfo->Frame_height);
 		// image address
