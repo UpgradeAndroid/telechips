@@ -436,7 +436,7 @@ void dwc_otg_hcd_stop(dwc_otg_hcd_t * hcd)
 	DWC_PRINTF("PortPower off\n");
 	if (hcd->core_if->vbus_state == -1) {
 		/* if driver rmmod */
-		TCC_DVBUS_Control(hcd->core_if, 0);
+		tcc_otg_vbus_ctrl(hcd->core_if->port_index, 0);
 	} else {
 		hcd->core_if->vbus_state = 0;
 		schedule_work(&hcd->core_if->vbus_work);
