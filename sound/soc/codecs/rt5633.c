@@ -233,10 +233,11 @@ static struct rt5633_init_reg init_list[] = {
 	{RT5633_DEPOP_CTRL_2		, 0xB000},
 	{RT5633_PRI_REG_ADD		, 0x0056},
 	{RT5633_PRI_REG_DATA		, 0x303f},	
-//JD setting	
+#if 0	//internal hp detect
 	{RT5633_ZC_SM_CTRL_1		, 0x04b0},	
 	{RT5633_ZC_SM_CTRL_2		, 0x3000},
 	{RT5633_JACK_DET_CTRL           , 0x6980},		
+#endif	
 };
 
 #define RT5633_INIT_REG_LEN 	ARRAY_SIZE(init_list)
