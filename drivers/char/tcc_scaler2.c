@@ -103,48 +103,8 @@ static struct clk *scaler2_clk;
 
 extern unsigned int scaler_ended;
 
-static void tccxxx_scaler_GetAddress(unsigned char format, unsigned int base_Yaddr, unsigned int src_imgx, unsigned int  src_imgy,
-									unsigned int start_x, unsigned int start_y, unsigned int* Y, unsigned int* U,unsigned int* V)
-{
-	unsigned int Uaddr, Vaddr, Yoffset, UVoffset, start_yPos;
-
-	start_yPos = (start_y>>1)<<1;
-	Yoffset = (src_imgx * start_yPos) + start_x;
-
-	if((format == SC_IMG_FMT_YCbCr422_SEQ_UYVY) || (format == SC_IMG_FMT_YCbCr422_SEQ_VYUY)
-		|| (format == SC_IMG_FMT_YCbCr422_SEQ_YUYV) || (format == SC_IMG_FMT_YCbCr422_SEQ_YVYU))
-		Yoffset = 2*Yoffset;
-
-	*Y = base_Yaddr + Yoffset;
-
-	if(*U == 0 && *V == 0) {
-		Uaddr = GET_ADDR_YUV42X_spU(base_Yaddr, src_imgx, src_imgy);
-		if(format == SC_IMG_FMT_YCbCr420_SEP)
-			Vaddr = GET_ADDR_YUV420_spV(Uaddr, src_imgx, src_imgy);
-		else
-			Vaddr = GET_ADDR_YUV422_spV(Uaddr, src_imgx, src_imgy);
-	} else {
-		Uaddr = *U;
-		Vaddr = *V;
-	}
-
-	if((format == SC_IMG_FMT_YCbCr420_SEP) || (format == SC_IMG_FMT_YCbCr420_INT_TYPE1)) {
-		if(format == SC_IMG_FMT_YCbCr420_INT_TYPE1)
-			UVoffset = ((src_imgx * start_yPos)/2 + start_x);
-		else
-			UVoffset = ((src_imgx * start_yPos)/4 + start_x/2);
-	} else {
-		if(format == SC_IMG_FMT_YCbCr422_INT_TYPE1)
-			UVoffset = ((src_imgx * start_yPos) + start_x);
-		else
-			UVoffset = ((src_imgx * start_yPos)/2 + start_x/2);
-	}
-	
-	*U = Uaddr + UVoffset;
-	*V = Vaddr + UVoffset;
-}
-
-
+extern void tccxxx_GetAddress(unsigned char format, unsigned int base_Yaddr, unsigned int src_imgx, unsigned int  src_imgy,
+									unsigned int start_x, unsigned int start_y, unsigned int* Y, unsigned int* U,unsigned int* V);
 
 char M2M_Scaler2_Ctrl_Detail(SCALER_TYPE *scale_img)
 {
@@ -164,7 +124,7 @@ char M2M_Scaler2_Ctrl_Detail(SCALER_TYPE *scale_img)
 	crop_width 				= scale_img->src_winRight - scale_img->src_winLeft;
 	scale_img->src_winLeft 	= (scale_img->src_winLeft>>3)<<3; 
 	scale_img->src_winRight = scale_img->src_winLeft + crop_width;
-	tccxxx_scaler_GetAddress(scale_img->src_fmt, (unsigned int)scale_img->src_Yaddr,
+	tccxxx_GetAddress(scale_img->src_fmt, (unsigned int)scale_img->src_Yaddr,
 								scale_img->src_ImgWidth, scale_img->src_ImgHeight,
 								scale_img->src_winLeft, scale_img->src_winTop,
 								&pSrcBase0, &pSrcBase1, &pSrcBase2);
@@ -177,7 +137,7 @@ char M2M_Scaler2_Ctrl_Detail(SCALER_TYPE *scale_img)
 	crop_width 				 = scale_img->dest_winRight - scale_img->dest_winLeft;
 	scale_img->dest_winLeft  = (scale_img->dest_winLeft>>3)<<3; 
 	scale_img->dest_winRight = scale_img->dest_winLeft + crop_width;
-	tccxxx_scaler_GetAddress(scale_img->dest_fmt, (unsigned int)scale_img->dest_Yaddr, 
+	tccxxx_GetAddress(scale_img->dest_fmt, (unsigned int)scale_img->dest_Yaddr, 
 								scale_img->dest_ImgWidth, scale_img->dest_ImgHeight, 
 								scale_img->dest_winLeft, scale_img->dest_winTop,
 								&pDstBase0, &pDstBase1, &pDstBase2);
