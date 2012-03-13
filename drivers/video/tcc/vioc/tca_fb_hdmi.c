@@ -65,6 +65,8 @@
 #define GET_ADDR_YUV420_spV(Uaddr, x, y) 		(((((unsigned int)Uaddr+(x*y/4)) + ALIGN_BIT) >> BIT_0)<<BIT_0)
 #endif
 
+extern void tccxxx_GetAddress(unsigned char format, unsigned int base_Yaddr, unsigned int src_imgx, unsigned int  src_imgy,
+					unsigned int start_x, unsigned int start_y, unsigned int* Y, unsigned int* U,unsigned int* V);
 
 #if 0
 #define dprintk(msg...)	 { printk( "tca_hdmi: " msg); }
@@ -172,68 +174,7 @@ void TCC_HDMI_LCDC_OutputEnable(char hdmi_lcdc, unsigned int onoff)
 			TCC_OUTPUT_FB_AttachOutput(hdmi_lcdc, TCC_OUTPUT_COMPOSITE);
 	#endif
 }
-void tccxxx_GetAddress(unsigned char format, unsigned int base_Yaddr, unsigned int src_imgx, unsigned int  src_imgy,
-									unsigned int start_x, unsigned int start_y, unsigned int* Y, unsigned int* U,unsigned int* V)
-{	
-	unsigned int Uaddr, Vaddr, Yoffset, UVoffset, start_yPos;
 
-
-	start_yPos = (start_y>>1)<<1;
-	Yoffset = (src_imgx * start_yPos) + start_x;
-
-	//RGB format 
-	if((format >= SC_IMG_FMT_RGB332) && (format <= SC_IMG_FMT_ARGB6666))
-	{
-		int Bpp;
-
-		if(format == SC_IMG_FMT_RGB332)
-			Bpp = 1;
-		else if((format >= SC_IMG_FMT_RGB444) && (format <= SC_IMG_FMT_RGB555))
-			Bpp = 2;
-		else if((format >= SC_IMG_FMT_ARGB8888) && (format <= SC_IMG_FMT_ARGB6666))
-			Bpp = 4;
-		else 
-			Bpp = 2;
-		
-		*Y = base_Yaddr + Yoffset * Bpp;
-		
-		return 0;
-	}
-
-	if((format == SC_IMG_FMT_YCbCr422_SEQ_UYVY) || (format == SC_IMG_FMT_YCbCr422_SEQ_VYUY)
-		|| (format == SC_IMG_FMT_YCbCr422_SEQ_YUYV) || (format == SC_IMG_FMT_YCbCr422_SEQ_YVYU))
-		Yoffset = 2*Yoffset;
-
-	*Y = base_Yaddr + Yoffset;
-
-	if(*U == 0 && *V == 0) {
-		Uaddr = GET_ADDR_YUV42X_spU(base_Yaddr, src_imgx, src_imgy);
-		if(format == SC_IMG_FMT_YCbCr420_SEP)
-			Vaddr = GET_ADDR_YUV420_spV(Uaddr, src_imgx, src_imgy);
-		else
-			Vaddr = GET_ADDR_YUV422_spV(Uaddr, src_imgx, src_imgy);
-	} else {
-		Uaddr = *U;
-		Vaddr = *V;
-	}
-
-	if((format == SC_IMG_FMT_YCbCr420_SEP) || (format == SC_IMG_FMT_YCbCr420_INT_TYPE1)) {
-		if(format == SC_IMG_FMT_YCbCr420_INT_TYPE1)
-			UVoffset = ((src_imgx * start_yPos)/2 + start_x);
-		else
-			UVoffset = ((src_imgx * start_yPos)/4 + start_x/2);
-	} else {
-		if(format == SC_IMG_FMT_YCbCr422_INT_TYPE1)
-			UVoffset = ((src_imgx * start_yPos) + start_x);
-		else
-			UVoffset = ((src_imgx * start_yPos)/2 + start_x/2);
-	}
-	
-	*U = Uaddr + UVoffset;
-	*V = Vaddr + UVoffset;
-
-	dprintk("%s fmt:%d, Fw:%d, Fh:%d, Iw:%d, Ih:%d, Yoffset = [%d]\n", __func__, format, src_imgx, src_imgy, start_x, start_y, Yoffset);
-}
 static int onthefly_using;
 void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *ImageInfo)
 {
@@ -364,10 +305,10 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 	//pLCDC_channel->LISR =((scale_y<<4) | scale_x);
 	VIOC_RDMA_SetImageScale(pRDMABase, scale_x, scale_y);
 
-
-	//image crop
-	if (ImageInfo->ImageCrop)
+	//if (ImageInfo->ImageCrop)
+	if( (ImageInfo->crop_left != 0) || (ImageInfo->crop_right != 0) || (ImageInfo->crop_top != 0) || (ImageInfo->crop_bottom != 0))
 	{
+		dprintk(" Image Crop left=[%d], right=[%d], top=[%d], bottom=[%d] \n", ImageInfo->crop_left, ImageInfo->crop_right, ImageInfo->crop_top, ImageInfo->crop_bottom);
 		int addr_Y = (unsigned int)ImageInfo->addr0;
 		int addr_U = (unsigned int)ImageInfo->addr1;
 		int addr_V = (unsigned int)ImageInfo->addr2;
@@ -375,13 +316,13 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 		tccxxx_GetAddress(ImageInfo->fmt, (unsigned int)ImageInfo->addr0, ImageInfo->Frame_width, ImageInfo->Frame_height, 
 								ImageInfo->crop_left, ImageInfo->crop_top, &addr_Y, &addr_U, &addr_V);
 		
-		VIOC_RDMA_SetImageSize(pRDMABase,ImageInfo->crop_right, ImageInfo->crop_bottom);	
+		VIOC_RDMA_SetImageSize(pRDMABase, ImageInfo->Frame_width -ImageInfo->crop_left - ImageInfo->crop_right,
+													ImageInfo->Frame_height - ImageInfo->crop_top - ImageInfo->crop_bottom);
 		VIOC_RDMA_SetImageBase(pRDMABase, addr_Y, addr_U, addr_V);
 	}
 	else
-	{
+	{		
 		VIOC_RDMA_SetImageSize(pRDMABase, ImageInfo->Frame_width, ImageInfo->Frame_height);
-		// image address
 		VIOC_RDMA_SetImageBase(pRDMABase, ImageInfo->addr0, ImageInfo->addr1, ImageInfo->addr2);		
 	}
 		

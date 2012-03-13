@@ -288,12 +288,13 @@ struct tcc_lcdc_image_update
 	unsigned int addr1;
 	unsigned int addr2;
 	unsigned int fmt;	//TCC_LCDC_IMG_FMT_TYPE
-	unsigned int on_the_fly; // 0: not use , 1 : scaler0 ,  2 :scaler1
-	unsigned int ImageCrop;
-
+	unsigned int on_the_fly; // 0: not use , 1 : scaler0 ,  2 :scaler1	
+	int crop_top; 
+	int crop_bottom;
+	int crop_left;
+	int crop_right;
+	
 #if defined(CONFIG_TCC_VIDEO_DISPLAY_BY_VSYNC_INT) || defined(TCC_VIDEO_DISPLAY_BY_VSYNC_INT)
-	int crop_top, crop_bottom, crop_left, crop_right;	// support for screen-mode.
-
 	int time_stamp;
 	int sync_time;
 	int first_frame_after_seek;

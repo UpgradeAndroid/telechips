@@ -174,6 +174,7 @@ static int wm8524_suspend(struct snd_soc_codec *codec, pm_message_t state)
 	{
 		gpio_set_value(TCC_GPF(24), 0);	//AIFMODE
 		gpio_set_value(TCC_GPB(6), 0);	//MUTE_CTL
+		gpio_set_value(TCC_GPB(7), 0);	//MUTE_ANG
 	}
 
 	return 0;
@@ -189,6 +190,7 @@ static int wm8524_resume(struct snd_soc_codec *codec)
 	{
 		gpio_set_value(TCC_GPF(24), 1);	//AIFMODE
 		gpio_set_value(TCC_GPB(6), 1);	//MUTE_CTL
+		gpio_set_value(TCC_GPB(7), 1);	//MUTE_ANG
 	}
 	
 	return 0;

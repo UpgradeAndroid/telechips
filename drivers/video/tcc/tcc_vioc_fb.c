@@ -529,6 +529,166 @@ static void DisplayUpdate(void)
 }
 
 #ifdef TCC_VIDEO_DISPLAY_DEINTERLACE_MODE
+static int SavedOddfirst = -1;
+
+static int byPassImageToLCDC(struct tcc_lcdc_image_update *pImage, int ref_cnt, int lcdc_num)
+{
+	VIOC_DISP * pDISPBase;
+	unsigned int lstatus = 0;
+	int ret = 0;
+	
+	if(lcdc_num)
+		pDISPBase = (VIOC_DISP*)tcc_p2v(HwVIOC_DISP1);
+	else
+		pDISPBase = (VIOC_DISP*)tcc_p2v(HwVIOC_DISP0);
+	
+	lstatus = pDISPBase->uLSTATUS.nREG;
+	
+	//if(SavedOddfirst == -1){
+		
+		//pLCDC->LI1S = lstatus = pLCDC->LSTATUS;
+		SavedOddfirst = pImage->odd_first_flag;
+		
+		//printk("changeByImage check STATUS:0x%x \n",pLCDC->LSTATUS);
+
+	#if defined(CONFIG_TCC_EXCLUSIVE_UI_LAYER)
+		/* check output path flag */
+		if(pImage->output_path)
+		{
+			if(output_path_addr != pImage->addr0)
+			{
+				/* bottom field first */
+				if(SavedOddfirst == 1)
+				{
+					/* current even field : top field displaying now */
+					if(ISSET(lstatus, HwLSTATUS_EF))
+					{
+						output_path_addr = pImage->addr0;
+						//printk("bf, 0x%08x update\n", output_path_addr);
+					}
+					/* current odd field : bottom field displaying now */
+					else
+					{
+						return ret;
+					}
+				}
+				/* top field first */
+				else
+				{
+					/* current even field : top field displaying now */
+					if(ISSET(lstatus, HwLSTATUS_EF))
+					{
+						return ret;
+					}
+					/* current odd field : bottom field displaying now */
+					else
+					{
+						output_path_addr = pImage->addr0;
+						//printk("ef, 0x%08x update\n", output_path_addr);
+					}
+				}
+			}
+			else
+			{
+				//printk("@@@-%c-%c-0x%08x-%d\n", SavedOddfirst? 'o':'e', ISSET(lstatus, HwLSTATUS_EF)? 'e':'o', pImage->addr0, pImage->output_path);
+				return ret;
+			}
+		}
+		else
+		{
+			/* clear ouput path address */
+			output_path_addr = 0;
+		}
+	#endif
+	#if 1
+		if(SavedOddfirst==0){//Bottom first
+			#if 0
+			if((ISSET(lstatus, HwLSTATUS_EF) && tccvid_vsync.nDeinterProcCount ==0)){
+				//printk(" Even field is out. Not my turn, skip this frame 0x%x  lstatus :0x%x ref_cnt %d\n",pLCDC->LSTATUS,lstatus,ref_cnt);
+				SavedOddfirst = -1;
+				ret = 1;
+			}
+			else{
+				//pLCDC->LI1BA0 = pLCDC->LSTATUS;
+				//printk("OK my turn STATUS:0x%x	lstatus :0x%x \n",pLCDC->LSTATUS,lstatus);
+			}
+			#else
+			if(tccvid_vsync.nDeinterProcCount ==0){
+				if(ISSET(lstatus, HwLSTATUS_EF)){
+					ret = 1;
+				}
+			}
+			else{
+				if(!ISSET(lstatus, HwLSTATUS_EF)){
+					ret = 1;
+				}
+			}
+			#endif
+			
+		}
+		else{// Top field
+			#if 0
+			if( ISSET(lstatus, HwLSTATUS_EF))
+			{
+				//pLCDC->LI1BA0 = pLCDC->LSTATUS;
+				//printk("OK my turn STATUS:0x%x  lstatus :0x%x \n",pLCDC->LSTATUS,lstatus);
+			}
+			else if(tccvid_vsync.nDeinterProcCount ==0){
+				//printk("Odd field is out. Not my turn, skip this frame 0x%x  lstatus :0x%x \n",pLCDC->LSTATUS,lstatus);
+				SavedOddfirst = -1;
+				ret = 1;
+			}
+			#else
+			if(tccvid_vsync.nDeinterProcCount ==1){
+				if(ISSET(lstatus, HwLSTATUS_EF)){
+					ret = 1;
+				}
+			}
+			else{
+				if(!ISSET(lstatus, HwLSTATUS_EF)){
+					ret = 1;
+				}
+			}
+			#endif
+		}
+	//}
+	
+	if(SavedOddfirst != pImage->odd_first_flag){
+		//printk("DisplayUpdate odd_first_flag changed %d from %d time_stamp %d \n",SavedOddfirst,pImage->odd_first_flag,pImage->time_stamp);
+		SavedOddfirst = pImage->odd_first_flag;
+		ret = 1;
+	}
+	#endif
+	switch(Output_SelectMode)
+	{
+		case TCC_OUTPUT_NONE:
+			TCC_HDMI_DISPLAY_UPDATE(LCD_OUT_LCDC, pImage);
+			break;
+		case TCC_OUTPUT_HDMI:
+			TCC_HDMI_DISPLAY_UPDATE(EX_OUT_LCDC, pImage);
+			break;
+		case TCC_OUTPUT_COMPONENT:
+			#if defined(CONFIG_FB_TCC_COMPONENT)
+				tcc_component_update(pImage);
+			#endif
+			break;
+		case TCC_OUTPUT_COMPOSITE:
+			#if defined(CONFIG_FB_TCC_COMPOSITE)
+				tcc_composite_update(pImage);
+			#endif
+			break;
+			
+		default:
+			break;
+	}
+
+	if(ret ==1)
+		printk("nDeinterProcCount(%d), SavedOddfirst(%d)\n", tccvid_vsync.nDeinterProcCount, SavedOddfirst) ;
+	
+	return ret;
+
+}
+
 static void DisplayUpdateWithDeinterlace(void)
 {
 	int current_time;
@@ -596,15 +756,14 @@ static void DisplayUpdateWithDeinterlace(void)
 										pNextImage->Image_width, pNextImage->Image_height, 
 										pNextImage->offset_x, pNextImage->offset_y, pNextImage->odd_first_flag);
 				}
-				/*
 				else
 				{
-					if(byPassImageToLCDC(pRefImage1, 0, lcdCtrlNum) == 1){
+					
+					if(byPassImageToLCDC(pNextImage, 0, EX_OUT_LCDC) == 1){
 						tccvid_vsync.nDeinterProcCount =0;
 						return;
 					}
 				}
-				*/
 			}	
 			tccvid_vsync.nDeinterProcCount ++;
 		}
@@ -652,14 +811,12 @@ static void DisplayUpdateWithDeinterlace(void)
 									pNextImage->Image_width, pNextImage->Image_height,
 									pNextImage->offset_x, pNextImage->offset_y, pNextImage->odd_first_flag^0x01);
 			}
-			/*
 			else
 			{
-				if(byPassImageToLCDC(pRefImage1, 1, lcdCtrlNum) == 1)
+				//if(byPassImageToLCDC(pNextImage, 1, EX_OUT_LCDC) == 1)
 				{
 				}
 			}
-			*/	
 			#else
 			switch(Output_SelectMode)
 			{
@@ -1377,7 +1534,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 			tcc_vsync_set_firstFrameFlag(1);
 			#endif
 			#ifdef TCC_VIDEO_DISPLAY_DEINTERLACE_MODE
-				if(tccvid_vsync.deinterlace_mode && !tccvid_vsync.output_toMemory)
+				if(tccvid_vsync.deinterlace_mode && !tccvid_vsync.output_toMemory &&!tccvid_vsync.interlace_bypass_lcdc)
 					TCC_VIQE_DI_DeInit60Hz();
 			#endif
 			break;
@@ -1682,7 +1839,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 			
 			tca_vsync_video_display_disable();			
 			#ifdef TCC_VIDEO_DISPLAY_DEINTERLACE_MODE
-				if(tccvid_vsync.deinterlace_mode && !tccvid_vsync.output_toMemory)
+				if(tccvid_vsync.deinterlace_mode && !tccvid_vsync.output_toMemory &&!tccvid_vsync.interlace_bypass_lcdc)
 					TCC_VIQE_DI_DeInit60Hz();
 			#endif
 			tccvid_vsync.skipFrameStatus = 1;
@@ -1867,9 +2024,10 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 			
 				if( (tccvid_vsync.deinterlace_mode == 1) && 
 					(tccvid_vsync.interlace_output == 1) && 
-					(input_image.Frame_width == lcd_width) && (input_image.Frame_height == lcd_height) )
+					(input_image.Frame_width == input_image.Image_width) && (input_image.Frame_height == input_image.Image_height) )
 				{
-					tccvid_vsync.interlace_bypass_lcdc = 1;
+					printk("### interlace_bypass_lcdc set !!\n");
+					//tccvid_vsync.interlace_bypass_lcdc = 1;
 				}
 			}
 			

@@ -282,7 +282,7 @@ char M2M_Scaler_Ctrl_External(SCALER_TYPE *scale_img)
 }
 
 #if defined(CONFIG_ARCH_TCC892X)
-void tccxxx_scaler_GetAddress(unsigned char format, unsigned int base_Yaddr, unsigned int src_imgx, unsigned int  src_imgy,
+void tccxxx_GetAddress(unsigned char format, unsigned int base_Yaddr, unsigned int src_imgx, unsigned int  src_imgy,
 									unsigned int start_x, unsigned int start_y, unsigned int* Y, unsigned int* U,unsigned int* V)
 {
 	unsigned int Uaddr, Vaddr, Yoffset, UVoffset, start_yPos;
@@ -342,6 +342,7 @@ void tccxxx_scaler_GetAddress(unsigned char format, unsigned int base_Yaddr, uns
 	*U = Uaddr + UVoffset;
 	*V = Vaddr + UVoffset;
 }
+EXPORT_SYMBOL(tccxxx_GetAddress);
 #endif // CONFIG_ARCH_TCC892X
 
 extern unsigned int scaler_ended;
@@ -376,7 +377,7 @@ char M2M_Scaler_Ctrl_Detail(SCALER_TYPE *scale_img)
 	crop_width 				= scale_img->src_winRight - scale_img->src_winLeft;
 	scale_img->src_winLeft 	= (scale_img->src_winLeft>>3)<<3; 
 	scale_img->src_winRight = scale_img->src_winLeft + crop_width;
-	tccxxx_scaler_GetAddress(scale_img->src_fmt, (unsigned int)scale_img->src_Yaddr,
+	tccxxx_GetAddress(scale_img->src_fmt, (unsigned int)scale_img->src_Yaddr,
 								scale_img->src_ImgWidth, scale_img->src_ImgHeight,
 								scale_img->src_winLeft, scale_img->src_winTop,
 								&pSrcBase0, &pSrcBase1, &pSrcBase2);
@@ -389,7 +390,7 @@ char M2M_Scaler_Ctrl_Detail(SCALER_TYPE *scale_img)
 	crop_width 				 = scale_img->dest_winRight - scale_img->dest_winLeft;
 	scale_img->dest_winLeft  = (scale_img->dest_winLeft>>3)<<3; 
 	scale_img->dest_winRight = scale_img->dest_winLeft + crop_width;
-	tccxxx_scaler_GetAddress(scale_img->dest_fmt, (unsigned int)scale_img->dest_Yaddr, 
+	tccxxx_GetAddress(scale_img->dest_fmt, (unsigned int)scale_img->dest_Yaddr, 
 								scale_img->dest_ImgWidth, scale_img->dest_ImgHeight, 
 								scale_img->dest_winLeft, scale_img->dest_winTop,
 								&pDstBase0, &pDstBase1, &pDstBase2);
