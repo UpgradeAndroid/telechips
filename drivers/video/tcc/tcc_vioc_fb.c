@@ -544,13 +544,8 @@ static int byPassImageToLCDC(struct tcc_lcdc_image_update *pImage, int ref_cnt, 
 	
 	lstatus = pDISPBase->uLSTATUS.nREG;
 	
-	//if(SavedOddfirst == -1){
+	SavedOddfirst = pImage->odd_first_flag;
 		
-		//pLCDC->LI1S = lstatus = pLCDC->LSTATUS;
-		SavedOddfirst = pImage->odd_first_flag;
-		
-		//printk("changeByImage check STATUS:0x%x \n",pLCDC->LSTATUS);
-
 	#if defined(CONFIG_TCC_EXCLUSIVE_UI_LAYER)
 		/* check output path flag */
 		if(pImage->output_path)
@@ -600,65 +595,38 @@ static int byPassImageToLCDC(struct tcc_lcdc_image_update *pImage, int ref_cnt, 
 			output_path_addr = 0;
 		}
 	#endif
-	#if 1
-		if(SavedOddfirst==0){//Bottom first
-			#if 0
-			if((ISSET(lstatus, HwLSTATUS_EF) && tccvid_vsync.nDeinterProcCount ==0)){
-				//printk(" Even field is out. Not my turn, skip this frame 0x%x  lstatus :0x%x ref_cnt %d\n",pLCDC->LSTATUS,lstatus,ref_cnt);
-				SavedOddfirst = -1;
+
+	if(SavedOddfirst==0){
+		if(tccvid_vsync.nDeinterProcCount ==0){
+			if(ISSET(lstatus, HwLSTATUS_EF)){
 				ret = 1;
 			}
-			else{
-				//pLCDC->LI1BA0 = pLCDC->LSTATUS;
-				//printk("OK my turn STATUS:0x%x	lstatus :0x%x \n",pLCDC->LSTATUS,lstatus);
-			}
-			#else
-			if(tccvid_vsync.nDeinterProcCount ==0){
-				if(ISSET(lstatus, HwLSTATUS_EF)){
-					ret = 1;
-				}
-			}
-			else{
-				if(!ISSET(lstatus, HwLSTATUS_EF)){
-					ret = 1;
-				}
-			}
-			#endif
-			
 		}
-		else{// Top field
-			#if 0
-			if( ISSET(lstatus, HwLSTATUS_EF))
-			{
-				//pLCDC->LI1BA0 = pLCDC->LSTATUS;
-				//printk("OK my turn STATUS:0x%x  lstatus :0x%x \n",pLCDC->LSTATUS,lstatus);
-			}
-			else if(tccvid_vsync.nDeinterProcCount ==0){
-				//printk("Odd field is out. Not my turn, skip this frame 0x%x  lstatus :0x%x \n",pLCDC->LSTATUS,lstatus);
-				SavedOddfirst = -1;
+		else{
+			if(!ISSET(lstatus, HwLSTATUS_EF)){
 				ret = 1;
 			}
-			#else
-			if(tccvid_vsync.nDeinterProcCount ==1){
-				if(ISSET(lstatus, HwLSTATUS_EF)){
-					ret = 1;
-				}
-			}
-			else{
-				if(!ISSET(lstatus, HwLSTATUS_EF)){
-					ret = 1;
-				}
-			}
-			#endif
 		}
-	//}
-	
-	if(SavedOddfirst != pImage->odd_first_flag){
-		//printk("DisplayUpdate odd_first_flag changed %d from %d time_stamp %d \n",SavedOddfirst,pImage->odd_first_flag,pImage->time_stamp);
-		SavedOddfirst = pImage->odd_first_flag;
-		ret = 1;
 	}
-	#endif
+	else{
+
+		if(tccvid_vsync.nDeinterProcCount ==1){
+			if(ISSET(lstatus, HwLSTATUS_EF)){
+				ret = 1;
+			}
+		}
+		else{
+			if(!ISSET(lstatus, HwLSTATUS_EF)){
+				ret = 1;
+			}
+		}
+	}
+	
+	if(ret == 1){
+		printk("nDeinterProcCount(%d), SavedOddfirst(%d)\n", tccvid_vsync.nDeinterProcCount, SavedOddfirst) ;
+		return ret;
+	}
+	
 	switch(Output_SelectMode)
 	{
 		case TCC_OUTPUT_NONE:
@@ -682,9 +650,6 @@ static int byPassImageToLCDC(struct tcc_lcdc_image_update *pImage, int ref_cnt, 
 			break;
 	}
 
-	if(ret ==1)
-		printk("nDeinterProcCount(%d), SavedOddfirst(%d)\n", tccvid_vsync.nDeinterProcCount, SavedOddfirst) ;
-	
 	return ret;
 
 }
@@ -810,12 +775,6 @@ static void DisplayUpdateWithDeinterlace(void)
 									pNextImage->crop_top,pNextImage->crop_bottom, pNextImage->crop_left, pNextImage->crop_right, 
 									pNextImage->Image_width, pNextImage->Image_height,
 									pNextImage->offset_x, pNextImage->offset_y, pNextImage->odd_first_flag^0x01);
-			}
-			else
-			{
-				//if(byPassImageToLCDC(pNextImage, 1, EX_OUT_LCDC) == 1)
-				{
-				}
 			}
 			#else
 			switch(Output_SelectMode)
@@ -2027,7 +1986,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 					(input_image.Frame_width == input_image.Image_width) && (input_image.Frame_height == input_image.Image_height) )
 				{
 					printk("### interlace_bypass_lcdc set !!\n");
-					//tccvid_vsync.interlace_bypass_lcdc = 1;
+					tccvid_vsync.interlace_bypass_lcdc = 1;
 				}
 			}
 			
@@ -2181,6 +2140,10 @@ TCC_VSYNC_PUSH_ERROR:
 			return tccvid_vsync.vsync_buffer.last_cleared_buff_id ? (tccvid_vsync.vsync_buffer.last_cleared_buff_id-1):0 ; 
 			
 		}
+		break ;
+		
+	case TCC_LCDC_VIDEO_GET_VALID_COUNT:
+		return tccvid_vsync.vsync_buffer.readable_buff_count; 
 		break ;
 		
 	case TCC_LCDC_VIDEO_CLEAR_FRAME:
