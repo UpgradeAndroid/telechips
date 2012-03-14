@@ -252,11 +252,11 @@ void VIOC_DISP_SetTimingParam (VIOC_DISP *pDISP, stLTIMING *pTimeParam)
 //	Vertical timing
 	BITCSET(pDISP->uLVTIME1.nREG, 0x00003FFF, pTimeParam->flc);
 	BITCSET(pDISP->uLVTIME1.nREG, 0x3F << 16 , pTimeParam->fpw << 16);	
-	BITCSET(pDISP->uLVTIME2.nREG, 0x01FF01FF,  pTimeParam->fswc | (pTimeParam->fewc << 16));
+	BITCSET(pDISP->uLVTIME2.nREG, 0x01FF01FF,  (pTimeParam->fswc << 16) | pTimeParam->fewc);
 
 	BITCSET(pDISP->uLVTIME3.nREG, 0x00003FFF, pTimeParam->flc2);
 	BITCSET(pDISP->uLVTIME3.nREG, 0x3F << 16 , pTimeParam->fpw2 << 16);	
-	BITCSET(pDISP->uLVTIME4.nREG, 0x01FF01FF, pTimeParam->fswc2 |  (pTimeParam->fewc2 << 16));
+	BITCSET(pDISP->uLVTIME4.nREG, 0x01FF01FF, (pTimeParam->fswc2<< 16) | pTimeParam->fewc2);
 	
 	
 }
