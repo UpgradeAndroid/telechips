@@ -97,6 +97,8 @@ DEFINITION OF STATIC VARIABLES
 static ccfb_dev_config_t	g_dev_cfg;
 static DEFINE_MUTEX(g_ccfb_mutex);
 static ccfb_config_t g_ccfg_cfg;
+static unsigned int g_ovp_value = 0;
+
 
 /****************************************************************************
 DEFINITION OF EXTERNAL FUNCTIONS
@@ -158,11 +160,9 @@ static int tccxxx_ccfb_act_clock(ccfb_dev_config_t *dev, int lcdc_num)
 	dev->act_lcdc_idx = lcdc_num;
 
 	if(lcdc_num == 0){
-		// LCD
 		dev->pCurLcdc = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA01);
 		dev->pCurWMix = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX0);
 	}else{
-		// hdmi , composite
 		dev->pCurLcdc = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA05);
 		dev->pCurWMix = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX1);
 	}
@@ -241,6 +241,9 @@ static int tccxxx_ccfb_set_config(ccfb_dev_config_t *dev, ccfb_config_t *arg)
 	if(ret == 0)
 	{
 		memcpy(&g_ccfg_cfg, &cfg, sizeof(ccfb_config_t));
+
+		VIOC_WMIX_GetOverlayPriority(dev->pCurWMix, &g_ovp_value);
+		VIOC_WMIX_SetOverlayPriority(dev->pCurWMix, 1);
 		
 		// position (full screen update)
 		VIOC_WMIX_SetPosition(dev->pCurWMix, 1, cfg.res.disp_x, cfg.res.disp_y);
@@ -407,17 +410,8 @@ static int tccxxx_ccfb_release(struct inode *inode, struct file *file)
 		//tccxxx_ccfb_deact_clock(dev);
 	}
 
-#if 0
-	if(dev->pUiLcdc){
-		if((dev->pUiLcdc->LIC & Hw28)==0){
-			BITSET(dev->pUiLcdc->LIC, 0x1<<28);
-		#if !defined(CONFIG_ARCH_TCC92XX)
-			BITCSET (dev->pUiLcdc->LIC, HwLCT_RU, HwLCT_RU);
-		#endif
-		}
-	}
-#endif /* 0 */
-
+	VIOC_WMIX_SetOverlayPriority(dev->pCurWMix, g_ovp_value);
+		
 	memset(&g_ccfg_cfg, 0x0, sizeof(ccfb_config_t));
 
 	dev->cur_state = CCFB_STATE_CLOSED;

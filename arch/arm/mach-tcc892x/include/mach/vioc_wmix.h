@@ -33,6 +33,7 @@ typedef	struct
 
 /* Interface APIs */
 extern void VIOC_WMIX_SetOverlayPriority(VIOC_WMIX *pWMIX, unsigned int nOverlayPriority);
+extern void VIOC_WMIX_GetOverlayPriority(VIOC_WMIX *pWMIX, unsigned int *nOverlayPriority);
 extern void VIOC_WMIX_SetUpdate(VIOC_WMIX *pWMIX);
 #if 0 //[[ hskim_20110920_BEGIN -- Not Support
 extern void VIOC_WMIX_SetAlphOpt(VIOC_WMIX *pWMIX, unsigned int opt);
