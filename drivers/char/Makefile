@@ -82,7 +82,7 @@ obj-$(CONFIG_JS_RTC)		+= js-rtc.o
 js-rtc-y = rtc.o
 
 obj-$(CONFIG_ARCH_TCC)    += tcc_dxb_ctrl/ 
-#obj-$(CONFIG_TCC_USER_INTR) += tcc_intr.o
+obj-$(CONFIG_TCC_USER_INTR) += tcc_intr.o
 obj-$(CONFIG_TCC_BT_DEV)       += tcc_bt_dev.o
 obj-$(CONFIG_TCC_HDMI)		+= hdmi/
 

@@ -15,6 +15,7 @@ obj-$(CONFIG_ARCH_TCC892X)      += tca_serial.o
 obj-$(CONFIG_ARCH_TCC892X)      += tca_i2c.o
 obj-$(CONFIG_ARCH_TCC892X)      += tca_spi.o tca_tco.o
 obj-$(CONFIG_ARCH_TCC892X)      += tca_tsif.o
+obj-$(CONFIG_ARCH_TCC892X)      += tca_intr.o
 obj-$(CONFIG_ARCH_TCC892X)      += vioc/vioc_disp.o vioc/vioc_outcfg.o vioc/vioc_rdma.o vioc/vioc_wdma.o vioc/vioc_wmix.o vioc/vioc_viqe.o \
                                                            vioc/vioc_scaler.o vioc/vioc_ireq.o vioc/vioc_api.o vioc/vioc_config.o vioc/vioc_vin.o
 

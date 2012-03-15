@@ -14,6 +14,7 @@ obj-$(CONFIG_ARCH_TCC88XX)      += tca_serial.o
 obj-$(CONFIG_ARCH_TCC88XX)      += tca_i2c.o
 obj-$(CONFIG_ARCH_TCC88XX)      += tca_spi.o tca_tco.o
 obj-$(CONFIG_ARCH_TCC88XX)      += tca_tsif.o
+obj-$(CONFIG_ARCH_TCC88XX)      += tca_intr.o
 obj-$(CONFIG_CPU_FREQ)          += cpufreq.o
 
 obj-$(CONFIG_ARCH_TCC88XX)		+= tca_cipher.o
