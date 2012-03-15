@@ -594,12 +594,12 @@ void tcc_component_get_spec(COMPONENT_MODE_TYPE mode, COMPONENT_SPEC_TYPE *spec)
 				
 			spec->component_FPW1 = 3 - 1;					// TFT/TV : Frame pulse width is the pulse width of frmae clock
 			spec->component_FLC1 = 720 - 1;					// frmae line count is the number of lines in each frmae on the screen
-			spec->component_FSWC1 = 4 - 1;					// frmae start wait cycle is the number of lines to insert at the end each frame
-			spec->component_FEWC1 = 29 - 1;					// frame start wait cycle is the number of lines to insert at the begining each frame
+			spec->component_FSWC1 = 29 - 1;					// frmae start wait cycle is the number of lines to insert at the end each frame
+			spec->component_FEWC1 = 4 - 1;					// frame start wait cycle is the number of lines to insert at the begining each frame
 			spec->component_FPW2 = 3 - 1;					// TFT/TV : Frame pulse width is the pulse width of frmae clock
 			spec->component_FLC2 = 720 - 1;					// frmae line count is the number of lines in each frmae on the screen
-			spec->component_FSWC2 = 4 - 1;					// frmae start wait cycle is the number of lines to insert at the end each frame
-			spec->component_FEWC2 = 29 - 1; 					// frame start wait cycle is the number of lines to insert at the begining each frame
+			spec->component_FSWC2 = 29 - 1;					// frmae start wait cycle is the number of lines to insert at the end each frame
+			spec->component_FEWC2 = 4 - 1; 					// frame start wait cycle is the number of lines to insert at the begining each frame
 			#else
 			spec->component_LPW = 24 - 1; 					// line pulse width
 			spec->component_LPC = 1280 - 1; 				// line pulse count (active horizontal pixel - 1)
@@ -625,24 +625,6 @@ void tcc_component_get_spec(COMPONENT_MODE_TYPE mode, COMPONENT_SPEC_TYPE *spec)
 			spec->component_bus_width = 24;
 			spec->component_lcd_width = 1920;
 			spec->component_lcd_height = 1080;
-			#if defined(CONFIG_ARCH_TCC892X)
-			spec->component_LPW = 24 - 1; 					// line pulse width
-			spec->component_LPC = 1920 - 1; 				// line pulse count (active horizontal pixel - 1)
-			spec->component_LSWC = 228 - 1;					// line start wait clock (the number of dummy pixel clock - 1)
-			spec->component_LEWC = 28 - 1;					// line end wait clock (the number of dummy pixel clock - 1)
-
-			spec->component_VDB = 0; 						// Back porch Vsync delay
-			spec->component_VDF = 0; 						// front porch of Vsync delay
-				
-			spec->component_FPW1 = 5*2 - 1;					// TFT/TV : Frame pulse width is the pulse width of frmae clock
-			spec->component_FLC1 = 540*2 - 1;				// frmae line count is the number of lines in each frmae on the screen
-			spec->component_FSWC1 = 1.5*2 - 1;				// frmae start wait cycle is the number of lines to insert at the end each frame
-			spec->component_FEWC1 = 16*2 - 1;				// frame start wait cycle is the number of lines to insert at the begining each frame
-			spec->component_FPW2 = 5*2 - 1;					// TFT/TV : Frame pulse width is the pulse width of frmae clock
-			spec->component_FLC2 = 540*2 - 1;				// frmae line count is the number of lines in each frmae on the screen
-			spec->component_FSWC2 = 1*2 - 1;				// frmae start wait cycle is the number of lines to insert at the end each frame
-			spec->component_FEWC2 = 16.5*2 - 1; 				// frame start wait cycle is the number of lines to insert at the begining each frame
-			#else
 			spec->component_LPW = 24 - 1; 					// line pulse width
 			spec->component_LPC = 1920 - 1; 				// line pulse count (active horizontal pixel - 1)
 			spec->component_LSWC = 254 - 1;					// line start wait clock (the number of dummy pixel clock - 1)
@@ -659,7 +641,6 @@ void tcc_component_get_spec(COMPONENT_MODE_TYPE mode, COMPONENT_SPEC_TYPE *spec)
 			spec->component_FLC2 = 540*2 - 1;					// frmae line count is the number of lines in each frmae on the screen
 			spec->component_FSWC2 = 15.5*2 - 1;					// frmae start wait cycle is the number of lines to insert at the end each frame
 			spec->component_FEWC2 = 2*2 - 1; 					// frame start wait cycle is the number of lines to insert at the begining each frame
-			#endif
 			break;
 	}
 }
@@ -798,9 +779,9 @@ void tcc_component_set_lcd2tv(COMPONENT_MODE_TYPE mode)
 				LcdCtrlParam.r2ymd = 3;
 				LcdCtrlParam.advi = 1;
 				LcdCtrlParam.ckg = 1;
-				LcdCtrlParam.id= 1;
-				LcdCtrlParam.iv = 1;
-				LcdCtrlParam.ih = 0;
+				LcdCtrlParam.id= 0;
+				LcdCtrlParam.iv = 0;
+				LcdCtrlParam.ih = 1;
 				LcdCtrlParam.ip = 1;
 				LcdCtrlParam.pxdw = 12;
 				LcdCtrlParam.ni = 0;

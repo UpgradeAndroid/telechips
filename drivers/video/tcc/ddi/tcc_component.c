@@ -698,9 +698,9 @@ void tcc_component_set_lcd2tv(COMPONENT_MODE_TYPE mode)
 			BITCSET(lcd_ctrl, Hw29|Hw28, Hw29|Hw28);				// R2YMD - RGB to YCbCr Conversion Option
 			BITCSET(lcd_ctrl, Hw23, Hw23);							// CKG - Clock Gating Enable for Timing Generator
 //			BITCSET(lcd_ctrl, Hw15, Hw15);							// ID - Inverted Data Enable
-			BITCSET(lcd_ctrl, Hw14, Hw14);							// IV - Inverted Vertical Sync
+//			BITCSET(lcd_ctrl, Hw14, Hw14);							// IV - Inverted Vertical Sync
 			BITCSET(lcd_ctrl, Hw13, Hw13);							// IH - Inverted Horizontal Sync
-//			BITCSET(lcd_ctrl, Hw12, Hw12);							// IP - Inverted Pixel Clock
+			BITCSET(lcd_ctrl, Hw12, Hw12);							// IP - Inverted Pixel Clock
 			BITCSET(lcd_ctrl, Hw7, Hw7);							// TV
 			BITCSET(lcd_ctrl, Hw3|Hw2|Hw1, Hw3|Hw1);				// OVP
 			BITCSET(lcd_ctrl, Hw0, Hw0);							// LEN - LCD Controller Enable
