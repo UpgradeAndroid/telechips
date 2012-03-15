@@ -269,7 +269,7 @@ void TCC_VIQE_DI_Init60Hz(int lcdCtrlNum, int Lcdc_layer, int useSCALER, unsigne
 {
 	unsigned int deintl_dma_base0, deintl_dma_base1, deintl_dma_base2, deintl_dma_base3;
 	unsigned int framebufWidth, framebufHeight;
-	unsigned int lcd_width = 0, lcd_height = 0, lcd_h_pos = 0, lcd_w_pos = 0, scale_x = 0, scale_y = 0;
+	unsigned int lcd_width = 0, lcd_height = 0, scale_x = 0, scale_y = 0;
 	int imgSize;
 	VIOC_VIQE_FMT_TYPE viqe_fmt;
 
@@ -281,7 +281,6 @@ void TCC_VIQE_DI_Init60Hz(int lcdCtrlNum, int Lcdc_layer, int useSCALER, unsigne
 	VIOC_VIQE_DEINTL_MODE DI_mode = VIOC_VIQE_DEINTL_MODE_2D;
 	int top_size_dont_use = OFF;		//If this value is OFF, The size information is get from VIOC modules.
 
-	
 	pmap_get_info("viqe", &pmap_viqe);
 	gPMEM_VIQE_BASE = PA_VIQE_BASE_ADDR;
 	gPMEM_VIQE_SIZE = PA_VIQE_BASE_SIZE;
@@ -317,14 +316,13 @@ void TCC_VIQE_DI_Init60Hz(int lcdCtrlNum, int Lcdc_layer, int useSCALER, unsigne
 	framebufHeight = ((srcHeight - crop_top - crop_bottom) >> 1) << 1;		// 2bit align
 	printk("TCC_VIQE_DI_Init60Hz, W:%d, H:%d, DW:%d, DH:%d, FMT:%d, VFMT:%s, OddFirst:%d, RDMA:%d\n", framebufWidth, framebufHeight, destWidth, destHeight, img_fmt, (viqe_fmt?"YUV422":"YUV420"), OddFirst, ((gRDMA_reg-HwVIOC_RDMA00)/256));
 
-#if 1
 	VIOC_DISP_GetSize(pDISPBase, &lcd_width, &lcd_height);
 	if((!lcd_width) || (!lcd_height))
 	{
 		printk("%s invalid lcd size\n", __func__);
 		return;
 	}
-#endif	
+
 	if(useSCALER)
 	{
 		VIOC_CONFIG_PlugIn (gSCALER_num, gSC_RDMA_num);			
@@ -335,7 +333,6 @@ void TCC_VIQE_DI_Init60Hz(int lcdCtrlNum, int Lcdc_layer, int useSCALER, unsigne
 		gusingScale = 1;
 	}
 
-		
 	dprintk("%s lcdc:%d, pRDMA:0x%08x, pWMIX:0x%08x, pDISP:0x%08x, addr0:0x%08x\n", __func__, hdmi_lcdc, pRDMABase, pWMIXBase, pDISPBase, ImageInfo->addr0);
 		
 	VIOC_RDMA_SetImageY2REnable(pRDMABase, FALSE);
@@ -346,21 +343,7 @@ void TCC_VIQE_DI_Init60Hz(int lcdCtrlNum, int Lcdc_layer, int useSCALER, unsigne
 
 	scale_x = 0;
 	scale_y = 0;
-#if 1
-	lcd_h_pos = 0;
-	lcd_w_pos = 0;
 
-	if(lcd_width > destWidth)
-		lcd_w_pos = (lcd_width - destWidth)/2;
-	
-	if(lcd_height > destHeight)
-		lcd_h_pos = (lcd_height - destHeight)/2;
-
-	dprintk("%s lcd_width:%d, lcd_height:%d, lcd_w_pos:%d, lcd_h_pos:%d\n\n", __func__, lcd_width, lcd_height, lcd_w_pos, lcd_h_pos);
-	
-	// position
-	VIOC_WMIX_SetPosition(pWMIXBase, Lcdc_layer, lcd_w_pos, lcd_h_pos);
-#endif
 	// scale
 	VIOC_RDMA_SetImageScale(pRDMABase, scale_x, scale_y);
 	VIOC_RDMA_SetImageSize(pRDMABase, framebufWidth, framebufHeight);
@@ -368,13 +351,12 @@ void TCC_VIQE_DI_Init60Hz(int lcdCtrlNum, int Lcdc_layer, int useSCALER, unsigne
 	//interlace image
 	VIOC_RDMA_SetImageIntl(pRDMABase, 1);
 	VIOC_RDMA_SetImageBfield(pRDMABase, OddFirst);
-	VIOC_WMIX_SetPosition(pWMIXBase, Lcdc_layer,  offset_x, (offset_y/2) );
+	VIOC_WMIX_SetPosition(pWMIXBase, Lcdc_layer,  offset_x, offset_y);
 	if(useSCALER)
 		VIOC_SC_SetUpdate (pSCALERBase);
 
 	VIOC_WMIX_SetUpdate(pWMIXBase);
 	gLcdc_layer = Lcdc_layer;
-
 
 	if(DI_mode == VIOC_VIQE_DEINTL_S)
 	{
@@ -424,7 +406,7 @@ void TCC_VIQE_DI_Run60Hz(int useSCALER, unsigned int addr0, unsigned int addr1, 
 						unsigned int destWidth, unsigned int destHeight, 
 						unsigned int offset_x, unsigned int offset_y, int OddFirst)
 {
-	unsigned int lcd_width = 0, lcd_height = 0, lcd_h_pos = 0, lcd_w_pos = 0, scale_x = 0, scale_y = 0;
+	unsigned int lcd_width = 0, lcd_height = 0, scale_x = 0, scale_y = 0;
 
 	if(gFrmCnt == 0)
 		printk("TCC_VIQE_DI_Run60Hz\n");
@@ -444,7 +426,6 @@ void TCC_VIQE_DI_Run60Hz(int useSCALER, unsigned int addr0, unsigned int addr1, 
 		VIOC_SC_SetOutSize (pSCALERBase, destWidth, destHeight);			// set output size in scaer
 		VIOC_SC_SetUpdate (pSCALERBase);
 	}
-
 	else
 	{
 		if(gusingScale == 1)	{
@@ -461,27 +442,16 @@ void TCC_VIQE_DI_Run60Hz(int useSCALER, unsigned int addr0, unsigned int addr1, 
 		return;
 	}
 
-	lcd_h_pos = 0;
-	lcd_w_pos = 0;
-
-	if(lcd_width > destWidth)
-		lcd_w_pos = (lcd_width - destWidth)/2;
-	
-	if(lcd_height > destHeight)
-		lcd_h_pos = (lcd_height - destHeight)/2;
-
-	dprintk("%s lcd_width:%d, lcd_height:%d, lcd_w_pos:%d, lcd_h_pos:%d\n\n", __func__, lcd_width, lcd_height, lcd_w_pos, lcd_h_pos);
+	dprintk("%s lcd_width:%d, lcd_height:%d\n", __func__, lcd_width, lcd_height);
 	
 	// position
-	VIOC_WMIX_SetPosition(pWMIXBase, gLcdc_layer, lcd_w_pos, lcd_h_pos);
-	VIOC_WMIX_SetPosition(pWMIXBase, gLcdc_layer,  offset_x, (offset_y/2) );
+	VIOC_WMIX_SetPosition(pWMIXBase, gLcdc_layer,  offset_x, offset_y);
 	VIOC_WMIX_SetUpdate(pWMIXBase);
 
 	VIOC_RDMA_SetImageBfield(pRDMABase, OddFirst);
 	// image address
 	VIOC_RDMA_SetImageBase(pRDMABase, addr0, addr1, addr2);
 	VIOC_RDMA_SetImageEnable(pRDMABase);
-
 
 	gFrmCnt++;	
 }
