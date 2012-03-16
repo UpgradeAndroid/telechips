@@ -410,7 +410,9 @@ static int tccxxx_ccfb_release(struct inode *inode, struct file *file)
 		//tccxxx_ccfb_deact_clock(dev);
 	}
 
-	VIOC_WMIX_SetOverlayPriority(dev->pCurWMix, g_ovp_value);
+	if(dev->pCurWMix != NULL){
+		VIOC_WMIX_SetOverlayPriority(dev->pCurWMix, g_ovp_value);
+	}
 		
 	memset(&g_ccfg_cfg, 0x0, sizeof(ccfb_config_t));
 
