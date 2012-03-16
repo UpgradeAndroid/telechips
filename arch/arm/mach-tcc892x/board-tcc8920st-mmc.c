@@ -40,6 +40,7 @@ typedef enum {
 
 
 #define TCC_MMC_SDIO_WIFI_USED
+#define CONFIG_TCC_SD_PORT_RESTORE	//for SD Power-off in the STB
 
 typedef enum {
 	TCC_MMC_TYPE_SD,
@@ -141,6 +142,19 @@ int tcc8920_mmc_init(struct device *dev, int id)
 	#endif
 	#endif
 
+	#if defined(CONFIG_TCC_SD_PORT_RESTORE)
+	if(id == TCC_MMC_TYPE_SD)
+	{
+		gpio_request(mmc_ports[id].data0, "sd_d0");
+		gpio_request(mmc_ports[id].data1, "sd_d1");
+		gpio_request(mmc_ports[id].data2, "sd_d2");
+		gpio_request(mmc_ports[id].data3, "sd_d3");
+
+		gpio_request(mmc_ports[id].cmd, "sd_cmd");
+		gpio_request(mmc_ports[id].clk, "sd_clk");
+	}
+	#endif
+
 	tcc_gpio_config(mmc_ports[id].data0, mmc_ports[id].func | GPIO_CD(1));
 	tcc_gpio_config(mmc_ports[id].data1, mmc_ports[id].func | GPIO_CD(1));
 	tcc_gpio_config(mmc_ports[id].data2, mmc_ports[id].func | GPIO_CD(1));
@@ -183,7 +197,7 @@ int tcc8920_mmc_suspend(struct device *dev, int id)
 	#if defined(TCC_MMC_SDIO_WIFI_USED)
 	if(id == TCC_MMC_TYPE_WIFI) {
 		gpio_direction_output(GPIO_SD1_ON, 0);
-	} 
+	}
 	#endif
 
 	return 0;
@@ -211,6 +225,29 @@ int tcc8920_mmc_set_power(struct device *dev, int id, int on)
 			mdelay(1);
 		}
 	} else {
+
+		#if defined(CONFIG_TCC_SD_PORT_RESTORE)
+		if (id == TCC_MMC_TYPE_SD)
+		{
+			/* GPIO mode */
+			tcc_gpio_config(mmc_ports[id].data0, GPIO_FN(0));
+			tcc_gpio_config(mmc_ports[id].data1, GPIO_FN(0));
+			tcc_gpio_config(mmc_ports[id].data2, GPIO_FN(0));
+			tcc_gpio_config(mmc_ports[id].data3, GPIO_FN(0));
+
+			tcc_gpio_config(mmc_ports[id].cmd, GPIO_FN(0));
+			tcc_gpio_config(mmc_ports[id].clk, GPIO_FN(0));
+
+			/* output mode - 1:high, 0:low */
+			gpio_direction_output(mmc_ports[id].data0, 0);
+			gpio_direction_output(mmc_ports[id].data1, 0);
+			gpio_direction_output(mmc_ports[id].data2, 0);
+			gpio_direction_output(mmc_ports[id].data3, 0);
+
+			gpio_direction_output(mmc_ports[id].cmd, 0);
+			gpio_direction_output(mmc_ports[id].clk, 0);
+		}
+		#endif
 
 		//mdelay(10);
 	}
@@ -290,7 +327,7 @@ struct tcc_mmc_platform_data tcc8920_mmc_platform_data[] = {
 		.set_power = tcc8920_mmc_set_power,
 		.set_bus_width = tcc8920_mmc_set_bus_width,
 
-		.cd_int_num = -1, 
+		.cd_int_num = -1,
 		.peri_name = PERI_SDMMC0,
 		.io_name = RB_SDMMC0CONTROLLER,
 		.pic = HwINT1_SD0,
