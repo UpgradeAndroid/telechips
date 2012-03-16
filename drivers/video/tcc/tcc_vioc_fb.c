@@ -223,6 +223,7 @@ typedef struct {
 	//for deinterlace mode
 	int deinterlace_mode;
 	int firstFrameFlag;
+	int frameInfo_interlace;
 	int m2m_mode;
 	int output_toMemory;
 	int nDeinterProcCount;
@@ -719,7 +720,7 @@ static void DisplayUpdateWithDeinterlace(void)
 										pNextImage->Frame_width, pNextImage->Frame_height,
 										pNextImage->crop_top,pNextImage->crop_bottom, pNextImage->crop_left, pNextImage->crop_right, 
 										pNextImage->Image_width, pNextImage->Image_height, 
-										pNextImage->offset_x, pNextImage->offset_y, pNextImage->odd_first_flag);
+										pNextImage->offset_x, pNextImage->offset_y, pNextImage->odd_first_flag, pNextImage->frameInfo_interlace);
 				}
 				else
 				{
@@ -774,7 +775,7 @@ static void DisplayUpdateWithDeinterlace(void)
 									pNextImage->Frame_width, pNextImage->Frame_height,
 									pNextImage->crop_top,pNextImage->crop_bottom, pNextImage->crop_left, pNextImage->crop_right, 
 									pNextImage->Image_width, pNextImage->Image_height,
-									pNextImage->offset_x, pNextImage->offset_y, pNextImage->odd_first_flag^0x01);
+									pNextImage->offset_x, pNextImage->offset_y, pNextImage->odd_first_flag^0x01, pNextImage->frameInfo_interlace);
 			}
 			#else
 			switch(Output_SelectMode)
@@ -1976,6 +1977,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 				VIOC_DISP_GetSize(pDISPBase, &lcd_width, &lcd_height);
 				
 				tccvid_vsync.deinterlace_mode = input_image.deinterlace_mode;
+				tccvid_vsync.frameInfo_interlace = input_image.frameInfo_interlace;
 				tccvid_vsync.output_toMemory = input_image.output_toMemory;
 				printk("### deinterlace_mode(%d), output_toMemory(%d)\n", tccvid_vsync.deinterlace_mode, tccvid_vsync.output_toMemory);
 				

@@ -390,6 +390,7 @@ void TCC_VIQE_DI_Init60Hz(int lcdCtrlNum, int Lcdc_layer, int useSCALER, unsigne
 	{
 		VIOC_VIQE_SetControlRegister(pVIQE, framebufWidth, framebufHeight, viqe_fmt);
 		VIOC_VIQE_SetDeintlRegister(pVIQE, viqe_fmt, top_size_dont_use, framebufWidth, framebufHeight, DI_mode, deintl_dma_base0, deintl_dma_base1, deintl_dma_base2, deintl_dma_base3);
+		VIOC_VIQE_SetDenoise(pVIQE, viqe_fmt, framebufWidth, framebufHeight, 1, 0, deintl_dma_base0, deintl_dma_base1);
 		VIOC_VIQE_SetControlEnable(pVIQE, OFF, OFF, OFF, OFF, ON);
 		VIOC_VIQE_SetImageY2REnable(pVIQE, TRUE);
 		VIOC_VIQE_SetImageY2RMode(pVIQE, 0x02);
@@ -404,15 +405,28 @@ void TCC_VIQE_DI_Run60Hz(int useSCALER, unsigned int addr0, unsigned int addr1, 
 						unsigned int srcWidth, unsigned int srcHeight,	
 						int crop_top, int crop_bottom, int crop_left, int crop_right, 
 						unsigned int destWidth, unsigned int destHeight, 
-						unsigned int offset_x, unsigned int offset_y, int OddFirst)
+						unsigned int offset_x, unsigned int offset_y, int OddFirst, int FrameInfo_Interlace)
 {
 	unsigned int lcd_width = 0, lcd_height = 0, scale_x = 0, scale_y = 0;
 
 	if(gFrmCnt == 0)
 		printk("TCC_VIQE_DI_Run60Hz\n");
+	if(FrameInfo_Interlace)
+	{
+		if(gFrmCnt >= 3)
+			VIOC_VIQE_SetDeintlMode(pVIQE, VIOC_VIQE_DEINTL_MODE_3D);
+		else
+			VIOC_VIQE_SetDeintlMode(pVIQE, VIOC_VIQE_DEINTL_MODE_2D);
+		VIOC_VIQE_SetControlMode(pVIQE, OFF, OFF, OFF, OFF, ON);
+		VIOC_RDMA_SetImageIntl(pRDMABase, 1);
+	}
+	else
+	{	
+		VIOC_VIQE_SetControlMode(pVIQE, OFF, OFF, OFF, ON, OFF);
+		VIOC_RDMA_SetImageIntl(pRDMABase, 0);
 
-	if(gFrmCnt == 3)
-		VIOC_VIQE_SetDeintlMode(pVIQE, VIOC_VIQE_DEINTL_MODE_3D);
+		gFrmCnt = 0;
+	}
 	
 	if(useSCALER)
 	{

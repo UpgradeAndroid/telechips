@@ -13,7 +13,7 @@ void TCC_VIQE_DI_Run60Hz(int useSCALER, unsigned int addr0, unsigned int addr1, 
 						unsigned int srcWidth, unsigned int srcHeight,	
 						int crop_top, int crop_bottom, int crop_left, int crop_right,
 						unsigned int destWidth, unsigned int destHeight,
-						unsigned int offset_x, unsigned int offset_y, int OddFirst);
+						unsigned int offset_x, unsigned int offset_y, int OddFirst, int FrameInfo_Interlace);
  void TCC_VIQE_DI_DeInit60Hz(void);
 
 
