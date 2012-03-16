@@ -173,8 +173,20 @@ static int wm8524_suspend(struct snd_soc_codec *codec, pm_message_t state)
 	if(machine_is_tcc8920st())
 	{
 		gpio_set_value(TCC_GPF(24), 0);	//AIFMODE
-		gpio_set_value(TCC_GPB(6), 0);	//MUTE_CTL
-		gpio_set_value(TCC_GPB(7), 0);	//MUTE_ANG
+		gpio_set_value(TCC_GPB( 6), 0);	//MUTE_CTL
+		gpio_set_value(TCC_GPB( 7), 0);	//MUTE_ANG
+
+		tcc_gpio_config(TCC_GPG( 6), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//MCLK
+		tcc_gpio_config(TCC_GPG( 7), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//BCLK
+		tcc_gpio_config(TCC_GPG( 8), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//LRCK
+		tcc_gpio_config(TCC_GPG( 9), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//DAO
+		tcc_gpio_config(TCC_GPG(10), GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);	//DAI
+
+		gpio_set_value(TCC_GPG( 6), 0);	//MCLK
+		gpio_set_value(TCC_GPG( 7), 0);	//BCLK
+		gpio_set_value(TCC_GPG( 8), 0);	//LRCK
+		gpio_set_value(TCC_GPG( 9), 0);	//DAO
+		gpio_set_value(TCC_GPG(10), 0);	//DAI
 	}
 
 	return 0;
@@ -188,9 +200,15 @@ static int wm8524_resume(struct snd_soc_codec *codec)
 	
 	if(machine_is_tcc8920st())
 	{
+		tcc_gpio_config(TCC_GPG( 6), GPIO_FN(1));	//MCLK
+		tcc_gpio_config(TCC_GPG( 7), GPIO_FN(1));	//BCLK
+		tcc_gpio_config(TCC_GPG( 8), GPIO_FN(1));	//LRCK
+		tcc_gpio_config(TCC_GPG( 9), GPIO_FN(1));	//DAO
+		tcc_gpio_config(TCC_GPG(10), GPIO_FN(1));	//DAI
+
 		gpio_set_value(TCC_GPF(24), 1);	//AIFMODE
-		gpio_set_value(TCC_GPB(6), 1);	//MUTE_CTL
-		gpio_set_value(TCC_GPB(7), 1);	//MUTE_ANG
+		gpio_set_value(TCC_GPB( 6), 1);	//MUTE_CTL
+		gpio_set_value(TCC_GPB( 7), 1);	//MUTE_ANG
 	}
 	
 	return 0;
