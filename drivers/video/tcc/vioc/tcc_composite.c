@@ -452,12 +452,12 @@ void tcc_composite_get_spec(COMPOSITE_MODE_TYPE mode, COMPOSITE_SPEC_TYPE *spec)
 
 			spec->composite_FPW1 = 1 - 1;					// TFT/TV : Frame pulse width is the pulse width of frmae clock
 			spec->composite_FLC1 = 480 - 1;					// frmae line count is the number of lines in each frmae on the screen
-			spec->composite_FSWC1 = 16-1;//37 - 1;					// frmae start wait cycle is the number of lines to insert at the end each frame
-			spec->composite_FEWC1 = 28-1;//7 - 1;					// frame start wait cycle is the number of lines to insert at the begining each frame
+			spec->composite_FSWC1 = 37 - 1;					// frmae start wait cycle is the number of lines to insert at the end each frame
+			spec->composite_FEWC1 = 7 - 1;					// frame start wait cycle is the number of lines to insert at the begining each frame
 			spec->composite_FPW2 = 1 - 1;					// TFT/TV : Frame pulse width is the pulse width of frmae clock
 			spec->composite_FLC2 = 480 - 1;					// frmae line count is the number of lines in each frmae on the screen
-			spec->composite_FSWC2 = 15-1;//38 - 1;					// frmae start wait cycle is the number of lines to insert at the end each frame
-			spec->composite_FEWC2 = 29-1;//6 - 1; 					// frame start wait cycle is the number of lines to insert at the begining each frame
+			spec->composite_FSWC2 = 38 - 1;					// frmae start wait cycle is the number of lines to insert at the end each frame
+			spec->composite_FEWC2 = 6 - 1; 					// frame start wait cycle is the number of lines to insert at the begining each frame
 			break;
 
 		case NTSC_N:
@@ -482,12 +482,12 @@ void tcc_composite_get_spec(COMPOSITE_MODE_TYPE mode, COMPOSITE_SPEC_TYPE *spec)
 				
 			spec->composite_FPW1 = 1 - 1;					// TFT/TV : Frame pulse width is the pulse width of frmae clock
 			spec->composite_FLC1 = 576 - 1;					// frmae line count is the number of lines in each frmae on the screen
-			spec->composite_FSWC1 = 18-1;//43 -1;					// frmae start wait cycle is the number of lines to insert at the end each frame
-			spec->composite_FEWC1 = 30-1;//5 - 1;					// frame start wait cycle is the number of lines to insert at the begining each frame
+			spec->composite_FSWC1 = 43-1;					// frmae start wait cycle is the number of lines to insert at the end each frame
+			spec->composite_FEWC1 = 5-1;					// frame start wait cycle is the number of lines to insert at the begining each frame
 			spec->composite_FPW2 = 1 - 1;					// TFT/TV : Frame pulse width is the pulse width of frmae clock
 			spec->composite_FLC2 = 576 - 1;					// frmae line count is the number of lines in each frmae on the screen
-			spec->composite_FSWC2 = 17-1;//44 - 1;					// frmae start wait cycle is the number of lines to insert at the end each frame
-			spec->composite_FEWC2 = 31-1;//4 - 1; 					// frame start wait cycle is the number of lines to insert at the begining each frame
+			spec->composite_FSWC2 = 44-1;//4 					// frmae start wait cycle is the number of lines to insert at the end each frame
+			spec->composite_FEWC2 = 4-1; 					// frame start wait cycle is the number of lines to insert at the begining each frame
 			break;
 	}
 }
@@ -569,7 +569,7 @@ void tcc_composite_set_lcd2tv(COMPOSITE_MODE_TYPE type)
 	LcdCtrlParam.r2ymd = 3;
 	LcdCtrlParam.ckg = 1;
 	LcdCtrlParam.id= 0;
-	LcdCtrlParam.iv = 1;
+	LcdCtrlParam.iv = 0;
 	LcdCtrlParam.ih = 1;
 	LcdCtrlParam.ip = 1;
 	LcdCtrlParam.clen = 1;

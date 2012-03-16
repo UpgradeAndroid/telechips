@@ -1673,7 +1673,7 @@ void tcc_output_starter_composite(unsigned char lcdc_num, unsigned char type)
 	LcdCtrlParam.r2ymd = 3;
 	LcdCtrlParam.ckg = 1;
 	LcdCtrlParam.id= 0;
-	LcdCtrlParam.iv = 1;
+	LcdCtrlParam.iv = 0;
 	LcdCtrlParam.ih = 1;
 	LcdCtrlParam.ip = 1;
 	LcdCtrlParam.clen = 1;
@@ -1946,9 +1946,9 @@ void tcc_output_starter_component(unsigned char lcdc_num, unsigned char type)
 			LcdCtrlParam.r2ymd = 3;
 			LcdCtrlParam.advi = 1;
 			LcdCtrlParam.ckg = 1;
-			LcdCtrlParam.id= 1;
-			LcdCtrlParam.iv = 1;
-			LcdCtrlParam.ih = 0;
+			LcdCtrlParam.id= 0;
+			LcdCtrlParam.iv = 0;
+			LcdCtrlParam.ih = 1;
 			LcdCtrlParam.ip = 1;
 			LcdCtrlParam.pxdw = 12;
 			LcdCtrlParam.ni = 0;
