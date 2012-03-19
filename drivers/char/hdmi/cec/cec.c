@@ -117,6 +117,9 @@ static unsigned int cec_poll(struct file *file, poll_table *wait);
 
 static irqreturn_t cec_irq_handler(int irq, void *dev_id);
 
+static void cec_start(void);
+static void cec_stop(void);
+
 inline static void cec_set_divider(void);
 inline static void cec_enable_interrupts(void);
 inline static void cec_disable_interrupts(void);
@@ -153,43 +156,6 @@ int cec_open(struct inode *inode, struct file *file)
 
 	clk_enable(hdmi_cec_clk);
 
-
-#if defined(CONFIG_ARCH_TCC88XX)
-	tcc_gpio_config(TCC_GPD(24), GPIO_FN(5));
-	gpio_direction_output(CEC_GPIO_COMMON, 0);
-#elif defined(CONFIG_ARCH_TCC93XX)
-	tcc_gpio_config(TCC_GPA(6), GPIO_FN(1));
-	gpio_direction_output(CEC_GPIO_COMMON, 0);
-#elif defined(CONFIG_ARCH_TCC92XX)
-	tcc_gpio_config(TCC_GPA(6), GPIO_FN(1));
-	tcc_gpio_config(TCC_GPA(7), GPIO_FN(1));
-
-	gpio_direction_output(CEC_GPIO_IN, 0);
-	gpio_direction_output(CEC_GPIO_OUT, 1);	
-#elif defined(CONFIG_ARCH_TCC892X)
-	tcc_gpio_config(CEC_GPIO_COMMON, GPIO_FN(1));
-	gpio_direction_output(CEC_GPIO_COMMON, 0);
-#else
-#error : not define HDMI CEC GPIO
-#endif /* CONFIG_ARCH_TCC88XX */
-
-    writeb(CEC_RX_CTRL_RESET, CEC_RX_CTRL); // reset CEC Rx
-    writeb(CEC_TX_CTRL_RESET, CEC_TX_CTRL); // reset CEC Tx
-
-    cec_set_divider();
-
-    writeb(CEC_FILTER_THRESHOLD, CEC_RX_FILTER_TH); // setup filter
-
-    cec_enable_interrupts();
-
-    cec_unmask_tx_interrupts();
-
-    cec_set_rx_state(STATE_RX);
-    cec_unmask_rx_interrupts();
-    cec_enable_rx();
-
-	cec_rx_struct.flag = 0;
-
     return 0;
 }
 
@@ -197,18 +163,7 @@ int cec_release(struct inode *inode, struct file *file)
 {
     DPRINTK(KERN_INFO "%s\n", __FUNCTION__);
 
-    cec_mask_tx_interrupts();
-    cec_mask_rx_interrupts();
-    cec_disable_interrupts();
-
 	clk_disable(hdmi_cec_clk);
-
-#if defined(CONFIG_ARCH_TCC92XX)
-	tcc_gpio_config(CEC_GPIO_IN, GPIO_FN(0));
-	tcc_gpio_config(CEC_GPIO_OUT, GPIO_FN(0));
-#else
-	tcc_gpio_config(CEC_GPIO_COMMON, GPIO_FN(0));
-#endif /* CONFIG_ARCH_TCC88XX */
 
     return 0;
 }
@@ -316,6 +271,64 @@ ssize_t cec_write(struct file *file, const char __user *buffer, size_t count, lo
     return count;
 }
 
+void cec_start(void)
+{
+    DPRINTK(KERN_INFO "%s\n", __FUNCTION__);
+
+#if defined(CONFIG_ARCH_TCC88XX)
+	tcc_gpio_config(CEC_GPIO_COMMON, GPIO_FN(5));
+	gpio_direction_output(CEC_GPIO_COMMON, 0);
+#elif defined(CONFIG_ARCH_TCC93XX)
+	tcc_gpio_config(CEC_GPIO_COMMON, GPIO_FN(1));
+	gpio_direction_output(CEC_GPIO_COMMON, 0);
+#elif defined(CONFIG_ARCH_TCC92XX)
+	tcc_gpio_config(CEC_GPIO_IN, GPIO_FN(1));
+	tcc_gpio_config(CEC_GPIO_OUT, GPIO_FN(1));
+
+	gpio_direction_output(CEC_GPIO_IN, 0);
+	gpio_direction_output(CEC_GPIO_OUT, 1);	
+#elif defined(CONFIG_ARCH_TCC892X)
+	tcc_gpio_config(CEC_GPIO_COMMON, GPIO_FN(1));
+	gpio_direction_output(CEC_GPIO_COMMON, 0);
+#else
+#error : not define HDMI CEC GPIO
+#endif /* CONFIG_ARCH_TCC88XX */
+
+    writeb(CEC_RX_CTRL_RESET, CEC_RX_CTRL); // reset CEC Rx
+    writeb(CEC_TX_CTRL_RESET, CEC_TX_CTRL); // reset CEC Tx
+
+    cec_set_divider();
+
+    writeb(CEC_FILTER_THRESHOLD, CEC_RX_FILTER_TH); // setup filter
+
+    cec_enable_interrupts();
+
+    cec_unmask_tx_interrupts();
+
+    cec_set_rx_state(STATE_RX);
+    cec_unmask_rx_interrupts();
+    cec_enable_rx();
+
+	cec_rx_struct.flag = 0;
+}
+
+void cec_stop(void)
+{
+    DPRINTK(KERN_INFO "%s\n", __FUNCTION__);
+
+    cec_mask_tx_interrupts();
+    cec_mask_rx_interrupts();
+    cec_disable_interrupts();
+
+#if defined(CONFIG_ARCH_TCC92XX)
+	tcc_gpio_config(CEC_GPIO_IN, GPIO_FN(0));
+	tcc_gpio_config(CEC_GPIO_OUT, GPIO_FN(0));
+#else
+	tcc_gpio_config(CEC_GPIO_COMMON, GPIO_FN(0));
+#endif /* CONFIG_ARCH_TCC88XX */
+
+}
+
 int cec_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
     unsigned int laddr;
@@ -324,6 +337,12 @@ int cec_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     DPRINTK(KERN_INFO "%s\n", __FUNCTION__);
 
     switch (cmd) {
+		case CEC_IOC_START:
+			cec_start();
+			break;
+		case CEC_IOC_STOP:
+			cec_stop();
+			break;
         case CEC_IOC_SETLADDR:
             DPRINTK(KERN_INFO "CEC: ioctl(CEC_IOC_SETLADDR)\n");
             if (get_user(laddr, (unsigned int __user *) arg))
