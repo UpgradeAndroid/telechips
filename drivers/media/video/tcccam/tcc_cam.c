@@ -374,55 +374,45 @@ static irqreturn_t isp_cam_isr1(int irq, void *client_data/*, struct pt_regs *re
 	unsigned int curr_num;
 #else
 	struct tccxxx_cif_buffer *curr_buf, *next_buf;
-
 	unsigned int curr_num, next_num;
 #endif
 	volatile PCIF pCIF;
 
 	pCIF = (PCIF)tcc_p2v(HwISPBASE);
-	
 	client_data = client_data;
-#ifndef TCCISP_GEN_CFG_UPD	
-	if ( ISP_CheckInterrupt() )
-	{
+
+#ifndef TCCISP_GEN_CFG_UPD
+	if(ISP_CheckInterrupt()) {
 		ISP_ClearInterrupt();
 		printk ("isp_cam_isr1: Collision Detected!!!! \n");
-
 		return IRQ_HANDLED;
 	}
 #endif
-	ISP_EventHandler2();
 
-	if(ISP_EventHandler2_getEvent(1))
-	{
-		if(data->stream_state == STREAM_ON)
-		{
-			if(skip_frm == 0 && !frame_lock)
-			{
-				if(prev_buf != NULL)
-					list_move_tail(&prev_buf->buf_list, &data->done_list);
-			
+	ISP_EventHandler2();
+	if(ISP_EventHandler2_getEvent(1)) {
+		if(data->stream_state == STREAM_ON) {
+			if(skip_frm == 0 && !frame_lock) {
+				if(prev_buf != NULL) 	list_move_tail(&prev_buf->buf_list, &data->done_list);
 				prev_buf = data->buf + data->cif_cfg.now_frame_num;
 				prev_num = data->cif_cfg.now_frame_num;
-#ifndef TCCISP_GEN_CFG_UPD
+			#ifndef TCCISP_GEN_CFG_UPD
 				next_buf = list_entry(data->list.next->next, struct tccxxx_cif_buffer, buf_list);
 				next_num = next_buf->v4lbuf.index;
 
-				if(next_buf != &data->list && prev_buf != next_buf )
-				{
+				if(next_buf != &data->list && prev_buf != next_buf) {
 					//exception process!!
-#else
-				if(next_buf != &data->list && curr_buf != next_buf && (chkpnt==1))
-				{
-	#ifndef TCCISP_ONE_IRQ
+			#else // TCCISP_GEN_CFG_UPD
+				if(next_buf != &data->list && curr_buf != next_buf && (chkpnt==1)) {
+					#ifndef TCCISP_ONE_IRQ
 					//exception process!!
 					//next_buf = 0; 
 					chkpnt = 2;
-	#endif   // TCCISP_ONE_IRQ				
-#endif
-	#ifndef TCCISP_ONE_IRQ
-					if(prev_num != prev_buf->v4lbuf.index)
-					{
+					#endif // TCCISP_ONE_IRQ
+			#endif // TCCISP_GEN_CFG_UPD
+
+				#ifndef TCCISP_ONE_IRQ
+					if(prev_num != prev_buf->v4lbuf.index) {
 						printk("Frame num mismatch :: true num  :: %d \n", prev_num);
 						printk("Frame num mismatch :: false num :: %d \n", prev_buf->v4lbuf.index);
 						prev_buf->v4lbuf.index = prev_num ;
@@ -467,14 +457,20 @@ static irqreturn_t isp_cam_isr1(int irq, void *client_data/*, struct pt_regs *re
 
 						#ifndef TCCISP_GEN_CFG_UPD
 						ISP_Zoom_Apply (1);
-						ISP_SetPreviewH_StartAddress((unsigned int)data->cif_cfg.preview_buf[next_num].p_Y,
-														(unsigned int)data->cif_cfg.preview_buf[next_num].p_Cr,
-														(unsigned int)data->cif_cfg.preview_buf[next_num].p_Cb);
-						#else
+						#if defined(FEATURE_ANDROID_ICS)
+						ISP_SetPreviewH_StartAddress((unsigned int)data->cif_cfg.preview_buf[next_num].p_Y, 	\
+													 (unsigned int)data->cif_cfg.preview_buf[next_num].p_Cr, 	\
+													 (unsigned int)data->cif_cfg.preview_buf[next_num].p_Cb);
+						#else // FEATURE_ANDROID_ICS
+						ISP_SetPreviewH_StartAddress((unsigned int)data->cif_cfg.preview_buf[next_num].p_Y, 	\
+													 (unsigned int)data->cif_cfg.preview_buf[next_num].p_Cb, 	\
+													 (unsigned int)data->cif_cfg.preview_buf[next_num].p_Cr);
+						#endif // FEATURE_ANDROID_ICS
+						#else // TCCISP_GEN_CFG_UPD
 							#ifdef TCCISP_UPDATE
-
+							// todo : 
 							#endif
-						#endif
+						#endif // TCCISP_GEN_CFG_UPD
 					}
 
 					#if defined(FEATURE_ANDROID_ICS)
@@ -579,9 +575,15 @@ static irqreturn_t isp_cam_isr2(int irq, void *client_data/*, struct pt_regs *re
 
 				if(next_buf != &data->list && curr_buf != next_buf)
 				{
+					#if defined(FEATURE_ANDROID_ICS)
 					ISP_SetPreviewH_StartAddress((unsigned int)data->cif_cfg.preview_buf[next_num].p_Y,
-								(unsigned int)data->cif_cfg.preview_buf[next_num].p_Cb,
-								(unsigned int)data->cif_cfg.preview_buf[next_num].p_Cr);
+												 (unsigned int)data->cif_cfg.preview_buf[next_num].p_Cr,
+												 (unsigned int)data->cif_cfg.preview_buf[next_num].p_Cb);
+					#else
+					ISP_SetPreviewH_StartAddress((unsigned int)data->cif_cfg.preview_buf[next_num].p_Y,
+												 (unsigned int)data->cif_cfg.preview_buf[next_num].p_Cb,
+												 (unsigned int)data->cif_cfg.preview_buf[next_num].p_Cr);
+					#endif
 				}
 				chkpnt =1;
 			}
@@ -1325,7 +1327,6 @@ void cif_preview_dma_set(void)
 	uv_offset 	= ALIGNED_BUFF((stride/2), 16) * (data->cif_cfg.main_set.target_y/2);
 	#else // FEATURE_ANDROID_ICS
 	y_offset = data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y;
-
 	if(data->cif_cfg.fmt == M420_ZERO)
 		uv_offset = (data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y)/2;
 	else
