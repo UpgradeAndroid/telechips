@@ -670,6 +670,17 @@ static struct tcc_uart_platform_data uart1_data_bt = {
 };
 #endif
 
+static struct platform_device tcc_bluetooth_device = {	
+	.name = "tcc_bluetooth_rfkill",	
+	.id = -1,
+};
+
+static void tcc_add_bluetooth_device(void)
+{
+	platform_device_register(&tcc_bluetooth_device);
+}
+
+
 /*----------------------------------------------------------------------
  * Device	  : ADC touchscreen resource
  * Description: tcc8920_touchscreen_resource
@@ -706,16 +717,6 @@ static struct tcc_adc_ts_platform_data tcc_touchscreen_pdata = {
 	.max_y = 3800,
 #endif
 };
-
-static struct platform_device tcc_bluetooth_device = {	
-	.name = "tcc_bluetooth_rfkill",	
-	.id = -1,
-};
-
-static void tcc_add_bluetooth_device(void)
-{
-	platform_device_register(&tcc_bluetooth_device);
-}
 
 static struct platform_device tcc8920_touchscreen_device = {
 	.name		= "tcc-ts",
