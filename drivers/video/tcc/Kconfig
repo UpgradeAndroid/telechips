@@ -56,6 +56,26 @@ config TCC_HDMI_VIDEO_UI_DISABLE
 	depends on (ARCH_TCC88XX && !MACH_TCC8800ST)
 	default y
 
+choice
+	prompt  "HDMI FB ROTATE DISPLAY"
+	depends on TCC_HDMI_DRIVER
+	default HDMI_FB_ROTATE_0
+
+config HDMI_FB_ROTATE_0
+	bool 'HDMI FB DISPLAY 0 degree'
+
+config HDMI_FB_ROTATE_90
+	bool 'HDMI FB DISPLAY 90 degree'
+
+config HDMI_FB_ROTATE_180
+	bool 'HDMI FB DISPLAY 180 degree'
+
+config HDMI_FB_ROTATE_270
+	bool 'HDMI FB DISPLAY 270 degree'
+
+endchoice
+
+
 config FB_TCC93XX
     bool "TCC93xx Frame buffer support"
 	depends on FB && ARCH_TCC93XX

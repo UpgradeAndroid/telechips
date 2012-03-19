@@ -221,7 +221,7 @@ int tccxxx_grp_ioctl(struct inode *inode, struct file *file, unsigned int cmd, u
 int tccxxx_grp_release(struct inode *inode, struct file *filp);
 int tccxxx_grp_open(struct inode *inode, struct file *filp);
 
-int (*g2d_ioctl) (struct inode *, struct file *, unsigned int, unsigned long);
+int (*g2d_ioctl) ( struct file *, unsigned int, unsigned long);
 int (*g2d_open) (struct inode *, struct file *);
 int (*g2d_release) (struct inode *, struct file *);
 
@@ -432,12 +432,13 @@ void TCC_OUTPUT_UPDATE_OnOff(char onoff, char type)
 		}
 		else
 		{
-			g2d_open((struct inode *)&g2d_inode, (struct file *)&g2d_filp);
 
 			#if !defined(TCC_OUTPUT_3DUI_SUPPORT)
 	 			scaler_open((struct inode *)&scaler_inode, (struct file *)&scaler_filp);
 			#endif
 		}
+
+		g2d_open((struct inode *)&g2d_inode, (struct file *)&g2d_filp);
 	}
 	else 
 	{
@@ -448,11 +449,11 @@ void TCC_OUTPUT_UPDATE_OnOff(char onoff, char type)
 		else
 		{
 			#if !defined(TCC_OUTPUT_3DUI_SUPPORT)
-				scaler_release((struct inode *)&scaler_inode, (struct file *)&scaler_filp);
+			scaler_release((struct inode *)&scaler_inode, (struct file *)&scaler_filp);
 			#endif
-
-			g2d_release((struct inode *)&g2d_inode, (struct file *)&g2d_filp);
 		}
+
+		g2d_release((struct inode *)&g2d_inode, (struct file *)&g2d_filp);
 	}
 }
 
@@ -701,7 +702,7 @@ char TCC_FB_G2D_FmtConvert(unsigned int width, unsigned int height, unsigned int
 	g2d_p.src0 = (unsigned int)Saddr;
 	
 	if(Sfmt == TCC_LCDC_IMG_FMT_RGB888)
-		g2d_p.srcfm.format = GE_RGB888;
+		g2d_p.srcfm.format = GE_ARGB8888;
 	else if(Sfmt == TCC_LCDC_IMG_FMT_YUV422SP)
 		g2d_p.srcfm.format = GE_YUV422_sq;		
 	else
@@ -721,7 +722,7 @@ char TCC_FB_G2D_FmtConvert(unsigned int width, unsigned int height, unsigned int
 	g2d_p.tgt0 = (unsigned int)Taddr;	// destination image address
 
 	if(Tfmt == TCC_LCDC_IMG_FMT_RGB888)
-		g2d_p.tgtfm.format = GE_RGB888;
+		g2d_p.tgtfm.format = GE_ARGB8888;
 	else if(Tfmt == TCC_LCDC_IMG_FMT_YUV422SP)
 		g2d_p.tgtfm.format = GE_YUV422_sq;		
 	else
@@ -747,7 +748,7 @@ char TCC_FB_G2D_FmtConvert(unsigned int width, unsigned int height, unsigned int
 	#if defined(CONFIG_TCC_EXCLUSIVE_UI_LAYER)
 		grp_rotate_ctrl(&g2d_p);
 	#else
-		g2d_ioctl((struct inode *)&g2d_inode, (struct file *)&g2d_filp, TCC_GRP_ROTATE_IOCTRL_KERNEL, &g2d_p);
+		g2d_ioctl( (struct file *)&g2d_filp, TCC_GRP_ROTATE_IOCTRL_KERNEL, &g2d_p);
 	#endif
 
 	return 1;
@@ -822,9 +823,10 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 		dprintk(" %s ERROR width=%d, height=%d, bpp=%d, type=%d LCD W:%d H:%d \n", __func__, width, height, bits_per_pixel, type, lcd_width, lcd_height);
 		return 0;
 	}
-	
-	if(width < height)
-		g2d_rotate_need = 1;
+
+	#if	defined(CONFIG_HDMI_FB_ROTATE_90)||defined(CONFIG_HDMI_FB_ROTATE_180)||defined(CONFIG_HDMI_FB_ROTATE_270)
+	g2d_rotate_need = 1;
+	#endif//
 
 	if(lcd_width != width || lcd_height != height || uiOutputResizeMode)
 		scaler_need = 1;
@@ -861,7 +863,10 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 	
 	if( vioc_scaler_plug_in == 1 )
 	{
-		UseVSyncInterrupt = 1;
+		if(g2d_rotate_need || g2d_format_need)
+			UseVSyncInterrupt = 0;
+		else
+			UseVSyncInterrupt = 1;
 	}
 	else
 	{
@@ -879,17 +884,27 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 	img_height = height;
 	FBimg_buf_addr = addr;
 
-	dprintk(" %s width=%d, height=%d, bpp=%d, lcd_width=%d, lcd_height=%d, rotate=%d, format=%d, scale=%d, type=%d\n", 
-			__func__, width, height, bits_per_pixel, lcd_width, lcd_height, g2d_rotate_need, g2d_format_need, scaler_need, type);
+	dprintk(" %s width=%d, height=%d, bpp=%d, lcd_width=%d, lcd_height=%d, rotate=%d, format=%d, scale=%d, type=%d   vioc_scaler_plug_in :%d \n", 
+			__func__, width, height, bits_per_pixel, lcd_width, lcd_height, g2d_rotate_need, g2d_format_need, scaler_need, type,  vioc_scaler_plug_in  );
 	
 	if(g2d_rotate_need || g2d_format_need)
 	{
 		unsigned int rotate, taddr; 
 		
 		if(g2d_rotate_need)		{
-			img_width = height;
-			img_height= width;
-			rotate = ROTATE_270;
+			#if	defined(CONFIG_HDMI_FB_ROTATE_180)
+				img_width = width;
+				img_height = height;
+				rotate = ROTATE_180;
+			#elif defined(CONFIG_HDMI_FB_ROTATE_270)
+				img_width = height;
+				img_height= width;
+				rotate = ROTATE_270;
+			#elif defined(CONFIG_HDMI_FB_ROTATE_90)
+				img_width = height;
+				img_height= width;
+				rotate = ROTATE_90;
+			#endif//
 		}
 		else		{
 			img_width = width;

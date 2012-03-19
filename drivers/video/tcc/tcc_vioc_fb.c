@@ -1314,10 +1314,8 @@ static int tccfb_pan_display(struct fb_var_screeninfo *var, struct fb_info *info
 	}
 	sprintk("%s addr:0x%x Yoffset:%d \n", __func__, Output_BaseAddr, var->yoffset);
 
-	tca_fb_pan_display(var, info);
-
 	#if defined(CONFIG_TCC_OUTPUT_DUAL_UI)
-		for(output_type=TCC_OUTPUT_COMPOSITE; output_type<TCC_OUTPUT_MAX; output_type++)
+		for(output_type = TCC_OUTPUT_COMPOSITE; output_type<TCC_OUTPUT_MAX; output_type++)
 		{
 			tcc_output_ret = TCC_OUTPUT_FB_Update(fbi->fb->var.xres, fbi->fb->var.yres, fbi->fb->var.bits_per_pixel, base_addr, output_type);
 			if(tcc_output_ret)
@@ -1333,6 +1331,7 @@ static int tccfb_pan_display(struct fb_var_screeninfo *var, struct fb_info *info
 		}
 	#endif
 
+	tca_fb_pan_display(var, info);
 	return 0;
 }
 /* tccfb_activate_var
