@@ -114,6 +114,18 @@ static ccfb_dev_config_t* get_ccfb_dev(void)
 	return &g_dev_cfg;
 }
 
+static void init_ccfb_dev(void)
+{
+	ccfb_dev_config_t *dev = get_ccfb_dev();
+	
+	dev->cur_state = CCFB_STATE_CLOSED;
+	dev->act_lcdc_idx = -1;
+	dev->pCurLcdc = NULL;
+	dev->pCurWMix = NULL;
+	dev->pLcdcClk[0] = NULL;
+	dev->pLcdcClk[1] = NULL;
+}
+
 static int tccxxx_ccfb_mmap(struct file *file, struct vm_area_struct *vma)
 {
 	dprintk("==> %s\n", __func__);
@@ -469,6 +481,8 @@ static struct miscdevice ccfb_misc_device =
 static int __init tcc_ccfb_probe(struct platform_device *pdev)
 {
 	dprintk("==> %s\n", __func__);
+
+	init_ccfb_dev();
 	
 	if (misc_register(&ccfb_misc_device))
 	{

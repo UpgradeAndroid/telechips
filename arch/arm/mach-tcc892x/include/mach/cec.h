@@ -31,4 +31,7 @@
 #define CEC_IOC_SENDDATA	 _IOW(CEC_IOC_MAGIC, 1, unsigned int)
 #define CEC_IOC_RECVDATA	 _IOW(CEC_IOC_MAGIC, 2, unsigned int)
 
+#define CEC_IOC_START	 _IO(CEC_IOC_MAGIC, 3)
+#define CEC_IOC_STOP	 _IO(CEC_IOC_MAGIC, 4)
+
 #endif /* _LINUX_CEC_H_ */
