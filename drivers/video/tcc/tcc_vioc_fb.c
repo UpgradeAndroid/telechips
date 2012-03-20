@@ -2642,7 +2642,7 @@ static struct platform_driver tccfb_driver = {
 	},
 };
 extern unsigned int tca_get_lcd_lcdc_num(viod);
-extern unsigned int tca_get_hdmi_lcdc_num(viod);
+extern unsigned int tca_get_output_lcdc_num(viod);
 //int __devinit tccfb_init(void)
 static int __init tccfb_init(void)
 {
@@ -2650,7 +2650,7 @@ static int __init tccfb_init(void)
 
 	fb_power_state = 1;
 
-	EX_OUT_LCDC = tca_get_hdmi_lcdc_num();
+	EX_OUT_LCDC = tca_get_output_lcdc_num();
 	LCD_LCDC_NUM = tca_get_lcd_lcdc_num();
 
 	tca_fb_init();

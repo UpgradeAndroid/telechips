@@ -54,7 +54,7 @@ unsigned int tca_get_lcd_lcdc_num(viod)
 }
 EXPORT_SYMBOL(tca_get_lcd_lcdc_num);
 
-unsigned int tca_get_hdmi_lcdc_num(viod)
+unsigned int tca_get_output_lcdc_num(viod)
 {
 	#ifdef CONFIG_LCD_LCDC0_USE
 		return 1;
@@ -74,5 +74,5 @@ unsigned int tca_get_hdmi_lcdc_num(viod)
 	//default HDMI LCDC number
 	return 0;
 }
-EXPORT_SYMBOL(tca_get_hdmi_lcdc_num);
+EXPORT_SYMBOL(tca_get_output_lcdc_num);
 

@@ -151,6 +151,9 @@ extern void tcc_vsync_set_firstFrameFlag(int firstFrameFlag);
 extern int tcc_vsync_get_isVsyncRunning(void);
 #endif /* TCC_VIDEO_DISPLAY_BY_VSYNC_INT */
 
+extern unsigned int tca_get_lcd_lcdc_num(viod);
+extern unsigned int tca_get_output_lcdc_num(viod);
+
 
 /*****************************************************************************
  Function Name : tcc_composite_ext_handler()
@@ -1302,6 +1305,10 @@ static long tcc_composite_ioctl(struct file *file, unsigned int cmd, void *arg)
 			copy_from_user(&start,arg,sizeof(start));
 
 			TCC_OUTPUT_FB_DetachOutput();
+			
+			#if !defined(CONFIG_MACH_TCC8920ST)
+			start.lcdc = tca_get_output_lcdc_num();
+			#endif /* CONFIG_MACH_TCC8920ST */
 			
 			TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_COMPOSITE, start.lcdc, TRUE);
 

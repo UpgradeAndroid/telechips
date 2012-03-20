@@ -229,7 +229,7 @@ int (*g2d_release) (struct inode *, struct file *);
 extern struct tcc_freq_table_t gtHdmiClockLimitTable;
 #endif//CONFIG_CPU_FREQ
 extern unsigned int tca_get_lcd_lcdc_num(viod);
-extern unsigned int tca_get_hdmi_lcdc_num(viod);
+extern unsigned int tca_get_output_lcdc_num(viod);
 
 char tcc_output_attach_state = 0;
 char tcc_output_attach_index = 0;
@@ -404,7 +404,7 @@ void TCC_OUTPUT_UPDATE_OnOff(char onoff, char type)
 	#if defined(CONFIG_MACH_TCC8920ST)
 	lcdc_num = pDISP_OUTPUT[type].LCDC_N;
 	#else
-	lcdc_num = tca_get_hdmi_lcdc_num();
+	lcdc_num = tca_get_output_lcdc_num();
 	#endif
 
 	if( pDISP_OUTPUT[type].pVIOC_DispBase == (VIOC_DISP*)tcc_p2v(HwVIOC_DISP0))

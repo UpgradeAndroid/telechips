@@ -1697,7 +1697,7 @@ void tcc_hdmi_power_off(void)
 	memset(&gHdmiVideoParms, 0, sizeof(struct HDMIVideoParameter));
  }
 
-extern unsigned int tca_get_hdmi_lcdc_num(viod);
+extern unsigned int tca_get_output_lcdc_num(viod);
 
 static int hdmi_probe(struct platform_device *pdev)
 {
@@ -1707,7 +1707,7 @@ static int hdmi_probe(struct platform_device *pdev)
 	pdev_hdmi = &pdev->dev;
 	
 	hdmi_dev = (struct tcc_hdmi_platform_data *)pdev_hdmi->platform_data;
-	hdmi_dev->hdmi_lcdc_num = tca_get_hdmi_lcdc_num();
+	hdmi_dev->hdmi_lcdc_num = tca_get_output_lcdc_num();
 	
 	if (hdmi_clk == NULL) {
 		hdmi_clk = clk_get(0, "hdmi");
