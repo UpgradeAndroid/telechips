@@ -1741,10 +1741,38 @@ int tccxxx_vioc_scaler_set(VIOC_SC *pSC, VIOC_VIN *pVIN, VIOC_WMIX *pWMIX, uint 
 {
 	uint channel;
 	uint dw, dh;			// destination size in SCALER
+	uint width, height;
 	uint mw, mh;			// image size in WMIX
 	struct TCCxxxCIF *data = (struct TCCxxxCIF *) &hardware_data;
 
 	dprintk("pVIN[0x%x] HWVIN0[0x%x] \n", pVIN, tcc_p2v(HwVIOC_VIN00));
+
+	if(data->cif_cfg.oper_mode == OPER_CAPTURE)
+	{
+		#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
+		if(data->cif_cfg.main_set.target_x >= tcc_sensor_info.cam_capchg_width) {
+			width 	= tcc_sensor_info.capture_w;
+			height 	= tcc_sensor_info.capture_h;
+		} else {
+			width 	= tcc_sensor_info.preview_w;
+			height 	= tcc_sensor_info.preview_h;
+		}
+		#else
+			width 	= CAP_W;
+			height 	= CAP_H;
+		#endif
+	
+	}
+	else
+	{
+		#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
+			width 	= tcc_sensor_info.preview_w;
+			height 	= tcc_sensor_info.preview_h;
+		#else
+			width 	= PRV_W;
+			height 	= PRV_H;
+		#endif
+	}
 
 	if ((uint)pVIN == (uint)tcc_p2v(HwVIOC_VIN00)) {
 		dw = data->cif_cfg.main_set.target_x;
@@ -1808,6 +1836,14 @@ int tccxxx_vioc_scaler_set(VIOC_SC *pSC, VIOC_VIN *pVIN, VIOC_WMIX *pWMIX, uint 
 		channel = VIOC_SC2;
 	} else if ((uint)(pSC) == (uint)tcc_p2v(HwVIOC_SC3)) {
 		channel = VIOC_SC3;
+	}
+
+	if(dw == width && dh == height){
+		dprintk("VIOC don't use SC, Because input size and output size is same\n");
+
+		VIOC_CONFIG_PlugOut(channel);
+
+		return 0;		
 	}
 
 	dprintk("VIOC SC Channel[%d] Dst[%dx%d] WMIX[%dx%d]\n",channel,dw,dh, mw,mh);
