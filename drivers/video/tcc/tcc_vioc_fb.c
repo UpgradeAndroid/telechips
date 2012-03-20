@@ -1407,14 +1407,6 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 		case TCC_LCDC_HDMI_START:
 			TCC_OUTPUT_FB_DetachOutput();
 			TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_HDMI, EX_OUT_LCDC, 1);
-			#ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
-			if(tccvid_vsync.isVsyncRunning)
-				tca_vsync_video_display_enable();
-
-			spin_lock_irq(&vsync_lock);
-			tccvid_vsync.outputMode = -1;
-			spin_unlock_irq(&vsync_lock);
-			#endif
 			break;
 
 		case TCC_LCDC_HDMI_TIMING:
@@ -1436,6 +1428,17 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 				TCC_HDMI_LCDC_OutputEnable(EX_OUT_LCDC, 1);
 
 				TCC_OUTPUT_FB_MouseShow(0, TCC_OUTPUT_HDMI);
+
+
+				#ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
+
+				if(tccvid_vsync.isVsyncRunning)
+					tca_vsync_video_display_enable();
+
+				spin_lock_irq(&vsync_lock);
+				tccvid_vsync.outputMode = -1;
+				spin_unlock_irq(&vsync_lock);
+				#endif
 			}
 			break;
 
