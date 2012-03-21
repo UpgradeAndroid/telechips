@@ -200,7 +200,7 @@ char M2M_Scaler2_Ctrl_Detail(SCALER_TYPE *scale_img)
 	return ret;
 }
 
-char M2M_Scaler2_Ctrl_Copy(SCALER_TYPE *scale_img)
+char M2M_Scaler2_Ctrl_Divide(SCALER_TYPE *scale_img)
 {
 	int ret = 0;
 	unsigned int pSrcBaseY = 0, pSrcBaseU = 0, pSrcBaseV = 0;
@@ -254,7 +254,7 @@ char M2M_Scaler2_Ctrl_Copy(SCALER_TYPE *scale_img)
 	VIOC_RDMA_SetImageEnable(SC2_pRDMABase); // SoC guide info.
 
 	/* Side-By-Side */
-	if(scale_img->plugin_path == 0x10)
+	if(scale_img->divide_path == 0x01)
 	{
 		img_wd = scale_img->dest_ImgWidth/2;
 		img_ht = scale_img->dest_ImgHeight;
@@ -263,7 +263,7 @@ char M2M_Scaler2_Ctrl_Copy(SCALER_TYPE *scale_img)
 		pDstBase1 = pDstBase0 + img_wd*4;
 	}
 	/* Top-N-Bottom */
-	else if(scale_img->plugin_path == 0x11)
+	else if(scale_img->divide_path == 0x02)
 	{
 		img_wd = scale_img->dest_ImgWidth;
 		img_ht = scale_img->dest_ImgHeight/2;
@@ -398,8 +398,8 @@ long tccxxx_scaler2_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 				msc_data->block_waiting = 0;
 				msc_data->block_operating = 1;
 
-				if(scaler_v.plugin_path)
-					ret = M2M_Scaler2_Ctrl_Copy(&scaler_v);
+				if(scaler_v.divide_path)
+					ret = M2M_Scaler2_Ctrl_Divide(&scaler_v);
 				else
 					ret = M2M_Scaler2_Ctrl_Detail(&scaler_v);
 
