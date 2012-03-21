@@ -79,6 +79,10 @@
 #define SENSOR_I2C_SLAVE_ID 		(0xC4>>1)
 #elif defined(CONFIG_VIDEO_CAMERA_NEXTCHIP_TEST)
 #define SENSOR_I2C_SLAVE_ID 		(0x50>>1)
+#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_S5K5CAGA)
+#define SENSOR_I2C_SLAVE_ID 		(0x5A>>1)
+#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_SR130PC10)
+#define SENSOR_I2C_SLAVE_ID 		(0x40>>1)
 #endif
 #endif // defined(CONFIG_VIDEO_TCCXX_CAMERA)
 
@@ -427,13 +431,21 @@ static struct i2c_board_info __initdata i2c_devices3[] = {
 	#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
 	{
 		#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9P111) || defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9T111)
-			I2C_BOARD_INFO("tcc-cam-sensor-0", (0x7A>>1)), //20100716 ysseung   sign-up to sensor slave-id.
+			I2C_BOARD_INFO("tcc-cam-sensor-0", (0x7A>>1)), 
+		#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9D112)
+			I2C_BOARD_INFO("tcc-cam-sensor-0", (0x78>>1)), 
+		#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_S5K5CAGA)
+			I2C_BOARD_INFO("tcc-cam-sensor-0", (0x5A>>1)),
 		#endif
 		.platform_data = &cam_i2c_data1,
 	},
 	{
 		#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9M113)
-			I2C_BOARD_INFO("tcc-cam-sensor-1", (0x78>>1)), //20100716 ysseung   sign-up to sensor slave-id.
+			I2C_BOARD_INFO("tcc-cam-sensor-1", (0x78>>1)), 
+		#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_SIV100B)
+			I2C_BOARD_INFO("tcc-cam-sensor-1", (0x66>>1)), 
+		#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_SR130PC10)
+			I2C_BOARD_INFO("tcc-cam-sensor-1", (0x40>>1)), 
 		#endif
 		.platform_data = &cam_i2c_data1,
 	},
