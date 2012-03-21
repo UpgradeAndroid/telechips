@@ -80,6 +80,29 @@ typedef void (*FuncPtr)(void);
 
 #define LOG_NDEBUG 0
 
+#if defined(TCC_PM_REGULATOR_CTRL)
+#define addr_iocfg(b) (0x76066000+b)
+#define PMIC_PARAM(x)   (*(volatile unsigned long *)(COREPWR_PARAM_ADDR + (4*(x))))
+#define SLEEP           0
+#define WAKEUP          1
+
+enum {
+	DEV_ADDR = 0,   /* i2c device address */
+	CORE_CTRL_REG,  /* coreA power control register */
+	READ_SIZE,      /* read data size */
+	WRITE_SIZE,     /* write data size */
+	WRITE_DATA1_S,  /* write data 1 (sleep) */
+	WRITE_DATA2_S,  /* write data 2 (sleep) */
+	WRITE_DATA1_W,  /* write data 1 (wakeup) */
+	WRITE_DATA2_W,  /* write data 2 (wakeup) */
+	DEV_CH,
+	MACHINE_ID,
+	SYSTEM_REV,
+};
+typedef void (*CoreFuncPtr)(unsigned int goto_state);
+#endif
+
+
 /*===========================================================================
 FUNCTION
 ===========================================================================*/
@@ -767,6 +790,362 @@ static void tcc_pm_uart_resume(bkUART *pBackupUART)
 }
 #endif
 
+#if defined(TCC_PM_REGULATOR_CTRL)
+#define I2C_WR				0
+#define I2C_RD				1
+#define I2C_WAIT_INTR_CNT	10
+#define I2C_PRES_REG		*(volatile unsigned long *)0x76300000
+#define I2C_CTRL_REG		*(volatile unsigned long *)0x76300004
+#define I2C_TXR_REG			*(volatile unsigned long *)0x76300008
+#define I2C_CMD_REG			*(volatile unsigned long *)0x7630000C
+#define I2C_RXR_REG			*(volatile unsigned long *)0x76300010
+#define I2C_SR_REG			*(volatile unsigned long *)0x76300014
+
+/*===========================================================================
+FUNCTION
+===========================================================================*/
+static void set_core_voltage(unsigned int state)
+{
+	unsigned long slave_addr = PMIC_PARAM(DEV_ADDR);
+	unsigned long reg_addr;
+	unsigned long buf[2];
+	unsigned long backup_reg[10];
+
+	int cnt;
+	unsigned int i = 0;
+
+	if (PMIC_PARAM(DEV_ADDR) == 0)
+		return;
+
+	/* i2c_set_clock */
+	backup_reg[0] = *(volatile unsigned long *)addr_clk(0x0000);	// CPU
+	backup_reg[1] = *(volatile unsigned long *)addr_clk(0x0010);	// IO Bus
+	backup_reg[2] = *(volatile unsigned long *)addr_clk(0x001C);	// SMU Bus
+	backup_reg[3] = *(volatile unsigned long *)addr_clk(0x00b8);	// I2C Master1 Peri
+	backup_reg[4] = *(volatile unsigned long *)addr_iocfg(0x10);	// IOCFG_PWR0
+	backup_reg[5] = *(volatile unsigned long *)addr_iocfg(0x14);	// IOCFG_PWR1
+	backup_reg[6] = *(volatile unsigned long *)addr_iocfg(0x18);	// IOCFG_RST0
+	backup_reg[7] = *(volatile unsigned long *)addr_iocfg(0x1C);	// IOCFG_RST1
+	backup_reg[8] = I2C_PRES_REG;
+	backup_reg[9] = I2C_CTRL_REG;
+
+	*(volatile unsigned long *)addr_clk(0x0000)  = 0x002FFFF4;	// CPU Clock
+	*(volatile unsigned long *)addr_clk(0x0010)  = 0x00200014;	// io clk set to 6MHz Xin
+	*(volatile unsigned long *)addr_clk(0x001C)  = 0x00200014;	// SMU Bus
+//	*(volatile unsigned long *)addr_iocfg(0x1C) &= ~Hw3;		// I2C IF S/W RESET
+	*(volatile unsigned long *)addr_iocfg(0x14) |= Hw3;			// I2C IF HCLK
+	*(volatile unsigned long *)addr_iocfg(0x1C) |= Hw3;			// I2C IF S/W RESET
+//	*(volatile unsigned long *)addr_iocfg(0x18) &= ~Hw29;		// I2C_0 S/W RESET
+	*(volatile unsigned long *)addr_iocfg(0x10) |= Hw29;		// I2C_0 HCLK
+	*(volatile unsigned long *)addr_clk(0x0108)  = 0x2400000B;	// PCLK 1MHz
+	*(volatile unsigned long *)addr_iocfg(0x18) |= Hw29;		// I2C_0 S/W RESET
+
+	if (PMIC_PARAM(DEV_CH) == 0) {
+#if defined(CONFIG_MACH_TCC8920ST)
+		//I2C[26] - GPIOG[18][19]
+		//i2c_portcfg->PCFG0.bREG.MASTER0 = 26;
+		BITCSET(*(volatile unsigned long *)(0x742001B8), 0x0000FF00, 0x00004400);
+		BITCSET(*(volatile unsigned long *)(0x76360000), 0x000000FF, 0x0000001A);
+#elif defined(CONFIG_MACH_M805_892X)
+		if (PMIC_PARAM(SYSTEM_REV) == 0x2002) {
+			//I2C[12] - GPIOC[2][3]
+			//i2c_portcfg->PCFG0.bREG.MASTER0 = 12;
+			BITCSET(*(volatile unsigned long *)(0x742000B0), 0x0000FF00, 0x00007700);
+			BITCSET(*(volatile unsigned long *)(0x76360000), 0x000000FF, 0x0000000C);
+		}
+		else {
+	#if defined(CONFIG_M805S_8923_0XA)
+			//I2C[22] - GPIOG[2][3]
+			//i2c_portcfg->PCFG0.bREG.MASTER0 = 22;
+			BITCSET(*(volatile unsigned long *)(0x742001B0), 0x0000FF00, 0x00004400);
+			BITCSET(*(volatile unsigned long *)(0x76360000), 0x000000FF, 0x00000016);
+	#else
+			//I2C[23] - GPIOG[6][7]
+			//i2c_portcfg->PCFG0.bREG.MASTER0 = 23;
+			BITCSET(*(volatile unsigned long *)(0x742001B0), 0x44000000, 0x44000000);
+			BITCSET(*(volatile unsigned long *)(0x76360000), 0x000000FF, 0x00000017);
+	#endif
+		}
+#else
+		if(PMIC_PARAM(SYSTEM_REV) == 0x1006) {
+			//I2C[18] - GPIOF[13][14]
+			//((PI2CPORTCFG)HwI2C_PORTCFG_BASE)->PCFG0.bREG.MASTER0 = 18;
+			BITCSET(*(volatile unsigned long *)(0x74200174), 0x0FF00000, 0x0AA00000);
+			BITCSET(*(volatile unsigned long *)(0x76360000), 0x000000FF, 0x00000012);
+		}
+		else if(PMIC_PARAM(SYSTEM_REV) == 0x1008) {
+			//I2C[22] - GPIOG[2][3]
+			//((PI2CPORTCFG)HwI2C_PORTCFG_BASE)->PCFG0.bREG.MASTER0 = 22;
+			BITCSET(*(volatile unsigned long *)(0x742001B0), 0x0000FF00, 0x00004400);
+			BITCSET(*(volatile unsigned long *)(0x76360000), 0x000000FF, 0x00000016);
+		}
+		else {
+			//I2C[8] - GPIOB[9][10]
+			//i2c_portcfg->PCFG0.bREG.MASTER0 = 8;
+			BITCSET(*(volatile unsigned long *)(0x74200074), 0x00000FF0, 0x00000BB0);
+			BITCSET(*(volatile unsigned long *)(0x76360000), 0x000000FF, 0x00000008);
+		}
+#endif
+	}
+	else if (PMIC_PARAM(DEV_CH) == 1) {
+#if defined(CONFIG_MACH_M805_892X)
+		if (PMIC_PARAM(SYSTEM_REV) == 0x2002) {
+			//I2C[25] - GPIOG[12][13]
+			//i2c_portcfg->PCFG0.bREG.MASTER1 = 25;
+			BITCSET(*(volatile unsigned long *)(0x742001B4), 0x00FF0000, 0x00440000);
+			BITCSET(*(volatile unsigned long *)(0x76360000), 0x0000FF00, 0x00001900);
+		}
+		else {
+	#if defined(CONFIG_M805S_8923_0XA)
+			//I2C[21] - GPIOF[27][28]
+			//i2c_portcfg->PCFG0.bREG.MASTER1 = 21;
+			BITCSET(*(volatile unsigned long *)(0x7420017C), 0x000FF000, 0x000AA000);
+			BITCSET(*(volatile unsigned long *)(0x76360000), 0x0000FF00, 0x00001500);
+	#else
+			//I2C[24] - GPIOG[10][11]
+			//i2c_portcfg->PCFG0.bREG.MASTER1 = 24;
+			BITCSET(*(volatile unsigned long *)(0x742001B4), 0x0000FF00, 0x00004400);
+			BITCSET(*(volatile unsigned long *)(0x76360000), 0x0000FF00, 0x00001800);
+	#endif
+		}
+#else
+		if(PMIC_PARAM(SYSTEM_REV) == 0x1005 || PMIC_PARAM(SYSTEM_REV) == 0x1007) {
+			//I2C[21] - GPIOF[27][28]
+			//i2c_portcfg->PCFG0.bREG.MASTER1 = 21;
+			BITCSET(*(volatile unsigned long *)(0x7420017C), 0x000FF000, 0x000AA000);
+			BITCSET(*(volatile unsigned long *)(0x76360000), 0x0000FF00, 0x00001500);
+		}
+		else if(PMIC_PARAM(SYSTEM_REV) == 0x1006) {
+			//I2C[28] - GPIO_ADC[2][3]
+			//((PI2CPORTCFG)HwI2C_PORTCFG_BASE)->PCFG0.bREG.MASTER1 = 28;
+			BITCSET(*(volatile unsigned long *)(0x7420023C), 0x0000FF00, 0x00003300);
+			BITCSET(*(volatile unsigned long *)(0x76360000), 0x0000FF00, 0x00001C00);
+		}
+		else if(PMIC_PARAM(SYSTEM_REV) == 0x1008) {
+			//I2C[13] - GPIOC[12][13]
+			//((PI2CPORTCFG)HwI2C_PORTCFG_BASE)->PCFG0.bREG.MASTER1 = 13;
+			BITCSET(*(volatile unsigned long *)(0x742000B4), 0x00FF0000, 0x00770000);
+			BITCSET(*(volatile unsigned long *)(0x76360000), 0x0000FF00, 0x00000D00);
+		}
+		else {
+			//I2C[22] - GPIOG[2][3]
+			//i2c_portcfg->PCFG0.bREG.MASTER1 = 22;
+			BITCSET(*(volatile unsigned long *)(0x742001B0), 0x0000FF00, 0x00004400);
+			BITCSET(*(volatile unsigned long *)(0x76360000), 0x0000FF00, 0x00001600);
+		}
+#endif
+	}
+	else if (PMIC_PARAM(DEV_CH) == 2) {
+#if defined(CONFIG_MACH_M805_892X)
+		if (PMIC_PARAM(SYSTEM_REV) == 0x2002) {
+			//I2C[18] - GPIOF[13][14]
+			//i2c_portcfg->PCFG0.bREG.MASTER1 = 18;
+			BITCSET(*(volatile unsigned long *)(0x74200178), 0x0FF00000, 0x0AA00000);
+			BITCSET(*(volatile unsigned long *)(0x76360000), 0x00FF0000, 0x00120000);
+		}
+#else
+		if(PMIC_PARAM(SYSTEM_REV) != 0x1006 && PMIC_PARAM(SYSTEM_REV) != 0x1008) {
+			//I2C[28] - GPIO_ADC[2][3]
+			//i2c_portcfg->PCFG0.bREG.MASTER2 = 28;
+			BITCSET(*(volatile unsigned long *)(0x74200230), 0x0000FF00, 0x00003300);
+			BITCSET(*(volatile unsigned long *)(0x76360000), 0x00FF0000, 0x001C0000);
+		}
+#endif
+	}
+	else if (PMIC_PARAM(DEV_CH) == 3) {
+		//I2C[27] - GPIO_HDMI[2][3]
+		//i2c_portcfg->PCFG0.bREG.MASTER3 = 27;
+		BITCSET(*(volatile unsigned long *)(0x742001F0), 0x0000FF00, 0x00001100);
+		BITCSET(*(volatile unsigned long *)(0x76360000), 0xFF000000, 0x1B000000);
+		//Not used..
+	}
+	else
+		goto set_core_voltage_end;
+
+	/* i2c init */
+	I2C_PRES_REG = 0x00000001;
+	I2C_CTRL_REG = 0x000000C0;
+	I2C_CMD_REG |= Hw0;	/* clear pending interrupt */
+
+	/* init. values */
+	reg_addr = PMIC_PARAM(CORE_CTRL_REG);
+	buf[0] = 0;
+	buf[1] = 0;
+
+	/* READ */
+	if (PMIC_PARAM(READ_SIZE)) {
+		/* write dev_addr, reg_addr */
+		I2C_TXR_REG = slave_addr | I2C_WR;
+		I2C_CMD_REG = Hw7 | Hw4;
+
+		cnt = I2C_WAIT_INTR_CNT;
+		while(cnt--) {
+			if (I2C_SR_REG & Hw0) {
+				if (!(I2C_SR_REG & Hw7))
+					break;
+			}
+		}
+
+		if (cnt == 0) goto set_core_voltage_end;
+		BITSET(I2C_CMD_REG, Hw0); //Clear a pending interrupt
+
+		I2C_TXR_REG = (reg_addr & 0xFF);
+		I2C_CMD_REG = Hw4;
+
+		cnt = I2C_WAIT_INTR_CNT;
+		while(cnt--) {
+			if (I2C_SR_REG & Hw0) {
+				if (!(I2C_SR_REG & Hw7))
+					break;
+			}
+		}
+
+		if (cnt == 0) goto set_core_voltage_end;
+		BITSET(I2C_CMD_REG, Hw0); //Clear a pending interrupt
+
+		I2C_CMD_REG = Hw6;
+
+		cnt = I2C_WAIT_INTR_CNT;
+		while(cnt--) {
+			if (I2C_SR_REG & Hw0) {
+				if (!(I2C_SR_REG & Hw7))
+					break;
+			}
+		}
+
+		if (cnt == 0) goto set_core_voltage_end;
+		BITSET(I2C_CMD_REG, Hw0); //Clear a pending interrupt
+
+		/* read_data */
+
+		I2C_TXR_REG = slave_addr | I2C_RD;
+		I2C_CMD_REG = Hw7 | Hw4;
+
+		cnt = I2C_WAIT_INTR_CNT;
+		while(cnt--) {
+			if (I2C_SR_REG & Hw0) {
+				if (!(I2C_SR_REG & Hw7))
+					break;
+			}
+		}
+
+		if (cnt == 0) goto set_core_voltage_end;
+		BITSET(I2C_CMD_REG, Hw0); //Clear a pending interrupt
+
+		for (i = 0; i < PMIC_PARAM(READ_SIZE); i++) {
+			I2C_CMD_REG = Hw5 | Hw3;
+
+			cnt = I2C_WAIT_INTR_CNT;
+			while(cnt--) {
+				if (I2C_SR_REG & Hw0) {
+					if (!(I2C_SR_REG & Hw7))
+						break;
+				}
+			}
+
+			if (cnt == 0) goto set_core_voltage_end;
+			BITSET(I2C_CMD_REG, Hw0); //Clear a pending interrupt
+
+			buf[i] = I2C_RXR_REG;
+		}
+
+		I2C_CMD_REG = Hw6;
+
+		cnt = I2C_WAIT_INTR_CNT;
+		while(cnt--) {
+			if (I2C_SR_REG & Hw0) {
+				if (!(I2C_SR_REG & Hw7))
+					break;
+			}
+		}
+
+		if (cnt == 0) goto set_core_voltage_end;
+		BITSET(I2C_CMD_REG, Hw0); //Clear a pending interrupt
+	}
+
+	if (PMIC_PARAM(WRITE_SIZE)) {
+		if (state == SLEEP) {
+			buf[0] = (unsigned long)PMIC_PARAM(WRITE_DATA1_S);
+			buf[1] = (unsigned long)PMIC_PARAM(WRITE_DATA2_S);
+		}
+		else {
+			buf[0] = (unsigned long)PMIC_PARAM(WRITE_DATA1_W);
+			buf[1] = (unsigned long)PMIC_PARAM(WRITE_DATA2_W);
+		}
+
+		/* WRITE */
+		I2C_TXR_REG = slave_addr | I2C_WR;
+		I2C_CMD_REG = Hw7 | Hw4;
+
+		cnt = I2C_WAIT_INTR_CNT;
+		while(cnt--) {
+			if (I2C_SR_REG & Hw0) {
+				if (!(I2C_SR_REG & Hw7))
+					break;
+			}
+		}
+
+		if (cnt == 0) goto set_core_voltage_end;
+		BITSET(I2C_CMD_REG, Hw0); //Clear a pending interrupt
+
+		I2C_TXR_REG = (reg_addr & 0xFF);
+		I2C_CMD_REG = Hw4;
+
+		cnt = I2C_WAIT_INTR_CNT;
+		while(cnt--) {
+			if (I2C_SR_REG & Hw0) {
+				if (!(I2C_SR_REG & Hw7))
+					break;
+			}
+		}
+
+		if (cnt == 0) goto set_core_voltage_end;
+		BITSET(I2C_CMD_REG, Hw0); //Clear a pending interrupt
+
+		for (i = 0; i < PMIC_PARAM(WRITE_SIZE); i++) {
+			I2C_TXR_REG = (buf[i] & 0xFF);
+			I2C_CMD_REG = Hw4;
+
+			cnt = I2C_WAIT_INTR_CNT;
+			while(cnt--) {
+				if (I2C_SR_REG & Hw0) {
+					if (!(I2C_SR_REG & Hw7))
+						break;
+				}
+			}
+
+			if (cnt == 0) goto set_core_voltage_end;
+			BITSET(I2C_CMD_REG, Hw0); //Clear a pending interrupt
+		}
+
+		I2C_CMD_REG = Hw6;
+
+		cnt = I2C_WAIT_INTR_CNT;
+		while(cnt--) {
+			if (I2C_SR_REG & Hw0) {
+				if (!(I2C_SR_REG & Hw7))
+					break;
+			}
+		}
+
+		if (cnt == 0) goto set_core_voltage_end;
+		BITSET(I2C_CMD_REG, Hw0); //Clear a pending interrupt
+	}
+
+set_core_voltage_end:
+	I2C_PRES_REG = backup_reg[9];
+	I2C_CTRL_REG = backup_reg[8];
+	*(volatile unsigned long *)addr_iocfg(0x1C) = backup_reg[7];
+	*(volatile unsigned long *)addr_iocfg(0x18) = backup_reg[6];
+	*(volatile unsigned long *)addr_iocfg(0x14) = backup_reg[5];
+	*(volatile unsigned long *)addr_iocfg(0x10) = backup_reg[4];
+	*(volatile unsigned long *)addr_clk(0x00b8) = backup_reg[3];
+	*(volatile unsigned long *)addr_clk(0x001C) = backup_reg[2];
+	*(volatile unsigned long *)addr_clk(0x0010) = backup_reg[1];
+	*(volatile unsigned long *)addr_clk(0x0000) = backup_reg[0];
+}
+#endif
+
 #if defined(CONFIG_SHUTDOWN_MODE)
 /*===========================================================================
 
@@ -851,6 +1230,13 @@ static void shutdown(void)
 	((PCKC)HwCKC_BASE)->PLL3CFG.nREG &= ~0x80000000;
 	((PCKC)HwCKC_BASE)->PLL4CFG.nREG &= ~0x80000000;
 	((PCKC)HwCKC_BASE)->PLL5CFG.nREG &= ~0x80000000;
+
+#if defined(TCC_PM_REGULATOR_CTRL)
+	{
+		CoreFuncPtr pFunc = (CoreFuncPtr)(COREPWR_FUNC_ADDR);
+		pFunc(SLEEP);
+	}
+#endif
 
 // -------------------------------------------------------------------------
 // ZQ/VDDQ Power OFF
@@ -1137,6 +1523,14 @@ static void wakeup(void)
 #if defined(CONFIG_MACH_TCC8920ST)
     tcc_stb_resume();
 #endif
+
+#if defined(TCC_PM_REGULATOR_CTRL)
+	{
+		CoreFuncPtr pFunc = (CoreFuncPtr)(COREPWR_FUNC_ADDR);
+		pFunc(WAKEUP);
+	}
+#endif
+
 // -------------------------------------------------------------------------
 // BUS Power On
 
@@ -1173,7 +1567,6 @@ static void wakeup(void)
 	//IP isolation on
 	((PPMU)HwPMU_BASE)->PMU_ISOL.nREG = 0x00000BD0;
 #endif
-
 }
 
 /*===========================================================================
@@ -1196,6 +1589,22 @@ static void shutdown_mode(void)
 	memcpy((void*)SHUTDOWN_FUNC_ADDR,   (void*)shutdown,   SHUTDOWN_FUNC_SIZE);
 	memcpy((void*)WAKEUP_FUNC_ADDR,     (void*)wakeup,     WAKEUP_FUNC_SIZE);
 	memcpy((void*)SDRAM_INIT_FUNC_ADDR, (void*)sdram_init, SDRAM_INIT_FUNC_SIZE);
+
+#if defined(TCC_PM_REGULATOR_CTRL)
+	memcpy((void*)COREPWR_FUNC_ADDR,    (void*)set_core_voltage, COREPWR_FUNC_SIZE);
+
+	PMIC_PARAM(DEV_ADDR)      = TCC_PM_REGULATOR_DEV_ADDR;
+	PMIC_PARAM(CORE_CTRL_REG) = TCC_PM_REGULATOR_DEV_REG;
+	PMIC_PARAM(READ_SIZE)     = TCC_PM_REGULATOR_READ_SIZE;
+	PMIC_PARAM(WRITE_SIZE)    = TCC_PM_REGULATOR_WRITE_SIZE;
+	PMIC_PARAM(WRITE_DATA1_S) = TCC_PM_REGULATOR_SLEEP_DATA1;
+	PMIC_PARAM(WRITE_DATA2_S) = TCC_PM_REGULATOR_SLEEP_DATA2;
+	PMIC_PARAM(WRITE_DATA1_W) = TCC_PM_REGULATOR_WAKEUP_DATA1;
+	PMIC_PARAM(WRITE_DATA2_W) = TCC_PM_REGULATOR_WAKEUP_DATA2;
+	PMIC_PARAM(DEV_CH)        = TCC_PM_REGULATOR_I2C_CH;
+	PMIC_PARAM(MACHINE_ID)    = 0x00;	// machine id
+	PMIC_PARAM(SYSTEM_REV)    = system_rev;
+#endif
 
 #ifdef CONFIG_PM_CONSOLE_NOT_SUSPEND
 	/*--------------------------------------------------------------
