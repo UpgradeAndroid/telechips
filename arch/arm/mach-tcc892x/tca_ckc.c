@@ -307,40 +307,49 @@ unsigned int tca_ckc_getpll(unsigned int ch)
 {
     unsigned int tPLL;
     unsigned int tPCO;
-    unsigned    iP=0, iM=0, iS=0;
+    unsigned    iP=0, iM=0, iS=0, iEN = 0;
 
     switch(ch) {
         case 0:
+			iEN = pCKC->PLL0CFG.bREG.EN;
             iP = pCKC->PLL0CFG.bREG.P;
             iM = pCKC->PLL0CFG.bREG.M;
             iS = pCKC->PLL0CFG.bREG.S;
             break;
         case 1:
+			iEN = pCKC->PLL1CFG.bREG.EN;
             iP = pCKC->PLL1CFG.bREG.P;
             iM = pCKC->PLL1CFG.bREG.M;
             iS = pCKC->PLL1CFG.bREG.S;
             break;
         case 2:
+			iEN = pCKC->PLL2CFG.bREG.EN;
             iP = pCKC->PLL2CFG.bREG.P;
             iM = pCKC->PLL2CFG.bREG.M;
             iS = pCKC->PLL2CFG.bREG.S;
             break;
         case 3:
+			iEN = pCKC->PLL3CFG.bREG.EN;
             iP = pCKC->PLL3CFG.bREG.P;
             iM = pCKC->PLL3CFG.bREG.M;
             iS = pCKC->PLL3CFG.bREG.S;
             break;
         case 4:
+			iEN = pCKC->PLL4CFG.bREG.EN;
             iP = pCKC->PLL4CFG.bREG.P;
             iM = pCKC->PLL4CFG.bREG.M;
             iS = pCKC->PLL4CFG.bREG.S;
             break;
         case 5:
+			iEN = pCKC->PLL5CFG.bREG.EN;
             iP = pCKC->PLL5CFG.bREG.P;
             iM = pCKC->PLL5CFG.bREG.M;
             iS = pCKC->PLL5CFG.bREG.S;
             break;
     }
+
+	if (iEN == 0)
+		return 0;
 
     tPCO = (120000 * iM ) / iP;
     tPLL= ((tPCO) >> (iS));
@@ -357,6 +366,9 @@ unsigned int tca_ckc_getdividpll(unsigned int ch)
     unsigned int tDIVPLL;
     unsigned int tPLL = tca_ckc_getpll(ch);
     unsigned int uiPDIV = 0;
+
+	if (tPLL == 0)
+		return 0;
 
     switch(ch) {
         case 0:
