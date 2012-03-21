@@ -35,6 +35,32 @@
 //#define TCC_PM_MEMQ_PWR_CTRL
 #define TCC_PM_SSTLIO_CTRL
 
+#if defined(CONFIG_REGULATOR)
+//#define TCC_PM_REGULATOR_CTRL
+#if defined(TCC_PM_REGULATOR_CTRL)
+  #if defined(CONFIG_REGULATOR_AXP192)
+    #define TCC_PM_REGULATOR_DEV_ADDR       0x68
+    #define TCC_PM_REGULATOR_DEV_REG        0x23	// dcdc2
+    #define TCC_PM_REGULATOR_READ_SIZE      0x00
+    #define TCC_PM_REGULATOR_WRITE_SIZE     0x01
+    #define TCC_PM_REGULATOR_SLEEP_DATA1    0x0C	// 1.00V
+    #define TCC_PM_REGULATOR_SLEEP_DATA2    0x00
+    #define TCC_PM_REGULATOR_WAKEUP_DATA1   0x1C	// 1.40V
+    #define TCC_PM_REGULATOR_WAKEUP_DATA2   0x00
+  #else /* No Devices */
+    #define TCC_PM_REGULATOR_DEV_ADDR       0x00	// no device
+    #define TCC_PM_REGULATOR_DEV_REG        0x00
+    #define TCC_PM_REGULATOR_READ_SIZE      0x00
+    #define TCC_PM_REGULATOR_WRITE_SIZE     0x00
+    #define TCC_PM_REGULATOR_SLEEP_DATA1    0x00
+    #define TCC_PM_REGULATOR_SLEEP_DATA2    0x00
+    #define TCC_PM_REGULATOR_WAKEUP_DATA1   0x00
+    #define TCC_PM_REGULATOR_WAKEUP_DATA2   0x00
+  #endif
+  #define TCC_PM_REGULATOR_I2C_CH           0x00
+#endif
+#endif
+
 #if defined(CONFIG_SHUTDOWN_MODE)
 /*===========================================================================
 
@@ -84,6 +110,14 @@
 
 #define CPU_DATA_REPOSITORY_ADDR 0xF0001C00
 #define CPU_DATA_REPOSITORY_SIZE 0x00000100
+
+#if defined(TCC_PM_REGULATOR_CTRL)
+#define COREPWR_FUNC_ADDR        0xF0002000
+#define COREPWR_FUNC_SIZE        0x00000FD0
+
+#define COREPWR_PARAM_ADDR       0xF0002FD0
+#define COREPWR_PARAM_SIZE       0x00000030
+#endif
 
 /*-------------------------------------------------------------------------*/
 
