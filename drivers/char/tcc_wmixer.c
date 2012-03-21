@@ -131,6 +131,15 @@ char tccxxx_wmixer_ctrl(WMIXER_INFO_TYPE *wmix_info)
 
 	// set to WMIX
 	VIOC_WMIX_SetSize(pWMIX_wmix_base, wmix_info->img_width, wmix_info->img_height);
+
+	if(wmix_info->alphablending_enable) {
+		VIOC_WMIX_ALPHA_SetAlphaValueControl(pWMIX_wmix_base, wmix_info->alpha_region, wmix_info->alpha_acon0, wmix_info->alpha_acon1);
+		VIOC_WMIX_ALPHA_SetColorControl(pWMIX_wmix_base, wmix_info->alpha_region, wmix_info->alpha_ccon0, wmix_info->alpha_ccon1);
+		VIOC_WMIX_ALPHA_SetROPMode(pWMIX_wmix_base, wmix_info->alpha_rop_mode);
+		VIOC_WMIX_ALPHA_SetAlphaSelection(pWMIX_wmix_base, wmix_info->alpha_rop_asel);
+		VIOC_WMIX_ALPHA_SetAlphaValue(pWMIX_wmix_base, wmix_info->alpha_rop_alpha0, wmix_info->alpha_rop_alpha1);
+		VIOC_WMIX_ALPHA_SetROPPattern(pWMIX_wmix_base, wmix_info->alpha_patR, wmix_info->alpha_patG, wmix_info->alpha_patB);
+	}
 	VIOC_WMIX_SetUpdate(pWMIX_wmix_base);
 	VIOC_RDMA_SetImageEnable(pWMIX_rdma_base); // Soc guide info.
 
