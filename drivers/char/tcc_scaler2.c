@@ -60,6 +60,7 @@
 
 #include "tcc_scaler.h"
 #include <mach/tcc_scaler_ctrl.h>
+#include <mach/tccfb_address.h>
 
 #if 0
 static int debug	   = 1;
