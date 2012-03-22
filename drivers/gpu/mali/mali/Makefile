@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2010-2011 ARM Limited. All rights reserved.
+# Copyright (C) 2010-2012 ARM Limited. All rights reserved.
 # 
 # This program is free software and is provided to you under the terms of the GNU General Public License version 2
 # as published by the Free Software Foundation, and any use by you of this program is subject to the terms of such GNU licence.
@@ -11,7 +11,7 @@
 OSKOS=linux
 FILES_PREFIX=
 
-MALI_RELEASE_NAME = r2p3-01rel0
+MALI_RELEASE_NAME = r2p4-02rel0
 
 include $(src)/Makefile.common
 
@@ -36,11 +36,16 @@ USING_PMM ?= 1
 USING_OS_MEMORY ?= 1
 
 USING_GPU_UTILIZATION ?= 0
-USING_MALI_RUN_TIME_PM ?= 0
+USING_MALI_RUN_TIME_PM ?= 1
 USING_MALI_PMM_TESTSUITE ?= 0
 OS_MEMORY_KERNEL_BUFFER_SIZE_IN_MB ?= 6
 USING_PROFILING ?= 0
+DISABLE_PP0 ?= 0
+DISABLE_PP1 ?= 0
+DISABLE_PP2 ?= 0
+DISABLE_PP3 ?= 0
 TIMESTAMP ?= default
+KERNEL_RUNTIME_PM_ENABLED ?= 0
 
 BUILD = release
 
@@ -68,8 +73,11 @@ DEFINES += -DUSING_MMU=$(USING_MMU)
 DEFINES += -DUSING_UMP=$(USING_UMP)
 DEFINES += -D_MALI_OSK_SPECIFIC_INDIRECT_MMAP
 DEFINES += -DMALI_TIMELINE_PROFILING_ENABLED=$(USING_PROFILING)
+DEFINES += -DDISABLE_PP0=$(DISABLE_PP0)
+DEFINES += -DDISABLE_PP1=$(DISABLE_PP1)
+DEFINES += -DDISABLE_PP2=$(DISABLE_PP2)
+DEFINES += -DDISABLE_PP3=$(DISABLE_PP3)
 DEFINES += -DMALI_POWER_MGMT_TEST_SUITE=$(USING_MALI_PMM_TESTSUITE)
-DEFINES += -DMALI_PMM_RUNTIME_JOB_CONTROL_ON=$(USING_MALI_RUN_TIME_PM)
 ifeq ($(shell test $(SUBLEVEL) -gt 32 -a $(PATCHLEVEL) = 6 -a $(VERSION) = 2 -o $(VERSION) -gt 2 && echo "OK"),OK)
 # MALI_STATE_TRACKING is only supported on Linux kernels from version 2.6.32.
 DEFINES += -DMALI_STATE_TRACKING=1
@@ -79,6 +87,9 @@ endif
 DEFINES += -DMALI_OS_MEMORY_KERNEL_BUFFER_SIZE_IN_MB=$(OS_MEMORY_KERNEL_BUFFER_SIZE_IN_MB)
 ifneq ($(call submodule_enabled, $(src), PMU),0)
         MALI_PLATFORM_FILE = platform/$(TARGET_PLATFORM)/mali_platform.c
+ifeq ($(CONFIG_ARCH_TCC892X),y)
+	USING_MALI_PMU = 1
+endif
 else
         MALI_PLATFORM_FILE = platform/default/mali_platform.c
 endif
@@ -86,7 +97,16 @@ endif
 DEFINES += -DUSING_MALI_PMM=$(USING_PMM)
 DEFINES += -DMALI_GPU_UTILIZATION=$(USING_GPU_UTILIZATION)
 
+ifeq ($(USING_MALI_RUN_TIME_PM),1)
+ifdef CONFIG_PM
+ifdef CONFIG_PM_RUNTIME
+	KERNEL_RUNTIME_PM_ENABLED = 1
+endif
+endif
+endif
+
 DEFINES += -DUSING_MALI_PMU=$(USING_MALI_PMU)
+DEFINES += -DMALI_PMM_RUNTIME_JOB_CONTROL_ON=$(KERNEL_RUNTIME_PM_ENABLED)
 
 ifeq ($(BUILD), debug)
 DEFINES += -DDEBUG
@@ -129,6 +149,10 @@ SRC = \
 	common/mali_kernel_vsync.c \
 	linux/mali_ukk_vsync.c \
 	linux/mali_kernel_sysfs.c \
+	common/mali_kernel_mem_mmu.c \
+	common/mali_kernel_memory_engine.c \
+	common/mali_block_allocator.c \
+	common/mali_kernel_mem_os.c \
 	$(MALI_PLATFORM_FILE) \
 	$(OSKFILES) \
 	$(UKKFILES)
@@ -143,6 +167,10 @@ endif
 # Selecting files to compile by parsing the config file
 
 ifeq ($(USING_PMM),1)
+ifeq ($(USING_MALI_PMU),1)
+SRC +=	\
+	common/pmm/mali_pmm_pmu.c
+endif
 SRC += \
 	common/pmm/mali_pmm.c \
 	common/pmm/mali_pmm_policy.c \
@@ -152,6 +180,14 @@ SRC += \
 	linux/mali_kernel_pm.c \
 	linux/mali_osk_pm.c \
 	linux/mali_device_pause_resume.c
+endif
+
+ifeq ($(USING_MALI_PMM_TESTSUITE),1)
+ccflags-y += -I$(src)/platform/mali_pmu_testing
+ifeq ($(USING_MALI_PMU),0)
+SRC += \
+	platform/mali_pmu_testing/mali_platform_pmu_internal_testing.c
+endif
 endif
 
 ifeq ($(USING_GPU_UTILIZATION),1)
@@ -192,13 +228,6 @@ ifneq ($(call submodule_enabled, $(src), MALIGP2),0)
 	SRC += common/mali_kernel_GP2.c
 endif
 
-ifneq ($(call submodule_enabled, $(src), MMU),0)
-	# Mali MMU in use
-	SRC += common/mali_kernel_mem_mmu.c common/mali_kernel_memory_engine.c common/mali_block_allocator.c common/mali_kernel_mem_os.c
-else
-	# No Mali MMU in use
-	SRC += common/mali_kernel_mem_buddy.c
-endif
 
 ifneq ($(call submodule_enabled, $(src), MALI400L2)$(),0)
 	# Mali Level2 cache in use

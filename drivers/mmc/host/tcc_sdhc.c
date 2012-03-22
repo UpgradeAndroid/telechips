@@ -1794,7 +1794,7 @@ static int tcc_mmc_resume(struct platform_device *pdev)
 #endif
 
 
-#if defined(CONFIG_MMC_TCC_SDHC0) || defined(CONFIG_MMC_TCC_SDHC0_MODULE)
+#if defined(CONFIG_MMC_TCC_SDHC0)
 static struct platform_driver tcc_mmc_sdhc0_driver = {
 	.probe		= tcc_mmc_probe,
 	.remove		= tcc_mmc_remove,
@@ -1805,7 +1805,7 @@ static struct platform_driver tcc_mmc_sdhc0_driver = {
 	},
 };
 #endif
-#if defined(CONFIG_MMC_TCC_SDHC1) || defined(CONFIG_MMC_TCC_SDHC1_MODULE)
+#if defined(CONFIG_MMC_TCC_SDHC1)
 static struct platform_driver tcc_mmc_sdhc1_driver = {
 	.probe		= tcc_mmc_probe,
 	.remove 	= tcc_mmc_remove,
@@ -1816,7 +1816,7 @@ static struct platform_driver tcc_mmc_sdhc1_driver = {
 	},
 };
 #endif
-#if defined(CONFIG_MMC_TCC_SDHC2) || defined(CONFIG_MMC_TCC_SDHC2_MODULE)
+#if defined(CONFIG_MMC_TCC_SDHC2)
 static struct platform_driver tcc_mmc_sdhc2_driver = {
 	.probe		= tcc_mmc_probe,
 	.remove 	= tcc_mmc_remove,
@@ -1827,7 +1827,7 @@ static struct platform_driver tcc_mmc_sdhc2_driver = {
 	},
 };
 #endif
-#if defined(CONFIG_MMC_TCC_SDHC3) || defined(CONFIG_MMC_TCC_SDHC3_MODULE)
+#if defined(CONFIG_MMC_TCC_SDHC3)
 static struct platform_driver tcc_mmc_sdhc3_driver = {
 	.probe		= tcc_mmc_probe,
 	.remove 	= tcc_mmc_remove,
@@ -1843,16 +1843,16 @@ static int __init tcc_mmc_init(void)
 {
 	int ret = -1;
 
-#if defined(CONFIG_MMC_TCC_SDHC0) || defined(CONFIG_MMC_TCC_SDHC0_MODULE)
+#if defined(CONFIG_MMC_TCC_SDHC0)
 	ret = platform_driver_register(&tcc_mmc_sdhc0_driver);
 #endif
-#if defined(CONFIG_MMC_TCC_SDHC1) || defined(CONFIG_MMC_TCC_SDHC1_MODULE)
+#if defined(CONFIG_MMC_TCC_SDHC1)
 	ret = platform_driver_register(&tcc_mmc_sdhc1_driver);
 #endif
-#if defined(CONFIG_MMC_TCC_SDHC2) || defined(CONFIG_MMC_TCC_SDHC2_MODULE)
+#if defined(CONFIG_MMC_TCC_SDHC2)
 	ret = platform_driver_register(&tcc_mmc_sdhc2_driver);
 #endif
-#if defined(CONFIG_MMC_TCC_SDHC3) || defined(CONFIG_MMC_TCC_SDHC3_MODULE)
+#if defined(CONFIG_MMC_TCC_SDHC3)
 	ret = platform_driver_register(&tcc_mmc_sdhc3_driver);
 #endif
 	return ret;
@@ -1860,16 +1860,16 @@ static int __init tcc_mmc_init(void)
 
 static void __exit tcc_mmc_exit(void)
 {
-#if defined(CONFIG_MMC_TCC_SDHC0) || defined(CONFIG_MMC_TCC_SDHC0_MODULE)
+#if defined(CONFIG_MMC_TCC_SDHC0)
 	platform_driver_unregister(&tcc_mmc_sdhc0_driver);
 #endif
-#if defined(CONFIG_MMC_TCC_SDHC1) || defined(CONFIG_MMC_TCC_SDHC1_MODULE)
+#if defined(CONFIG_MMC_TCC_SDHC1)
 	platform_driver_unregister(&tcc_mmc_sdhc1_driver);
 #endif
-#if defined(CONFIG_MMC_TCC_SDHC2) || defined(CONFIG_MMC_TCC_SDHC2_MODULE)
+#if defined(CONFIG_MMC_TCC_SDHC2)
 	platform_driver_unregister(&tcc_mmc_sdhc2_driver);
 #endif
-#if defined(CONFIG_MMC_TCC_SDHC3) || defined(CONFIG_MMC_TCC_SDHC3_MODULE)
+#if defined(CONFIG_MMC_TCC_SDHC3)
 	platform_driver_unregister(&tcc_mmc_sdhc3_driver);
 #endif
 }

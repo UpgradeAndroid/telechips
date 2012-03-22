@@ -41,7 +41,7 @@
 #include <mach/globals.h>
 
 #if defined(CONFIG_ARCH_TCC88XX)
-#include <mach/TCC88xx_Structures.h>
+#include <mach/structures.h>
 #endif
 
 #include <mach/tcc_sc_ioctl.h>

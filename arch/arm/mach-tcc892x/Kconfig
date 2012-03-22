@@ -71,6 +71,12 @@ config STB_BOARD_HDB892S
 	help
 	  Support for TCC8920 HD892S Board.
 
+config STB_BOARD_HDB892F
+        bool "TCC8920 HDB892F board"
+        depends on MACH_TCC8920ST
+        help
+          Support for TCC8925 HD892F Board.
+
 config STB_BOARD_DONGLE
 	bool "TCC8925 HDMI dongle board"
 	depends on MACH_TCC8920ST

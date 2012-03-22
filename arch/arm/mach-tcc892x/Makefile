@@ -15,6 +15,8 @@ obj-$(CONFIG_ARCH_TCC892X)      += tca_serial.o
 obj-$(CONFIG_ARCH_TCC892X)      += tca_i2c.o
 obj-$(CONFIG_ARCH_TCC892X)      += tca_spi.o tca_tco.o
 obj-$(CONFIG_ARCH_TCC892X)      += tca_tsif.o
+obj-$(CONFIG_ARCH_TCC892X)      += tca_intr.o
+obj-$(CONFIG_ARCH_TCC892X)      += tccfb_address.o
 obj-$(CONFIG_ARCH_TCC892X)      += vioc/vioc_disp.o vioc/vioc_outcfg.o vioc/vioc_rdma.o vioc/vioc_wdma.o vioc/vioc_wmix.o vioc/vioc_viqe.o \
                                                            vioc/vioc_scaler.o vioc/vioc_ireq.o vioc/vioc_api.o vioc/vioc_config.o vioc/vioc_vin.o
 
@@ -30,6 +32,7 @@ obj-$(CONFIG_MACH_TCC8920)      += board-tcc8920-panel.o
 obj-$(CONFIG_MACH_TCC8920)      += board-tcc8920-mmc.o
 obj-$(CONFIG_MACH_TCC8920)      += board-tcc8920-dxb.o
 obj-$(CONFIG_MACH_TCC8920)      += board-tcc8920-hdmi.o
+obj-$(CONFIG_MACH_TCC8920)      += board-tcc8920-bluetooth.o
 # obj-$(CONFIG_INPUT_TCC_REMOTE) += board-tcc8920-remocon.o
 obj-$(CONFIG_MACH_TCC8920ST)     += board-tcc8920st.o board-tcc8920st-gpio.o board-tcc8920st-keypad.o board-tcc8920st-power.o
 obj-$(CONFIG_MACH_TCC8920ST)     += board-tcc8920st-panel.o

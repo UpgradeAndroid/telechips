@@ -95,7 +95,7 @@ void TCC_HDMI_LCDC_Timing(char hdmi_lcdc, struct lcdc_timimg_parms_t *mode)
 	unsigned int lcdc_id;
 	volatile PLCDC	pLCDC;
 	PDDICONFIG pHwDDICACHE_CONFIG  = (volatile PDDICONFIG)tcc_p2v(HwDDI_CONFIG_BASE);
-	PCKC	pCKC = (volatile PCKC *)tcc_p2v(HwCLK_BASE);
+	PCKC	pCKC = (volatile PCKC *)tcc_p2v(HwCKC_BASE);
 
 	dprintk(" %s lcdc:[%d]  %d %d %d %d \n", __func__, hdmi_lcdc, mode->id, mode->iv, mode->ih, mode->lpw);
 

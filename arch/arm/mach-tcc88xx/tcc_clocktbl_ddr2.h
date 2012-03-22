@@ -164,8 +164,8 @@ const struct tcc_freq_table_t gtHSIONormalClockLimitTable = {
 const struct tcc_freq_table_t gtVoipClockLimitTable[] = {
 //	{      0,      0, 160000,      0, 125000,      0,      0,      0,      0,      0 },	// Core 1.00V
 //	{      0,      0, 200000,      0, 148000,      0,      0,      0,      0,      0 },	// Core 1.05V
-	{      0,      0, 240000,      0, 148000,      0,      0,      0,      0,      0 },	// Core 1.10V
-	{      0,      0, 400000,      0, 250000,      0,      0,      0,      0,      0 },	// Core 1.32V
+	{ 600000,      0, 240000,      0, 148000,      0,      0, 100000,      0,      0 },	// Core 1.10V
+	{ 996000,      0, 400000,      0, 250000,      0,      0, 100000,      0,      0 },	// Core 1.32V
 };
 
 EXPORT_SYMBOL(gtCameraClockLimitTable);

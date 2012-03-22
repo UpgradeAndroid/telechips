@@ -123,3 +123,12 @@ config TCC_DWC_HS_ELECT_TST
 	  and high-speed capable functions must support this test modes.
 	  This test was described in Section 7.1.20 of [USB2.0]
 
+#---------------------------------------------------------------
+# USB-to-SATA
+#---------------------------------------------------------------
+config TCC_USB_TO_SATA
+	depends on MACH_TCC8920ST
+	bool "Telechips USB-to-SATA support"
+	default n
+	help
+	  This enables SATA interface by using USB-to-SATA chip in TCC892x STB solution.

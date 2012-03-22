@@ -909,6 +909,9 @@ int hdmi_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
             writeb(Bksv.ksv[3],HDCP_BKSV_3);
             writeb(Bksv.ksv[4],HDCP_BKSV_4);
 
+			dprintk(KERN_INFO "HDMI: Bksv.ksv[0]=0x%02x, Bksv.ksv[1]=0x%02x, Bksv.ksv[2]=0x%02x, Bksv.ksv[3]=0x%02x, Bksv.ksv[4]=0x%02x \n",
+				Bksv.ksv[0], Bksv.ksv[1], Bksv.ksv[2], Bksv.ksv[3], Bksv.ksv[4]);
+
             break;
         }
         case HDMI_IOC_SET_BCAPS:
@@ -940,6 +943,9 @@ int hdmi_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
             Aksv.ksv[2] = readb(HDCP_AKSV_2);
             Aksv.ksv[3] = readb(HDCP_AKSV_3);
             Aksv.ksv[4] = readb(HDCP_AKSV_4);
+
+			dprintk(KERN_INFO "HDMI: Aksv.ksv[0]=0x%02x, Aksv.ksv[1]=0x%02x, Aksv.ksv[2]=0x%02x, Aksv.ksv[3]=0x%02x, Aksv.ksv[4]=0x%02x \n",
+				Aksv.ksv[0], Aksv.ksv[1], Aksv.ksv[2], Aksv.ksv[3], Aksv.ksv[4]);
 
             // copy to user
             if ( (ret = copy_to_user((void*)arg,(const void*)&Aksv,sizeof(Aksv))) < 0)
@@ -1519,18 +1525,15 @@ void tcc_hdmi_power_on(void)
 		PCKC				pCKC ;
 		pCKC = (CKC *)tcc_p2v(HwCKC_BASE);
 
-		pCKC->PCLKCTRL17.nREG = 0x2D000000;
-//		pCKC->PCLKCTRL18.nREG = 0xBD000001;
-
 		if(hdmi_dev->hdmi_lcdc_num)
 			pCKC->PCLKCTRL05.nREG = 0x2C000000;
 		else
 			pCKC->PCLKCTRL03.nREG = 0x2C000000;
 	}
-	#else
-		if (hdmi_clk)
-			clk_set_rate(hdmi_clk, 1*1000*1000);
-	#endif//
+	#endif
+
+	if (hdmi_clk)
+		clk_set_rate(hdmi_clk, 1*1000*1000);
 	
     #if defined (CONFIG_ARCH_TCC92XX)
 	regl = readl(PMU_PWROFF);
@@ -1694,7 +1697,7 @@ void tcc_hdmi_power_off(void)
 	memset(&gHdmiVideoParms, 0, sizeof(struct HDMIVideoParameter));
  }
 
-extern unsigned int tca_get_hdmi_lcdc_num(viod);
+extern unsigned int tca_get_output_lcdc_num(viod);
 
 static int hdmi_probe(struct platform_device *pdev)
 {
@@ -1704,7 +1707,7 @@ static int hdmi_probe(struct platform_device *pdev)
 	pdev_hdmi = &pdev->dev;
 	
 	hdmi_dev = (struct tcc_hdmi_platform_data *)pdev_hdmi->platform_data;
-	hdmi_dev->hdmi_lcdc_num = tca_get_hdmi_lcdc_num();
+	hdmi_dev->hdmi_lcdc_num = tca_get_output_lcdc_num();
 	
 	if (hdmi_clk == NULL) {
 		hdmi_clk = clk_get(0, "hdmi");

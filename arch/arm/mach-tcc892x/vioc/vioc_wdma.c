@@ -39,7 +39,7 @@ void VIOC_WDMA_SetDefaultImageConfig(VIOC_WDMA * pWDMA, VIOC_WDMA_IMAGE_INFO_Typ
 	pWDMA->uCTRL.bREG.SREQ	= 0;	/* Stop Request Enable Default Off */
 	pWDMA->uCTRL.bREG.FU	= 0;	/* Field Update Enable Default Off */
 	
-	VIOC_WDMA_SetImageSyncControl(pWDMA, 1, 0);
+	VIOC_WDMA_SetImageSyncControl(pWDMA, 0, 0);
 	/* Register Update */
 	VIOC_WDMA_SetImageEnable(pWDMA, ImageCfg->ContinuousMode);
 }

@@ -76,6 +76,7 @@ typedef enum{
 #define	TCC_LCDC_VIDEO_SET_FRAMERATE	0x006B
 #define	TCC_LCDC_VIDEO_SKIP_ONE_FRAME	0x006C
 #define TCC_LCDC_VIDEO_DEINTERLACE_SET	0x006D		// ronald.lee
+#define	TCC_LCDC_VIDEO_GET_VALID_COUNT	0x006E
 #endif
 
 #define	TCC_LCDC_EXCLUSIVE_UI_SET_PARAM			0x0070
@@ -288,11 +289,13 @@ struct tcc_lcdc_image_update
 	unsigned int addr1;
 	unsigned int addr2;
 	unsigned int fmt;	//TCC_LCDC_IMG_FMT_TYPE
-	unsigned int on_the_fly; // 0: not use , 1 : scaler0 ,  2 :scaler1
-
+	unsigned int on_the_fly; // 0: not use , 1 : scaler0 ,  2 :scaler1	
+	int crop_top; 
+	int crop_bottom;
+	int crop_left;
+	int crop_right;
+	
 #if defined(CONFIG_TCC_VIDEO_DISPLAY_BY_VSYNC_INT) || defined(TCC_VIDEO_DISPLAY_BY_VSYNC_INT)
-	int crop_top, crop_bottom, crop_left, crop_right;	// support for screen-mode.
-
 	int time_stamp;
 	int sync_time;
 	int first_frame_after_seek;
@@ -305,6 +308,7 @@ struct tcc_lcdc_image_update
 	int odd_first_flag;
 	int m2m_mode;
 	int output_toMemory;
+	int frameInfo_interlace;
 #endif
 
 	unsigned int dst_addr0;

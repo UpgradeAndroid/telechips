@@ -57,85 +57,207 @@ struct axp192_data {
 	I2C Command & Values
 ********************************************************************/
 /* Registers */
-#define AXP192_POWER_STS_REG		0x00
-#define AXP192_MODE_CHARGING_STS_REG	0x01
-#define AXP192_OTG_VBUS_STS_REG		0x04
-#define AXP192_DATA0_BUF_REG		0x06
-#define AXP192_DATA1_BUF_REG		0x07
-#define AXP192_DATA2_BUF_REG		0x08
-#define AXP192_DATA3_BUF_REG		0x09
-#define AXP192_EXTEN_DCDC2_CTRL_REG	0x10
-#define AXP192_DCDC13_LDO23_CTRL_REG	0x12
-#define AXP192_DCDC2_REG		0x23
-#define AXP192_DCDC1_REG		0x26
-#define AXP192_DCDC3_REG		0x27
-#define AXP192_LDO23_REG		0x28
-#define AXP192_POWER_OFF_REG		0x32
-#define AXP192_PEK_REG			0x36
+#define AXP192_POWER_STS_REG            0x00
+#define AXP192_MODE_CHARGING_STS_REG    0x01
+#define AXP192_OTG_VBUS_STS_REG         0x04
+#define AXP192_EXTEN_DCDC2_CTRL_REG     0x10
+#define AXP192_DCDC13_LDO23_CTRL_REG    0x12
+#define AXP192_DCDC2_REG                0x23
+#define AXP192_DCDC1_REG                0x26
+#define AXP192_DCDC3_REG                0x27
+#define AXP192_LDO23_REG                0x28
+#define AXP192_VBUS_IPSOUT_REG          0x30
+#define AXP192_POWER_OFF_VOL_REG        0x31
+#define AXP192_POWER_OFF_REG            0x32
+#define AXP192_CHARGING_CTRL1_REG       0x33
+#define AXP192_CHARGING_CTRL2_REG       0x34
+#define AXP192_BACKUP_BATT_CHG_REG      0x35
+#define AXP192_PEK_REG                  0x36
 
-#define AXP192_ADC_ENABLE1_REG		0x82
-#define AXP192_ADC_ENABLE2_REG		0x83
-#define AXP192_ADC_TSPIN_REG		0x84
+#define AXP192_ADC_ENABLE1_REG          0x82
+#define AXP192_ADC_ENABLE2_REG          0x83
+#define AXP192_ADC_TSPIN_REG            0x84
 
-#define AXP192_IRQ_EN1_REG		0x40
-#define AXP192_IRQ_EN2_REG		0x41
-#define AXP192_IRQ_EN3_REG		0x42
-#define AXP192_IRQ_EN4_REG		0x43
-#define AXP192_IRQ_STS1_REG		0x44
-#define AXP192_IRQ_STS2_REG		0x45
-#define AXP192_IRQ_STS3_REG		0x46
-#define AXP192_IRQ_STS4_REG		0x47
+#define AXP192_IRQ_EN1_REG              0x40
+#define AXP192_IRQ_EN2_REG              0x41
+#define AXP192_IRQ_EN3_REG              0x42
+#define AXP192_IRQ_EN4_REG              0x43
+#define AXP192_IRQ_STS1_REG             0x44
+#define AXP192_IRQ_STS2_REG             0x45
+#define AXP192_IRQ_STS3_REG             0x46
+#define AXP192_IRQ_STS4_REG             0x47
 
-#define AXP192_ADC_ACIN_VOL_H_REG	0x56
-#define AXP192_ADC_ACIN_VOL_L_REG	0x57
-#define AXP192_ADC_VBUS_VOL_H_REG	0x5A
-#define AXP192_ADC_VBUS_VOL_L_REG	0x5B
-#define AXP192_ADC_BATT_VOL_H_REG	0x78
-#define AXP192_ADC_BATT_VOL_L_REG	0x79
+#define AXP192_ADC_ACIN_VOL_H_REG       0x56
+#define AXP192_ADC_ACIN_VOL_L_REG       0x57
+#define AXP192_ADC_VBUS_VOL_H_REG       0x5A
+#define AXP192_ADC_VBUS_VOL_L_REG       0x5B
+#define AXP192_ADC_BATT_VOL_H_REG       0x78
+#define AXP192_ADC_BATT_VOL_L_REG       0x79
+#define AXP192_ADC_BATT_CUR_H_REG       0x7A
+#define AXP192_ADC_BATT_CUR_L_REG       0x7B
 
-#define AXP192_LDO4_FUNC_SET_REG	0x90
-#define AXP192_LDO4_VOLTAGE_REG		0x91
+#define AXP192_LDO4_FUNC_SET_REG        0x90
+#define AXP192_LDO4_VOLTAGE_REG         0x91
 
+
+/* Power off voltage values */
+#define AXP192_PWROFF_VOL_2_6V          0x00
+#define AXP192_PWROFF_VOL_2_7V          0x01
+#define AXP192_PWROFF_VOL_2_8V          0x02
+#define AXP192_PWROFF_VOL_2_9V          0x03
+#define AXP192_PWROFF_VOL_3_0V          0x04
+#define AXP192_PWROFF_VOL_3_1V          0x05
+#define AXP192_PWROFF_VOL_3_2V          0x06
+#define AXP192_PWROFF_VOL_3_3V          0x07
+#define AXP192_PWROFF_VOL_MASK          0x07
+
+/* Power off values */
+#define AXP192_PWROFF_EN                0x80
+#define AXP192_PWROFF_BATT_MON_EN       0x40
+#define AXP192_PWROFF_BATT_MON_DIS      0x00
+#define AXP192_PWROFF_CHGLED_HIGHZ      0x00
+#define AXP192_PWROFF_CHGLED_1Hz        0x10
+#define AXP192_PWROFF_CHGLED_4Hz        0x20
+#define AXP192_PWROFF_CHGLED_OUTLOW     0x30
+#define AXP192_PWROFF_CHGLED_MASK       0x30
+#define AXP192_PWROFF_CHGLED_CTRL_CHG   0x00
+#define AXP192_PWROFF_CHGLED_CTRL_REG   0x08
+#define AXP192_PWROFF_N_OE_DLY_0_5S     0x00
+#define AXP192_PWROFF_N_OE_DLY_1_0S     0x01
+#define AXP192_PWROFF_N_OE_DLY_2_0S     0x02
+#define AXP192_PWROFF_N_OE_DLY_3_0S     0x03
+#define AXP192_PWROFF_N_OE_DLY_MASK     0x03
+#define AXP192_PWROFF_VALUES ( 0 \
+		| AXP192_PWROFF_BATT_MON_EN \
+		| AXP192_PWROFF_CHGLED_HIGHZ \
+		| AXP192_PWROFF_CHGLED_CTRL_CHG \
+		| AXP192_PWROFF_N_OE_DLY_0_5S \
+		)
+
+/* Changing control 1 values */
+#define AXP192_CHG_EN                   0x80
+#define AXP192_CHG_VOL_4_10V            0x00
+#define AXP192_CHG_VOL_4_15V            0x20
+#define AXP192_CHG_VOL_4_20V            0x40
+#define AXP192_CHG_VOL_4_36V            0x60
+#define AXP192_CHG_VOL_MASK             0x60
+#define AXP192_CHG_OFF_CUR_10PER        0x00
+#define AXP192_CHG_OFF_CUR_15PER        0x10
+#define AXP192_CHG_OFF_CUR_MASK         0x10
+
+/* PEK press key parameter set vaules */
+#define AXP192_PEK_PWRON_128mS          0x00
+#define AXP192_PEK_PWRON_256mS          0x40
+#define AXP192_PEK_PWRON_512mS          0x80
+#define AXP192_PEK_PWRON_1S             0xC0
+#define AXP192_PEK_PWRON_MASK           0xC0
+#define AXP192_PEK_LONGKEY_1_0S         0x00
+#define AXP192_PEK_LONGKEY_1_5S         0x10
+#define AXP192_PEK_LONGKEY_2_0S         0x20
+#define AXP192_PEK_LONGKEY_2_5S         0x30
+#define AXP192_PEK_LONGKEY_MASK         0x30
+#define AXP192_PEK_LONGKEY_PWROFF_EN    0x08
+#define AXP192_PEK_LONGKEY_PWROFF_DIS   0x00
+#define AXP192_PEK_PWRON_DLY_32mS       0x00
+#define AXP192_PEK_PWRON_DLY_64mS       0x04
+#define AXP192_PEK_PWRON_DLY_MASK       0x04
+#define AXP192_PEK_PWROFF_TIME_4S       0x00
+#define AXP192_PEK_PWROFF_TIME_6S       0x01
+#define AXP192_PEK_PWROFF_TIME_8S       0x02
+#define AXP192_PEK_PWROFF_TIME_12S      0x03
+#define AXP192_PEK_PWROFF_TIME_MASK     0x03
+#define AXP192_PEK_VALUES ( 0 \
+		| AXP192_PEK_PWRON_1S \
+		| AXP192_PEK_LONGKEY_1_0S \
+		| AXP192_PEK_LONGKEY_PWROFF_DIS \
+		| AXP192_PEK_PWRON_DLY_64mS \
+		| AXP192_PEK_PWROFF_TIME_12S \
+		)
+
+/* ADC enable values*/
+#define AXP192_ADC_1_BATT_VOL           0x80
+#define AXP192_ADC_1_BATT_CUR           0x40
+#define AXP192_ADC_1_ACIN_VOL           0x20
+#define AXP192_ADC_1_ACIN_CUR           0x10
+#define AXP192_ADC_1_VBUS_VOL           0x08
+#define AXP192_ADC_1_VBUS_CUR           0x04
+#define AXP192_ADC_1_APS_VOL            0x02
+#define AXP192_ADC_1_TS_PIN             0x01
+
+#define AXP192_ADC_2_TEMP_MON           0x80
+#define AXP192_ADC_2_GPIO0              0x08
+#define AXP192_ADC_2_GPIO1              0x04
+#define AXP192_ADC_2_GPIO2              0x02
+#define AXP192_ADC_2_GPIO3              0x01
+
+#define AXP192_ADC_TS_SAMPLE_25         0x00
+#define AXP192_ADC_TS_SAMPLE_50         0x40
+#define AXP192_ADC_TS_SAMPLE_100        0x80
+#define AXP192_ADC_TS_SAMPLE_200        0xC0
+#define AXP192_ADC_TS_SAMPLE_MASK       0xC0
+#define AXP192_ADC_TS_OUT_CUR_20uA      0x00
+#define AXP192_ADC_TS_OUT_CUR_40uA      0x10
+#define AXP192_ADC_TS_OUT_CUR_60uA      0x20
+#define AXP192_ADC_TS_OUT_CUR_80uA      0x30
+#define AXP192_ADC_TS_OUT_CUR_MASK      0x30
+#define AXP192_ADC_TS_PIN_TEMP_MON      0x00
+#define AXP192_ADC_TS_PIN_EXTERN_ADC    0x04
+#define AXP192_ADC_TS_PIN_OUT_DIS       0x00
+#define AXP192_ADC_TS_PIN_OUT_CHG       0x01
+#define AXP192_ADC_TS_PIN_OUT_SAVE_ENG  0x20
+#define AXP192_ADC_TS_PIN_OUT_ALWAYS    0x30
+#define AXP192_ADC_TS_PIN_OUT_MASK      0x30
+
+#define AXP192_ADC1 ( 0 \
+		| AXP192_ADC_1_BATT_VOL \
+		| AXP192_ADC_1_BATT_CUR \
+		)
+#define AXP192_ADC2 ( 0 \
+		)
+#define AXP192_ADC_TS ( 0 \
+		| AXP192_ADC_TS_SAMPLE_25 \
+		| AXP192_ADC_TS_OUT_CUR_20uA \
+		| AXP192_ADC_TS_PIN_EXTERN_ADC \
+		| AXP192_ADC_TS_PIN_OUT_DIS \
+		)
 
 /* Interrupt values */
-#define AXP192_IRQ_1_VBUS_LOWER_VALID	0x02
-#define AXP192_IRQ_1_VBUS_REMOVE	0x04
-#define AXP192_IRQ_1_VBUS_INSERT	0x08
-#define AXP192_IRQ_1_VBUS_OVER		0x10
-#define AXP192_IRQ_1_ACIN_REMOVE	0x20
-#define AXP192_IRQ_1_ACIN_INSERT	0x40
-#define AXP192_IRQ_1_ACIN_OVER		0x80
+#define AXP192_IRQ_1_ACIN_OVER          0x80
+#define AXP192_IRQ_1_ACIN_INSERT        0x40
+#define AXP192_IRQ_1_ACIN_REMOVE        0x20
+#define AXP192_IRQ_1_VBUS_OVER          0x10
+#define AXP192_IRQ_1_VBUS_INSERT        0x08
+#define AXP192_IRQ_1_VBUS_REMOVE        0x04
+#define AXP192_IRQ_1_VBUS_LOWER_VALID   0x02
 
-#define AXP192_IRQ_2_BATT_UNDER		0x01
-#define AXP192_IRQ_2_BATT_OVER		0x02
-#define AXP192_IRQ_2_CHARGE_FINISH	0x04
-#define AXP192_IRQ_2_CHARGING		0x08
-#define AXP192_IRQ_2_BATT_QUIT_ACT	0x10
-#define AXP192_IRQ_2_BATT_ACT		0x20
-#define AXP192_IRQ_2_BATT_REMOVE	0x40
-#define AXP192_IRQ_2_BATT_INSERT	0x80
+#define AXP192_IRQ_2_BATT_INSERT        0x80
+#define AXP192_IRQ_2_BATT_REMOVE        0x40
+#define AXP192_IRQ_2_BATT_ACT           0x20
+#define AXP192_IRQ_2_BATT_QUIT_ACT      0x10
+#define AXP192_IRQ_2_CHARGING           0x08
+#define AXP192_IRQ_2_CHARGE_FINISH      0x04
+#define AXP192_IRQ_2_BATT_OVER          0x02
+#define AXP192_IRQ_2_BATT_UNDER         0x01
 
-#define AXP192_IRQ_3_LONG_KEY		0x01
-#define AXP192_IRQ_3_SHORT_KEY		0x02
-#define AXP192_IRQ_3_DCDC3_UNDER	0x08
-#define AXP192_IRQ_3_DCDC2_UNDER	0x10
-#define AXP192_IRQ_3_DCDC1_UNDER	0x20
-#define AXP192_IRQ_3_NOT_ENOUGH_CURR	0x40
-#define AXP192_IRQ_3_INTERNAL_OVER	0x80
+#define AXP192_IRQ_3_INTERNAL_OVER      0x80
+#define AXP192_IRQ_3_NOT_ENOUGH_CURR    0x40
+#define AXP192_IRQ_3_DCDC1_UNDER        0x20
+#define AXP192_IRQ_3_DCDC2_UNDER        0x10
+#define AXP192_IRQ_3_DCDC3_UNDER        0x08
+#define AXP192_IRQ_3_SHORT_KEY          0x02
+#define AXP192_IRQ_3_LONG_KEY           0x01
 
-#define AXP192_IRQ_4_UNDER_VOLTAGE	0x01
-#define AXP192_IRQ_4_VBUS_SESSION_END	0x04
-#define AXP192_IRQ_4_VBUS_SESSION_AB	0x08
-#define AXP192_IRQ_4_VBUS_INVLAID	0x10
-#define AXP192_IRQ_4_VBUS_VALID		0x20
-#define AXP192_IRQ_4_POWER_OFF		0x40
-#define AXP192_IRQ_4_POWER_ON		0x80
+#define AXP192_IRQ_4_POWER_ON           0x80
+#define AXP192_IRQ_4_POWER_OFF          0x40
+#define AXP192_IRQ_4_VBUS_VALID         0x20
+#define AXP192_IRQ_4_VBUS_INVLAID       0x10
+#define AXP192_IRQ_4_VBUS_SESSION_AB    0x08
+#define AXP192_IRQ_4_VBUS_SESSION_END   0x04
+#define AXP192_IRQ_4_UNDER_VOLTAGE      0x01
 
 #define AXP192_IRQ1 ( 0 \
 		| AXP192_IRQ_1_ACIN_INSERT \
 		| AXP192_IRQ_1_ACIN_REMOVE \
-		| AXP192_IRQ_1_VBUS_INSERT \
-		| AXP192_IRQ_1_VBUS_REMOVE \
 		)
 #define AXP192_IRQ2 ( 0 \
 		| AXP192_IRQ_2_CHARGE_FINISH \
@@ -148,16 +270,6 @@ struct axp192_data {
 #define AXP192_IRQ4 ( 0 \
 		)
 
-/* Canging control 1 values */
-#define AXP192_CHG_EN			0x80
-#define AXP192_CHG_VOL_4_10V		0x00
-#define AXP192_CHG_VOL_4_15V		0x20
-#define AXP192_CHG_VOL_4_20V		0x40
-#define AXP192_CHG_VOL_4_36V		0x60
-#define AXP192_CHG_VOL_MASK		0x60
-#define AXP192_CHG_OFF_CUR_10PER	0x00
-#define AXP192_CHG_OFF_CUR_15PER	0x10
-#define AXP192_CHG_OFF_CUR_MASK		0x10
 
 /* DCDC voltage level */
 static struct axp192_voltage_t dcdc_voltages[] = {
@@ -210,7 +322,6 @@ static struct workqueue_struct *axp192_wq;
 static struct i2c_client *axp192_i2c_client = NULL;
 static int axp192_acin_det = 0;
 static int axp192_charge_sts = 0;
-static unsigned int axp192_acin_voltage_read_count = 20;
 static unsigned int axp192_suspend_status = 0;
 
 /********************************************************************
@@ -227,43 +338,24 @@ int axp192_battery_voltage(void)
 		ret = ((data[0]<<4)|(data[1]&0xF))&0xFFF;
 	}
 
-//	dbg("%s: %dmV\n", __func__, ret);
+	dbg("%s: %dmV\n", __func__, ret);
 	return ret;
 }
 
 int axp192_acin_detect(void)
 {
-	signed long data[2];
+	signed long data;
 
-	if (axp192_acin_voltage_read_count) {
-		if (axp192_i2c_client) {
-			data[0] = i2c_smbus_read_byte_data(axp192_i2c_client, AXP192_ADC_ACIN_VOL_H_REG);
-			data[1] = i2c_smbus_read_byte_data(axp192_i2c_client, AXP192_ADC_ACIN_VOL_L_REG);
-			if ((((data[0]<<4)|(data[1]&0xF))&0xFFF) > 1000)
-				axp192_acin_det = 1;
-			else
-				axp192_acin_det = 0;
-		}
-		axp192_acin_voltage_read_count--;
+	if (axp192_i2c_client && !(axp192_i2c_client->irq)) {
+		data = i2c_smbus_read_byte_data(axp192_i2c_client, AXP192_POWER_STS_REG);
+		if (data & 0x80)
+			axp192_acin_det = 1;
+		else
+			axp192_acin_det = 0;
 	}
 
 //	dbg("%s: %d\n", __func__, axp192_acin_det);
 	return axp192_acin_det;
-}
-
-int axp192_vbus_voltage(void)
-{
-	signed long data[2];
-	int ret = 5000;
-
-	if (axp192_i2c_client) {
-		data[0] = i2c_smbus_read_byte_data(axp192_i2c_client, AXP192_ADC_VBUS_VOL_H_REG);
-		data[1] = i2c_smbus_read_byte_data(axp192_i2c_client, AXP192_ADC_VBUS_VOL_L_REG);
-		ret = ((data[0]<<4)|(data[1]&0xF))&0xFFF;
-	}
-
-	dbg("%s: %d\n", __func__, ret);
-	return ret;
 }
 
 void axp192_power_off(void)
@@ -271,12 +363,15 @@ void axp192_power_off(void)
 	i2c_smbus_write_byte_data(axp192_i2c_client, AXP192_POWER_OFF_REG, 0xC6);
 }
 
-void axp192_charge_current(unsigned char val)
+void axp192_charge_current(unsigned char curr)
 {
-	unsigned char temp;
+	unsigned char value;
 
-	temp = AXP192_CHG_EN|AXP192_CHG_VOL_4_20V|AXP192_CHG_OFF_CUR_10PER|(val&0x0f);
-	i2c_smbus_write_byte_data(axp192_i2c_client, 0x33, temp);
+	if (curr >= AXP192_CHG_CURR_MAX)
+		return;
+
+	value = AXP192_CHG_EN|AXP192_CHG_VOL_4_20V|AXP192_CHG_OFF_CUR_10PER|(curr&0x0f);
+	i2c_smbus_write_byte_data(axp192_i2c_client, AXP192_CHARGING_CTRL1_REG, value);
 }
 
 /* Test API */
@@ -287,7 +382,6 @@ int axp192_charge_status(void)
 
 EXPORT_SYMBOL(axp192_battery_voltage);
 EXPORT_SYMBOL(axp192_acin_detect);
-EXPORT_SYMBOL(axp192_vbus_voltage);
 EXPORT_SYMBOL(axp192_power_off);
 EXPORT_SYMBOL(axp192_charge_current);
 EXPORT_SYMBOL(axp192_charge_status);
@@ -308,18 +402,13 @@ static void axp192_work_func(struct work_struct *work)
 	data[3] =0;
 	
 	data[0] = i2c_smbus_read_byte_data(axp192->client, AXP192_IRQ_STS1_REG);
+	i2c_smbus_write_byte_data(axp192->client, AXP192_IRQ_STS1_REG, 0xFF);
 	data[1] = i2c_smbus_read_byte_data(axp192->client, AXP192_IRQ_STS2_REG);
+	i2c_smbus_write_byte_data(axp192->client, AXP192_IRQ_STS2_REG, 0xFF);
 	data[2] = i2c_smbus_read_byte_data(axp192->client, AXP192_IRQ_STS3_REG);
+	i2c_smbus_write_byte_data(axp192->client, AXP192_IRQ_STS3_REG, 0xFF);
 	data[3] = i2c_smbus_read_byte_data(axp192->client, AXP192_IRQ_STS4_REG);
-
-	if (data[0] & 0xFF)
-		i2c_smbus_write_byte_data(axp192->client, AXP192_IRQ_STS1_REG, data[0]);
-	if (data[1] & 0xFF)
-		i2c_smbus_write_byte_data(axp192->client, AXP192_IRQ_STS2_REG, data[1]);
-	if (data[2] & 0xFF)
-		i2c_smbus_write_byte_data(axp192->client, AXP192_IRQ_STS3_REG, data[2]);
-	if (data[3] & 0xFF)
-		i2c_smbus_write_byte_data(axp192->client, AXP192_IRQ_STS4_REG, data[3]);
+	i2c_smbus_write_byte_data(axp192->client, AXP192_IRQ_STS4_REG, 0xFF);
 
 	if (data[0]&AXP192_IRQ_1_VBUS_LOWER_VALID) {
 		dbg("VBUS valid, but lower then V(hold)IRQ status\n");
@@ -812,13 +901,19 @@ static int axp192_pmic_probe(struct i2c_client *client, const struct i2c_device_
 
 	i2c_set_clientdata(client, rdev);
 
-	power_status = i2c_smbus_read_byte_data(client, 0x00);
+	power_status = i2c_smbus_read_byte_data(client, AXP192_POWER_STS_REG);
 	if ((power_status&0xFF) == 0xFF) {
 		ret = -ENODEV;
 		goto err_nodev;
 	} else {
 		printk("######## %s: %x ########\n", __func__, power_status);
 	}
+
+	if (power_status & 0x80)
+		axp192_acin_det = 1;
+	else
+		axp192_acin_det = 0;
+
 
 	INIT_WORK(&axp192->work, axp192_work_func);
 
@@ -843,18 +938,20 @@ static int axp192_pmic_probe(struct i2c_client *client, const struct i2c_device_
 		}
 	}
 
-	i2c_smbus_write_byte_data(client, AXP192_ADC_ENABLE1_REG, 0xAB);	// BATT_Vol, ACIN_Vol, VBUS_Vol, APS_Vol, TS pin
-	i2c_smbus_write_byte_data(client, AXP192_ADC_TSPIN_REG, 0x36);
+	/* AXP192 Init. Setting */
+	i2c_smbus_write_byte_data(client, AXP192_POWER_OFF_VOL_REG, AXP192_PWROFF_VOL_2_6V);
+	i2c_smbus_write_byte_data(client, AXP192_POWER_OFF_REG, AXP192_PWROFF_VALUES);
+	i2c_smbus_write_byte_data(client, AXP192_PEK_REG, AXP192_PEK_VALUES);
+	i2c_smbus_write_byte_data(client, AXP192_ADC_ENABLE1_REG, AXP192_ADC1);
+	i2c_smbus_write_byte_data(client, AXP192_ADC_ENABLE2_REG, AXP192_ADC2);
+	i2c_smbus_write_byte_data(client, AXP192_ADC_TSPIN_REG, AXP192_ADC_TS);
 
 	/* GPIO0 set to Low output for using LDO4 */
 	i2c_smbus_write_byte_data(client, AXP192_LDO4_FUNC_SET_REG, 0x05);	// Low output
 	i2c_smbus_write_byte_data(client, AXP192_LDO4_VOLTAGE_REG, 0xF0);	// 3.3V
 
-	/* long time key press time set to 1S, auto power off function disable */
-	i2c_smbus_write_byte_data(client, AXP192_PEK_REG, 0xC5);
 
-	power_status = i2c_smbus_read_byte_data(client, AXP192_POWER_OFF_REG);
-	i2c_smbus_write_byte_data(client, AXP192_POWER_OFF_REG, (power_status&0xFC)|0x00 );		// requested by H/W
+	axp192_charge_current(AXP192_CHG_CURR_780mA);
 
 	if (client->irq) {
 		/* irq enable */
@@ -979,6 +1076,7 @@ static int axp192_pmic_suspend(struct i2c_client *client, pm_message_t mesg)
 static int axp192_pmic_resume(struct i2c_client *client)
 {
 	int i;
+	unsigned long temp;
 	struct regulator_dev **rdev = i2c_get_clientdata(client);
 	struct axp192_data* axp192 = NULL;
 
@@ -998,6 +1096,13 @@ static int axp192_pmic_resume(struct i2c_client *client)
 	i2c_smbus_write_byte_data(client, AXP192_IRQ_STS4_REG, 0xFF);
 	#endif
 
+#if 0
+	temp = i2c_smbus_read_byte_data(client, AXP192_POWER_STS_REG);
+	if (temp & 0x80)
+		axp192_acin_det = 1;
+	else
+		axp192_acin_det = 0;
+#endif 
 	axp192_suspend_status = 0;
 	return 0;
 }
@@ -1009,11 +1114,11 @@ static const struct i2c_device_id axp192_id[] = {
 MODULE_DEVICE_TABLE(i2c, axp192_id);
 
 static struct i2c_driver axp192_pmic_driver = {
-	.probe	  = axp192_pmic_probe,
-	.remove	 = axp192_pmic_remove,
-	.suspend	= axp192_pmic_suspend,
-	.resume	 = axp192_pmic_resume,
-	.driver	 = {
+	.probe   = axp192_pmic_probe,
+	.remove  = axp192_pmic_remove,
+	.suspend = axp192_pmic_suspend,
+	.resume  = axp192_pmic_resume,
+	.driver  = {
 		.name   = "axp192",
 	},
 	.id_table   = axp192_id,

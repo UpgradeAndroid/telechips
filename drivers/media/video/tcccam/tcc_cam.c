@@ -225,7 +225,7 @@ int tccxxx_isalive_camera(void)
 #if	defined(CONFIG_ARCH_TCC892X)
 	//	In case of 892X, we have to add.
 #else
-	volatile PCKC pCKC = (PCKC)tcc_p2v(HwCLK_BASE);
+	volatile PCKC pCKC = (PCKC)tcc_p2v(HwCKC_BASE);
 	volatile PCIF pCIF = (PCIF)tcc_p2v(HwCIF_BASE);
 #endif
 
@@ -374,55 +374,45 @@ static irqreturn_t isp_cam_isr1(int irq, void *client_data/*, struct pt_regs *re
 	unsigned int curr_num;
 #else
 	struct tccxxx_cif_buffer *curr_buf, *next_buf;
-
 	unsigned int curr_num, next_num;
 #endif
 	volatile PCIF pCIF;
 
 	pCIF = (PCIF)tcc_p2v(HwISPBASE);
-	
 	client_data = client_data;
-#ifndef TCCISP_GEN_CFG_UPD	
-	if ( ISP_CheckInterrupt() )
-	{
+
+#ifndef TCCISP_GEN_CFG_UPD
+	if(ISP_CheckInterrupt()) {
 		ISP_ClearInterrupt();
 		printk ("isp_cam_isr1: Collision Detected!!!! \n");
-
 		return IRQ_HANDLED;
 	}
 #endif
-	ISP_EventHandler2();
 
-	if(ISP_EventHandler2_getEvent(1))
-	{
-		if(data->stream_state == STREAM_ON)
-		{
-			if(skip_frm == 0 && !frame_lock)
-			{
-				if(prev_buf != NULL)
-					list_move_tail(&prev_buf->buf_list, &data->done_list);
-			
+	ISP_EventHandler2();
+	if(ISP_EventHandler2_getEvent(1)) {
+		if(data->stream_state == STREAM_ON) {
+			if(skip_frm == 0 && !frame_lock) {
+				if(prev_buf != NULL) 	list_move_tail(&prev_buf->buf_list, &data->done_list);
 				prev_buf = data->buf + data->cif_cfg.now_frame_num;
 				prev_num = data->cif_cfg.now_frame_num;
-#ifndef TCCISP_GEN_CFG_UPD
+			#ifndef TCCISP_GEN_CFG_UPD
 				next_buf = list_entry(data->list.next->next, struct tccxxx_cif_buffer, buf_list);
 				next_num = next_buf->v4lbuf.index;
 
-				if(next_buf != &data->list && prev_buf != next_buf )
-				{
+				if(next_buf != &data->list && prev_buf != next_buf) {
 					//exception process!!
-#else
-				if(next_buf != &data->list && curr_buf != next_buf && (chkpnt==1))
-				{
-	#ifndef TCCISP_ONE_IRQ
+			#else // TCCISP_GEN_CFG_UPD
+				if(next_buf != &data->list && curr_buf != next_buf && (chkpnt==1)) {
+					#ifndef TCCISP_ONE_IRQ
 					//exception process!!
 					//next_buf = 0; 
 					chkpnt = 2;
-	#endif   // TCCISP_ONE_IRQ				
-#endif
-	#ifndef TCCISP_ONE_IRQ
-					if(prev_num != prev_buf->v4lbuf.index)
-					{
+					#endif // TCCISP_ONE_IRQ
+			#endif // TCCISP_GEN_CFG_UPD
+
+				#ifndef TCCISP_ONE_IRQ
+					if(prev_num != prev_buf->v4lbuf.index) {
 						printk("Frame num mismatch :: true num  :: %d \n", prev_num);
 						printk("Frame num mismatch :: false num :: %d \n", prev_buf->v4lbuf.index);
 						prev_buf->v4lbuf.index = prev_num ;
@@ -467,14 +457,20 @@ static irqreturn_t isp_cam_isr1(int irq, void *client_data/*, struct pt_regs *re
 
 						#ifndef TCCISP_GEN_CFG_UPD
 						ISP_Zoom_Apply (1);
-						ISP_SetPreviewH_StartAddress((unsigned int)data->cif_cfg.preview_buf[next_num].p_Y,
-														(unsigned int)data->cif_cfg.preview_buf[next_num].p_Cr,
-														(unsigned int)data->cif_cfg.preview_buf[next_num].p_Cb);
-						#else
+						#if defined(FEATURE_ANDROID_ICS)
+						ISP_SetPreviewH_StartAddress((unsigned int)data->cif_cfg.preview_buf[next_num].p_Y, 	\
+													 (unsigned int)data->cif_cfg.preview_buf[next_num].p_Cr, 	\
+													 (unsigned int)data->cif_cfg.preview_buf[next_num].p_Cb);
+						#else // FEATURE_ANDROID_ICS
+						ISP_SetPreviewH_StartAddress((unsigned int)data->cif_cfg.preview_buf[next_num].p_Y, 	\
+													 (unsigned int)data->cif_cfg.preview_buf[next_num].p_Cb, 	\
+													 (unsigned int)data->cif_cfg.preview_buf[next_num].p_Cr);
+						#endif // FEATURE_ANDROID_ICS
+						#else // TCCISP_GEN_CFG_UPD
 							#ifdef TCCISP_UPDATE
-
+							// todo : 
 							#endif
-						#endif
+						#endif // TCCISP_GEN_CFG_UPD
 					}
 
 					#if defined(FEATURE_ANDROID_ICS)
@@ -579,9 +575,15 @@ static irqreturn_t isp_cam_isr2(int irq, void *client_data/*, struct pt_regs *re
 
 				if(next_buf != &data->list && curr_buf != next_buf)
 				{
+					#if defined(FEATURE_ANDROID_ICS)
 					ISP_SetPreviewH_StartAddress((unsigned int)data->cif_cfg.preview_buf[next_num].p_Y,
-								(unsigned int)data->cif_cfg.preview_buf[next_num].p_Cb,
-								(unsigned int)data->cif_cfg.preview_buf[next_num].p_Cr);
+												 (unsigned int)data->cif_cfg.preview_buf[next_num].p_Cr,
+												 (unsigned int)data->cif_cfg.preview_buf[next_num].p_Cb);
+					#else
+					ISP_SetPreviewH_StartAddress((unsigned int)data->cif_cfg.preview_buf[next_num].p_Y,
+												 (unsigned int)data->cif_cfg.preview_buf[next_num].p_Cb,
+												 (unsigned int)data->cif_cfg.preview_buf[next_num].p_Cr);
+					#endif
 				}
 				chkpnt =1;
 			}
@@ -903,7 +905,8 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 					#if defined(CONFIG_VIDEO_ATV_SENSOR_TVP5150)
 						if((frm_cnt == 1) && (bfield == 0)) {
 							dprintk("Deintl Initialization\n");
-							VIOC_VIQE_InitDeintlCoreNormal((VIQE *)pVIQEBase);
+							//VIOC_VIQE_InitDeintlCoreNormal((VIQE *)pVIQEBase);
+							VIOC_VIQE_InitDeintlCoreTemporal((VIQE *)pVIQEBase);
 
 							// if we want to operate temporal deinterlacer mode,
 							// initial 3 field are operated by spatial, then 
@@ -1324,7 +1327,6 @@ void cif_preview_dma_set(void)
 	uv_offset 	= ALIGNED_BUFF((stride/2), 16) * (data->cif_cfg.main_set.target_y/2);
 	#else // FEATURE_ANDROID_ICS
 	y_offset = data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y;
-
 	if(data->cif_cfg.fmt == M420_ZERO)
 		uv_offset = (data->cif_cfg.main_set.target_x*data->cif_cfg.main_set.target_y)/2;
 	else
@@ -1739,10 +1741,38 @@ int tccxxx_vioc_scaler_set(VIOC_SC *pSC, VIOC_VIN *pVIN, VIOC_WMIX *pWMIX, uint 
 {
 	uint channel;
 	uint dw, dh;			// destination size in SCALER
+	uint width, height;
 	uint mw, mh;			// image size in WMIX
 	struct TCCxxxCIF *data = (struct TCCxxxCIF *) &hardware_data;
 
 	dprintk("pVIN[0x%x] HWVIN0[0x%x] \n", pVIN, tcc_p2v(HwVIOC_VIN00));
+
+	if(data->cif_cfg.oper_mode == OPER_CAPTURE)
+	{
+		#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
+		if(data->cif_cfg.main_set.target_x >= tcc_sensor_info.cam_capchg_width) {
+			width 	= tcc_sensor_info.capture_w;
+			height 	= tcc_sensor_info.capture_h;
+		} else {
+			width 	= tcc_sensor_info.preview_w;
+			height 	= tcc_sensor_info.preview_h;
+		}
+		#else
+			width 	= CAP_W;
+			height 	= CAP_H;
+		#endif
+	
+	}
+	else
+	{
+		#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
+			width 	= tcc_sensor_info.preview_w;
+			height 	= tcc_sensor_info.preview_h;
+		#else
+			width 	= PRV_W;
+			height 	= PRV_H;
+		#endif
+	}
 
 	if ((uint)pVIN == (uint)tcc_p2v(HwVIOC_VIN00)) {
 		dw = data->cif_cfg.main_set.target_x;
@@ -1806,6 +1836,14 @@ int tccxxx_vioc_scaler_set(VIOC_SC *pSC, VIOC_VIN *pVIN, VIOC_WMIX *pWMIX, uint 
 		channel = VIOC_SC2;
 	} else if ((uint)(pSC) == (uint)tcc_p2v(HwVIOC_SC3)) {
 		channel = VIOC_SC3;
+	}
+
+	if(dw == width && dh == height){
+		dprintk("VIOC don't use SC, Because input size and output size is same\n");
+
+		VIOC_CONFIG_PlugOut(channel);
+
+		return 0;		
 	}
 
 	dprintk("VIOC SC Channel[%d] Dst[%dx%d] WMIX[%dx%d]\n",channel,dw,dh, mw,mh);
@@ -1887,7 +1925,7 @@ int tccxxx_vioc_viqe_main(uint use_top_size)
 
 	VIOC_VIQE_SetControlRegister((VIQE *)(pVIQEBase), width, height, fmt);
 
-	VIOC_VIQE_SetDeintlRegister((VIQE *)(pVIQEBase), fmt, width, height, bypass_deintl,
+	VIOC_VIQE_SetDeintlRegister((VIQE *)(pVIQEBase), fmt, OFF, width, height, bypass_deintl,
 			deintl_base0, deintl_base1, deintl_base2, deintl_base3);
 	VIOC_VIQE_SetDenoise((VIQE *)(pVIQEBase), fmt, width, height, bypass_d3d, frmnum,
 			denoise_base0, denoise_base1);
@@ -2499,7 +2537,8 @@ int tccxxx_cif_start_stream(void)
 
 			tccxxx_vioc_vin_wdma_set(pWDMABase);
 		#else // CONFIG_VIDEO_ATV_SENSOR_TVP5150
-			if(data->cif_cfg.cap_status == CAPTURE_DONE) {
+			// We have to throw out first frame in VIOC, Because of stable operation
+			{
 				VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_ALL_MASK, 0x1);
 		
 				// Disable WDMA
@@ -2710,7 +2749,7 @@ int tccxxx_cif_capture(int quality)
 	struct TCCxxxCIF *data = (struct TCCxxxCIF *) &hardware_data;
 	unsigned int target_width, target_height;
 	unsigned int ens_addr;
-	int skip_frame = 0;
+	int skip_frame = 0, nCnt;
 	#if	defined(CONFIG_ARCH_TCC892X)
 		uint    sc_plug_in0;
 	#endif
@@ -2798,6 +2837,7 @@ int tccxxx_cif_capture(int quality)
 	}
 	#else // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
 	if(target_width >= CAM_CAPCHG_WIDTH && !(data->cif_cfg.retry_cnt)) {
+		dprintk("Capture Mode!!\n");
 		sensor_if_change_mode(OPER_CAPTURE);
 		//msleep(300);
 	}
@@ -2816,8 +2856,27 @@ int tccxxx_cif_capture(int quality)
 		#endif // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
 	}
 
-	cif_set_frameskip(skip_frame, 0);
-	data->cif_cfg.cap_status = CAPTURE_NONE;
+	cif_set_frameskip(skip_frame, 0);	
+
+	// We have to throw out first frame in VIOC, Because of stable operation
+	{
+		VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_ALL_MASK, 0x1);
+
+		// Disable WDMA
+		BITCSET(pWDMABase->uCTRL.nREG, 1<<28, 0<<28);
+
+		BITCSET(pWDMABase->uCTRL.nREG, 1<<16, 1<<16);
+
+		// Before camera quit, we have to wait WMDA's SEN signal to LOW.
+		while(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_STSEN_MASK) {
+			for(nCnt=0; nCnt<10000; nCnt++);
+		}
+
+		// Disable VIN
+		VIOC_VIN_SetEnable(pVINBase, OFF);
+			
+		data->cif_cfg.cap_status = CAPTURE_NONE;
+	}
 
 	tccxxx_vioc_vin_main(pVINBase);
 	tccxxx_vioc_scaler_set(pSCBase, pVINBase, pWMIXBase, sc_plug_in0);

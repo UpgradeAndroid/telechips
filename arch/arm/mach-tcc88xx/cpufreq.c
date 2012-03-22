@@ -47,11 +47,6 @@
 #error Select the DDR type
 #endif
 
-struct tcc_pll_table_t {
-	unsigned int cpu_freq;
-	unsigned int pll_freq;
-};
-
 struct tcc_voltage_table_t {
 	unsigned int cpu_freq;
 	unsigned int ddi_freq;
@@ -71,20 +66,6 @@ typedef enum {
 	TCC_CORE_B,
 	TCC_CORE_MAX
 } tcc_core_type;
-
-static struct tcc_pll_table_t tcc_pll_table[] = {
-	{ 146000, 146000 },
-	{ 204000, 204000 },
-	{ 304000, 304000 },
-	{ 400000, 400000 },
-	{ 500000, 500000 },
-	{ 600000, 600000 },
-	{ 700000, 700000 },
-	{ 800000, 800000 },
-	{ 900000, 900000 },
-	{ 996000, 996000 },
-	{1200000,1200000 },
-};
 
 static struct tcc_voltage_table_t tcc_voltage_table[] = {
 	/*   cpu     ddi     mem     gpu      io    vbus    vcod     smu    hsio     cam      vol */
@@ -120,12 +101,10 @@ static unsigned int tcc_freq_mutex_init_flag = 0;
 static struct mutex tcc_freq_mutex;
 
 #define NUM_VOLTAGES		ARRAY_SIZE(tcc_voltage_table)
-#define NUM_PLLS			ARRAY_SIZE(tcc_pll_table)
 #define NUM_FREQS			ARRAY_SIZE(gtClockLimitTable)
 
 static struct cpufreq_frequency_table tcc_cpufreq_table[NUM_FREQS + 1];
 
-static struct clk *pll0_clk;
 static struct clk *cpu_clk;
 static struct clk *mem_clk;
 static struct clk *io_clk;
@@ -414,20 +393,6 @@ unsigned int tcc_get_maximum_io_clock(void)
 }
 EXPORT_SYMBOL(tcc_get_maximum_io_clock);
 
-static unsigned int tcc_cpufreq_get_pll_table(unsigned int cpu_clk)
-{
-	int i;
-
-	for (i=0 ; i<NUM_PLLS ; i++) {
-		if (tcc_pll_table[i].cpu_freq >= cpu_clk) {
-			i++;
-			break;
-		}
-	}
-
-	return tcc_pll_table[i-1].pll_freq;
-}
-
 static int tcc_cpufreq_get_voltage_table(tcc_core_type core, struct tcc_freq_table_t *clk_tbl)
 {
 	int i;
@@ -500,31 +465,10 @@ static int tcc_cpufreq_set_clock_table(struct tcc_freq_table_t *curr_clk_tbl)
 
 	tcc_nand_lock();
 
-//Bruce, 111024, for reducing time to change memory clock.
-#if (0)
-	//printk("cpu:%d->%d, mem:%d->%d\n",tcc_freq_old_table.cpu_freq, curr_clk_tbl->cpu_freq, tcc_freq_old_table.mem_freq, curr_clk_tbl->mem_freq);
-	if((curr_clk_tbl->mem_freq != tcc_freq_old_table.mem_freq) && (curr_clk_tbl->cpu_freq < 400*1000))
-	{
-		clk_set_rate(pll0_clk, tcc_cpufreq_get_pll_table(400 * 1000) * 1000);
-		clk_set_rate(cpu_clk, 400 * 1000 * 1000);
-		clk_set_rate(mem_clk, curr_clk_tbl->mem_freq * 1000);
-		clk_set_rate(pll0_clk, tcc_cpufreq_get_pll_table(curr_clk_tbl->cpu_freq) * 1000);
-		clk_set_rate(cpu_clk, curr_clk_tbl->cpu_freq * 1000);
-	}
-	else
-	{
-		clk_set_rate(pll0_clk, tcc_cpufreq_get_pll_table(curr_clk_tbl->cpu_freq) * 1000);
-		clk_set_rate(cpu_clk, curr_clk_tbl->cpu_freq * 1000);
-		clk_set_rate(mem_clk, curr_clk_tbl->mem_freq * 1000);
-	}
-#else
-	clk_set_rate(pll0_clk, tcc_cpufreq_get_pll_table(curr_clk_tbl->cpu_freq) * 1000);
 	clk_set_rate(cpu_clk, curr_clk_tbl->cpu_freq * 1000);
 	clk_set_rate(mem_clk, curr_clk_tbl->mem_freq * 1000);
-#endif
-
 	clk_set_rate(io_clk, curr_clk_tbl->io_freq * 1000);
-//	clk_set_rate(smu_clk, curr_clk_tbl->smu_freq * 1000);
+	clk_set_rate(smu_clk, curr_clk_tbl->smu_freq * 1000);
 	clk_set_rate(ddi_clk, curr_clk_tbl->ddi_freq * 1000);
 	clk_set_rate(gpu_clk, curr_clk_tbl->gpu_freq * 1000);
 	clk_set_rate(vcod_clk, curr_clk_tbl->vcod_freq * 1000);
@@ -558,23 +502,6 @@ int tcc_cpufreq_set_limit_table(struct tcc_freq_table_t *limit_tbl, tcc_freq_lim
 		mutex_init(&tcc_freq_mutex);
 	}
 	mutex_lock(&tcc_freq_mutex);
-
-#if 0	// Flickering issue. It happend by PMU_PWROFF control  (SRAM)
-	if ( idx == TCC_FREQ_LIMIT_HDMI || idx == TCC_FREQ_LIMIT_CAMERA) {
-		if (flag){
-			clk_enable(gpu_clk);
-			clk_enable(vbus_clk);
-			clk_enable(hsio_clk);
-			clk_enable(cam_clk);
-		}
-		else{
-			clk_disable(gpu_clk);
-			clk_disable(vbus_clk);
-			clk_disable(hsio_clk);
-			clk_disable(cam_clk);
-		}
-	}
-#endif
 
 #if defined(CONFIG_CPU_HIGHSPEED)
 	if (idx == TCC_FREQ_LIMIT_OVERCLOCK) {
@@ -812,10 +739,9 @@ static int tcc_cpufreq_suspend(struct cpufreq_policy *policy, pm_message_t pmsg)
 
 	clk_set_rate(mem_clk, freqs->mem_freq * 1000);
 	/* Sets minimum CPU frequency and voltage when suspend */
-	clk_set_rate(pll0_clk, tcc_cpufreq_get_pll_table(freqs->cpu_freq) * 1000);
 	clk_set_rate(cpu_clk, freqs->cpu_freq * 1000);
 	clk_set_rate(io_clk, freqs->io_freq * 1000);
-//	clk_set_rate(smu_clk, freqs->smu_freq * 1000);
+	clk_set_rate(smu_clk, freqs->smu_freq * 1000);
 	clk_set_rate(ddi_clk, freqs->ddi_freq * 1000);
 	clk_set_rate(gpu_clk, freqs->gpu_freq * 1000);
 	clk_set_rate(hsio_clk, freqs->hsio_freq * 1000);
@@ -854,10 +780,9 @@ static int tcc_cpufreq_resume(struct cpufreq_policy *policy)
 #endif
 
 	clk_set_rate(mem_clk, freqs.mem_freq * 1000);
-	clk_set_rate(pll0_clk, tcc_cpufreq_get_pll_table(freqs.cpu_freq) * 1000);
 	clk_set_rate(cpu_clk, freqs.cpu_freq * 1000);
 	clk_set_rate(io_clk, freqs.io_freq * 1000);
-//	clk_set_rate(smu_clk, freqs.smu_freq * 1000);
+	clk_set_rate(smu_clk, freqs.smu_freq * 1000);
 	clk_set_rate(ddi_clk, freqs.ddi_freq * 1000);
 	clk_set_rate(gpu_clk, freqs.gpu_freq * 1000);
 	clk_set_rate(hsio_clk, freqs.hsio_freq * 1000);
@@ -880,9 +805,6 @@ printk("%s() \n", __func__);
 	if (policy->cpu != 0)
 		return -EINVAL;
 
-	pll0_clk = clk_get(NULL, "pll0");
-	if (IS_ERR(pll0_clk))
-		return PTR_ERR(pll0_clk);
 	cpu_clk = clk_get(NULL, "cpu");
 	if (IS_ERR(cpu_clk))
 		return PTR_ERR(cpu_clk);

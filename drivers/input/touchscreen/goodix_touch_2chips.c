@@ -74,10 +74,6 @@
 #include <mach/io.h>
 
 #include "goodix_touch_2chips.h"
-#if defined(CONFIG_ARCH_TCC88XX)
-#include <mach/TCC88xx_Structures.h>
-#include <mach/TCC88xx_Physical.h>
-#endif
 #include <linux/proc_fs.h>
 #include <linux/vmalloc.h>
 #include <linux/vmalloc.h>

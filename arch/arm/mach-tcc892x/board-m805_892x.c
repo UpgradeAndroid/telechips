@@ -79,6 +79,10 @@
 #define SENSOR_I2C_SLAVE_ID 		(0xC4>>1)
 #elif defined(CONFIG_VIDEO_CAMERA_NEXTCHIP_TEST)
 #define SENSOR_I2C_SLAVE_ID 		(0x50>>1)
+#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_S5K5CAGA)
+#define SENSOR_I2C_SLAVE_ID 		(0x5A>>1)
+#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_SR130PC10)
+#define SENSOR_I2C_SLAVE_ID 		(0x40>>1)
 #endif
 #endif // defined(CONFIG_VIDEO_TCCXX_CAMERA)
 
@@ -252,6 +256,21 @@ static struct regulator_init_data rn5t614_dcdc1_info = {
 	.consumer_supplies     = &rn5t614_consumer,
 };
 
+static struct regulator_consumer_supply rn5t614_consumer_wifi = {
+	.supply = "vdd_wifi30",
+};
+
+static struct regulator_init_data rn5t614_ldo5_info = {
+	.constraints = {
+		.name = "vdd_wifi30",
+		.min_uV = 3000000,
+		.max_uV = 3000000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS,
+	},
+	.num_consumer_supplies = 1,
+	.consumer_supplies     = &rn5t614_consumer_wifi,
+};
+
 static struct regulator_consumer_supply rn5t614_consumer_hdmi_osc = {
 	.supply = "vdd_sata33",
 };
@@ -272,6 +291,11 @@ static struct rn5t614_subdev_data rn5t614_subdev[] = {
 		.name = "vdd_core",
 		.id   = RN5T614_ID_DCDC1,
 		.platform_data = &rn5t614_dcdc1_info,
+	},
+	{
+		.name = "vdd_wifi30",
+		.id   = RN5T614_ID_LDO5,
+		.platform_data = &rn5t614_ldo5_info,
 	},
 	{
 		.name = "vdd_sata33",
@@ -303,7 +327,7 @@ static int rn5t614_port_init(int irq_num)
 }
 
 static struct rn5t614_platform_data rn5t614_info = {
-	.num_subdevs = 1,
+	.num_subdevs = 2,
 	.subdevs     = rn5t614_subdev,
 	.init_port   = rn5t614_port_init,
 };
@@ -407,13 +431,21 @@ static struct i2c_board_info __initdata i2c_devices3[] = {
 	#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
 	{
 		#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9P111) || defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9T111)
-			I2C_BOARD_INFO("tcc-cam-sensor-0", (0x7A>>1)), //20100716 ysseung   sign-up to sensor slave-id.
+			I2C_BOARD_INFO("tcc-cam-sensor-0", (0x7A>>1)), 
+		#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9D112)
+			I2C_BOARD_INFO("tcc-cam-sensor-0", (0x78>>1)), 
+		#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_S5K5CAGA)
+			I2C_BOARD_INFO("tcc-cam-sensor-0", (0x5A>>1)),
 		#endif
 		.platform_data = &cam_i2c_data1,
 	},
 	{
 		#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9M113)
-			I2C_BOARD_INFO("tcc-cam-sensor-1", (0x78>>1)), //20100716 ysseung   sign-up to sensor slave-id.
+			I2C_BOARD_INFO("tcc-cam-sensor-1", (0x78>>1)), 
+		#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_SIV100B)
+			I2C_BOARD_INFO("tcc-cam-sensor-1", (0x66>>1)), 
+		#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_SR130PC10)
+			I2C_BOARD_INFO("tcc-cam-sensor-1", (0x40>>1)), 
 		#endif
 		.platform_data = &cam_i2c_data1,
 	},
@@ -449,7 +481,7 @@ static struct tcc_i2c_platform_data m805_892x_core1_platform_data = {
     .core_clk_rate      = 4*1000*1000,    /* core clock rate: 4MHz */
     .core_clk_name      = "i2c1",
     .smu_i2c_flag       = 0,
-    .i2c_ch_clk_rate[0] = 100,      /* SCL clock rate : 100kHz */
+    .i2c_ch_clk_rate[0] = 400,      /* SCL clock rate : 400kHz */
 };
 #endif
 #if defined(CONFIG_I2C_TCC_CORE2)
@@ -457,7 +489,7 @@ static struct tcc_i2c_platform_data m805_892x_core2_platform_data = {
     .core_clk_rate      = 4*1000*1000,    /* core clock rate: 4MHz */
     .core_clk_name      = "i2c2",
     .smu_i2c_flag       = 0,
-    .i2c_ch_clk_rate[0] = 100,      /* SCL clock rate : 100kHz */
+    .i2c_ch_clk_rate[0] = 400,      /* SCL clock rate : 100kHz */
 };
 #endif
 #if defined(CONFIG_I2C_TCC_CORE3)

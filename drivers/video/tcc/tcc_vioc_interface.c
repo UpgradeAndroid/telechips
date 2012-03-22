@@ -196,35 +196,30 @@ static int  tcafb_clock_set(int cmd)
 */
 int tca_fb_pan_display(struct fb_var_screeninfo *var, struct fb_info *info)
 {
+	int ret = 1;
+
+	#ifdef CONFIG_FB_TCC_USE_VSYNC_INTERRUPT
+	if(lcdc_struct.state == 0)
+		ret = wait_event_interruptible_timeout(lcdc_struct.waitq, lcdc_struct.state == 1, msecs_to_jiffies(50));
+
+	if(!ret)	{
+	 	printk("  [%d]: tcc_setup_interrupt timed_out!! \n", ret);
+	}
+	#else
+		msleep(16);
+	#endif //CONFIG_FB_TCC_USE_VSYNC_INTERRUPT
 	return 0;
 }
 EXPORT_SYMBOL(tca_fb_pan_display);
 
 void tca_fb_vsync_activate(struct fb_var_screeninfo *var, struct tccfb_info *fbi)
 {
-	unsigned int base_addr = 0;
-	unsigned int bpp = fbi->fb->var.bits_per_pixel / 8;	/* bytes per pixel */
-
-
- 	base_addr = fbi->map_dma +fbi->fb->var.xres * bpp * var->yoffset;
-	if(var->yoffset > var->yres)	{
-		base_addr = PAGE_ALIGN(base_addr);
-	}
-	
 	#ifdef CONFIG_FB_TCC_USE_VSYNC_INTERRUPT
-	{
-		int ret;
-		
-		pDISPBase->uLSTATUS.nREG = 0xFFFFFFFF;
+	pDISPBase->uLSTATUS.nREG = 0xFFFFFFFF;
+	lcdc_struct.state = 0;
+	tca_lcdc_interrupt_onoff(TRUE, Fb_Lcdc_num);
 
-		tca_lcdc_interrupt_onoff(TRUE, Fb_Lcdc_num);
-		lcdc_struct.state = 0;
-		ret = wait_event_interruptible_timeout(lcdc_struct.waitq, lcdc_struct.state == 1, msecs_to_jiffies(50));
-		if(!ret)	{
-		 	printk("  [%d]: tcc_setup_interrupt timed_out!! \n", ret);
-		}
-	}
-	#endif //CONFIG_FB_TCC_USE_VSYNC_INTERRUPT
+	#endif//
 }
 
 
@@ -310,8 +305,6 @@ void tca_fb_activate_var(struct tccfb_info *fbi,  struct fb_var_screeninfo *var)
 
 			#ifdef CONFIG_FB_TCC_USE_VSYNC_INTERRUPT
 			tca_fb_vsync_activate(var, fbi);
-			#else
-			msleep(16);
 			#endif//
 			
 			break;

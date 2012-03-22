@@ -99,6 +99,9 @@
 
 static const char dwc_driver_name[] = "dwc_otg";
 
+extern void trace_usb_flow(int on);
+extern void tcc_otg_vbus_init(void);
+extern void tcc_otg_vbus_exit(void);
 extern void tcc_ohci_clock_control(int id, int on);
 extern int pcd_init(struct platform_device *_dev);
 extern int hcd_init(struct platform_device *_dev);
@@ -110,6 +113,19 @@ extern const struct tcc_freq_table_t gtHSIOClockLimitTable;
 #endif
 
 #define OTG_DBG(msg...) do{ printk( KERN_ERR "DWC_OTG : " msg ); }while(0)
+
+#if defined(CONFIG_STB_BOARD_HDB892S)
+	#define OTG0_ID		TCC_GPF(13)
+	#define LED_F_PN	TCC_GPB(24)
+#elif defined(CONFIG_STB_BOARD_HDB892F)
+	#define OTG0_ID		TCC_GPD(13)
+	#define LED_F_PN	TCC_GPF(03)	
+#endif
+
+#if defined(CONFIG_TCC_USB_TO_SATA)
+#define USB30_EN		TCC_GPF(10)
+#define USB30_VBUS_DET	TCC_GPD(13)
+#endif
 
 /*
  * For using gadget_wrapper of dwc_otg_pcd_linux.c
@@ -255,11 +271,6 @@ static struct dwc_otg_driver_module_params dwc_otg_module_params = {
 	.lpm_enable = -1,
 	.ic_usb_cap = -1,
 	.ahb_thr_ratio = -1,
-};
-
-enum {
-	resume_unlock = 0,
-	resume_lock,
 };
 
 #ifndef DWC_HOST_ONLY
@@ -445,7 +456,7 @@ static void tcc_set_vbus(dwc_otg_core_if_t *_core_if)
 	
 	if(_core_if->vbus_state)
 	{
-		TCC_DVBUS_Control(_core_if,1);
+		tcc_otg_vbus_ctrl(_core_if->port_index,1);
 		// wait the voltage to be stable
 
 		msleep_interruptible(100);
@@ -472,7 +483,7 @@ static void tcc_set_vbus(dwc_otg_core_if_t *_core_if)
 		hprt0.b.prtpwr = 0;
 		dwc_write_reg32(_core_if->host_if->hprt0, hprt0.d32);
 
-		TCC_DVBUS_Control(_core_if, 0);
+		tcc_otg_vbus_ctrl(_core_if->port_index, 0);
 
 		if(_core_if->vbus_off_force)
 		{
@@ -486,7 +497,7 @@ static void tcc_set_vbus(dwc_otg_core_if_t *_core_if)
 #else
 	hprt0_data_t hprt0;
 
-	TCC_DVBUS_Control(_core_if, (int)_core_if->vbus_state);
+	tcc_otg_vbus_ctrl(_core_if->port_index, (int)_core_if->vbus_state);
 	// wait the voltage to be stable
 
 	msleep_interruptible(100);
@@ -749,11 +760,18 @@ static int tcc_usb_thread(void* _dwc_otg_device)
 	dwc_otg_device->flagID = -1;
 	dwc_otg_device->flagDeviceAttach = 0;
 
-	#if defined(CONFIG_MACH_TCC8920ST)
-		gpio_set_value(TCC_GPG(4), 0);
-		gpio_set_value(TCC_GPB(24), 1);
+	#if defined(CONFIG_STB_BOARD_HDB892S) || defined(CONFIG_STB_BOARD_HDB892F)
+		tcc_gpio_config(OTG0_ID, GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);
+		tcc_gpio_config(LED_F_PN, GPIO_FN(0)|GPIO_OUTPUT|GPIO_HIGH);
+		gpio_set_value(OTG0_ID, 0);
+		gpio_set_value(LED_F_PN, 1);
 	#endif
 	
+	#if defined(CONFIG_TCC_USB_TO_SATA)
+		tcc_gpio_config(USB30_EN, GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);
+		tcc_gpio_config(USB30_VBUS_DET, GPIO_FN(0)|GPIO_INPUT);
+	#endif
+		
 	while (!kthread_should_stop())
 	{
 		down(&dwc_otg_device->vbus_usb_task_lock);
@@ -825,6 +843,22 @@ static int tcc_usb_thread(void* _dwc_otg_device)
 #endif
 		}
 
+		#if defined(CONFIG_TCC_USB_TO_SATA)
+			if(gpio_get_value(USB30_VBUS_DET)){
+				/* USB3.0 is detected */
+				if(!gpio_get_value(USB30_EN)){
+					gpio_set_value(USB30_EN, 1);
+					printk("USB3.0 is detected, PC <--> USBtoSATA\n");
+				}
+			}else{
+				/* USB3.0 is disconnected */
+				if(gpio_get_value(USB30_EN)){
+					gpio_set_value(USB30_EN, 0);
+					printk("USB3.0 is disconnected, TCC <--> USBtoSATA\n");
+				}
+			}
+ 		#endif
+		
 		up(&dwc_otg_device->vbus_usb_task_lock);
 	}
 
@@ -1279,11 +1313,7 @@ static int dwc_otg_driver_probe(struct platform_device *_dev)
 		if (machine_is_m801_88() || machine_is_m803())
 			TCC_OTG_PWR_M801(1);
 #endif
-#if defined(CONFIG_ARCH_TCC892X)
-		tca_ckc_setiopwdn(RB_USB20OTG, 0);	// Turn on the USB clcok from IO BUS for TCC892X
-#else
-		tca_ckc_setiobus(RB_USB20OTG, ENABLE);	// Turn on the USB clock from IO BUS
-#endif
+		tca_ckc_setiopwdn(RB_USB20OTG, 0);	// Turn on the USB clock from IO BUS
 	}
 
 #if defined(CONFIG_ARCH_TCC93XX)
@@ -1398,17 +1428,12 @@ static int dwc_otg_driver_probe(struct platform_device *_dev)
 		dwc_otg_device->common_irq_installed = 1;
 	}
 
-#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
-	if(machine_is_tcc8800() || machine_is_tcc8920())
-	{
-		tcc_power_control(TCC_V5P_POWER, TCC_POWER_INIT);
-	}
-#endif
+	tcc_otg_vbus_init();	
 
 	/*
 	 * Initialize the DWC_otg core.
 	 */
-	TCC_DVBUS_Control(dwc_otg_device->core_if, 0);
+	tcc_otg_vbus_ctrl(dwc_otg_device->core_if->port_index, 0);
 	USBPHY_SetMode(dwc_otg_device->core_if, USBPHY_MODE_RESET);
 
 #if defined(CONFIG_ARCH_TCC92XX)
@@ -1484,7 +1509,8 @@ static int dwc_otg_driver_suspend(struct platform_device *pdev, pm_message_t sta
 {
 	dwc_otg_device_t *dwc_otg_device = platform_get_otgdata(pdev);
 
-	TCC_DVBUS_Control(dwc_otg_device->core_if, 0);
+	USBPHY_IDCFG(1, dwc_otg_device->core_if->port_index, 0);
+	tcc_otg_vbus_ctrl(dwc_otg_device->core_if->port_index, 0);
 
 #if defined(CONFIG_MACH_TCC8900) || defined(CONFIG_MACH_TCC9200S) || defined(CONFIG_MACH_TCC9201)	
 	/* device mode change & wait */
@@ -1494,6 +1520,8 @@ static int dwc_otg_driver_suspend(struct platform_device *pdev, pm_message_t sta
 	while (dwc_otg_device->flagID == 0) {
 		msleep_interruptible(200);
 	}
+#else
+	msleep_interruptible(200);
 #endif
 	dwc_otg_disable_global_interrupts(dwc_otg_device->core_if);
 
@@ -1509,6 +1537,7 @@ static int dwc_otg_driver_suspend(struct platform_device *pdev, pm_message_t sta
 
 	/* USB Phy off */
 	USBPHY_SetMode(dwc_otg_device->core_if, USBPHY_MODE_OFF);
+	USBPHY_IDCFG(0, dwc_otg_device->core_if->port_index, 0);
 
 #if defined(CONFIG_MACH_TCC8800) || defined(CONFIG_MACH_TCC8800ST)
 	tcc_ohci_clock_control(-1, 0);
@@ -1521,6 +1550,8 @@ static int dwc_otg_driver_suspend(struct platform_device *pdev, pm_message_t sta
 	clk_disable(dwc_otg_device->clk[0]);
 #endif
 	
+	tcc_otg_vbus_exit();
+	
 	return 0;
 }
 
@@ -1529,6 +1560,8 @@ static int dwc_otg_driver_resume(struct platform_device *pdev)
 	int id = -1;
 	dwc_otg_device_t *dwc_otg_device = platform_get_otgdata(pdev);
 
+	tcc_otg_vbus_init();
+	
 #if defined(CONFIG_ARCH_TCC892X)
 	clk_enable(dwc_otg_device->clk[0]);
 #endif
@@ -1565,7 +1598,7 @@ static int dwc_otg_driver_resume(struct platform_device *pdev)
 #if defined(CONFIG_MACH_TCC8900) || defined(CONFIG_MACH_TCC9200S) || defined(CONFIG_MACH_TCC9201)	
 	dwc_otg_core_dev_init(dwc_otg_device->core_if);
 	if(id == 0){
-		TCC_DVBUS_Control(dwc_otg_device->core_if, 1);
+		tcc_otg_vbus_ctrl(dwc_otg_device->core_if->port_index, 1);
 	}
 #else
 	if(id){
@@ -1574,7 +1607,7 @@ static int dwc_otg_driver_resume(struct platform_device *pdev)
 	else{
 		dwc_otg_core_host_init(dwc_otg_device->core_if);
 	}
-#endif /* 0 */
+#endif
 
 #ifndef DWC_HOST_ONLY
 	/* disconnect Gadget driver (only tested FSG) */

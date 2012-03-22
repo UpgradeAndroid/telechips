@@ -38,8 +38,9 @@
 #include <mach/bsp.h>
 #include <mach/ohci.h>
 
-extern int tcc_ohci_vbus_Init(void);
-extern int USBHostVBUSControl(int id, int on);
+extern int tcc_ohci_vbus_init(void);
+extern int tcc_ohci_vbus_exit(void);
+extern int tcc_ohci_vbus_ctrl(int id, int on);
 extern void tcc_ohci_clock_control(int id, int on);
 
 static int tcc_ohci_select_pmm(unsigned long reg_base, int mode, int num_port, int *port_mode)
@@ -223,7 +224,6 @@ static int tcc_start_hc(int id, struct device *dev)
 {
 	int retval = 0;
 	struct tccohci_platform_data *inf;
-	PIOBUSCFG pIOBUSCfg;
 	inf = dev->platform_data;
 	
 	if (id == 1)
@@ -242,8 +242,6 @@ static int tcc_start_hc(int id, struct device *dev)
 	}
 	#endif
 
-	/* remake clk control funtion instead of tcc_set_cken - rudals */
-	//tcc_ohci_clkset(id, 1);
 	tcc_ohci_clock_control(id, 1);
 
 	if (inf->init)
@@ -262,8 +260,6 @@ static void tcc_stop_hc(int id, struct device *dev)
 	if (inf->exit)
 		inf->exit(dev);
 
-	/* ignore this & use new funtion - rudals */
-	//tcc_set_cken(0);
 	tcc_ohci_clock_control(id, 0);
 }
 
@@ -315,10 +311,10 @@ static int usb_hcd_tcc_probe(const struct hc_driver *driver, struct platform_dev
 	}
 	hcd->regs = (void __iomem *)(int)(hcd->rsrc_start);
 
-	tcc_ohci_vbus_Init();
+	tcc_ohci_vbus_init();
 
 	/* USB HOST Power Enable */
-	if (USBHostVBUSControl(pdev->id, 1) != 1)
+	if (tcc_ohci_vbus_ctrl(pdev->id, 1) != 1)
 	{
 		printk(KERN_ERR "ohci-tcc: USB HOST VBUS failed\n");
 		retval = -EIO;
@@ -340,8 +336,7 @@ static int usb_hcd_tcc_probe(const struct hc_driver *driver, struct platform_dev
 	ohci_hcd_init(hcd_to_ohci(hcd));
 
 	retval = usb_add_hcd(hcd, pdev->resource[1].start, IRQF_SHARED/*IRQF_DISABLED*/);
-	if (retval == 0)
-	{
+	if (retval == 0){
 		return retval;
 	}
 	
@@ -375,7 +370,7 @@ static void usb_hcd_tcc_remove(struct usb_hcd *hcd, struct platform_device *pdev
 	tcc_stop_hc(pdev->id, &pdev->dev);
 
 	/* GPIO_EXPAND HVBUS & PWR_GP1 Power-off */
-	USBHostVBUSControl(pdev->id, 0);
+	tcc_ohci_vbus_ctrl(pdev->id, 0);
 
 	release_mem_region(hcd->rsrc_start, hcd->rsrc_len);
 	usb_put_hcd(hcd);
@@ -473,7 +468,8 @@ int ohci_hcd_tcc_drv_suspend(struct platform_device *pdev, pm_message_t state)
 	tcc_stop_hc(pdev->id, &pdev->dev);
 	hcd->state = HC_STATE_SUSPENDED;
 
-	USBHostVBUSControl(pdev->id, 0);
+	tcc_ohci_vbus_ctrl(pdev->id, 0);
+	tcc_ohci_vbus_exit();
 
 	return 0;
 }
@@ -483,11 +479,14 @@ static int ohci_hcd_tcc_drv_resume(struct platform_device *pdev)
 	struct usb_hcd *hcd = platform_get_drvdata(pdev);
 	struct ohci_hcd *ohci = hcd_to_ohci(hcd);
 	int status;
+	
+	tcc_ohci_vbus_init();
 
-	if(pdev->id == 1)
+	if(pdev->id == 1) {
 		return 0;
+	}
 
-	USBHostVBUSControl(pdev->id, 1);
+	tcc_ohci_vbus_ctrl(pdev->id, 1);
 
 	if (time_before(jiffies, ohci->next_statechange))
 		msleep(5);
@@ -501,7 +500,7 @@ static int ohci_hcd_tcc_drv_resume(struct platform_device *pdev)
 
 	ohci_finish_controller_resume(hcd);
 	ohci_port_power_control(pdev->id);
-
+	
 	return 0;
 }
 #else
@@ -509,74 +508,21 @@ static int ohci_hcd_tcc_drv_resume(struct platform_device *pdev)
 #define ohci_hcd_tcc_drv_resume			NULL
 #endif
 
-/*-----------------------------------------------------------------			//TODO: alan.K
- * OHCI Power on/off control
- */
-//static stpwrinfo pwrinfo = {PWR_STATUS_ON};
-//static int ohci_pwr_ctl(void *h_private, int cmd, void *p_out)
-//{
-//	struct platform_device *pdev = (struct platform_device *)h_private;
-//	struct usb_hcd *hcd = platform_get_drvdata(pdev);
-//
-//	switch (cmd) {
-//		case PWR_CMD_OFF:
-//			//printk("PWR_CMD_OFF command ==> [%d]\n", cmd);
-//			if (pwrinfo.status == PWR_STATUS_OFF) {
-//				return 0;
-//			}
-//			pwrinfo.status = PWR_STATUS_OFF;
-//			/* refer to ohci_hcd_tcc_drv_remove */
-//			usb_hcd_tcc_remove(hcd, pdev);
-//			platform_set_drvdata(pdev, NULL);
-//			break;
-//		case PWR_CMD_ON:
-//			//printk("PWR_CMD_ON command ==> [%d]\n", cmd);
-//			if (pwrinfo.status == PWR_STATUS_ON) {
-//				return 0;
-//			}
-//			pwrinfo.status = PWR_STATUS_ON;
-//			/* refer to ohci_hcd_tcc_drv_probe */
-//			if (usb_disabled()) { return -EIO; }
-//			usb_hcd_tcc_probe(&ohci_tcc_hc_driver, pdev);
-//			break;
-//		case PWR_CMD_GETSTATUS:
-//			//printk("PWR_CMD_GETSTATUS command ==> [%d], status:[%d]\n", cmd, pwrinfo.status);
-//			memcpy(p_out, &pwrinfo, sizeof(stpwrinfo));
-//			break;
-//		default:
-//			//printk("unknown pwr command !!! ==> [%d]\n", cmd);
-//			return -EINVAL;
-//			break;
-//	}
-//
-//	return 0;
-//}
-
 static int ohci_hcd_tcc_drv_probe(struct platform_device *pdev)
 {
-	if (usb_disabled())
-	{
+	if (usb_disabled()) {
 		return -ENODEV;
 	}
-
-	/* add power control functions */
-	//insert_pwm_node(DEVICE_OHCI, ohci_pwr_ctl, pdev);
-
 	return usb_hcd_tcc_probe(&ohci_tcc_hc_driver, pdev);
 }
 
 static int ohci_hcd_tcc_drv_remove(struct platform_device *pdev)
 {
 	struct usb_hcd *hcd = platform_get_drvdata(pdev);
-
-	/* remove power control functions */
-	//remove_pwm_node(DEVICE_OHCI);
-
 	usb_hcd_tcc_remove(hcd, pdev);
 	platform_set_drvdata(pdev, NULL);
 	return 0;
 }
-
 
 static struct platform_driver ohci_hcd_tcc_driver =
 {

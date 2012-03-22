@@ -53,6 +53,7 @@
 #include <mach/vioc_plugin_tcc892x.h>
 #include <mach/vioc_scaler.h>
 #include <mach/vioc_api.h>
+#include <mach/tccfb_address.h>
 #endif // CONFIG_ARCH_TCC892X
 
 #include <linux/poll.h>
@@ -109,6 +110,12 @@ static struct clk *m2m1_clk;
 #if !defined(CONFIG_ARCH_TCC892X)
 static struct clk *m2m0_ddi_cache;
 #endif // CONFIG_ARCH_TCC892X
+
+
+#if defined(CONFIG_ARCH_TCC892X)
+extern void tccxxx_GetAddress(unsigned char format, unsigned int base_Yaddr, unsigned int src_imgx, unsigned int  src_imgy,
+									unsigned int start_x, unsigned int start_y, unsigned int* Y, unsigned int* U,unsigned int* V);
+#endif
 
 extern int range_is_allowed(unsigned long pfn, unsigned long size);
 static int tccxxx_scaler_mmap(struct file *file, struct vm_area_struct *vma)
@@ -281,49 +288,6 @@ char M2M_Scaler_Ctrl_External(SCALER_TYPE *scale_img)
 	return ret;
 }
 
-#if defined(CONFIG_ARCH_TCC892X)
-void tccxxx_scaler_GetAddress(unsigned char format, unsigned int base_Yaddr, unsigned int src_imgx, unsigned int  src_imgy,
-									unsigned int start_x, unsigned int start_y, unsigned int* Y, unsigned int* U,unsigned int* V)
-{
-	unsigned int Uaddr, Vaddr, Yoffset, UVoffset, start_yPos;
-
-	start_yPos = (start_y>>1)<<1;
-	Yoffset = (src_imgx * start_yPos) + start_x;
-
-	if((format == SC_IMG_FMT_YCbCr422_SEQ_UYVY) || (format == SC_IMG_FMT_YCbCr422_SEQ_VYUY)
-		|| (format == SC_IMG_FMT_YCbCr422_SEQ_YUYV) || (format == SC_IMG_FMT_YCbCr422_SEQ_YVYU))
-		Yoffset = 2*Yoffset;
-
-	*Y = base_Yaddr + Yoffset;
-
-	if(*U == 0 && *V == 0) {
-		Uaddr = GET_ADDR_YUV42X_spU(base_Yaddr, src_imgx, src_imgy);
-		if(format == SC_IMG_FMT_YCbCr420_SEP)
-			Vaddr = GET_ADDR_YUV420_spV(Uaddr, src_imgx, src_imgy);
-		else
-			Vaddr = GET_ADDR_YUV422_spV(Uaddr, src_imgx, src_imgy);
-	} else {
-		Uaddr = *U;
-		Vaddr = *V;
-	}
-
-	if((format == SC_IMG_FMT_YCbCr420_SEP) || (format == SC_IMG_FMT_YCbCr420_INT_TYPE1)) {
-		if(format == SC_IMG_FMT_YCbCr420_INT_TYPE1)
-			UVoffset = ((src_imgx * start_yPos)/2 + start_x);
-		else
-			UVoffset = ((src_imgx * start_yPos)/4 + start_x/2);
-	} else {
-		if(format == SC_IMG_FMT_YCbCr422_INT_TYPE1)
-			UVoffset = ((src_imgx * start_yPos) + start_x);
-		else
-			UVoffset = ((src_imgx * start_yPos)/2 + start_x/2);
-	}
-	
-	*U = Uaddr + UVoffset;
-	*V = Vaddr + UVoffset;
-}
-#endif // CONFIG_ARCH_TCC892X
-
 extern unsigned int scaler_ended;
 static unsigned int check_status_intr;
 char M2M_Scaler_Ctrl_Detail(SCALER_TYPE *scale_img)
@@ -356,7 +320,7 @@ char M2M_Scaler_Ctrl_Detail(SCALER_TYPE *scale_img)
 	crop_width 				= scale_img->src_winRight - scale_img->src_winLeft;
 	scale_img->src_winLeft 	= (scale_img->src_winLeft>>3)<<3; 
 	scale_img->src_winRight = scale_img->src_winLeft + crop_width;
-	tccxxx_scaler_GetAddress(scale_img->src_fmt, (unsigned int)scale_img->src_Yaddr,
+	tccxxx_GetAddress(scale_img->src_fmt, (unsigned int)scale_img->src_Yaddr,
 								scale_img->src_ImgWidth, scale_img->src_ImgHeight,
 								scale_img->src_winLeft, scale_img->src_winTop,
 								&pSrcBase0, &pSrcBase1, &pSrcBase2);
@@ -369,7 +333,7 @@ char M2M_Scaler_Ctrl_Detail(SCALER_TYPE *scale_img)
 	crop_width 				 = scale_img->dest_winRight - scale_img->dest_winLeft;
 	scale_img->dest_winLeft  = (scale_img->dest_winLeft>>3)<<3; 
 	scale_img->dest_winRight = scale_img->dest_winLeft + crop_width;
-	tccxxx_scaler_GetAddress(scale_img->dest_fmt, (unsigned int)scale_img->dest_Yaddr, 
+	tccxxx_GetAddress(scale_img->dest_fmt, (unsigned int)scale_img->dest_Yaddr, 
 								scale_img->dest_ImgWidth, scale_img->dest_ImgHeight, 
 								scale_img->dest_winLeft, scale_img->dest_winTop,
 								&pDstBase0, &pDstBase1, &pDstBase2);
@@ -382,7 +346,8 @@ char M2M_Scaler_Ctrl_Detail(SCALER_TYPE *scale_img)
 	// set to VRDMA
 	VIOC_RDMA_SetImageAlphaEnable(pRDMABase, 1);
 	VIOC_RDMA_SetImageFormat(pRDMABase, scale_img->src_fmt);
-	VIOC_RDMA_SetImageSize(pRDMABase, scale_img->src_ImgWidth, scale_img->src_ImgHeight);
+
+	VIOC_RDMA_SetImageSize(pRDMABase,scale_img->src_winRight- scale_img->src_winLeft, scale_img->src_winBottom - scale_img->src_winTop);
 	VIOC_RDMA_SetImageOffset(pRDMABase, scale_img->src_fmt, scale_img->src_ImgWidth);
 	VIOC_RDMA_SetImageBase(pRDMABase, pSrcBase0, pSrcBase1, pSrcBase2);
 	//VIOC_RDMA_SetImageEnable(pRDMABase);

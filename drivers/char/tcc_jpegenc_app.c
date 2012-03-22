@@ -60,6 +60,7 @@ exif_rational_type exif_timestamp[3] =
 exif_rational_type exif_altitude 	= {0, 1}; /* meters */
 uint8 exif_latitude_ref_info[4] 			= {'N', 0x00, 0x00, 0x00};
 uint8 exif_longitude_ref_info[4] 			= {'E', 0x00, 0x00, 0x00};
+uint8 exif_altitude_ref_info[4]                         = {0x00, 0x00, 0x00, 0x00};
 
 unsigned char year[4];
 unsigned char month[2];
@@ -1295,8 +1296,8 @@ int TCCXXX_JPEG_Make_Header(unsigned int jpeg_BufferAddr, jpeg_encode_option_typ
 		*GpsIFDPointer_Offset_Address ++= GpsIFDPointer_Offset>>8;
 		
 		/* GPS IFD NUMBER */
-		*Jpeg_Header ++= 0x0009;
-		*Jpeg_Header ++= 0x0009>>8;
+		*Jpeg_Header ++= 0x000A;
+		*Jpeg_Header ++= 0x000A>>8;
 		
 		/* GPS Version ID */
 		uiCount = 0x0004;
@@ -1311,20 +1312,57 @@ int TCCXXX_JPEG_Make_Header(unsigned int jpeg_BufferAddr, jpeg_encode_option_typ
 		else
 			exif_latitude_ref_info[0] = 'S';
 
+		if(EncodeOption->GpsInfo.Latitude.degrees == 0){
+		    if(EncodeOption->GpsInfo.Latitude.minutes > 0)
+			exif_latitude_ref_info[0] = 'N';
+		    else
+			exif_latitude_ref_info[0] = 'S';
+
+		    if(EncodeOption->GpsInfo.Latitude.minutes == 0){
+		        if(EncodeOption->GpsInfo.Latitude.seconds > 0)
+			    exif_latitude_ref_info[0] = 'N';
+		        else
+			    exif_latitude_ref_info[0] = 'S';
+                    }
+                }
+
+                 
+
 		exif_latitude[0].numerator = abs(EncodeOption->GpsInfo.Latitude.degrees);
 		exif_latitude[1].numerator = EncodeOption->GpsInfo.Latitude.minutes;
 		exif_latitude[2].numerator = EncodeOption->GpsInfo.Latitude.seconds;
+                exif_latitude[2].denominator = 10000;
 
 		if(EncodeOption->GpsInfo.Longitude.degrees > 0)
 			exif_longitude_ref_info[0] = 'E';
 		else
 			exif_longitude_ref_info[0] = 'W';
 
+		if(EncodeOption->GpsInfo.Longitude.degrees == 0){
+		    if(EncodeOption->GpsInfo.Longitude.minutes > 0)
+			exif_longitude_ref_info[0] = 'E';
+		    else
+			exif_longitude_ref_info[0] = 'W';
+
+		    if(EncodeOption->GpsInfo.Longitude.minutes == 0){
+		        if(EncodeOption->GpsInfo.Longitude.seconds > 0)
+			    exif_longitude_ref_info[0] = 'E';
+		        else
+			    exif_longitude_ref_info[0] = 'W';
+                    }
+                }
+
 		exif_longitude[0].numerator = abs(EncodeOption->GpsInfo.Longitude.degrees);
 		exif_longitude[1].numerator = EncodeOption->GpsInfo.Longitude.minutes;
 		exif_longitude[2].numerator = EncodeOption->GpsInfo.Longitude.seconds;
+		exif_longitude[2].denominator = 10000;
 
 		exif_altitude.numerator = EncodeOption->GpsInfo.Altitude;
+                if(EncodeOption->GpsInfo.Altitude >= 0)
+                    exif_altitude_ref_info[0] = 0x00;
+		else
+                    exif_altitude_ref_info[0] = 0x01;
+
 		#else
 		position.latitude  = EncodeOption->GpsInfo.latitude;
 		position.longitude = EncodeOption->GpsInfo.longitude;
@@ -1361,6 +1399,13 @@ int TCCXXX_JPEG_Make_Header(unsigned int jpeg_BufferAddr, jpeg_encode_option_typ
 		EXIF_Set_Header_Info((uint32)Jpeg_Header, GPS_LONGITUDE, RATIONAL_TYPE, uiCount, uiOffset, uiIsData, &gTagInfo);
 		Gps_Longitude_Offset_Address = (uint8*)gTagInfo.uiTagOffsetValue;
 		Jpeg_Header += gTagInfo.uiCurrentPosition;
+
+		/* GPS Altitude Ref */
+		uiCount = 0x0001;
+		uiOffset = exif_altitude_ref_info[0];
+		uiIsData = 0;
+		EXIF_Set_Header_Info((uint32)Jpeg_Header, GPS_ALTITUDE_REF, BYTE_TYPE, uiCount, uiOffset, uiIsData, &gTagInfo);
+	        Jpeg_Header += gTagInfo.uiCurrentPosition;
 
 		/* GPS Altitude */
 		uiCount = 0x0001;
@@ -1422,9 +1467,9 @@ int TCCXXX_JPEG_Make_Header(unsigned int jpeg_BufferAddr, jpeg_encode_option_typ
 		Jpeg_Header += sizeof(exif_altitude);
 
 		/* GPS TimeStamp */
-		exif_timestamp[0].numerator = ((EncodeOption->GpsInfo.Timestamp / 3600) % 24);
-		exif_timestamp[1].numerator = ((EncodeOption->GpsInfo.Timestamp / 60) % 60);
-		exif_timestamp[2].numerator = (EncodeOption->GpsInfo.Timestamp % 60);
+		exif_timestamp[0].numerator = EncodeOption->GpsInfo.time_stamp.hour;
+		exif_timestamp[1].numerator = EncodeOption->GpsInfo.time_stamp.min;
+		exif_timestamp[2].numerator = EncodeOption->GpsInfo.time_stamp.sec;
 		Gps_TimeStamp_Offset = Jpeg_Header - refer_address;
 		*Gps_TimeStamp_Offset_Address ++= Gps_TimeStamp_Offset;
 		*Gps_TimeStamp_Offset_Address ++= Gps_TimeStamp_Offset>>8;
@@ -1445,22 +1490,27 @@ int TCCXXX_JPEG_Make_Header(unsigned int jpeg_BufferAddr, jpeg_encode_option_typ
 		*Gps_DateStamp_Offset_Address ++= Gps_DateStamp_Offset;
 		*Gps_DateStamp_Offset_Address ++= Gps_DateStamp_Offset>>8;
 
-		temp = EncodeOption->EncodingTime.year/1000; 		year[0] = temp+0x30;
-		temp = (EncodeOption->EncodingTime.year%1000)/100;	year[1] = temp+0x30;
-		temp = (EncodeOption->EncodingTime.year%1000)/10;	year[2] = temp+0x30; 
-		temp = EncodeOption->EncodingTime.year%10;			year[3] = temp+0x30;
+		temp = EncodeOption->GpsInfo.time_stamp.year/1000; 
+		year[0] = temp+0x30;
+		temp = (EncodeOption->GpsInfo.time_stamp.year%1000)/100;
+        	year[1] = temp+0x30;
+		temp = ((EncodeOption->GpsInfo.time_stamp.year%1000)%100)/10;
+         	year[2] = temp+0x30; 
+		temp = EncodeOption->GpsInfo.time_stamp.year%10;
+		year[3] = temp+0x30;
+
 		memcpy(Jpeg_Header, &year, 4);
 		Jpeg_Header+=4;
 		*Jpeg_Header++=0x3A;  // ':'
 		
-		temp = EncodeOption->EncodingTime.month/10;		month[0] = temp+0x30;
-		temp = EncodeOption->EncodingTime.month%10;		month[1] = temp+0x30;
+		temp = EncodeOption->GpsInfo.time_stamp.month/10;		month[0] = temp+0x30;
+		temp = EncodeOption->GpsInfo.time_stamp.month%10;		month[1] = temp+0x30;
 		memcpy(Jpeg_Header, &month, 2);
 		Jpeg_Header+=2;
 		*Jpeg_Header++=0x3A;  // ':'
 		
-		temp = EncodeOption->EncodingTime.date/10;			date[0] = temp+0x30;
-		temp = EncodeOption->EncodingTime.date%10;			date[1] = temp+0x30;
+		temp = EncodeOption->GpsInfo.time_stamp.date/10;			date[0] = temp+0x30;
+		temp = EncodeOption->GpsInfo.time_stamp.date%10;			date[1] = temp+0x30;
 		memcpy(Jpeg_Header, &date, 2);
 		Jpeg_Header+=2;
 		*Jpeg_Header++=0x20; // Standard ±Ô°Ý.
@@ -1584,10 +1634,12 @@ int TCCXXX_JPEG_Make_Header(unsigned int jpeg_BufferAddr, jpeg_encode_option_typ
 		Thumbnail_Offset = Jpeg_Header - refer_address;
 		*Thumbnail_Offset_Address ++= Thumbnail_Offset;
 		*Thumbnail_Offset_Address ++= Thumbnail_Offset>>8;
+
+        #if !defined(CONFIG_ARCH_TCC892X)  // 2012/02/27
 		Thumbnail_Enc_Info_Size = Make_Thumbnail_Enc_Info((uint32)Jpeg_Header, EncodeOption->ThumbnailInfo.thumbnail_width,
 														EncodeOption->ThumbnailInfo.thumbnail_height, EncodeOption->Q_FactorValue);
-
 		Jpeg_Header += Thumbnail_Enc_Info_Size;
+	#endif // CONFIG_ARCH_TCC892X  // 20120220
 
 		/*************************************************************/
 		/*      Add Thumbnail Bitstream Data of Thumbnail Image   */
@@ -2322,7 +2374,14 @@ int JPEG_Make_ExifHeader(TCCXXX_JPEG_ENC_EXIF_DATA *thumb_info, unsigned int vir
 		gEncodeOption.GpsInfo.Longitude.seconds = thumb_info->gps_info.Longitude.seconds;
 
 		gEncodeOption.GpsInfo.Altitude 			= thumb_info->gps_info.Altitude;
-		gEncodeOption.GpsInfo.Timestamp 		= thumb_info->gps_info.Timestamp;
+
+		gEncodeOption.GpsInfo.time_stamp.year 	= thumb_info->gps_info.time_stamp.year;
+		gEncodeOption.GpsInfo.time_stamp.month 	= thumb_info->gps_info.time_stamp.month;
+		gEncodeOption.GpsInfo.time_stamp.date 	= thumb_info->gps_info.time_stamp.date;
+		gEncodeOption.GpsInfo.time_stamp.hour 	= thumb_info->gps_info.time_stamp.hour;
+		gEncodeOption.GpsInfo.time_stamp.min 	= thumb_info->gps_info.time_stamp.min;
+		gEncodeOption.GpsInfo.time_stamp.sec 	= thumb_info->gps_info.time_stamp.sec;
+
 		if(&thumb_info->gps_info.Processing_Method != NULL) {
 			memcpy(gEncodeOption.GpsInfo.Processing_Method, "ASCII", 0x05);
 			memcpy(gEncodeOption.GpsInfo.Processing_Method+0x08, thumb_info->gps_info.Processing_Method, strlen(thumb_info->gps_info.Processing_Method)+1);

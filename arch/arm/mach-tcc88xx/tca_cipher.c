@@ -44,7 +44,7 @@
 #if defined(CONFIG_ARCH_TCC93XX)
 #include <mach/TCC93x_Structures.h>
 #elif defined(CONFIG_ARCH_TCC88XX)
-#include <mach/TCC88xx_Structures.h>
+#include <mach/structures.h>
 #else
 #include <mach/TCC92x_Structures.h>
 #endif

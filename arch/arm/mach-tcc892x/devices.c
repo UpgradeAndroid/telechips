@@ -90,7 +90,7 @@ static struct resource tcc_sdhc_resource[4][2] = {
 	},
 };
 
-#if defined(CONFIG_MMC_TCC_SDHC0) || defined(CONFIG_MMC_TCC_SDHC0_MODULE)
+#if defined(CONFIG_MMC_TCC_SDHC0)
 static u64 tcc_device_sdhc0_dmamask = 0xffffffffUL;
 struct platform_device tcc_sdhc0_device = {
 	.name			= "tcc-sdhc0",
@@ -104,7 +104,7 @@ struct platform_device tcc_sdhc0_device = {
 };
 #endif
 
-#if defined(CONFIG_MMC_TCC_SDHC1) || defined(CONFIG_MMC_TCC_SDHC1_MODULE)
+#if defined(CONFIG_MMC_TCC_SDHC1)
 static u64 tcc_device_sdhc1_dmamask = 0xffffffffUL;
 struct platform_device tcc_sdhc1_device = {
 	.name			= "tcc-sdhc1",
@@ -118,7 +118,7 @@ struct platform_device tcc_sdhc1_device = {
 };
 #endif
 
-#if defined(CONFIG_MMC_TCC_SDHC2) || defined(CONFIG_MMC_TCC_SDHC2_MODULE)
+#if defined(CONFIG_MMC_TCC_SDHC2)
 static u64 tcc_device_sdhc2_dmamask = 0xffffffffUL;
 struct platform_device tcc_sdhc2_device = {
 	.name			= "tcc-sdhc2",
@@ -132,7 +132,7 @@ struct platform_device tcc_sdhc2_device = {
 };
 #endif
 
-#if defined(CONFIG_MMC_TCC_SDHC3) || defined(CONFIG_MMC_TCC_SDHC3_MODULE)
+#if defined(CONFIG_MMC_TCC_SDHC3)
 static u64 tcc_device_sdhc3_dmamask = 0xffffffffUL;
 struct platform_device tcc_sdhc3_device = {
 	.name			= "tcc-sdhc3",
@@ -152,22 +152,22 @@ void tcc_init_sdhc_devices(void)
 {
 	int core;
 
-#if defined(CONFIG_MMC_TCC_SDHC0) || defined(CONFIG_MMC_TCC_SDHC0_MODULE)
+#if defined(CONFIG_MMC_TCC_SDHC0)
 	core = tcc8920_mmc_platform_data[0].slot % 4;
 	tcc_sdhc0_device.num_resources	= ARRAY_SIZE(tcc_sdhc_resource[core]);
 	tcc_sdhc0_device.resource		= (struct resource *)&tcc_sdhc_resource[core];
 #endif
-#if defined(CONFIG_MMC_TCC_SDHC1) || defined(CONFIG_MMC_TCC_SDHC1_MODULE)
+#if defined(CONFIG_MMC_TCC_SDHC1)
 	core = tcc8920_mmc_platform_data[1].slot % 4;
 	tcc_sdhc1_device.num_resources	= ARRAY_SIZE(tcc_sdhc_resource[core]);
 	tcc_sdhc1_device.resource		= (struct resource *)&tcc_sdhc_resource[core];
 #endif
-#if defined(CONFIG_MMC_TCC_SDHC2) || defined(CONFIG_MMC_TCC_SDHC2_MODULE)
+#if defined(CONFIG_MMC_TCC_SDHC2)
 	core = tcc8920_mmc_platform_data[2].slot % 4;
 	tcc_sdhc2_device.num_resources	= ARRAY_SIZE(tcc_sdhc_resource[core]);
 	tcc_sdhc2_device.resource		= (struct resource *)&tcc_sdhc_resource[core];
 #endif
-#if defined(CONFIG_MMC_TCC_SDHC3) || defined(CONFIG_MMC_TCC_SDHC3_MODULE)
+#if defined(CONFIG_MMC_TCC_SDHC3)
 	core = tcc8920_mmc_platform_data[3].slot % 4;
 	tcc_sdhc3_device.num_resources	= ARRAY_SIZE(tcc_sdhc_resource[core]);
 	tcc_sdhc3_device.resource		= (struct resource *)&tcc_sdhc_resource[core];

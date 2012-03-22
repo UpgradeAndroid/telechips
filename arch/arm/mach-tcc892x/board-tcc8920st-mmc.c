@@ -38,37 +38,20 @@ typedef enum {
 #define HwINT1_SD2	 				Hw1 					// R/W, SD/MMC 2 Interrupt enable
 #define HwINT1_SD3		 			Hw0 					// R/W, SD/MMC 3 Interrupt enable
 
-
+#if defined(CONFIG_STB_BOARD_DONGLE)
 #define TCC_MMC_SDIO_WIFI_USED
 
+#define WIFI_SDMMC_PORT		4
+#define WIFI_PERI_SDMMC		PERI_SDMMC0
+#define WIFI_RB_SDMMC		RB_SDMMC0CONTROLLER
+#define WIFI_HwINT1_SD		HwINT1_SD0
+
 typedef enum {
-	TCC_MMC_TYPE_SD,
-	#if defined(TCC_MMC_SDIO_WIFI_USED)
 	TCC_MMC_TYPE_WIFI,
-	#endif
 	TCC_MMC_TYPE_MAX
 } tcc_mmc_type;
 
 static struct mmc_port_config mmc_ports[] = {
-	[TCC_MMC_TYPE_SD] = {
-		.data0	= TCC_GPF(19),
-		.data1	= TCC_GPF(20),
-		.data2	= TCC_GPF(21),
-		.data3	= TCC_GPF(22),
-		.data4	= TCC_MMC_PORT_NULL,
-		.data5	= TCC_MMC_PORT_NULL,
-		.data6	= TCC_MMC_PORT_NULL,
-		.data7	= TCC_MMC_PORT_NULL,
-		.cmd	= TCC_GPF(18),
-		.clk	= TCC_GPF(17),
-		.func	= GPIO_FN(2),
-		.width	= TCC_MMC_BUS_WIDTH_4,
-
-		.cd	= TCC_GPD(12),
-		.pwr	= GPIO_SD0_ON,
-	},
-	#if defined(TCC_MMC_SDIO_WIFI_USED)
-	#if defined(CONFIG_STB_BOARD_DONGLE)
 	[TCC_MMC_TYPE_WIFI] = {
 		.data0	= TCC_GPD(18),
 		.data1	= TCC_GPD(17),
@@ -86,7 +69,123 @@ static struct mmc_port_config mmc_ports[] = {
 		.cd	= TCC_MMC_PORT_NULL,
 		.pwr	= TCC_GPD(21),
 	},
-	#else
+};
+
+#elif defined(CONFIG_STB_BOARD_HDB892S) || defined(CONFIG_STB_BOARD_HDB892F)
+#define TCC_MMC_SD_CARD_USED
+
+typedef enum {
+	TCC_MMC_TYPE_SD,
+	TCC_MMC_TYPE_MAX
+} tcc_mmc_type;
+
+#if defined(CONFIG_STB_BOARD_HDB892S)
+#define TFCD_EXT_INT		EXTINT_GPIOD_12
+#define TFCD_GPIO_PORT		TCC_GPD(12)
+
+#define TFCD_SDMMC_PORT		5
+#define TFCD_PERI_SDMMC		PERI_SDMMC1
+#define TFCD_RB_SDMMC		RB_SDMMC1CONTROLLER
+#define TFCD_HwINT1_SD		HwINT1_SD1
+
+static struct mmc_port_config mmc_ports[] = {
+	[TCC_MMC_TYPE_SD] = {
+		.data0	= TCC_GPF(19),
+		.data1	= TCC_GPF(20),
+		.data2	= TCC_GPF(21),
+		.data3	= TCC_GPF(22),
+		.data4	= TCC_MMC_PORT_NULL,
+		.data5	= TCC_MMC_PORT_NULL,
+		.data6	= TCC_MMC_PORT_NULL,
+		.data7	= TCC_MMC_PORT_NULL,
+		.cmd	= TCC_GPF(18),
+		.clk	= TCC_GPF(17),
+		.func	= GPIO_FN(2),
+		.width	= TCC_MMC_BUS_WIDTH_4,
+
+		.cd	= TFCD_GPIO_PORT,
+		.pwr	= TCC_MMC_PORT_NULL,
+	},
+};
+
+#else	//if defined(CONFIG_STB_BOARD_HDB892F)
+#define TFCD_EXT_INT		EXTINT_GPIOF_02
+#define TFCD_GPIO_PORT		TCC_GPF(2)
+
+#define TFCD_SDMMC_PORT		4
+#define TFCD_PERI_SDMMC		PERI_SDMMC0
+#define TFCD_RB_SDMMC		RB_SDMMC0CONTROLLER
+#define TFCD_HwINT1_SD		HwINT1_SD0
+
+static struct mmc_port_config mmc_ports[] = {
+	[TCC_MMC_TYPE_SD] = {
+		.data0	= TCC_GPD(18),
+		.data1	= TCC_GPD(17),
+		.data2	= TCC_GPD(16),
+		.data3	= TCC_GPD(15),
+		.data4	= TCC_MMC_PORT_NULL,
+		.data5	= TCC_MMC_PORT_NULL,
+		.data6	= TCC_MMC_PORT_NULL,
+		.data7	= TCC_MMC_PORT_NULL,
+		.cmd	= TCC_GPD(19),
+		.clk	= TCC_GPD(20),
+		.func	= GPIO_FN(2),
+		.width	= TCC_MMC_BUS_WIDTH_4,
+
+		.cd	= TFCD_GPIO_PORT,
+		.pwr	= TCC_MMC_PORT_NULL,
+	},
+};
+#endif
+
+#else	// TCC892x STB
+#define TCC_MMC_SD_CARD_USED
+//#define TCC_MMC_SDIO_WIFI_USED
+
+typedef enum {
+	#if defined(TCC_MMC_SD_CARD_USED)
+	TCC_MMC_TYPE_SD,
+	#endif
+	#if defined(TCC_MMC_SDIO_WIFI_USED)
+	TCC_MMC_TYPE_WIFI,
+	#endif
+	TCC_MMC_TYPE_MAX
+} tcc_mmc_type;
+
+#define TFCD_EXT_INT		EXTINT_GPIOD_12
+#define TFCD_GPIO_PORT		TCC_GPD(12)
+
+#define TFCD_SDMMC_PORT		5
+#define TFCD_PERI_SDMMC		PERI_SDMMC1
+#define TFCD_RB_SDMMC		RB_SDMMC1CONTROLLER
+#define TFCD_HwINT1_SD		HwINT1_SD1
+
+#define WIFI_SDMMC_PORT		6
+#define WIFI_PERI_SDMMC		PERI_SDMMC2
+#define WIFI_RB_SDMMC		RB_SDMMC2CONTROLLER
+#define WIFI_HwINT1_SD		HwINT1_SD2
+
+static struct mmc_port_config mmc_ports[] = {
+	#if defined(TCC_MMC_SD_CARD_USED)
+	[TCC_MMC_TYPE_SD] = {
+		.data0	= TCC_GPF(19),
+		.data1	= TCC_GPF(20),
+		.data2	= TCC_GPF(21),
+		.data3	= TCC_GPF(22),
+		.data4	= TCC_MMC_PORT_NULL,
+		.data5	= TCC_MMC_PORT_NULL,
+		.data6	= TCC_MMC_PORT_NULL,
+		.data7	= TCC_MMC_PORT_NULL,
+		.cmd	= TCC_GPF(18),
+		.clk	= TCC_GPF(17),
+		.func	= GPIO_FN(2),
+		.width	= TCC_MMC_BUS_WIDTH_4,
+
+		.cd	= TFCD_GPIO_PORT,
+		.pwr	= TCC_MMC_PORT_NULL,
+	},
+	#endif
+	#if defined(TCC_MMC_SDIO_WIFI_USED)
 	[TCC_MMC_TYPE_WIFI] = {
 		.data0	= TCC_GPB(2),
 		.data1	= TCC_GPB(3),
@@ -102,39 +201,49 @@ static struct mmc_port_config mmc_ports[] = {
 		.width	= TCC_MMC_BUS_WIDTH_4,
 
 		.cd	= TCC_MMC_PORT_NULL,
-		.pwr	= GPIO_SD1_ON,
+		.pwr	= TCC_GPF(10),
 	},
 	#endif
-	#endif
 };
+#endif
+
+#if defined(TCC_MMC_SD_CARD_USED)
+#define CONFIG_TCC_SD_PORT_RESTORE	//for SD Power-off in the STB
+#endif
+
+static int tccUsedSDportNum = TCC_MMC_TYPE_MAX;
 
 int tcc8920_mmc_init(struct device *dev, int id)
 {
 	BUG_ON(id >= TCC_MMC_TYPE_MAX);
 
 	if(mmc_ports[id].pwr != TCC_MMC_PORT_NULL)
+	{
 		gpio_request(mmc_ports[id].pwr, "sd_power");
 
-	#if defined(TCC_MMC_SDIO_WIFI_USED)
-	#if defined(CONFIG_STB_BOARD_DONGLE)
-	if(id == TCC_MMC_TYPE_WIFI)
-	{
-		gpio_request(TCC_GPD(20), "wifi_pre_power");
-		gpio_direction_output(TCC_GPD(20), 0);
-		msleep(100);
-		gpio_direction_output(TCC_GPD(20), 1);
+		#if defined(TCC_MMC_SDIO_WIFI_USED)
+		if(id == TCC_MMC_TYPE_WIFI)
+		{
+			//gpio_request(mmc_ports[id].pwr, "wifi_pre_power");
+			gpio_direction_output(mmc_ports[id].pwr, 0);
+			msleep(100);
+			gpio_direction_output(mmc_ports[id].pwr, 1);
 
+		}
+		#endif
 	}
-	#else
-	if(id == TCC_MMC_TYPE_WIFI)
-	{
-		gpio_request(GPIO_SD1_ON, "wifi_pre_power");
-		gpio_direction_output(GPIO_SD1_ON, 0);
-		msleep(100);
-		gpio_direction_output(GPIO_SD1_ON, 1);
 
+	#if defined(CONFIG_TCC_SD_PORT_RESTORE)
+	if(id == TCC_MMC_TYPE_SD)
+	{
+		gpio_request(mmc_ports[id].data0, "sd_d0");
+		gpio_request(mmc_ports[id].data1, "sd_d1");
+		gpio_request(mmc_ports[id].data2, "sd_d2");
+		gpio_request(mmc_ports[id].data3, "sd_d3");
+
+		gpio_request(mmc_ports[id].cmd, "sd_cmd");
+		gpio_request(mmc_ports[id].clk, "sd_clk");
 	}
-	#endif
 	#endif
 
 	tcc_gpio_config(mmc_ports[id].data0, mmc_ports[id].func | GPIO_CD(1));
@@ -178,8 +287,32 @@ int tcc8920_mmc_suspend(struct device *dev, int id)
 {
 	#if defined(TCC_MMC_SDIO_WIFI_USED)
 	if(id == TCC_MMC_TYPE_WIFI) {
-		gpio_direction_output(GPIO_SD1_ON, 0);
-	} 
+		if(mmc_ports[id].pwr != TCC_MMC_PORT_NULL)
+			gpio_direction_output(mmc_ports[id].pwr, 0);
+	}
+	#endif
+
+	#if defined(CONFIG_TCC_SD_PORT_RESTORE)
+	if (id == TCC_MMC_TYPE_SD)
+	{
+		/* GPIO mode */
+		tcc_gpio_config(mmc_ports[id].data0, GPIO_FN(0));
+		tcc_gpio_config(mmc_ports[id].data1, GPIO_FN(0));
+		tcc_gpio_config(mmc_ports[id].data2, GPIO_FN(0));
+		tcc_gpio_config(mmc_ports[id].data3, GPIO_FN(0));
+
+		tcc_gpio_config(mmc_ports[id].cmd, GPIO_FN(0));
+		tcc_gpio_config(mmc_ports[id].clk, GPIO_FN(0));
+
+		/* output mode - 1:high, 0:low */
+		gpio_direction_output(mmc_ports[id].data0, 0);
+		gpio_direction_output(mmc_ports[id].data1, 0);
+		gpio_direction_output(mmc_ports[id].data2, 0);
+		gpio_direction_output(mmc_ports[id].data3, 0);
+
+		gpio_direction_output(mmc_ports[id].cmd, 0);
+		gpio_direction_output(mmc_ports[id].clk, 0);
+	}
 	#endif
 
 	return 0;
@@ -189,7 +322,8 @@ int tcc8920_mmc_resume(struct device *dev, int id)
 {
 	#if defined(TCC_MMC_SDIO_WIFI_USED)
 	if (id == TCC_MMC_TYPE_WIFI) {
-		gpio_direction_output(GPIO_SD1_ON, 1);
+		if(mmc_ports[id].pwr != TCC_MMC_PORT_NULL)
+			gpio_direction_output(mmc_ports[id].pwr, 1);
 	}
 	#endif
 
@@ -236,20 +370,21 @@ int tcc8920_mmc_cd_int_config(struct device *dev, int id, unsigned int cd_irq)
 //Start : Wakeup for SD Insert->Remove in suspend. - 120109, hjbae
 int tcc892x_sd_card_detect(void)
 {
+	#if defined(TCC_MMC_SD_CARD_USED)
 	return gpio_get_value(mmc_ports[TCC_MMC_TYPE_SD].cd) ? 0 : 1;
+	#else
+	return 0;
+	#endif
 }
 //End
 
 struct tcc_mmc_platform_data tcc8920_mmc_platform_data[] = {
+	#if defined(TCC_MMC_SD_CARD_USED)
 	[TCC_MMC_TYPE_SD] = {
-		.slot	= 5,
+		.slot	= TFCD_SDMMC_PORT,
 		.caps	= MMC_CAP_SDIO_IRQ | MMC_CAP_4_BIT_DATA
 			/* MMC_CAP_8_BIT_DATA */
-#if defined(CONFIG_STB_BOARD_DONGLE)
-			,
-#else
 			| MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED,
-#endif
 		.f_min	= 100000,
 		.f_max	= 48000000,	/* support highspeed mode */
 		.ocr_mask = MMC_VDD_32_33 | MMC_VDD_33_34,
@@ -263,57 +398,34 @@ struct tcc_mmc_platform_data tcc8920_mmc_platform_data[] = {
 
 		.cd_int_num = HwINT0_EI4,
 		.cd_irq_num = INT_EI4,
-		.cd_ext_irq = EXTINT_GPIOD_12,
-		.peri_name = PERI_SDMMC1,
-		.io_name = RB_SDMMC1CONTROLLER,
-		.pic = HwINT1_SD1,
-	},
-	#if defined(TCC_MMC_SDIO_WIFI_USED)
-	#if defined(CONFIG_STB_BOARD_DONGLE)
-	[TCC_MMC_TYPE_WIFI] = {
-		.slot	= 4,
-		.caps	= MMC_CAP_SDIO_IRQ | MMC_CAP_4_BIT_DATA
-			/*| MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED*/,		// SD1 Slot
-		.f_min	= 100000,
-//		.f_max	= 48000000,	/* support highspeed mode */
-		.f_max	= 24000000,	// Only Atheros WiFi(AR6102)
-		.ocr_mask = MMC_VDD_32_33 | MMC_VDD_33_34,
-		.init	= tcc8920_mmc_init,
-		.card_detect = tcc8920_mmc_card_detect,
-		.cd_int_config = tcc8920_mmc_cd_int_config,
-		.suspend = tcc8920_mmc_suspend,
-		.resume	= tcc8920_mmc_resume,
-		.set_power = tcc8920_mmc_set_power,
-		.set_bus_width = tcc8920_mmc_set_bus_width,
-
-		.cd_int_num = -1, 
-		.peri_name = PERI_SDMMC0,
-		.io_name = RB_SDMMC0CONTROLLER,
-		.pic = HwINT1_SD0,
-	},
-	#else
-	[TCC_MMC_TYPE_WIFI] = {
-		.slot	= 2,
-		.caps	= MMC_CAP_SDIO_IRQ | MMC_CAP_4_BIT_DATA
-			/*| MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED*/,		// SD1 Slot
-		.f_min	= 100000,
-//		.f_max	= 48000000,	/* support highspeed mode */
-		.f_max	= 24000000,	// Only Atheros WiFi(AR6102)
-		.ocr_mask = MMC_VDD_32_33 | MMC_VDD_33_34,
-		.init	= tcc8920_mmc_init,
-		.card_detect = tcc8920_mmc_card_detect,
-		.cd_int_config = tcc8920_mmc_cd_int_config,
-		.suspend = tcc8920_mmc_suspend,
-		.resume	= tcc8920_mmc_resume,
-		.set_power = tcc8920_mmc_set_power,
-		.set_bus_width = tcc8920_mmc_set_bus_width,
-
-		.cd_int_num = -1, 
-		.peri_name = PERI_SDMMC2,
-		.io_name = RB_SDMMC2CONTROLLER,
-		.pic = HwINT1_SD2,
+		.cd_ext_irq = TFCD_EXT_INT,
+		.peri_name = TFCD_PERI_SDMMC,
+		.io_name = TFCD_RB_SDMMC,
+		.pic = TFCD_HwINT1_SD,
 	},
 	#endif
+	#if defined(TCC_MMC_SDIO_WIFI_USED)
+	[TCC_MMC_TYPE_WIFI] = {
+		.slot	= WIFI_SDMMC_PORT,
+		.caps	= MMC_CAP_SDIO_IRQ | MMC_CAP_4_BIT_DATA
+			/*| MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED*/,
+		.f_min	= 100000,
+//		.f_max	= 48000000,	/* support highspeed mode */
+		.f_max	= 24000000,	// Only Atheros WiFi(AR6102)
+		.ocr_mask = MMC_VDD_32_33 | MMC_VDD_33_34,
+		.init	= tcc8920_mmc_init,
+		.card_detect = tcc8920_mmc_card_detect,
+		.cd_int_config = tcc8920_mmc_cd_int_config,
+		.suspend = tcc8920_mmc_suspend,
+		.resume	= tcc8920_mmc_resume,
+		.set_power = tcc8920_mmc_set_power,
+		.set_bus_width = tcc8920_mmc_set_bus_width,
+
+		.cd_int_num = -1,
+		.peri_name = WIFI_PERI_SDMMC,
+		.io_name = WIFI_RB_SDMMC,
+		.pic = WIFI_HwINT1_SD,
+	},
 	#endif
 
 	#if 0	//for Example
@@ -349,24 +461,36 @@ static int __init tcc8920_init_mmc(void)
 
 	tcc_init_sdhc_devices();
 
+	printk("%s(%d)\n",__func__, tccUsedSDportNum);
+
 #if defined(CONFIG_MMC_TCC_SDHC)
 #if defined(CONFIG_MMC_TCC_SDHC0)
-	tcc_sdhc0_device.dev.platform_data = &tcc8920_mmc_platform_data[0];
-	platform_device_register(&tcc_sdhc0_device);
+	if (tccUsedSDportNum > 0)
+	{
+		tcc_sdhc0_device.dev.platform_data = &tcc8920_mmc_platform_data[0];
+		platform_device_register(&tcc_sdhc0_device);
+	}
 #endif
 #if defined(CONFIG_MMC_TCC_SDHC1)
-	#if defined(TCC_MMC_SDIO_WIFI_USED)
-	tcc_sdhc1_device.dev.platform_data = &tcc8920_mmc_platform_data[1];
-	platform_device_register(&tcc_sdhc1_device);
-	#endif
+	if (tccUsedSDportNum > 1)
+	{
+		tcc_sdhc1_device.dev.platform_data = &tcc8920_mmc_platform_data[1];
+		platform_device_register(&tcc_sdhc1_device);
+	}
 #endif
 #if defined(CONFIG_MMC_TCC_SDHC2)
-	tcc_sdhc2_device.dev.platform_data = &tcc8920_mmc_platform_data[2];
-	platform_device_register(&tcc_sdhc2_device);
+	if (tccUsedSDportNum > 2)
+	{
+		tcc_sdhc2_device.dev.platform_data = &tcc8920_mmc_platform_data[2];
+		platform_device_register(&tcc_sdhc2_device);
+	}
 #endif
 #if defined(CONFIG_MMC_TCC_SDHC3)
-	tcc_sdhc3_device.dev.platform_data = &tcc8920_mmc_platform_data[3];
-	platform_device_register(&tcc_sdhc3_device);
+	if (tccUsedSDportNum > 3)
+	{
+		tcc_sdhc3_device.dev.platform_data = &tcc8920_mmc_platform_data[3];
+		platform_device_register(&tcc_sdhc3_device);
+	}
 #endif
 #endif
 

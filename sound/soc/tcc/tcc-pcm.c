@@ -60,6 +60,9 @@
 
 #if defined(CONFIG_PM)
 static ADMA gADMA;
+#if defined(CONFIG_ARCH_TCC892X)
+static ADMA gADMA1;
+#endif
 #endif
 
 tcc_interrupt_info_x tcc_alsa_info;
@@ -73,7 +76,7 @@ static const struct snd_pcm_hardware tcc_pcm_hardware_play = {
              | SNDRV_PCM_INFO_PAUSE
              | SNDRV_PCM_INFO_RESUME),
 
-    .formats = (SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S24_LE | SNDRV_PCM_FMTBIT_IEC958_SUBFRAME_LE),
+    .formats = (SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_U16_LE | SNDRV_PCM_FMTBIT_S24_LE | SNDRV_PCM_FMTBIT_IEC958_SUBFRAME_LE),	// Planet 20120306
 #if defined(CONFIG_SND_SOC_TCC_MULTICHANNEL)
     .rates        = SNDRV_PCM_RATE_8000_192000,
     .rate_min     = 8000,
@@ -126,7 +129,18 @@ static int alsa_get_intr_num(struct snd_pcm_substream *substream)
 #if defined(CONFIG_MACH_M805_892X)
         return INT_ADMA1;
 #else
+#if defined(CONFIG_ARCH_TCC892X)
+        if(substream->pcm->device == __SPDIF_DEV_NUM__)
+        {
+            return INT_ADMA1;
+        }
+        else
+        {
+            return INT_ADMA0;
+        }
+#else
         return INT_ADMA0;
+#endif
 #endif	/* #if defined(CONFIG_MACH_M805_892X) */
 
 #else
@@ -138,7 +152,11 @@ static int alsa_get_intr_num(struct snd_pcm_substream *substream)
 
 static void set_dma_outbuffer(unsigned int addr, unsigned int length, unsigned int period)
 {
+#if defined(CONFIG_ARCH_TCC892X)
+    volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA0);
+#else
     volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA);
+#endif
     unsigned long dma_buffer = 0;
 	int bit_count;
 
@@ -186,8 +204,13 @@ static void set_dma_outbuffer(unsigned int addr, unsigned int length, unsigned i
 
 static void set_dma_spdif_outbuffer(unsigned int addr, unsigned int length, unsigned int period)
 {
+#if defined(CONFIG_ARCH_TCC892X)
+    volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA1);
+    volatile PADMASPDIFTX pADMASPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX1);
+#else
     volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA);
-    volatile PADMASPDIFTX pADMASPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX);
+	volatile PADMASPDIFTX pADMASPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX);
+#endif
     unsigned long dma_buffer = 0;
 	int bit_count;
 
@@ -222,13 +245,21 @@ static void set_dma_spdif_outbuffer(unsigned int addr, unsigned int length, unsi
 
     pADMA->TxSpParam = dma_buffer | 4;
     // generate interrupt when half of buffer was played
+#if defined(CONFIG_ARCH_TCC892X)
+    pADMA->TxSpTCnt = (period >> 0x04) - 1;
+#else
     pADMA->TxSpTCnt = (period >> 0x05) - 1;
+#endif
 
     alsa_dbg("[%s] HwTxDaParam [0x%X]\n", __func__, (int)(dma_buffer | 4));
     alsa_dbg("[%s] HwTxDaTCnt [%d]\n", __func__, ((period) >> 0x05) - 1);
 
     pADMA->TxSpSar = addr;
+#if defined(CONFIG_ARCH_TCC892X)
+    pADMA->TransCtrl |= (Hw28 | Hw17 | (Hw11) | (Hw3 | Hw2));
+#else
     pADMA->TransCtrl |= (Hw28 | Hw17 | (Hw11|Hw10) | (Hw3 | Hw2));
+#endif
     pADMA->RptCtrl = 0;
 
     memset((void *)pADMASPDIFTX->UserData, 0, 24);
@@ -253,7 +284,11 @@ static void set_dma_spdif_outbuffer(unsigned int addr, unsigned int length, unsi
 
 static void set_dma_inbuffer(unsigned int addr, unsigned int length, unsigned int period)
 {
+#if defined(CONFIG_ARCH_TCC892X)
+    volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA0);
+#else
     volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA);
+#endif
     unsigned long dma_buffer = 0;
 	int bit_count;
 
@@ -302,7 +337,11 @@ static void set_dma_inbuffer(unsigned int addr, unsigned int length, unsigned in
 
 static irqreturn_t tcc_dma_done_handler(int irq, void *dev_id)
 {
+#if defined(CONFIG_ARCH_TCC892X)
+    volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA0);
+#else
     volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA);
+#endif
     struct snd_pcm_runtime *runtime;
     struct tcc_runtime_data *prtd;
     int dmaInterruptSource = 0;
@@ -353,6 +392,61 @@ static irqreturn_t tcc_dma_done_handler(int irq, void *dev_id)
     return IRQ_HANDLED;
 }
 
+#if defined(CONFIG_ARCH_TCC892X)
+static irqreturn_t tcc_dma1_done_handler(int irq, void *dev_id)
+{
+    volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA1);
+    struct snd_pcm_runtime *runtime;
+    struct tcc_runtime_data *prtd;
+    int dmaInterruptSource = 0;
+
+    unsigned long reg_temp = 0;                 
+
+    if (pADMA->IntStatus & (Hw4 | Hw0)) {
+        dmaInterruptSource |= DMA_CH_OUT;
+        reg_temp |= Hw4 | Hw0;
+    }
+    if (pADMA->IntStatus & (Hw6 | Hw2)) {
+        dmaInterruptSource |= DMA_CH_IN;
+        reg_temp |= Hw6 | Hw2;
+    }
+    if (pADMA->IntStatus & (Hw5 | Hw1)) {
+        dmaInterruptSource |= DMA_CH_SPDIF;
+        reg_temp |= Hw5 | Hw1;
+    }
+
+    if (reg_temp) { 
+        pADMA->IntStatus |= reg_temp;
+    }
+
+    if ((dmaInterruptSource & DMA_CH_SPDIF)
+        && (tcc_alsa_info.flag & TCC_RUNNING_SPDIF)) {
+
+        snd_pcm_period_elapsed(tcc_alsa_info.spdif_ptr);
+
+        runtime = tcc_alsa_info.spdif_ptr->runtime;
+        prtd = (struct tcc_runtime_data *)runtime->private_data;
+    }
+
+    if ((dmaInterruptSource & DMA_CH_OUT)
+        && (tcc_alsa_info.flag & TCC_RUNNING_PLAY)) {
+        snd_pcm_period_elapsed(tcc_alsa_info.play_ptr);
+
+        runtime = tcc_alsa_info.play_ptr->runtime;
+        prtd = (struct tcc_runtime_data *) runtime->private_data;
+    }
+    if ((dmaInterruptSource & DMA_CH_IN)
+        && (tcc_alsa_info.flag & TCC_RUNNING_CAPTURE)) {
+        snd_pcm_period_elapsed(tcc_alsa_info.cap_ptr);
+
+        runtime = tcc_alsa_info.cap_ptr->runtime;
+        prtd = (struct tcc_runtime_data *)runtime->private_data;
+    }
+
+    return IRQ_HANDLED;
+}
+#endif
+
 static dma_addr_t get_dma_addr_offset(dma_addr_t start_addr, dma_addr_t cur_addr, unsigned int total_size, unsigned int dma_len)
 {
     if ((start_addr <= cur_addr) && ((start_addr + total_size) > cur_addr)) {
@@ -375,8 +469,24 @@ static int tcc_pcm_hw_params(struct snd_pcm_substream *substream, struct snd_pcm
     int chs = params_channels(params);
     int ret = 0;
 
+#if defined(CONFIG_ARCH_TCC892X)
+    volatile PADMA    pADMA     = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA0);
+    volatile PADMADAI pADMA_DAI = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI0);
+	volatile PADMASPDIFTX pADMA_SPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX1);
+    irq_handler_t handler;
+
+    if (substream->pcm->device == __SPDIF_DEV_NUM__)
+    {
+        pADMA     = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA1);
+        handler   = tcc_dma1_done_handler;
+    }
+    else
+        handler   = tcc_dma_done_handler;
+#else
     volatile PADMA    pADMA     = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA);
     volatile PADMADAI pADMA_DAI = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI);
+	volatile PADMASPDIFTX pADMA_SPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX);
+#endif
 
     dma = snd_soc_dai_get_dma_data(rtd->cpu_dai, substream);
 
@@ -394,11 +504,19 @@ static int tcc_pcm_hw_params(struct snd_pcm_substream *substream, struct snd_pcm
 
         mutex_lock(&(tcc_alsa_info.mutex));
         if (!(tcc_alsa_info.flag & TCC_INTERRUPT_REQUESTED)) {
+#if defined(CONFIG_ARCH_TCC892X)
+            ret = request_irq(alsa_get_intr_num(substream),
+                              handler,
+                              IRQF_SHARED,
+                              "alsa-audio",
+                              &tcc_alsa_info);
+#else
             ret = request_irq(alsa_get_intr_num(substream),
                               tcc_dma_done_handler,
                               IRQF_SHARED,
                               "alsa-audio",
                               &tcc_alsa_info);
+#endif
             if (ret < 0) {
                 mutex_unlock(&(tcc_alsa_info.mutex));
                 return -EBUSY;
@@ -470,6 +588,41 @@ static int tcc_pcm_hw_params(struct snd_pcm_substream *substream, struct snd_pcm
         }
     }
 
+#if defined(CONFIG_ARCH_TCC892X)
+    if (substream->pcm->device == __I2S_DEV_NUM__) {
+        BITCLR(pADMA_DAI->MCCR0, Hw31 | Hw30 | Hw29 | Hw28);
+        if (chs > 2) {                                  // 5.1ch or 7.1ch
+            pADMA_DAI->DAMR |= (Hw29 | Hw28);
+#if defined(CONFIG_ARCH_TCC892X)
+            pADMA->RptCtrl  |= (Hw26 | Hw25 | Hw24);
+#else
+            pADMA->RptCtrl  |= (Hw25 | Hw24);
+#endif
+            pADMA->ChCtrl   |= (Hw24 | Hw21 | Hw20);
+        }
+        else {                                          // 2 ch
+            BITSET(pADMA_DAI->DAMR, (Hw29));
+#if defined(CONFIG_ARCH_TCC892X)
+
+#if defined(CONFIG_MACH_M805_892X)
+            BITSET(pADMA->RptCtrl, (Hw24));
+#else
+            BITSET(pADMA->RptCtrl, (Hw26 | Hw25 | Hw24));
+#endif
+
+#else
+            BITSET(pADMA->RptCtrl, (Hw25 | Hw24));
+#endif
+            BITCLR(pADMA_DAI->DAMR, (Hw28));
+            BITCLR(pADMA->ChCtrl,(Hw24 | Hw21 | Hw20));
+        }
+    }
+    else
+    {
+        BITCLR(pADMA->RptCtrl, (Hw26 | Hw25 | Hw24));
+        BITCLR(pADMA->ChCtrl,(Hw24 | Hw21 | Hw20));
+    }
+#else
     BITCLR(pADMA_DAI->MCCR0, Hw31 | Hw30 | Hw29 | Hw28);
     if (chs > 2) {                                  // 5.1ch or 7.1ch
         pADMA_DAI->DAMR |= (Hw29 | Hw28);
@@ -496,6 +649,23 @@ static int tcc_pcm_hw_params(struct snd_pcm_substream *substream, struct snd_pcm
         BITCLR(pADMA_DAI->DAMR, (Hw28));
         BITCLR(pADMA->ChCtrl,(Hw24 | Hw21 | Hw20));
     }
+#endif
+
+	if (substream->pcm->device == __SPDIF_DEV_NUM__) {
+		//Set Audio or Data Format
+		printk("%s : runtime->format11 = %d\n", __func__, params_format(params));
+
+		if (params_format(params) == SNDRV_PCM_FORMAT_U16) {
+			BITSET(pADMA_SPDIFTX->TxChStat, Hw0);	//Data format
+			printk("%s : set SPDIF TX Channel STATUS to Data format \n",__func__);
+		}
+		else {
+			BITCLR(pADMA_SPDIFTX->TxChStat, Hw0);	//Audio format
+			printk("%s : set SPDIF TX Channel STATUS to PCM format \n",__func__);
+		}
+	}
+
+
     return ret;
 }
 
@@ -541,9 +711,19 @@ static int tcc_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
     //struct tcc_runtime_data *prtd = substream->runtime->private_data;
     //    audio_stream_t *s = &output_stream;        
     int ret = 0;
+#if defined(CONFIG_ARCH_TCC892X)
+	volatile PADMADAI pDAI  = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI0);
+	volatile PADMASPDIFTX pADMASPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX1);
+	volatile PADMA    pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA0);
+
+	if (substream->pcm->device == __SPDIF_DEV_NUM__) {
+		pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA1);
+	}
+#else
     volatile PADMADAI pDAI  = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI);
     volatile PADMA    pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA);
 	volatile PADMASPDIFTX pADMASPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX);
+#endif
 
     alsa_dbg("%s() cmd[%d] frame_bits[%d]\n", __func__, cmd, substream->runtime->frame_bits);
     switch (cmd) {
@@ -610,14 +790,21 @@ static int tcc_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 //current position   range 0-(buffer_size-1)
 static snd_pcm_uframes_t tcc_pcm_pointer(struct snd_pcm_substream *substream)
 {
+#if defined(CONFIG_ARCH_TCC892X)
+    volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA0);
+#else
     volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA);
+#endif
     struct snd_pcm_runtime *runtime = substream->runtime;
     snd_pcm_uframes_t x;
     dma_addr_t ptr = 0;
 
-    alsa_dbg(" %s \n", __func__);
+    //alsa_dbg(" %s \n", __func__);
 
     if (substream->pcm->device == __SPDIF_DEV_NUM__) {
+#if defined(CONFIG_ARCH_TCC892X)
+        pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA1);
+#endif
         ptr = pADMA->TxSpCsar;
     } else {
         ptr = (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ? pADMA->TxDaCsar : pADMA->RxDaCdar;
@@ -683,8 +870,13 @@ static int tcc_pcm_close(struct snd_pcm_substream *substream)
 {
     struct snd_pcm_runtime *runtime = substream->runtime;
     struct tcc_runtime_data *prtd = runtime->private_data;
+#if defined(CONFIG_ARCH_TCC892X)
+    volatile PADMADAI pDAI = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI0);
+    volatile PADMASPDIFTX pADMASPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX1);
+#else
     volatile PADMADAI pDAI = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI);
     volatile PADMASPDIFTX pADMASPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX);
+#endif
 
     alsa_dbg("[%s] close %s device, %s\n", __func__, substream->pcm->device == __SPDIF_DEV_NUM__ ? "spdif":"pcm", 
 													substream->stream == SNDRV_PCM_STREAM_PLAYBACK ? "output" : "input");
@@ -820,7 +1012,11 @@ int tcc_pcm_new(struct snd_card *card, struct snd_soc_dai *dai, struct snd_pcm *
         if (ret) { goto out; }
     } 
 	{
+#if defined(CONFIG_ARCH_TCC892X)
+        volatile ADMASPDIFTX *pADMASPDIFTX = (volatile ADMASPDIFTX *)tcc_p2v(BASE_ADDR_SPDIFTX1);
+#else
         volatile ADMASPDIFTX *pADMASPDIFTX = (volatile ADMASPDIFTX *)tcc_p2v(BASE_ADDR_SPDIFTX);
+#endif
 
         memset((void *)pADMASPDIFTX->UserData, 0, 24);
         memset((void *)pADMASPDIFTX->ChStatus, 0, 24);
@@ -888,25 +1084,49 @@ out:
 #if defined(CONFIG_PM)
 int tcc_pcm_suspend(struct snd_soc_dai *dai)
 {
+#if defined(CONFIG_ARCH_TCC892X)
+    volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA0);
+#else
     volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA);
+#endif
 
     alsa_dbg(" %s \n", __func__);
     gADMA.TransCtrl = pADMA->TransCtrl;
     gADMA.RptCtrl   = pADMA->RptCtrl;
     gADMA.ChCtrl    = pADMA->ChCtrl;
     gADMA.GIntReq   = pADMA->GIntReq;
+
+#if defined(CONFIG_ARCH_TCC892X)
+    pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA1);
+    gADMA1.TransCtrl = pADMA->TransCtrl;
+    gADMA1.RptCtrl   = pADMA->RptCtrl;
+    gADMA1.ChCtrl    = pADMA->ChCtrl;
+    gADMA1.GIntReq   = pADMA->GIntReq;
+#endif
     return 0;
 }
 
 int tcc_pcm_resume(struct snd_soc_dai *dai)
 {
+#if defined(CONFIG_ARCH_TCC892X)
+    volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA0);
+#else
     volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA);
+#endif
 
     alsa_dbg(" %s \n", __func__);
     pADMA->TransCtrl = gADMA.TransCtrl;
     pADMA->RptCtrl   = gADMA.RptCtrl;
     pADMA->ChCtrl    = gADMA.ChCtrl;
     pADMA->GIntReq   = gADMA.GIntReq;
+
+#if defined(CONFIG_ARCH_TCC892X)
+    pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA1);
+    pADMA->TransCtrl = gADMA1.TransCtrl;
+    pADMA->RptCtrl   = gADMA1.RptCtrl;
+    pADMA->ChCtrl    = gADMA1.ChCtrl;
+    pADMA->GIntReq   = gADMA1.GIntReq;
+#endif
     return 0;
 }
 #endif
@@ -1013,7 +1233,7 @@ static struct snd_soc_dai_driver iec958_dai = {
         .rates    = SNDRV_PCM_RATE_8000_96000,
         .rate_max = 96000,
 #endif
-		.formats  = (SNDRV_PCM_FMTBIT_S16_LE),},
+		.formats  = (SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_U16_LE),},	// Planet 20120306
     .ops = &iec958_dai_ops,
 };
 

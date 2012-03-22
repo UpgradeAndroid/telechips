@@ -989,6 +989,11 @@ int sensor_if_init(struct v4l2_pix_format *pix)
 					gpio_direction_output(TCC_GPF(15), 0);
 				}
 				else {
+					#ifdef CONFIG_M805S_8923_0XA
+						gpio_request(TCC_GPE(3), NULL);
+						gpio_direction_output(TCC_GPE(3), 1);
+					#endif
+					
 					// Powerdown
 					gpio_request(TCC_GPE(22), NULL);
 					gpio_direction_output(TCC_GPE(22), 1);
@@ -1491,6 +1496,8 @@ void sensor_if_set_facing_front(void)
 {
 	#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9M113)
 		sensor_info_init_mt9m113(&tcc_sensor_info);
+	#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_SR130PC10)
+		sensor_info_init_sr130pc10(&tcc_sensor_info);
 	#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_OV7690)
 		sensor_info_init_ov7690(&tcc_sensor_info);
 	#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_SIV100B)
@@ -1502,6 +1509,8 @@ void sensor_if_set_facing_back(void)
 {
 	#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9P111)
 		sensor_info_init_mt9p111(&tcc_sensor_info);
+	#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_S5K5CAGA)
+		sensor_info_init_s5k5caga(&tcc_sensor_info);
 	#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9T111)
 		sensor_info_init_mt9t111(&tcc_sensor_info);
 	#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9D112)
@@ -1513,6 +1522,8 @@ void sensor_init_func_set_facing_front(SENSOR_FUNC_TYPE *sensor_func)
 {
 	#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9M113)
 		sensor_init_fnc_mt9m113(sensor_func);
+	#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_SR130PC10)
+		sensor_init_fnc_sr130pc10(sensor_func);
 	#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_OV7690)
 		sensor_init_fnc_ov7690(sensor_func);
 	#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_SIV100B)
@@ -1524,6 +1535,8 @@ void sensor_init_func_set_facing_back(SENSOR_FUNC_TYPE *sensor_func)
 {
 	#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9P111)
 		sensor_init_fnc_mt9p111(sensor_func);
+	#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_S5K5CAGA)
+		sensor_init_fnc_s5k5caga(sensor_func);
 	#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9T111)
 		sensor_init_fnc_mt9t111(sensor_func);
 	#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9D112)
@@ -1664,7 +1677,9 @@ void sensor_power_enable(void)
 	}
 	#elif defined(CONFIG_ARCH_TCC892X)
 		#if defined(CONFIG_MACH_M805_892X)
-		
+			#ifdef CONFIG_M805S_8923_0XA
+				gpio_set_value(TCC_GPE(3), 1);
+			#endif	
 		#else
 			if(system_rev == 0x1005 || system_rev == 0x1007){
 				// In Case of CAM0
@@ -1734,7 +1749,9 @@ void sensor_power_disable(void)
 	}
 	#elif defined(CONFIG_ARCH_TCC892X)
 		#if defined(CONFIG_MACH_M805_892X)
-		
+			#ifdef CONFIG_M805S_8923_0XA
+				gpio_set_value(TCC_GPE(3), 0);
+			#endif		
 		#else
 			if(system_rev == 0x1005 || system_rev == 0x1007){
 				// In Case of CAM0
@@ -2080,6 +2097,7 @@ void sensor_powerdown_enable(void)
 				if(system_rev == 0x2002)
 					gpio_set_value(TCC_GPD(1), 1); 
 				else
+					dprintk("M805S PWDN Enable!!\n");
 					gpio_set_value(TCC_GPE(22), 1);	
 			#endif
 		#else
@@ -2312,6 +2330,7 @@ void sensor_powerdown_disable(void)
 				if(system_rev == 0x2002)
 					gpio_set_value(TCC_GPD(1), 0);
 				else
+					dprintk("M805S PWDN Disable!!\n");
 					gpio_set_value(TCC_GPE(22), 0);
 			#endif
 		#else
@@ -2541,6 +2560,7 @@ void sensor_reset_high(void)
 				if(system_rev == 0x2002)
 					gpio_set_value(TCC_GPF(15), 1);
 				else
+					dprintk("M805S Reset High!!\n");
 					gpio_set_value(TCC_GPE(10), 1);
 			#endif
 		#else
@@ -2733,6 +2753,7 @@ void sensor_reset_low(void)
 				if(system_rev == 0x2002)
 					gpio_set_value(TCC_GPF(15), 0);
 				else
+					dprintk("M805S Reset Low!!\n");
 					gpio_set_value(TCC_GPE(10), 0);
 			#endif
 		#else

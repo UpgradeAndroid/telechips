@@ -62,9 +62,14 @@
 #include "tcc_component_ths8200.h"
 
 #if defined(CONFIG_ARCH_TCC892X)
-#include <mach/vioc_disp.h>
-#include <mach/vioc_wmix.h>
+#include <mach/vioc_outcfg.h>
 #include <mach/vioc_rdma.h>
+#include <mach/vioc_wdma.h>
+#include <mach/vioc_wmix.h>
+#include <mach/vioc_disp.h>
+#include <mach/vioc_global.h>
+#include <mach/vioc_config.h>
+#include <mach/vioc_scaler.h>
 #endif
 
 /*****************************************************************************
@@ -109,6 +114,11 @@ static int				Component_FID = 0;
 #define COMPONENT_DETECT_EINTSEL	SEL_GPIOF26
 #define COMPONENT_DETECT_EINTNUM	6
 #define COMPONENT_DETECT_EINT		HwINT1_EI6
+#elif defined (CONFIG_MACH_TCC8920ST)
+#define COMPONENT_DETECT_GPIO		TCC_GPB(29)
+#define COMPONENT_DETECT_EINTSEL	EXTINT_GPIOB_29
+#define COMPONENT_DETECT_EINTNUM	INT_EI6
+#define COMPONENT_DETECT_EINT		1<<INT_EI6
 #else
 #define COMPONENT_DETECT_GPIO		NULL
 #define COMPONENT_DETECT_EINTSEL	NULL
@@ -118,6 +128,8 @@ static int				Component_FID = 0;
 
 static struct clk *component_lcdc0_clk;
 static struct clk *component_lcdc1_clk;
+
+static char tcc_component_mode = COMPONENT_MAX;
 
 static char component_start = 0;
 static char component_plugout = 0;
@@ -155,6 +167,7 @@ extern void tcc_vsync_viqe_deinitialize(void);
 #endif /* TCC_VIDEO_DISPLAY_DEINTERLACE_MODE */
 #if defined(TCC_VIDEO_DISPLAY_BY_VSYNC_INT)
 extern void tcc_vsync_set_firstFrameFlag(int firstFrameFlag);
+extern int tcc_vsync_get_isVsyncRunning(void);
 #endif /* TCC_VIDEO_DISPLAY_BY_VSYNC_INT */
 
 
@@ -165,6 +178,8 @@ static irqreturn_t tcc_component_ext_handler(int irq, void *dev_id)
 {
 	#if defined(CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST)
 	PPIC pHwPIC = (volatile PPIC)tcc_p2v(HwVPIC_BASE);
+	#elif defined(CONFIG_MACH_TCC8920ST)
+	PPIC pHwPIC = (volatile PPIC)tcc_p2v(HwPIC_BASE);
 	#endif
 	
 	dprintk("%s, component_plugout_count=%d\n", __func__, component_plugout_count);
@@ -184,6 +199,9 @@ static irqreturn_t tcc_component_ext_handler(int irq, void *dev_id)
         BITCLR(pHwPIC->IEN1, COMPONENT_DETECT_EINT);
 		BITSET(pHwPIC->CLR1, COMPONENT_DETECT_EINT);
 	#elif defined(CONFIG_MACH_TCC8920ST)
+        BITCLR(pHwPIC->INTMSK0.nREG, COMPONENT_DETECT_EINT);
+        BITCLR(pHwPIC->IEN0.nREG, COMPONENT_DETECT_EINT);
+		BITSET(pHwPIC->CLR0.nREG, COMPONENT_DETECT_EINT);
 	#endif
 	}
 	else
@@ -193,6 +211,7 @@ static irqreturn_t tcc_component_ext_handler(int irq, void *dev_id)
 	#elif defined(CONFIG_MACH_TCC8800ST)
 		BITSET(pHwPIC->CLR1, COMPONENT_DETECT_EINT);
 	#elif defined(CONFIG_MACH_TCC8920ST)
+		BITSET(pHwPIC->CLR0.nREG, COMPONENT_DETECT_EINT);
 	#endif
 	}
 
@@ -240,6 +259,8 @@ void tcc_component_ext_interrupt_sel(char ext_int_num, char ext_int_sel)
 		BITCSET(pHwGPIOINT->EINTSEL3, 0x7F<<shift_bit, ext_int_sel<<shift_bit);
 	}
 	#endif
+#elif defined(CONFIG_MACH_TCC8920ST)
+    tcc_gpio_config_ext_intr(ext_int_num, ext_int_sel);
 #endif
 }
 
@@ -248,9 +269,13 @@ void tcc_component_ext_interrupt_sel(char ext_int_num, char ext_int_sel)
 ******************************************************************************/
 void tcc_component_ext_interrupt_set(char onoff)
 {
-#if defined(CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST)
+#if defined(CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST) || defined(CONFIG_MACH_TCC8920ST)
 	int ret, irq_num;
+	#if defined(CONFIG_MACH_TCC8920ST)
+	PPIC pHwPIC = (volatile PPIC)tcc_p2v(HwPIC_BASE);
+	#else
 	PPIC pHwPIC = (volatile PPIC)tcc_p2v(HwVPIC_BASE);
+	#endif
 	
 	component_plugout_count = 0;
 
@@ -272,11 +297,16 @@ void tcc_component_ext_interrupt_set(char onoff)
 		BITCLR(pHwPIC->MODE0, COMPONENT_DETECT_EINT);
 		BITCLR(pHwPIC->MODEA0, COMPONENT_DETECT_EINT);
 		BITSET(pHwPIC->SEL0, COMPONENT_DETECT_EINT);
-	#else
+	#elif defined(CONFIG_MACH_TCC8800ST)
 		BITCLR(pHwPIC->POL1, COMPONENT_DETECT_EINT);
 		BITCLR(pHwPIC->MODE1, COMPONENT_DETECT_EINT);
 		BITCLR(pHwPIC->MODEA1, COMPONENT_DETECT_EINT);
 		BITSET(pHwPIC->SEL1, COMPONENT_DETECT_EINT);
+	#elif defined(CONFIG_MACH_TCC8920ST)
+		BITCLR(pHwPIC->POL0.nREG, COMPONENT_DETECT_EINT);
+		BITCLR(pHwPIC->MODE0.nREG, COMPONENT_DETECT_EINT);
+		BITCLR(pHwPIC->MODEA0.nREG, COMPONENT_DETECT_EINT);
+		BITSET(pHwPIC->SEL0.nREG, COMPONENT_DETECT_EINT);
 	#endif
 
 		if(ret = request_irq(irq_num, tcc_component_ext_handler, IRQF_SHARED, "TCC_COMPONENT_EXT", tcc_component_ext_handler))	
@@ -288,10 +318,14 @@ void tcc_component_ext_interrupt_set(char onoff)
         BITSET(pHwPIC->CLR0, COMPONENT_DETECT_EINT);
 		BITSET(pHwPIC->INTMSK0, COMPONENT_DETECT_EINT);	
         BITSET(pHwPIC->IEN0, COMPONENT_DETECT_EINT);
-	#else
+	#elif defined(CONFIG_MACH_TCC8800ST)
         BITSET(pHwPIC->CLR1, COMPONENT_DETECT_EINT);
 		BITSET(pHwPIC->INTMSK1, COMPONENT_DETECT_EINT);	
         BITSET(pHwPIC->IEN1, COMPONENT_DETECT_EINT);
+	#elif defined(CONFIG_MACH_TCC8920ST)
+        BITSET(pHwPIC->CLR0.nREG, COMPONENT_DETECT_EINT);
+		BITSET(pHwPIC->INTMSK0.nREG, COMPONENT_DETECT_EINT);	
+        BITSET(pHwPIC->IEN0.nREG, COMPONENT_DETECT_EINT);
 	#endif
 
 		component_ext_interrupt = 1;
@@ -307,10 +341,14 @@ void tcc_component_ext_interrupt_set(char onoff)
         BITCLR(pHwPIC->INTMSK0, COMPONENT_DETECT_EINT);
         BITCLR(pHwPIC->IEN0, COMPONENT_DETECT_EINT);
         BITSET(pHwPIC->CLR0, COMPONENT_DETECT_EINT);
-	#else
+	#elif defined(CONFIG_MACH_TCC8800ST)
         BITCLR(pHwPIC->INTMSK1, COMPONENT_DETECT_EINT);
         BITCLR(pHwPIC->IEN1, COMPONENT_DETECT_EINT);
         BITSET(pHwPIC->CLR1, COMPONENT_DETECT_EINT);
+	#elif defined(CONFIG_MACH_TCC8920ST)
+        BITCLR(pHwPIC->INTMSK0.nREG, COMPONENT_DETECT_EINT);
+        BITCLR(pHwPIC->IEN0.nREG, COMPONENT_DETECT_EINT);
+        BITSET(pHwPIC->CLR0.nREG, COMPONENT_DETECT_EINT);
 	#endif
 
 		component_ext_interrupt = 0;
@@ -327,7 +365,7 @@ int tcc_component_detect(void)
 {
 	int detect = true;
 
-	#if defined (CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST)
+	#if defined (CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST) || defined(CONFIG_MACH_TCC8920ST)
 		#if defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION)
 			if(component_plugout)
 			{
@@ -556,12 +594,12 @@ void tcc_component_get_spec(COMPONENT_MODE_TYPE mode, COMPONENT_SPEC_TYPE *spec)
 				
 			spec->component_FPW1 = 3 - 1;					// TFT/TV : Frame pulse width is the pulse width of frmae clock
 			spec->component_FLC1 = 720 - 1;					// frmae line count is the number of lines in each frmae on the screen
-			spec->component_FSWC1 = 4 - 1;					// frmae start wait cycle is the number of lines to insert at the end each frame
-			spec->component_FEWC1 = 29 - 1;					// frame start wait cycle is the number of lines to insert at the begining each frame
+			spec->component_FSWC1 = 29 - 1;					// frmae start wait cycle is the number of lines to insert at the end each frame
+			spec->component_FEWC1 = 4 - 1;					// frame start wait cycle is the number of lines to insert at the begining each frame
 			spec->component_FPW2 = 3 - 1;					// TFT/TV : Frame pulse width is the pulse width of frmae clock
 			spec->component_FLC2 = 720 - 1;					// frmae line count is the number of lines in each frmae on the screen
-			spec->component_FSWC2 = 4 - 1;					// frmae start wait cycle is the number of lines to insert at the end each frame
-			spec->component_FEWC2 = 29 - 1; 					// frame start wait cycle is the number of lines to insert at the begining each frame
+			spec->component_FSWC2 = 29 - 1;					// frmae start wait cycle is the number of lines to insert at the end each frame
+			spec->component_FEWC2 = 4 - 1; 					// frame start wait cycle is the number of lines to insert at the begining each frame
 			#else
 			spec->component_LPW = 24 - 1; 					// line pulse width
 			spec->component_LPC = 1280 - 1; 				// line pulse count (active horizontal pixel - 1)
@@ -587,24 +625,6 @@ void tcc_component_get_spec(COMPONENT_MODE_TYPE mode, COMPONENT_SPEC_TYPE *spec)
 			spec->component_bus_width = 24;
 			spec->component_lcd_width = 1920;
 			spec->component_lcd_height = 1080;
-			#if defined(CONFIG_ARCH_TCC892X)
-			spec->component_LPW = 24 - 1; 					// line pulse width
-			spec->component_LPC = 1920 - 1; 				// line pulse count (active horizontal pixel - 1)
-			spec->component_LSWC = 228 - 1;					// line start wait clock (the number of dummy pixel clock - 1)
-			spec->component_LEWC = 28 - 1;					// line end wait clock (the number of dummy pixel clock - 1)
-
-			spec->component_VDB = 0; 						// Back porch Vsync delay
-			spec->component_VDF = 0; 						// front porch of Vsync delay
-				
-			spec->component_FPW1 = 5*2 - 1;					// TFT/TV : Frame pulse width is the pulse width of frmae clock
-			spec->component_FLC1 = 540*2 - 1;				// frmae line count is the number of lines in each frmae on the screen
-			spec->component_FSWC1 = 1.5*2 - 1;				// frmae start wait cycle is the number of lines to insert at the end each frame
-			spec->component_FEWC1 = 16*2 - 1;				// frame start wait cycle is the number of lines to insert at the begining each frame
-			spec->component_FPW2 = 5*2 - 1;					// TFT/TV : Frame pulse width is the pulse width of frmae clock
-			spec->component_FLC2 = 540*2 - 1;				// frmae line count is the number of lines in each frmae on the screen
-			spec->component_FSWC2 = 1*2 - 1;				// frmae start wait cycle is the number of lines to insert at the end each frame
-			spec->component_FEWC2 = 16.5*2 - 1; 				// frame start wait cycle is the number of lines to insert at the begining each frame
-			#else
 			spec->component_LPW = 24 - 1; 					// line pulse width
 			spec->component_LPC = 1920 - 1; 				// line pulse count (active horizontal pixel - 1)
 			spec->component_LSWC = 254 - 1;					// line start wait clock (the number of dummy pixel clock - 1)
@@ -621,7 +641,6 @@ void tcc_component_get_spec(COMPONENT_MODE_TYPE mode, COMPONENT_SPEC_TYPE *spec)
 			spec->component_FLC2 = 540*2 - 1;					// frmae line count is the number of lines in each frmae on the screen
 			spec->component_FSWC2 = 15.5*2 - 1;					// frmae start wait cycle is the number of lines to insert at the end each frame
 			spec->component_FEWC2 = 2*2 - 1; 					// frame start wait cycle is the number of lines to insert at the begining each frame
-			#endif
 			break;
 	}
 }
@@ -664,7 +683,10 @@ void tcc_component_set_lcd2tv(COMPONENT_MODE_TYPE mode)
 		#endif
 	}
 		
-	VIOC_DISP_SWReset(Component_LCDC_Num);
+#if defined(CONFIG_ARCH_TCC892X)
+	if(Component_Mode == COMPONENT_MODE_1080I)	
+		VIOC_DISP_SWReset(Component_LCDC_Num);
+#endif
 		
 	tcc_component_get_spec(mode, &spec);
 	
@@ -757,9 +779,9 @@ void tcc_component_set_lcd2tv(COMPONENT_MODE_TYPE mode)
 				LcdCtrlParam.r2ymd = 3;
 				LcdCtrlParam.advi = 1;
 				LcdCtrlParam.ckg = 1;
-				LcdCtrlParam.id= 1;
-				LcdCtrlParam.iv = 1;
-				LcdCtrlParam.ih = 0;
+				LcdCtrlParam.id= 0;
+				LcdCtrlParam.iv = 0;
+				LcdCtrlParam.ih = 1;
 				LcdCtrlParam.ip = 1;
 				LcdCtrlParam.pxdw = 12;
 				LcdCtrlParam.ni = 0;
@@ -781,8 +803,6 @@ void tcc_component_set_lcd2tv(COMPONENT_MODE_TYPE mode)
 		VIOC_WMIX_SetPosition(pComponent_WMIX, 0, 0, 0);
 		VIOC_WMIX_SetChromaKey(pComponent_WMIX, 0, 0, 0, 0, 0, 0xF8, 0xFC, 0xF8);
 		VIOC_WMIX_SetUpdate(pComponent_WMIX);
-
-		TCC_OUTPUT_UPDATE_OnOff(1, TCC_OUTPUT_COMPONENT);
 	#else // defined(CONFIG_ARCH_TCC892X)
 		BITCSET(pComponent_HwLCDC->LCLKDIV, 0x00FF0000, 0<<16);
 		BITCSET(pComponent_HwLCDC->LCLKDIV, 0x000000FF, 0);
@@ -1308,6 +1328,7 @@ void tcc_component_set_imagectrl(unsigned int flag, unsigned int type, COMPONENT
 	#endif
 }
 
+static int onthefly_using;
 /*****************************************************************************
  Function Name : tcc_component_update()
 ******************************************************************************/
@@ -1317,8 +1338,16 @@ void tcc_component_update(struct tcc_lcdc_image_update *update)
 	unsigned int Y_offset, UV_offset;
 	unsigned int img_width = 0, img_height = 0, win_offset_x = 0, win_offset_y = 0;
 	unsigned int lcd_w = 0, lcd_h =0;
+	unsigned int lcd_width = 0, lcd_height = 0;
 	unsigned int lcd_ctrl_flag;
 	
+	VIOC_DISP * pDISPBase;
+	VIOC_WMIX * pWMIXBase;
+	VIOC_RDMA * pRDMABase;
+
+	VIOC_SC *pSC;
+	pSC = (VIOC_SC *)tcc_p2v(HwVIOC_SC1);
+
 	dprintk("%s  \n", __func__);
 
 	tcc_component_get_lcdsize(&lcd_w, &lcd_h);
@@ -1327,14 +1356,85 @@ void tcc_component_update(struct tcc_lcdc_image_update *update)
 	//printk("update->addr0 : %x, update->addr1 : %x, update->addr2  : %x \n",update->addr0, update->addr1, update->addr2 );
 
 	#if defined(CONFIG_ARCH_TCC892X)
-		#if 0
-		if(Component_Mode == COMPONENT_MODE_720P)
-			VIOC_RDMA_SetImageIntl(pComponent_RDMA_VIDEO, FALSE);
+		if(Component_LCDC_Num)
+		{
+			pDISPBase = (VIOC_DISP*)tcc_p2v(HwVIOC_DISP1);
+			pWMIXBase = (VIOC_WMIX*)tcc_p2v(HwVIOC_WMIX1);		
+
+			switch(update->Lcdc_layer)
+			{			
+				case 0:
+					pRDMABase = (VIOC_RDMA*)tcc_p2v(HwVIOC_RDMA04);
+					break;
+				case 1:
+					pRDMABase = (VIOC_RDMA*)tcc_p2v(HwVIOC_RDMA05);
+					break;
+				case 2:
+					pRDMABase = (VIOC_RDMA*)tcc_p2v(HwVIOC_RDMA06);
+					break;
+			}
+		}
 		else
-			VIOC_RDMA_SetImageIntl(pComponent_RDMA_VIDEO, TRUE);
-		#else
-			VIOC_RDMA_SetImageIntl(pComponent_RDMA_VIDEO, FALSE);
-		#endif
+		{
+			pDISPBase = (VIOC_DISP*)tcc_p2v(HwVIOC_DISP0);
+			pWMIXBase = (VIOC_WMIX*)tcc_p2v(HwVIOC_WMIX0);
+			
+			switch(update->Lcdc_layer)
+			{			
+				case 0:
+					pRDMABase = (VIOC_RDMA*)tcc_p2v(HwVIOC_RDMA00);
+					break;
+				case 1:
+					pRDMABase = (VIOC_RDMA*)tcc_p2v(HwVIOC_RDMA01);
+					break;
+				case 2:
+					pRDMABase = (VIOC_RDMA*)tcc_p2v(HwVIOC_RDMA02);
+					break;
+			}		
+		}
+
+		VIOC_DISP_GetSize(pDISPBase, &lcd_width, &lcd_height);
+		
+		if((!lcd_width) || (!lcd_height))
+			return;
+		
+		if(!update->enable)	{
+			VIOC_RDMA_SetImageDisable(pRDMABase);
+
+			if(onthefly_using == 1)	{
+				VIOC_CONFIG_PlugOut(VIOC_SC1);
+				onthefly_using = 0;
+			}		
+			return;
+		}	
+
+		if(update->on_the_fly)
+		{
+			unsigned int RDMA_NUM;
+			RDMA_NUM = Component_LCDC_Num ? (update->Lcdc_layer + VIOC_SC_RDMA_04) : update->Lcdc_layer;
+
+			if(!onthefly_using) {
+				dprintk(" %s  scaler 1 is plug in RDMA %d \n",__func__, RDMA_NUM);
+				onthefly_using = 1;
+				VIOC_CONFIG_PlugIn (VIOC_SC1, RDMA_NUM);			
+				VIOC_SC_SetBypass (pSC, OFF);
+			}
+			
+			VIOC_SC_SetSrcSize(pSC, update->Frame_width, update->Frame_height);
+			VIOC_SC_SetDstSize (pSC, update->Image_width, update->Image_height);			// set destination size in scaler
+			VIOC_SC_SetOutSize (pSC, update->Image_width, update->Image_height);			// set output size in scaer
+		}
+		else
+		{
+			if(onthefly_using == 1)	{
+				dprintk(" %s  scaler 1 is plug  \n",__func__);
+				VIOC_RDMA_SetImageDisable(pRDMABase);
+				VIOC_CONFIG_PlugOut(VIOC_SC1);
+				onthefly_using = 0;
+			}
+		}
+
+		dprintk("%s lcdc:%d, pRDMA:0x%08x, pWMIX:0x%08x, pDISP:0x%08x, addr0:0x%08x\n", __func__, Component_LCDC_Num, pRDMABase, pWMIXBase, pDISPBase, update->addr0);
 
 		VIOC_RDMA_SetImageFormat(pComponent_RDMA_VIDEO, update->fmt);
 		
@@ -1440,16 +1540,30 @@ void tcc_component_update(struct tcc_lcdc_image_update *update)
 	dprintk("%s, img_widht:%d, img_height:%d, win_offset_x:%d, win_offset_y:%d\n", __func__, img_width, img_height, win_offset_x, win_offset_y);
 	
 	#if defined(CONFIG_ARCH_TCC892X)
-		VIOC_RDMA_SetImageSize(pComponent_RDMA_VIDEO, img_width, img_height);
+		VIOC_RDMA_SetImageSize(pComponent_RDMA_VIDEO, update->Frame_width, update->Frame_height);
 		
 		// image position
-		VIOC_WMIX_SetPosition(pComponent_WMIX, 2, win_offset_x, win_offset_y);
+#if 0//defined(CONFIG_TCC_VIDEO_DISPLAY_BY_VSYNC_INT) || defined(TCC_VIDEO_DISPLAY_BY_VSYNC_INT)
+	if(update->deinterlace_mode == 1 && update->output_toMemory == 0)
+	{
+		VIOC_RDMA_SetImageIntl(pComponent_RDMA_VIDEO, TRUE);
+		VIOC_WMIX_SetPosition(pComponent_WMIX, update->Lcdc_layer, win_offset_x, win_offset_y/2);
+	}
+	else
+#endif
+	{
+		VIOC_RDMA_SetImageIntl(pComponent_RDMA_VIDEO, FALSE);
+		VIOC_WMIX_SetPosition(pComponent_WMIX, update->Lcdc_layer, win_offset_x, win_offset_y);
+}
 
 		// image enable
 		if(update->enable)
 			VIOC_RDMA_SetImageEnable(pComponent_RDMA_VIDEO);
 		else
 			VIOC_RDMA_SetImageDisable(pComponent_RDMA_VIDEO);
+
+		if(onthefly_using)
+			VIOC_SC_SetUpdate (pSC);
 
 		VIOC_WMIX_SetUpdate(pComponent_WMIX);
 	#else
@@ -1689,6 +1803,8 @@ void tcc_component_start(TCC_COMPONENT_MODE_TYPE mode)
 
 	dprintk("%s, mode=%d\n", __func__, mode);
 
+	tcc_component_mode = mode;
+
 	switch(mode)
 	{
 		case COMPONENT_NTST_M:
@@ -1825,6 +1941,8 @@ static long tcc_component_ioctl(struct file *file, unsigned int cmd, void *arg)
 				}
 			#endif
 			
+			TCC_OUTPUT_FB_DetachOutput();
+			
 			TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_COMPONENT, start.lcdc, TRUE);
 			
 			if(start.lcdc != Component_LCDC_Num)
@@ -1834,9 +1952,12 @@ static long tcc_component_ioctl(struct file *file, unsigned int cmd, void *arg)
 			}
 
 			tcc_component_start(start.mode);
+
+			TCC_OUTPUT_UPDATE_OnOff(1, TCC_OUTPUT_COMPONENT);
 			
 #ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
-			tca_vsync_video_display_enable();
+			if( tcc_vsync_get_isVsyncRunning() )
+				tca_vsync_video_display_enable();
 #endif
 			break;
 
@@ -1854,7 +1975,8 @@ static long tcc_component_ioctl(struct file *file, unsigned int cmd, void *arg)
 			tcc_component_end();
 
 #ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
-			tca_vsync_video_display_disable();
+			if( tcc_vsync_get_isVsyncRunning() )
+				tca_vsync_video_display_disable();
 			tcc_vsync_set_firstFrameFlag(1);
 #endif
 #if defined(TCC_VIDEO_DISPLAY_DEINTERLACE_MODE)
@@ -1879,6 +2001,30 @@ static long tcc_component_ioctl(struct file *file, unsigned int cmd, void *arg)
 	}
 
 	return 0;
+}
+
+/*****************************************************************************
+ Function Name : tcc_component_attach()
+******************************************************************************/
+void tcc_component_attach(char lcdc_num, char onoff)
+{
+	char component_mode;
+
+	if(onoff)
+	{
+		if(tcc_component_mode == COMPONENT_MAX)
+			component_mode = COMPONENT_720P;
+		else
+			component_mode = tcc_component_mode;
+
+		tcc_component_set_lcdc(lcdc_num);
+		tcc_component_clock_onoff(TRUE);
+		tcc_component_start(component_mode);
+	}
+	else
+	{
+		tcc_component_end();
+	}
 }
 
 /*****************************************************************************

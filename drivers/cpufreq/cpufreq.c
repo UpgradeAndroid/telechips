@@ -101,7 +101,7 @@ static void unlock_policy_rwsem_write(int cpu)
 }
 
 #if defined(CONFIG_ARCH_TCC)
-static int cpufreq_performance_governor_flag;
+static int cpufreq_performance_governor_flag = 0;
 static void cpufreq_set_performance_governor_flag(int enabled)
 {
 	if (enabled)

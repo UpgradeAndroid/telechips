@@ -1332,7 +1332,7 @@ void tccfb_vsync_timer_onoff(int onOff)
 	tcc_vsync_timer_last_get_time = 0;
 
 	if(onOff == 1)	{
-		PCKC pCKC = (volatile PCKC)tcc_p2v(HwCLK_BASE);
+		PCKC pCKC = (volatile PCKC)tcc_p2v(HwCKC_BASE);
 
 		writel(0x24000000, &pCKC->PCLK_TCT);
 		pTIMER_reg->TCFG1 = 0x00000059;

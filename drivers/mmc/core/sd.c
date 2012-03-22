@@ -195,8 +195,14 @@ static int mmc_decode_scr(struct mmc_card *card)
 	scr->sda_vsn = UNSTUFF_BITS(resp, 56, 4);
 	scr->bus_widths = UNSTUFF_BITS(resp, 48, 4);
 	if (scr->sda_vsn == SCR_SPEC_VER_2)
+	{
 		/* Check if Physical Layer Spec v3.0 is supported */
+		#if 1	//Not yet, TCC is not support the SD3. - 120302, hjbae
+		scr->sda_spec3 = 0;
+		#else
 		scr->sda_spec3 = UNSTUFF_BITS(resp, 47, 1);
+		#endif
+	}
 
 	if (UNSTUFF_BITS(resp, 55, 1))
 		card->erased_byte = 0xFF;

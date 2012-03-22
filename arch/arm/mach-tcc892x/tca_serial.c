@@ -49,8 +49,8 @@ static int uart_port_map[24][2] = {
 	{TCC_GPG(0), GPIO_FN(3)},     // UT_TXD(17)
 	{TCC_GPG(4), GPIO_FN(3)},     // UT_TXD(18)
 	{TCC_GPG(8), GPIO_FN(3)},     // UT_TXD(19)
-	{TCC_GPG(14), GPIO_FN(3)},     // UT_TXD(20) *
-	{TCC_GPG(18), GPIO_FN(3)},  	     // UT_TXD(21) *
+	{TCC_GPG(14), GPIO_FN(3)},     // UT_RXD(20) *
+	{TCC_GPG(18), GPIO_FN(3)},  	     // UT_RXD(21) *
 	{TCC_GPHDMI(0), GPIO_FN(3)},     // UT_TXD(22)		
 	{TCC_GPADC(2), GPIO_FN(4)},     // UT_TXD(23)
 };
@@ -249,6 +249,24 @@ int tca_serial_clock_disable(struct tcc_uart_port *tcc_port, int id)
 		return -1;
 	}
 	clk_disable(tcc_port->clk);
+	return 0;
+}
+
+
+int tca_serial_port_pullup(int nPort, int enable, unsigned long long uartPortCFG)
+{
+	#define PORT_NUM 8
+	int i;
+	unsigned char phy_port[PORT_NUM];
+
+	for(i=0 ; i<PORT_NUM ; i++)
+		phy_port[i] = (uartPortCFG>>(i*8))&0xFF;
+
+	if(enable)
+		tcc_gpio_config(uart_port_map[phy_port[nPort]][0], GPIO_PULLUP);
+	else
+		tcc_gpio_config(uart_port_map[phy_port[nPort]][0], GPIO_PULLDOWN);
+
 	return 0;
 }
 /*****************************************************************************

@@ -263,18 +263,19 @@ static int gpio_event_suspend(struct platform_device *pdev, pm_message_t state)
 
 static int gpio_event_resume(struct platform_device *pdev)
 {
+#if 0	//Often does not wakeup in user mode. so, has commented. - 120303, hjbae
 	int is_wakeup_by_powerkey = 0;
 	PPMU pPMU = (PPMU)tcc_p2v(HwPMU_BASE);
 
-#if defined(CONFIG_REGULATOR_AXP192_PEK)
+#if defined(CONFIG_REGULATOR_AXP192_PEK) || defined(CONFIG_REGULATOR_AXP202_PEK)
 	return 0;
 #endif
 
 	// WKUP from PowerKey & PowerKey is not pressed.
 #if defined(CONFIG_MACH_M805_892X)
-	if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
+	if (system_rev == 0x2002)
 	{
-		if((pPMU->PMU_WKSTS1.bREG.GPIO_E27)&&(gpio_get_value(TCC_GPE(27))))
+		if((pPMU->PMU_WKSTS1.bREG.GPIO_E15)&&(gpio_get_value(TCC_GPE(15))))
 			is_wakeup_by_powerkey = 1;
 	}
 	else
@@ -311,6 +312,7 @@ static int gpio_event_resume(struct platform_device *pdev)
 
 		printk("[Wakeup by Short PowerKey!!!]\n");
 	}
+#endif
 
 	return 0;
 }

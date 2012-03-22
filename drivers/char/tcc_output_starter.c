@@ -84,12 +84,19 @@ static int debug = 0;
 #define DPRINTF(msg...)	if (debug) { printk( "tcc_output_starter: " msg); }
 
 #if defined (CONFIG_MACH_TCC9300ST)
+#define GPIO_OUTPUT_HDMI_DETECT			NULL
 #define GPIO_OUTPUT_COMPOSITE_DETECT	TCC_GPE(30)
 #define GPIO_OUTPUT_COMPONENT_DETECT	TCC_GPE(28)
 #elif defined(CONFIG_MACH_TCC8800ST)
+#define GPIO_OUTPUT_HDMI_DETECT			NULL
 #define GPIO_OUTPUT_COMPOSITE_DETECT	TCC_GPF(27)
 #define GPIO_OUTPUT_COMPONENT_DETECT	TCC_GPF(26)
+#elif defined(CONFIG_MACH_TCC8920ST)
+#define GPIO_OUTPUT_HDMI_DETECT			TCC_GPHDMI(1)
+#define GPIO_OUTPUT_COMPOSITE_DETECT	TCC_GPF(1)
+#define GPIO_OUTPUT_COMPONENT_DETECT	TCC_GPB(29)
 #else
+#define GPIO_OUTPUT_HDMI_DETECT			NULL
 #define GPIO_OUTPUT_COMPOSITE_DETECT	NULL
 #define GPIO_OUTPUT_COMPONENT_DETECT	NULL
 #endif
@@ -585,6 +592,7 @@ struct i2c_client *tcc_hdmi_edid_i2c_client = NULL;
 struct i2c_client *tcc_hdmi_edid_seg_i2c_client = NULL;
 
 static pmap_t pmap_fb;
+static pmap_t pmap_attach;
 
 #if defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 static int tcc_hdmi_phy_i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
@@ -1157,28 +1165,18 @@ int tcc_hdmi_set_video_mode(char lcdc_num, const struct HDMIVideoParameter * con
 
 static int tcc_hdmi_detect_cable(void)
 {
-	PGPIO pGPIO = (PGPIO)tcc_p2v(HwGPIO_BASE);
+	int ret = true;
 
-	DPRINTF("%s\n", __func__);
-
-	#if defined(CONFIG_ARCH_TCC892X) && defined(CONFIG_MACH_TCC8920ST)
-		return true;
-	#else
-		BITCLR(pGPIO->GPAEN, Hw14);
-		BITCLR(pGPIO->GPAFN1, Hw28-Hw24);
-		{volatile int ttt;for(ttt=0;ttt<500;ttt++);}
-
-		if(ISSET(pGPIO->GPADAT, Hw14))
-		{
-			DPRINTF("HDMI cable is detected!!\n");
-			return true;
-		}
-		else
-		{
-			DPRINTF("HDMI cable is not detected!!\n");
-			return false;
-		}
+	#if defined(CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST) || defined(CONFIG_MACH_TCC8920ST)
+		#if defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION)
+			tcc_gpio_config(GPIO_OUTPUT_HDMI_DETECT, GPIO_FN(0));
+			gpio_request(GPIO_OUTPUT_HDMI_DETECT, NULL);
+			gpio_direction_input(GPIO_OUTPUT_HDMI_DETECT);
+			ret = gpio_get_value(GPIO_OUTPUT_HDMI_DETECT)? true : false;
+		#endif
 	#endif
+
+	return ret;
 }
 
 static void tcc_hdmi_ddi_config_init (void)
@@ -1257,7 +1255,7 @@ static int tcc_composite_detect_cable(void)
 {
 	int ret = true;
 
-	#if defined (CONFIG_MACH_TCC9300ST) || defined (CONFIG_MACH_TCC8800ST) 
+	#if defined(CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST) || defined(CONFIG_MACH_TCC8920ST)
 		#if defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION)
 			tcc_gpio_config(GPIO_OUTPUT_COMPOSITE_DETECT, GPIO_FN(0));
 			gpio_request(GPIO_OUTPUT_COMPOSITE_DETECT, NULL);
@@ -1273,7 +1271,7 @@ static int tcc_component_detect_cable(void)
 {
 	int ret = true;
 
-	#if defined (CONFIG_MACH_TCC9300ST) || defined (CONFIG_MACH_TCC8800ST)
+	#if defined(CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST) || defined(CONFIG_MACH_TCC8920ST)
 		#if defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION)
 			tcc_gpio_config(GPIO_OUTPUT_COMPONENT_DETECT, GPIO_FN(0));
 			gpio_request(GPIO_OUTPUT_COMPONENT_DETECT, NULL);
@@ -1394,6 +1392,45 @@ void tcc_output_starter_setport(char lcdctrl_num, unsigned bit_per_pixel)
 }
 
 #if defined(CONFIG_ARCH_TCC892X)
+void tcc_output_starter_memclr(unsigned char lcdc_num)
+{
+	unsigned char *pBaseAddr;
+	VIOC_RDMA *pRDMA;
+	
+	if(lcdc_num)	
+		pRDMA = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA04);
+	else
+		pRDMA = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA00);
+	
+	if(pmap_fb.base)
+	{
+		pBaseAddr = (unsigned)ioremap_nocache(pmap_fb.base, pmap_fb.size);
+		if(pBaseAddr)
+		{
+			memset(pBaseAddr, 0x00, pmap_fb.size);
+ 			iounmap(pBaseAddr);
+
+			pRDMA->nBASE0 = pmap_fb.base;
+		}
+
+		printk("%s fb_paddr=0x%08x fb_laddr=0x%08x\n", __func__, pmap_fb.base, pBaseAddr);
+	}
+
+	if(pmap_attach.base)
+	{
+		pBaseAddr = (unsigned)ioremap_nocache(pmap_attach.base, pmap_attach.size/4);
+		if(pBaseAddr)
+		{
+			memset(pBaseAddr, 0x00, pmap_attach.size/4);
+ 			iounmap(pBaseAddr);
+
+			pRDMA->nBASE0 = pmap_attach.base;
+		}
+
+		printk("%s attach_paddr=0x%08x attach_laddr=0x%08x\n", __func__, pmap_attach.base, pBaseAddr);
+	}
+}
+
 void tcc_output_starter_hdmi(unsigned char lcdc_num, unsigned char hdmi_resolution)
 {
 	unsigned int output_width, output_height;
@@ -1440,8 +1477,6 @@ void tcc_output_starter_hdmi(unsigned char lcdc_num, unsigned char hdmi_resoluti
 		pLCDC_CKC = (PCLK_XXX_TYPE *)((&pCKC->PCLKCTRL00)+PERI_LCD0);
 	}
 
-	VIOC_DISP_TurnOff(pDISP);
-	VIOC_RDMA_SetImageDisable(pRDMA);
 	pLCDC_CKC->bREG.EN = 0;
 			
 	pSC = (VIOC_SC *)tcc_p2v(HwVIOC_SC2);
@@ -1472,23 +1507,14 @@ void tcc_output_starter_hdmi(unsigned char lcdc_num, unsigned char hdmi_resoluti
 	clk_enable(clock);
 #endif//	
 
+	VIOC_DISP_TurnOff(pDISP);
+	VIOC_RDMA_SetImageDisable(pRDMA);
+			
 	image_width = 1280;
 	image_height = 720;
 	image_fmt = TCC_LCDC_IMG_FMT_RGB565;
 	
-	if(pmap_fb.base)
-	{
-		pBaseAddr = (unsigned)ioremap_nocache(pmap_fb.base, pmap_fb.size);
-		if(pBaseAddr)
-		{
-			memset(pBaseAddr, 0x00, pmap_fb.size);
- 			iounmap(pBaseAddr);
-
-			pRDMA->nBASE0 = pmap_fb.base;
-		}
-
-		printk("%s paddr=0x%08x laddr=0x%08x\n", __func__, pmap_fb.base, pBaseAddr);
-	}
+	tcc_output_starter_memclr(lcdc_num);
 
 	output_width = LCDCTimimgParams[video.resolution].lpc + 1;
 	output_height = LCDCTimimgParams[video.resolution].flc + 1;
@@ -1581,8 +1607,6 @@ void tcc_output_starter_composite(unsigned char lcdc_num, unsigned char type)
 		VIOC_OUTCFG_SetOutConfig(VIOC_OUTCFG_SDVENC, VIOC_OUTCFG_DISP0);
   	}
 
-	VIOC_DISP_TurnOff(pDISP);
-	VIOC_RDMA_SetImageDisable(pRDMA);
 	pLCDC_CKC->bREG.EN = 0;
 
 	tca_ckc_setippwdn(PMU_ISOL_VDAC, 0);
@@ -1610,23 +1634,14 @@ void tcc_output_starter_composite(unsigned char lcdc_num, unsigned char type)
 	clock = clk_get(0, "ntscpal");
 	clk_enable(clock);
 
+	VIOC_DISP_TurnOff(pDISP);
+	VIOC_RDMA_SetImageDisable(pRDMA);
+	
 	image_width = 1280;
 	image_height = 720;
 	image_fmt = TCC_LCDC_IMG_FMT_RGB565;
 	
-	if(pmap_fb.base)
-	{
-		pBaseAddr = (unsigned)ioremap_nocache(pmap_fb.base, pmap_fb.size);
-		if(pBaseAddr)
-		{
-			memset(pBaseAddr, 0x00, pmap_fb.size);
- 			iounmap(pBaseAddr);
-
-			pRDMA->nBASE0 = pmap_fb.base;
-		}
-
-		printk("%s paddr=0x%08x laddr=0x%08x\n", __func__, pmap_fb.base, pBaseAddr);
-	}
+	tcc_output_starter_memclr(lcdc_num);
 
 	tccfb_output_starter(TCC_OUTPUT_COMPOSITE, lcdc_num, NULL);
 
@@ -1658,7 +1673,7 @@ void tcc_output_starter_composite(unsigned char lcdc_num, unsigned char type)
 	LcdCtrlParam.r2ymd = 3;
 	LcdCtrlParam.ckg = 1;
 	LcdCtrlParam.id= 0;
-	LcdCtrlParam.iv = 1;
+	LcdCtrlParam.iv = 0;
 	LcdCtrlParam.ih = 1;
 	LcdCtrlParam.ip = 1;
 	LcdCtrlParam.clen = 1;
@@ -1850,8 +1865,6 @@ void tcc_output_starter_component(unsigned char lcdc_num, unsigned char type)
 		pLCDC_CKC = (PCLK_XXX_TYPE *)((&pCKC->PCLKCTRL00)+PERI_LCD0);
 	}
 
-	VIOC_DISP_TurnOff(pDISP);
-	VIOC_RDMA_SetImageDisable(pRDMA);
 	pLCDC_CKC->bREG.EN = 0;
 			
 	pSC = (VIOC_SC *)tcc_p2v(HwVIOC_SC2);
@@ -1875,23 +1888,14 @@ void tcc_output_starter_component(unsigned char lcdc_num, unsigned char type)
 	
 	DPRINTF("LCDC0 clk:%d, LCDC1 clk:%d, PLL%1d:%d\n", tca_ckc_getperi(PERI_LCD0), tca_ckc_getperi(PERI_LCD1), PCDIRECTPLL0, tca_ckc_getpll(PCDIRECTPLL0));
 	
+	VIOC_DISP_TurnOff(pDISP);
+	VIOC_RDMA_SetImageDisable(pRDMA);
+	
 	image_width = 1280;
 	image_height = 720;
 	image_fmt = TCC_LCDC_IMG_FMT_RGB565;
 	
-	if(pmap_fb.base)
-	{
-		pBaseAddr = (unsigned)ioremap_nocache(pmap_fb.base, pmap_fb.size);
-		if(pBaseAddr)
-		{
-			memset(pBaseAddr, 0x00, pmap_fb.size);
- 			iounmap(pBaseAddr);
-
-			pRDMA->nBASE0 = pmap_fb.base;
-		}
-
-		printk("%s paddr=0x%08x laddr=0x%08x\n", __func__, pmap_fb.base, pBaseAddr);
-	}
+	tcc_output_starter_memclr(lcdc_num);
 
 	output_width = component_spec.component_lcd_width;
 	output_height = component_spec.component_lcd_height;
@@ -1942,9 +1946,9 @@ void tcc_output_starter_component(unsigned char lcdc_num, unsigned char type)
 			LcdCtrlParam.r2ymd = 3;
 			LcdCtrlParam.advi = 1;
 			LcdCtrlParam.ckg = 1;
-			LcdCtrlParam.id= 1;
-			LcdCtrlParam.iv = 1;
-			LcdCtrlParam.ih = 0;
+			LcdCtrlParam.id= 0;
+			LcdCtrlParam.iv = 0;
+			LcdCtrlParam.ih = 1;
 			LcdCtrlParam.ip = 1;
 			LcdCtrlParam.pxdw = 12;
 			LcdCtrlParam.ni = 0;
@@ -2640,6 +2644,7 @@ int __init tcc_output_starter_init(void)
 	device_create(tcc_output_starter_class, NULL, MKDEV(MAJOR_ID, MINOR_ID), NULL, DEVICE_NAME);
 
 	pmap_get_info("fb_video", &pmap_fb);
+	pmap_get_info("output_attach", &pmap_attach);
 
 	#if defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC88XX)/* || defined(CONFIG_ARCH_TCC892X)*/
 		lcdc_1st = STARTER_LCDC_0; /* LCDC0: HDMI or Component */
@@ -2650,76 +2655,106 @@ int __init tcc_output_starter_init(void)
 	#endif
 
 	#if defined(TCC_OUTPUT_STARTER_DUAL)
-		#if 0
-		/* 1st Output Setting */
-		if(tcc_display_data.output >= STARTER_OUTPUT_MAX)
-			tcc_output_starter_hdmi(lcdc_1st, STARTER_HDMI_640x480P);
-		else
-			tcc_output_starter_hdmi(lcdc_1st, tcc_display_data.hdmi_resolution);
+		#if defined(CONFIG_ARCH_TCC892X)
+			/* 1st Output Setting */
+			if(tcc_display_data.output == STARTER_OUTPUT_COMPONENT)
+				tcc_output_starter_component(lcdc_1st, STARTER_COMPONENT_720P+tcc_display_data.component_resolution);
+			else
+			{
+				if(tcc_display_data.output >= STARTER_OUTPUT_MAX)
+					tcc_output_starter_hdmi(lcdc_1st, STARTER_HDMI_640x480P);
+				else
+					tcc_output_starter_hdmi(lcdc_1st, tcc_display_data.hdmi_resolution);
+			}
 
-		/* 2nd Output Setting */
-		if(tcc_display_data.output == STARTER_OUTPUT_COMPONENT)
-			tcc_output_starter_component(lcdc_2nd, STARTER_COMPONENT_720P+tcc_display_data.component_resolution);
-		else
-			tcc_output_starter_composite(lcdc_2nd, tcc_display_data.composite_resolution);
+			/* 2nd Output Setting */
+			if(tcc_composite_detect_cable() == true)
+				TCC_OUTPUT_FB_AttachOutput(lcdc_1st, TCC_OUTPUT_COMPOSITE);
 		#else
-		switch(tcc_display_data.output)
-		{
-			case 0:
-			case 1:
-				tcc_output_starter_hdmi(lcdc_1st, STARTER_HDMI_1920x1080P);
-				break;
-			case 2:
-				tcc_output_starter_composite(lcdc_1st, STARTER_COMPOSITE_NTSC);
-				break;
-			case 3:
-				#if defined(TCC_COMPONENT_IC_CS4954)
-					tcc_output_starter_component(lcdc_1st, STARTER_COMPONENT_480I_NTSC);
-				#else
-					tcc_output_starter_component(lcdc_1st, STARTER_COMPONENT_720P+tcc_display_data.component_resolution);
-				#endif
-				break;
-			default:
-				tcc_output_starter_hdmi(lcdc_1st, STARTER_HDMI_1920x1080P);
-				break;
-		}
+			/* 1st Output Setting */
+			if(tcc_display_data.output >= STARTER_OUTPUT_MAX)
+				tcc_output_starter_hdmi(lcdc_1st, STARTER_HDMI_640x480P);
+			else
+				tcc_output_starter_hdmi(lcdc_1st, tcc_display_data.hdmi_resolution);
+
+			/* 2nd Output Setting */
+			if(tcc_display_data.output == STARTER_OUTPUT_COMPONENT)
+				tcc_output_starter_component(lcdc_2nd, STARTER_COMPONENT_720P+tcc_display_data.component_resolution);
+			else
+				tcc_output_starter_composite(lcdc_2nd, tcc_display_data.composite_resolution);
 		#endif
 	#elif defined(TCC_OUTPUT_STARTER_AUTO_DETECT)
-		/* 1st Output Setting */
-		if(tcc_display_data.output >= STARTER_OUTPUT_MAX)
-			tcc_output_starter_hdmi(lcdc_1st, STARTER_HDMI_640x480P);
-		else
-			tcc_output_starter_hdmi(lcdc_1st, tcc_display_data.hdmi_resolution);
+		#if defined(CONFIG_ARCH_TCC892X)
+			/* 1st Output Setting */
+			if(tcc_display_data.output == STARTER_OUTPUT_COMPONENT)
+			{
+				if(tcc_component_detect_cable() == true)
+					tcc_output_starter_component(lcdc_1st, STARTER_COMPONENT_720P+tcc_display_data.component_resolution);
+				else
+				{
+					if(tcc_display_data.output >= STARTER_OUTPUT_MAX)
+						tcc_output_starter_hdmi(lcdc_1st, STARTER_HDMI_640x480P);
+					else
+						tcc_output_starter_hdmi(lcdc_1st, tcc_display_data.hdmi_resolution);
+				}
+			}
+			else
+			{
+				if(tcc_hdmi_detect_cable() == true)
+				{
+					if(tcc_display_data.output >= STARTER_OUTPUT_MAX)
+						tcc_output_starter_hdmi(lcdc_1st, STARTER_HDMI_640x480P);
+					else
+						tcc_output_starter_hdmi(lcdc_1st, tcc_display_data.hdmi_resolution);
+				}
+				else
+					tcc_output_starter_component(lcdc_1st, STARTER_COMPONENT_720P+tcc_display_data.component_resolution);
+			}
 
-		if(tcc_display_data.output == 3)
-		{
-			if(tcc_component_detect_cable() == true)
-				tcc_output_starter_component(lcdc_2nd, STARTER_COMPONENT_720P+tcc_display_data.component_resolution);
-			else if(tcc_composite_detect_cable() == true)
-				tcc_output_starter_composite(lcdc_2nd, tcc_display_data.composite_resolution);
-		}
-		else
-		{
+			/* 2nd Output Setting */
 			if(tcc_composite_detect_cable() == true)
-				tcc_output_starter_composite(lcdc_2nd, tcc_display_data.composite_resolution);
-			else if(tcc_component_detect_cable() == true)
-				tcc_output_starter_component(lcdc_2nd, STARTER_COMPONENT_720P+tcc_display_data.component_resolution);
-		}
+				TCC_OUTPUT_FB_AttachOutput(lcdc_1st, TCC_OUTPUT_COMPOSITE);
+		#else
+			/* 1st Output Setting */
+			if(tcc_display_data.output >= STARTER_OUTPUT_MAX)
+				tcc_output_starter_hdmi(lcdc_1st, STARTER_HDMI_640x480P);
+			else
+				tcc_output_starter_hdmi(lcdc_1st, tcc_display_data.hdmi_resolution);
+
+			/* 2nd Output Setting */
+			if(tcc_display_data.output == 3)
+			{
+				if(tcc_component_detect_cable() == true)
+					tcc_output_starter_component(lcdc_2nd, STARTER_COMPONENT_720P+tcc_display_data.component_resolution);
+				else if(tcc_composite_detect_cable() == true)
+					tcc_output_starter_composite(lcdc_2nd, tcc_display_data.composite_resolution);
+			}
+			else
+			{
+				if(tcc_composite_detect_cable() == true)
+					tcc_output_starter_composite(lcdc_2nd, tcc_display_data.composite_resolution);
+				else if(tcc_component_detect_cable() == true)
+					tcc_output_starter_component(lcdc_2nd, STARTER_COMPONENT_720P+tcc_display_data.component_resolution);
+			}
+		#endif
 	#else
 		switch(tcc_display_data.output)
 		{
 			case 0:
 			case 1:
-				tcc_output_starter_hdmi(lcdc_1st, STARTER_HDMI_1920x1080P);
+				if(tcc_display_data.output >= STARTER_OUTPUT_MAX)
+					tcc_output_starter_hdmi(lcdc_1st, STARTER_HDMI_640x480P);
+				else
+					tcc_output_starter_hdmi(lcdc_1st, tcc_display_data.hdmi_resolution);
 				break;
 			case 2:
-				tcc_output_starter_composite(lcdc_2nd, STARTER_COMPOSITE_NTSC);
+				tcc_output_starter_composite(lcdc_1st, tcc_display_data.composite_resolution);
 				break;
 			case 3:
 				#if defined(TCC_COMPONENT_IC_CS4954)
-					tcc_output_starter_component(lcdc_2nd, STARTER_COMPONENT_480I_NTSC);
+					tcc_output_starter_component(lcdc_1st, tcc_display_data.component_resolution);
 				#else
-					tcc_output_starter_component(lcdc_2nd, STARTER_COMPONENT_720P);
+					tcc_output_starter_component(lcdc_1st, STARTER_COMPONENT_720P+tcc_display_data.component_resolution);
 				#endif
 				break;
 			default:

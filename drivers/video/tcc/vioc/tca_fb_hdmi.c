@@ -54,13 +54,18 @@
 #include <mach/vioc_global.h>
 #include <mach/vioc_config.h>
 #include <mach/vioc_scaler.h>
+#include <mach/tccfb_address.h>
 
+extern void tccxxx_GetAddress(unsigned char format, unsigned int base_Yaddr, unsigned int src_imgx, unsigned int  src_imgy,
+									unsigned int start_x, unsigned int start_y, unsigned int* Y, unsigned int* U,unsigned int* V);
 
 #if 0
 #define dprintk(msg...)	 { printk( "tca_hdmi: " msg); }
 #else
 #define dprintk(msg...)	 
 #endif
+
+extern struct display_platform_data tcc_display_data;
 
 void TCC_HDMI_LCDC_Timing(char hdmi_lcdc, struct lcdc_timimg_parms_t *mode)
 {
@@ -150,6 +155,15 @@ void TCC_HDMI_LCDC_OutputEnable(char hdmi_lcdc, unsigned int onoff)
 		VIOC_DISP_TurnOn(pDISP);
 	else
 		VIOC_DISP_TurnOff(pDISP);
+
+	#if 0//defined(CONFIG_TCC_OUTPUT_ATTACH)
+		TCC_OUTPUT_FB_DetachOutput();
+
+		if(tcc_display_data.output == 3)
+			TCC_OUTPUT_FB_AttachOutput(hdmi_lcdc, TCC_OUTPUT_COMPONENT);
+		else
+			TCC_OUTPUT_FB_AttachOutput(hdmi_lcdc, TCC_OUTPUT_COMPOSITE);
+	#endif
 }
 
 static int onthefly_using;
@@ -160,8 +174,8 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 	VIOC_RDMA * pRDMABase;
 	unsigned int lcd_width = 0, lcd_height = 0, lcd_h_pos = 0, lcd_w_pos = 0, scale_x = 0, scale_y = 0;
 
-		VIOC_SC *pSC;
-		pSC = (VIOC_SC *)tcc_p2v(HwVIOC_SC1);
+	VIOC_SC *pSC;
+	pSC = (VIOC_SC *)tcc_p2v(HwVIOC_SC1);
 		
 
 	dprintk("%s enable:%d, layer:%d, fmt:%d, Fw:%d, Fh:%d, Iw:%d, Ih:%d, fmt:%d onthefly:%d\n", __func__, ImageInfo->enable, ImageInfo->Lcdc_layer,
@@ -228,6 +242,7 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 		RDMA_NUM = hdmi_lcdc ? (ImageInfo->Lcdc_layer + VIOC_SC_RDMA_04) : ImageInfo->Lcdc_layer;
 
 		if(!onthefly_using) {
+			dprintk(" %s  scaler 1 is plug in RDMA %d \n",__func__, RDMA_NUM);
 			onthefly_using = 1;
 			VIOC_CONFIG_PlugIn (VIOC_SC1, RDMA_NUM);			
 			VIOC_SC_SetBypass (pSC, OFF);
@@ -236,6 +251,16 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 		VIOC_SC_SetSrcSize(pSC, ImageInfo->Frame_width, ImageInfo->Frame_height);
 		VIOC_SC_SetDstSize (pSC, ImageInfo->Image_width, ImageInfo->Image_height);			// set destination size in scaler
 		VIOC_SC_SetOutSize (pSC, ImageInfo->Image_width, ImageInfo->Image_height);			// set output size in scaer
+	}
+
+	else
+	{
+		if(onthefly_using == 1)	{
+			dprintk(" %s  scaler 1 is plug  \n",__func__);
+			VIOC_RDMA_SetImageDisable(pRDMABase);
+			VIOC_CONFIG_PlugOut(VIOC_SC1);
+			onthefly_using = 0;
+		}
 	}
 
 		
@@ -270,15 +295,37 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 	// scale
 	//pLCDC_channel->LISR =((scale_y<<4) | scale_x);
 	VIOC_RDMA_SetImageScale(pRDMABase, scale_x, scale_y);
-	
-	VIOC_RDMA_SetImageSize(pRDMABase, ImageInfo->Frame_width, ImageInfo->Frame_height);
+
+	//ImageCrop	
+	if( !( ((ImageInfo->crop_left == 0) && (ImageInfo->crop_right == ImageInfo->Frame_width)) &&  ((ImageInfo->crop_top == 0) && (ImageInfo->crop_bottom == ImageInfo->Frame_height)))  )
+	{
+		dprintk(" Image Crop left=[%d], right=[%d], top=[%d], bottom=[%d] \n", ImageInfo->crop_left, ImageInfo->crop_right, ImageInfo->crop_top, ImageInfo->crop_bottom);
+		int addr_Y = (unsigned int)ImageInfo->addr0;
+		int addr_U = (unsigned int)ImageInfo->addr1;
+		int addr_V = (unsigned int)ImageInfo->addr2;
+		
+		tccxxx_GetAddress(ImageInfo->fmt, (unsigned int)ImageInfo->addr0, ImageInfo->Frame_width, ImageInfo->Frame_height, 		
+								ImageInfo->crop_left, ImageInfo->crop_top, &addr_Y, &addr_U, &addr_V);		
+
+		VIOC_RDMA_SetImageSize(pRDMABase, ImageInfo->crop_right - ImageInfo->crop_left, ImageInfo->crop_bottom - ImageInfo->crop_top);
+		VIOC_RDMA_SetImageBase(pRDMABase, addr_Y, addr_U, addr_V);
+	}
+	else
+	{	
+		dprintk(" don't Image Crop left=[%d], right=[%d], top=[%d], bottom=[%d] \n", ImageInfo->crop_left, ImageInfo->crop_right, ImageInfo->crop_top, ImageInfo->crop_bottom);
+		VIOC_RDMA_SetImageSize(pRDMABase, ImageInfo->Frame_width, ImageInfo->Frame_height);
+		VIOC_RDMA_SetImageBase(pRDMABase, ImageInfo->addr0, ImageInfo->addr1, ImageInfo->addr2);		
+	}
 		
 	// position
 	//if(ISZERO(pLCDC->LCTRL, HwLCTRL_NI)) //--
-#if defined(CONFIG_TCC_VIDEO_DISPLAY_BY_VSYNC_INT) || defined(TCC_VIDEO_DISPLAY_BY_VSYNC_INT)
+#if 0//defined(CONFIG_TCC_VIDEO_DISPLAY_BY_VSYNC_INT) || defined(TCC_VIDEO_DISPLAY_BY_VSYNC_INT)
 	if(ImageInfo->deinterlace_mode == 1 && ImageInfo->output_toMemory == 0)
 	{
+		VIOC_RDMA_SetImageY2REnable(pRDMABase, FALSE);
+		VIOC_RDMA_SetImageY2RMode(pRDMABase, 0x02); /* Y2RMode Default 0 (Studio Color) */
 		VIOC_RDMA_SetImageIntl(pRDMABase, 1);
+		VIOC_RDMA_SetImageBfield(pRDMABase, ImageInfo->odd_first_flag);
 		VIOC_WMIX_SetPosition(pWMIXBase, ImageInfo->Lcdc_layer,  ImageInfo->offset_x, (ImageInfo->offset_y/2) );
 	}
 	else
@@ -287,8 +334,7 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 		VIOC_RDMA_SetImageIntl(pRDMABase, 0);
 		VIOC_WMIX_SetPosition(pWMIXBase, ImageInfo->Lcdc_layer, ImageInfo->offset_x, ImageInfo->offset_y);
 	}
-	// image address
-	VIOC_RDMA_SetImageBase(pRDMABase, ImageInfo->addr0, ImageInfo->addr1, ImageInfo->addr2);
+	
 	VIOC_RDMA_SetImageEnable(pRDMABase);
 
 	if(onthefly_using)

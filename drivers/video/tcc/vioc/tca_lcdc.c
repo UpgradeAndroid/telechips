@@ -70,6 +70,10 @@ void tca_lcdc_interrupt_onoff(char onoff, char lcdc)
 			return;
 		}
 	#endif
+
+	// init INT mask reg
+	pDISPBase->uLSTATUS.nREG = 0xFFFFFFFF;
+
 	if(onoff)		//VIOC INT en
 	{
 		VIOC_DISP_SetIreqMask(pDISPBase, VIOC_DISP_IREQ_RU_MASK, 0);

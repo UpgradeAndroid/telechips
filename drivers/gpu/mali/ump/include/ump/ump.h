@@ -1,11 +1,17 @@
 /*
- * This confidential and proprietary software may be used only as
- * authorised by a licensing agreement from ARM Limited
- * (C) COPYRIGHT 2008-2011 ARM Limited
- * ALL RIGHTS RESERVED
- * The entire notice above must be reproduced on all authorised
- * copies and copies may only be made to the extent permitted
- * by a licensing agreement from ARM Limited.
+ * Copyright (C) 2010-2012 ARM Limited. All rights reserved.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 /**
@@ -55,8 +61,8 @@ typedef unsigned int ump_secure_id;
  */
 typedef enum
 {
-	UMP_OK,	   /**< indicates success */
-	UMP_ERROR, /**< indicates failure */
+	UMP_OK = 0, /**< indicates success */
+	UMP_ERROR,  /**< indicates failure */
 } ump_result;
 
 
@@ -195,6 +201,7 @@ UMP_API_EXPORT void ump_write(ump_handle dst, unsigned long offset, const void *
  * @return NULL indicates failure, otherwise a CPU mapped pointer is returned.
  */
 UMP_API_EXPORT void * ump_mapped_pointer_get(ump_handle mem);
+UMP_API_EXPORT void * ump_mapped_phys_pointer_get(ump_handle mem);
 
 
 /**

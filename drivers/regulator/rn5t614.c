@@ -158,7 +158,7 @@ static unsigned int rn5t614_suspend_status = 0;
 ********************************************************************/
 int rn5t614_battery_voltage(void)
 {
-	signed long data[2];
+	//signed long data[2];
 	int ret = 4200;
 
 	if (rn5t614_i2c_client) {
@@ -171,26 +171,32 @@ int rn5t614_battery_voltage(void)
 
 int rn5t614_acin_detect(void)
 {
-	return 0;
+	unsigned char temp;
+	temp = i2c_smbus_read_byte_data(rn5t614_i2c_client, RN5T614_CHGMON1_REG);
+	return temp & 0x01;
 }
 
 void rn5t614_power_off(void)
 {
-    i2c_smbus_write_byte_data(rn5t614_i2c_client, RN5T614_PCCNT_REG, 0x01);
+    i2c_smbus_write_byte_data(rn5t614_i2c_client, RN5T614_SUSPEND_REG, 0x00);
 }
 
 void rn5t614_charge_current(unsigned char val)
 {
-    unsigned char temp;
+    //unsigned char temp;
 
 //    temp = RN5T614_CHG_EN|RN5T614_CHG_VOL_4_20V|RN5T614_CHG_OFF_CUR_10PER|(val&0x0f);
-    i2c_smbus_write_byte_data(rn5t614_i2c_client, 0x33, temp);
+    //i2c_smbus_write_byte_data(rn5t614_i2c_client, RN5T614_FET2CNT_REG, temp);
 }
 
 /* Test API */
 int rn5t614_charge_status(void)
 {
-    return 0;
+	unsigned char temp;
+	temp = i2c_smbus_read_byte_data(rn5t614_i2c_client, RN5T614_CHGSTATE_REG);
+	//TODO: 
+	
+	return 0;
 }
 
 EXPORT_SYMBOL(rn5t614_battery_voltage);
@@ -211,7 +217,7 @@ static void rn5t614_work_func(struct work_struct *work)
 
 	data[0] = (unsigned char)i2c_smbus_read_byte_data(rn5t614->client, RN5T614_CHGIR1_REG);
 	data[1] = (unsigned char)i2c_smbus_read_byte_data(rn5t614->client, RN5T614_CHGIR2_REG);
-	data[2] = (unsigned char)i2c_smbus_read_byte_data(rn5t614->client, RN5T614_CHGMON1_REG);
+	data[2] = 0;	//(unsigned char)i2c_smbus_read_byte_data(rn5t614->client, RN5T614_CHGMON1_REG);
 
 	if (data[0] & 0xFF)
 		i2c_smbus_write_byte_data(rn5t614->client, RN5T614_CHGIR1_REG, data[0]);
@@ -255,6 +261,8 @@ static void rn5t614_work_func(struct work_struct *work)
 		dbg("Shift to Charge-Ready state\n");
 	}
 
+	i2c_smbus_write_byte_data(rn5t614->client, RN5T614_CHGIR1_REG, ~data[0]);
+	i2c_smbus_write_byte_data(rn5t614->client, RN5T614_CHGIR2_REG, ~data[1]);
 	enable_irq(rn5t614->client->irq);
 }
 
@@ -300,6 +308,7 @@ static int rn5t614_dcdc_set_voltage(struct regulator_dev *rdev, int min_uV, int 
 
 	if (i == NUM_DCDC)
 		return -EINVAL;
+
 
 	dbg("%s: reg:0x%x value:%dmV\n", __func__, reg, dcdc_voltages[i].uV/1000);
 	ret = i2c_smbus_write_byte_data(rn5t614->client, reg, value);
@@ -750,6 +759,29 @@ static int rn5t614_pmic_probe(struct i2c_client *client, const struct i2c_device
 
 	// init settings...
 	// TODO:
+	if(system_rev == 0x2002)	//for Current Optimizing - 120308, hjbae
+	{
+		u8 new_value, old_value;
+
+		// LDO
+		old_value = (u8)i2c_smbus_read_byte_data(rn5t614->client, RN5T614_LDOON_REG);
+		new_value = old_value & ~(0x56);	// OFF : LDO7(0x40), LDO5(0x10), LDO3(0x04), LDO2(0x02)
+
+		printk("RICOH - LDOON Reg. : 0x%02X -> 0x%02X\n", old_value, new_value);
+
+		i2c_smbus_write_byte_data(rn5t614->client, RN5T614_LDOON_REG, new_value);
+
+		#if 0	//forTEST
+		// DCDC
+		old_value = (u8)i2c_smbus_read_byte_data(rn5t614->client, RN5T614_DDCTL1_REG);
+		new_value = old_value & ~(0x04);
+
+		printk("RICOH : DCDC : %x -> %x\n", old_value, new_value);
+
+		i2c_smbus_write_byte_data(rn5t614->client, RN5T614_DDCTL1_REG, new_value);
+		//i2c_smbus_write_byte_data(rn5t614->client, RN5T614_DDCTL2_REG, 0x00);
+		#endif
+	}
 
 	if (client->irq) {
 		/* irq enable */
@@ -757,6 +789,9 @@ static int rn5t614_pmic_probe(struct i2c_client *client, const struct i2c_device
 
 		/* clear irq status */
 		// TODO:
+		i2c_smbus_write_byte_data(rn5t614->client, RN5T614_CHGIR1_REG, 0x00);
+		i2c_smbus_write_byte_data(rn5t614->client, RN5T614_CHGIR2_REG, 0x00);
+
 
 		if (request_irq(client->irq, rn5t614_interrupt, IRQ_TYPE_EDGE_FALLING|IRQF_DISABLED, "rn5t614_irq", rn5t614)) {
 			dev_err(&client->dev, "could not allocate IRQ_NO(%d) !\n", client->irq);
@@ -838,6 +873,9 @@ static int rn5t614_pmic_resume(struct i2c_client *client)
 		enable_irq(client->irq);
 	/* clear irq status */
 	// TODO:
+	i2c_smbus_write_byte_data(rn5t614->client, RN5T614_CHGIR1_REG, 0x00);
+	i2c_smbus_write_byte_data(rn5t614->client, RN5T614_CHGIR2_REG, 0x00);
+
 
 	rn5t614_suspend_status = 0;
 	return 0;

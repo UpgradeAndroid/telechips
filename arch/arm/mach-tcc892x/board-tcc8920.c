@@ -22,6 +22,7 @@
 #include <linux/akm8975.h>
 #include <linux/spi/spi.h>
 #include <linux/regulator/axp192.h>
+#include <linux/regulator/rn5t614.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
 #include <asm/mach/map.h>
@@ -78,6 +79,10 @@
 #define SENSOR_I2C_SLAVE_ID 		(0xC4>>1)
 #elif defined(CONFIG_VIDEO_CAMERA_NEXTCHIP_TEST)
 #define SENSOR_I2C_SLAVE_ID 		(0x50>>1)
+#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_S5K5CAGA)
+#define SENSOR_I2C_SLAVE_ID 		(0x5A>>1)
+#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_SR130PC10)
+#define SENSOR_I2C_SLAVE_ID 		(0x40>>1)
 #endif
 #endif // defined(CONFIG_VIDEO_TCCXX_CAMERA)
 
@@ -253,6 +258,115 @@ static struct axp192_platform_data axp192_info = {
 };
 #endif
 
+#if defined(CONFIG_REGULATOR_RN5T614)
+static struct regulator_consumer_supply rn5t614_consumer = {
+	.supply = "vdd_core",
+};
+
+static struct regulator_init_data rn5t614_dcdc1_info = {
+	.constraints = {
+		.name = "vdd_core range",
+		.min_uV =  950000,
+		.max_uV = 1500000,
+		.always_on = 1,
+		.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE,
+	},
+	.num_consumer_supplies = 1,
+	.consumer_supplies     = &rn5t614_consumer,
+};
+
+static struct regulator_consumer_supply rn5t614_consumer_hdmi_pll = {
+	.supply = "vdd_hdmi_pll",
+};
+
+static struct regulator_init_data rn5t614_ldo6_info = {
+	.constraints = {
+		.name = "vdd_hdmi_pll",
+		.min_uV = 1200000,
+		.max_uV = 1200000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS,
+	},
+	.num_consumer_supplies = 1,
+	.consumer_supplies     = &rn5t614_consumer_hdmi_pll,
+};
+
+static struct regulator_consumer_supply rn5t614_consumer_hdmi_osc = {
+	.supply = "vdd_hdmi_osc",
+};
+
+static struct regulator_init_data rn5t614_ldo7_info = {
+	.constraints = {
+		.name = "vdd_hdmi_osc",
+		.min_uV = 3300000,
+		.max_uV = 3300000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS,
+	},
+	.num_consumer_supplies = 1,
+	.consumer_supplies     = &rn5t614_consumer_hdmi_osc,
+};
+
+static struct rn5t614_subdev_data rn5t614_subdev[] = {
+	{
+		.name = "vdd_core",
+		.id   = RN5T614_ID_DCDC1,
+		.platform_data = &rn5t614_dcdc1_info,
+	},
+	{
+		.name = "vdd_hdmi_pll",
+		.id   = RN5T614_ID_LDO6,
+		.platform_data = &rn5t614_ldo6_info,
+	},
+	{
+		.name = "vdd_hdmi_osc",
+		.id   = RN5T614_ID_LDO7,
+		.platform_data = &rn5t614_ldo7_info,
+	},
+};
+
+static int rn5t614_port_init(int irq_num)
+{
+	if(system_rev == 0x1005 || system_rev == 0x1007)
+	{
+		tcc_gpio_config(TCC_GPE(29), GPIO_FN(0)|GPIO_PULL_DISABLE);  // GPIOE[31]: input mode, disable pull-up/down
+		tcc_gpio_config_ext_intr(PMIC_IRQ, EXTINT_GPIOE_29);
+
+		gpio_request(TCC_GPE(29), "PMIC_IRQ");
+		gpio_direction_input(TCC_GPE(29));
+	}
+	else if(system_rev == 0x1006)
+	{
+		tcc_gpio_config(TCC_GPE(27), GPIO_FN(0)|GPIO_PULL_DISABLE);  // GPIOE[31]: input mode, disable pull-up/down
+		tcc_gpio_config_ext_intr(PMIC_IRQ, EXTINT_GPIOE_27);
+
+		gpio_request(TCC_GPE(27), "PMIC_IRQ");
+		gpio_direction_input(TCC_GPE(27));
+	}
+	else if(system_rev == 0x1008)
+	{
+		tcc_gpio_config(TCC_GPD(9), GPIO_FN(0)|GPIO_PULL_DISABLE);  // GPIOE[31]: input mode, disable pull-up/down
+		tcc_gpio_config_ext_intr(PMIC_IRQ, EXTINT_GPIOD_09);
+
+		gpio_request(TCC_GPD(9), "PMIC_IRQ");
+		gpio_direction_input(TCC_GPD(9));
+	}
+	else
+	{
+		tcc_gpio_config(TCC_GPE(31), GPIO_FN(0)|GPIO_PULL_DISABLE);  // GPIOE[31]: input mode, disable pull-up/down
+		tcc_gpio_config_ext_intr(PMIC_IRQ, EXTINT_GPIOE_31);
+
+		gpio_request(TCC_GPE(31), "PMIC_IRQ");
+		gpio_direction_input(TCC_GPE(31));
+	}
+
+	return 0;
+}
+
+static struct rn5t614_platform_data rn5t614_info = {
+	.num_subdevs = 3,
+	.subdevs     = rn5t614_subdev,
+	.init_port   = rn5t614_port_init,
+};
+#endif
 #if defined(CONFIG_FB_TCC_COMPONENT)
 static struct cs4954_i2c_platform_data  cs4954_i2c_data = {
 };
@@ -299,6 +413,13 @@ static struct i2c_board_info __initdata i2c_devices1[] = {
         .platform_data = &akm8975_data,
     },
     #endif
+	#if defined(CONFIG_REGULATOR_RN5T614)
+	{
+		I2C_BOARD_INFO("rn5t614", 0x32),
+		.irq           = PMIC_IRQ,
+		.platform_data = &rn5t614_info,
+	},
+	#endif
 	#if defined(CONFIG_REGULATOR_AXP192)
 	{
 		I2C_BOARD_INFO("axp192", 0x34),
@@ -393,7 +514,7 @@ static struct tcc_i2c_platform_data tcc8920_core1_platform_data = {
     .core_clk_rate      = 4*1000*1000,    /* core clock rate: 4MHz */
     .core_clk_name      = "i2c1",
     .smu_i2c_flag       = 0,
-    .i2c_ch_clk_rate[0] = 100,      /* SCL clock rate : 100kHz */
+    .i2c_ch_clk_rate[0] = 400,      /* SCL clock rate : 400kHz */
 };
 #endif
 #if defined(CONFIG_I2C_TCC_CORE2)
@@ -401,7 +522,7 @@ static struct tcc_i2c_platform_data tcc8920_core2_platform_data = {
     .core_clk_rate      = 4*1000*1000,    /* core clock rate: 4MHz */
     .core_clk_name      = "i2c2",
     .smu_i2c_flag       = 0,
-    .i2c_ch_clk_rate[0] = 100,      /* SCL clock rate : 100kHz */
+    .i2c_ch_clk_rate[0] = 400,      /* SCL clock rate : 100kHz */
 };
 #endif
 #if defined(CONFIG_I2C_TCC_CORE3)
@@ -552,6 +673,17 @@ static struct tcc_uart_platform_data uart1_data_bt = {
     .rx_dma_mode    = SERIAL_RX_DMA_MODE,
 };
 #endif
+
+static struct platform_device tcc_bluetooth_device = {	
+	.name = "tcc_bluetooth_rfkill",	
+	.id = -1,
+};
+
+static void tcc_add_bluetooth_device(void)
+{
+	platform_device_register(&tcc_bluetooth_device);
+}
+
 
 /*----------------------------------------------------------------------
  * Device	  : ADC touchscreen resource
@@ -767,7 +899,7 @@ static void __init tcc8920_init_machine(void)
 	/* BT: use UART1 and TX DMA */
 	platform_device_add_data(&tcc8920_uart1_device, &uart1_data_bt, sizeof(struct tcc_uart_platform_data));
 #endif
-
+	tcc_add_bluetooth_device();
 #if defined(CONFIG_TCC_UART2_DMA)
 	platform_device_add_data(&tcc8920_uart2_device, &uart2_data, sizeof(struct tcc_uart_platform_data));
 #endif

@@ -60,8 +60,9 @@
 
 #include "tcc_scaler.h"
 #include <mach/tcc_scaler_ctrl.h>
+#include <mach/tccfb_address.h>
 
-#if 1
+#if 0
 static int debug	   = 1;
 #else
 static int debug	   = 0;
@@ -73,7 +74,7 @@ volatile PVIOC_RDMA 	SC2_pRDMABase;
 volatile PVIOC_WMIX 	SC2_pWIXBase;
 volatile PVIOC_WDMA 	SC2_pWDMABase;
 
-#define dprintk(msg...) 	if(debug) { printk("tcc_scaler0: " msg); }
+#define dprintk(msg...) 	if(debug) { printk("tcc_scaler2: " msg); }
 
 typedef struct _intr_data_t {
 	//wait for Poll!!  
@@ -103,48 +104,8 @@ static struct clk *scaler2_clk;
 
 extern unsigned int scaler_ended;
 
-static void tccxxx_scaler_GetAddress(unsigned char format, unsigned int base_Yaddr, unsigned int src_imgx, unsigned int  src_imgy,
-									unsigned int start_x, unsigned int start_y, unsigned int* Y, unsigned int* U,unsigned int* V)
-{
-	unsigned int Uaddr, Vaddr, Yoffset, UVoffset, start_yPos;
-
-	start_yPos = (start_y>>1)<<1;
-	Yoffset = (src_imgx * start_yPos) + start_x;
-
-	if((format == SC_IMG_FMT_YCbCr422_SEQ_UYVY) || (format == SC_IMG_FMT_YCbCr422_SEQ_VYUY)
-		|| (format == SC_IMG_FMT_YCbCr422_SEQ_YUYV) || (format == SC_IMG_FMT_YCbCr422_SEQ_YVYU))
-		Yoffset = 2*Yoffset;
-
-	*Y = base_Yaddr + Yoffset;
-
-	if(*U == 0 && *V == 0) {
-		Uaddr = GET_ADDR_YUV42X_spU(base_Yaddr, src_imgx, src_imgy);
-		if(format == SC_IMG_FMT_YCbCr420_SEP)
-			Vaddr = GET_ADDR_YUV420_spV(Uaddr, src_imgx, src_imgy);
-		else
-			Vaddr = GET_ADDR_YUV422_spV(Uaddr, src_imgx, src_imgy);
-	} else {
-		Uaddr = *U;
-		Vaddr = *V;
-	}
-
-	if((format == SC_IMG_FMT_YCbCr420_SEP) || (format == SC_IMG_FMT_YCbCr420_INT_TYPE1)) {
-		if(format == SC_IMG_FMT_YCbCr420_INT_TYPE1)
-			UVoffset = ((src_imgx * start_yPos)/2 + start_x);
-		else
-			UVoffset = ((src_imgx * start_yPos)/4 + start_x/2);
-	} else {
-		if(format == SC_IMG_FMT_YCbCr422_INT_TYPE1)
-			UVoffset = ((src_imgx * start_yPos) + start_x);
-		else
-			UVoffset = ((src_imgx * start_yPos)/2 + start_x/2);
-	}
-	
-	*U = Uaddr + UVoffset;
-	*V = Vaddr + UVoffset;
-}
-
-
+extern void tccxxx_GetAddress(unsigned char format, unsigned int base_Yaddr, unsigned int src_imgx, unsigned int  src_imgy,
+									unsigned int start_x, unsigned int start_y, unsigned int* Y, unsigned int* U,unsigned int* V);
 
 char M2M_Scaler2_Ctrl_Detail(SCALER_TYPE *scale_img)
 {
@@ -164,7 +125,7 @@ char M2M_Scaler2_Ctrl_Detail(SCALER_TYPE *scale_img)
 	crop_width 				= scale_img->src_winRight - scale_img->src_winLeft;
 	scale_img->src_winLeft 	= (scale_img->src_winLeft>>3)<<3; 
 	scale_img->src_winRight = scale_img->src_winLeft + crop_width;
-	tccxxx_scaler_GetAddress(scale_img->src_fmt, (unsigned int)scale_img->src_Yaddr,
+	tccxxx_GetAddress(scale_img->src_fmt, (unsigned int)scale_img->src_Yaddr,
 								scale_img->src_ImgWidth, scale_img->src_ImgHeight,
 								scale_img->src_winLeft, scale_img->src_winTop,
 								&pSrcBase0, &pSrcBase1, &pSrcBase2);
@@ -177,7 +138,7 @@ char M2M_Scaler2_Ctrl_Detail(SCALER_TYPE *scale_img)
 	crop_width 				 = scale_img->dest_winRight - scale_img->dest_winLeft;
 	scale_img->dest_winLeft  = (scale_img->dest_winLeft>>3)<<3; 
 	scale_img->dest_winRight = scale_img->dest_winLeft + crop_width;
-	tccxxx_scaler_GetAddress(scale_img->dest_fmt, (unsigned int)scale_img->dest_Yaddr, 
+	tccxxx_GetAddress(scale_img->dest_fmt, (unsigned int)scale_img->dest_Yaddr, 
 								scale_img->dest_ImgWidth, scale_img->dest_ImgHeight, 
 								scale_img->dest_winLeft, scale_img->dest_winTop,
 								&pDstBase0, &pDstBase1, &pDstBase2);
@@ -222,6 +183,115 @@ char M2M_Scaler2_Ctrl_Detail(SCALER_TYPE *scale_img)
 	VIOC_WDMA_SetImageBase(SC2_pWDMABase, pDstBase0, pDstBase1, pDstBase2);
 	VIOC_WDMA_SetImageEnable(SC2_pWDMABase, 0 /* OFF */);
 	SC2_pWDMABase->uIRQSTS.nREG = 0xFFFFFFFF; // wdma status register all clear.
+
+	spin_unlock_irq(&(SC2_data.cmd_lock));
+
+	if(scale_img->responsetype  == SCALER_POLLING)	{
+		ret = wait_event_interruptible_timeout(SC2_data.poll_wq,  SC2_data.block_operating == 0, msecs_to_jiffies(500));
+		if(ret <= 0) {
+			 SC2_data.block_operating = 0;
+			printk("Scaler  time out :%d Line :%d \n", __LINE__, ret);
+		}		
+	}
+	else if(scale_img->responsetype  == SCALER_NOWAIT)	{
+		if(scale_img->viqe_onthefly & 0x2)
+			 SC2_data.block_operating = 0;
+	}
+
+	return ret;
+}
+
+char M2M_Scaler2_Ctrl_Divide(SCALER_TYPE *scale_img)
+{
+	int ret = 0;
+	unsigned int pSrcBaseY = 0, pSrcBaseU = 0, pSrcBaseV = 0;
+	unsigned int pDstBase0 = 0, pDstBase1 = 0, pDstBaseU = 0, pDstBaseV = 0;
+	unsigned int img_wd, img_ht;
+
+	VIOC_SCALER_INFO_Type pScalerInfo;
+	PVIOC_WDMA pWDMABase1 = (PVIOC_WDMA)tcc_p2v(HwVIOC_WDMA07);
+	PVIOC_WDMA pWDMABase0 = (PVIOC_WDMA)SC2_pWDMABase;
+
+	pSrcBaseY = (unsigned int)scale_img->src_Yaddr;
+	pSrcBaseU = (unsigned int)scale_img->src_Uaddr;
+	pSrcBaseV = (unsigned int)scale_img->src_Vaddr;
+
+	pDstBase0 = (unsigned int)scale_img->dest_Yaddr;
+	pDstBase1 = (unsigned int)scale_img->dest_Yaddr;
+	pDstBaseU = (unsigned int)scale_img->dest_Uaddr;
+	pDstBaseV = (unsigned int)scale_img->dest_Vaddr;
+
+	spin_lock_irq(&(SC2_data.cmd_lock));
+
+	// set to VRDMA switch path
+	//VIOC_CONFIG_RDMA12PathCtrl(0 /* RDMA12 */);
+
+	// set to VRDMA
+	VIOC_RDMA_SetImageAlphaSelect(SC2_pRDMABase, 1);
+	VIOC_RDMA_SetImageAlphaEnable(SC2_pRDMABase, 1);
+	VIOC_RDMA_SetImageFormat(SC2_pRDMABase, scale_img->src_fmt);
+	VIOC_RDMA_SetImageSize(SC2_pRDMABase, scale_img->src_ImgWidth, scale_img->src_ImgHeight);
+	VIOC_RDMA_SetImageOffset(SC2_pRDMABase, scale_img->src_fmt, scale_img->src_ImgWidth);
+	VIOC_RDMA_SetImageBase(SC2_pRDMABase, pSrcBaseY, pSrcBaseU, pSrcBaseV);
+	//VIOC_RDMA_SetImageEnable(SC2_pRDMABase);
+
+	img_wd = (scale_img->dest_winRight - scale_img->dest_winLeft);
+	img_ht = (scale_img->dest_winBottom - scale_img->dest_winTop);
+
+	// set to VIOC Scaler2
+	pScalerInfo.BYPASS 			= FALSE /* 0 */;
+	pScalerInfo.SRC_WIDTH 		= scale_img->src_ImgWidth;
+	pScalerInfo.SRC_HEIGHT 		= scale_img->src_ImgHeight;
+	pScalerInfo.DST_WIDTH 		= img_wd;
+	pScalerInfo.DST_HEIGHT 		= img_ht;
+	pScalerInfo.OUTPUT_POS_X 	= 0;
+	pScalerInfo.OUTPUT_POS_Y 	= 0;
+	pScalerInfo.OUTPUT_WIDTH 	= img_wd;
+	pScalerInfo.OUTPUT_HEIGHT 	= img_ht;
+
+	VIOC_API_SCALER_SetConfig(VIOC_SC0, &pScalerInfo);
+	VIOC_API_SCALER_SetPlugIn(VIOC_SC0, VIOC_SC_RDMA_17);
+	VIOC_API_SCALER_SetUpdate(VIOC_SC0);
+	VIOC_RDMA_SetImageEnable(SC2_pRDMABase); // SoC guide info.
+
+	/* Side-By-Side */
+	if(scale_img->divide_path == 0x01)
+	{
+		img_wd = scale_img->dest_ImgWidth/2;
+		img_ht = scale_img->dest_ImgHeight;
+
+		pDstBase0 = scale_img->dest_Yaddr;
+		pDstBase1 = pDstBase0 + img_wd*4;
+	}
+	/* Top-N-Bottom */
+	else if(scale_img->divide_path == 0x02)
+	{
+		img_wd = scale_img->dest_ImgWidth;
+		img_ht = scale_img->dest_ImgHeight/2;
+
+		pDstBase0 = scale_img->dest_Yaddr;
+		pDstBase1 = pDstBase0 + img_wd*img_ht*4;
+	}
+
+	VIOC_WMIX_SetSize(SC2_pWIXBase, img_wd, img_ht);
+	VIOC_WMIX_SetPosition(SC2_pWIXBase, 0, scale_img->dest_winLeft, scale_img->dest_winTop);
+	VIOC_WMIX_SetPosition(SC2_pWIXBase, 1, scale_img->dest_winLeft, scale_img->dest_winTop);
+	VIOC_WMIX_SetUpdate(SC2_pWIXBase);
+
+	// set to VWRMA
+ 	VIOC_WDMA_SetImageFormat(pWDMABase0, scale_img->dest_fmt);
+	VIOC_WDMA_SetImageSize(pWDMABase0, img_wd, img_ht);
+	VIOC_WDMA_SetImageOffset(pWDMABase0, scale_img->dest_fmt, scale_img->dest_ImgWidth);
+	VIOC_WDMA_SetImageBase(pWDMABase0, pDstBase0, pDstBaseU, pDstBaseV);
+	VIOC_WDMA_SetImageEnable(pWDMABase0, 0 /* OFF */);
+	pWDMABase0->uIRQSTS.nREG = 0xFFFFFFFF; // wdma status register all clear.
+
+	VIOC_WDMA_SetImageFormat(pWDMABase1, scale_img->dest_fmt);
+	VIOC_WDMA_SetImageSize(pWDMABase1, img_wd, img_ht);
+	VIOC_WDMA_SetImageOffset(pWDMABase1, scale_img->dest_fmt, scale_img->dest_ImgWidth);
+	VIOC_WDMA_SetImageBase(pWDMABase1, pDstBase1, pDstBaseU, pDstBaseV);
+	VIOC_WDMA_SetImageEnable(pWDMABase1, 0 /* OFF */);
+	pWDMABase1->uIRQSTS.nREG = 0xFFFFFFFF; // wdma status register all clear.
 
 	spin_unlock_irq(&(SC2_data.cmd_lock));
 
@@ -304,7 +374,7 @@ long tccxxx_scaler2_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 				ret = wait_event_interruptible_timeout(msc_data->cmd_wq, msc_data->block_operating == 0, msecs_to_jiffies(200));
 				if(ret <= 0) {
 					msc_data->block_operating = 0;
-					printk("[%d]: scaler 0 timed_out block_operation:%d!! cmd_count:%d \n", ret, msc_data->block_waiting, msc_data->cmd_count);
+					printk("[%d]: scaler 2 timed_out block_operation:%d!! cmd_count:%d \n", ret, msc_data->block_waiting, msc_data->cmd_count);
 				}
 				ret = 0;
 			}
@@ -328,8 +398,14 @@ long tccxxx_scaler2_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 
 				msc_data->block_waiting = 0;
 				msc_data->block_operating = 1;
-				ret = M2M_Scaler2_Ctrl_Detail(&scaler_v);
-				if(ret < 0) 	msc_data->block_operating = 0;
+
+				if(scaler_v.divide_path)
+					ret = M2M_Scaler2_Ctrl_Divide(&scaler_v);
+				else
+					ret = M2M_Scaler2_Ctrl_Detail(&scaler_v);
+
+				if(ret < 0) 	
+					msc_data->block_operating = 0;
 			}
 			mutex_unlock(&msc_data->io_mutex);
 			return ret;
@@ -347,17 +423,19 @@ EXPORT_SYMBOL(tccxxx_scaler2_ioctl);
 int tccxxx_scaler2_release(struct inode *inode, struct file *filp)
 {
 	int ret = 0;
-	dprintk("scaler0_release In!! %d'th, block(%d/%d), cmd(%d), irq(%d)  \n", SC2_data.dev_opened, SC2_data.block_operating, \
+	dprintk("scaler2_release In!! %d'th, block(%d/%d), cmd(%d), irq(%d)  \n", SC2_data.dev_opened, SC2_data.block_operating, \
 																SC2_data.block_waiting, SC2_data.cmd_count, SC2_data.irq_reged);
 
-	if(SC2_data.dev_opened > 0) 	SC2_data.dev_opened--;
+	if(SC2_data.dev_opened > 0) 	
+		SC2_data.dev_opened--;
+
 	if(SC2_data.dev_opened == 0) {
 		if(SC2_data.block_operating) {
 			ret = wait_event_interruptible_timeout(SC2_data.cmd_wq, SC2_data.block_operating == 0, msecs_to_jiffies(200));
-		}
 
-		if(ret <= 0) {
- 			printk("[%d]: scaler0 timed_out block_operation:%d!! cmd_count:%d \n", ret, SC2_data.block_waiting, SC2_data.cmd_count);
+			if(ret <= 0) {
+	 			printk("[%d]: scaler2 timed_out block_operation:%d!! cmd_count:%d \n", ret, SC2_data.block_waiting, SC2_data.cmd_count);
+			}
 		}
 
 		if(SC2_data.irq_reged) {
@@ -365,6 +443,7 @@ int tccxxx_scaler2_release(struct inode *inode, struct file *filp)
 			SC2_data.irq_reged = 0;
 		}
 		
+		VIOC_CONFIG_PlugOut(VIOC_SC0);
 		VIOC_SC_SetSWReset(VIOC_SC0, VIOC_SC_RDMA_17, VIOC_SC_WDMA_08);
 
 		SC2_data.block_operating = SC2_data.block_waiting = 0;
@@ -372,7 +451,7 @@ int tccxxx_scaler2_release(struct inode *inode, struct file *filp)
 	}
 
 	clk_disable(scaler2_clk);
-	dprintk("scaler0_release Out!! %d'th \n", SC2_data.dev_opened);
+	dprintk("scaler2_release Out!! %d'th \n", SC2_data.dev_opened);
 	return 0;
 }
 EXPORT_SYMBOL(tccxxx_scaler2_release);
@@ -380,7 +459,7 @@ EXPORT_SYMBOL(tccxxx_scaler2_release);
 int tccxxx_scaler2_open(struct inode *inode, struct file *filp)
 {	
 	int ret = 0;
-	dprintk("scaler0_open In!! %d'th, block(%d/%d), cmd(%d), irq(%d) \n", SC2_data.dev_opened, SC2_data.block_operating, \
+	dprintk("scaler2_open In!! %d'th, block(%d/%d), cmd(%d), irq(%d) \n", SC2_data.dev_opened, SC2_data.block_operating, \
 															SC2_data.block_waiting, SC2_data.cmd_count, SC2_data.irq_reged);
 
 	clk_enable(scaler2_clk);
@@ -401,7 +480,7 @@ int tccxxx_scaler2_open(struct inode *inode, struct file *filp)
 		
 		if(ret) {
 			clk_disable(scaler2_clk);
-			printk("FAILED to aquire scaler0-irq. \n");
+			printk("FAILED to aquire scaler2-irq. \n");
 			return -EFAULT;
 		}
 
@@ -411,7 +490,7 @@ int tccxxx_scaler2_open(struct inode *inode, struct file *filp)
 	SC2_data.dev_opened++;
 	filp->private_data = &SC2_data;
 	
-	dprintk("scaler0_open Out!! %d'th \n", SC2_data.dev_opened);
+	dprintk("scaler2_open Out!! %d'th \n", SC2_data.dev_opened);
 	return ret;	
 }
 EXPORT_SYMBOL(tccxxx_scaler2_open);

@@ -23,7 +23,7 @@
 /************************************************************************
 *   1. CKC (Base Addr = 0xF0400000)
 ************************************************************************/
-//#define HwCLK_BASE									((volatile unsigned long*)0xF0400000)
+//#define HwCKC_BASE									((volatile unsigned long*)0xF0400000)
 typedef struct _CKC {
 	volatile unsigned int	CLK0CTRL;		//0x000			RW	0x14000000
 	volatile unsigned int	CLK1CTRL;		//0x004			RW	0x14000000
@@ -4080,8 +4080,8 @@ typedef struct _CIFSCALER{
 //#define HwCAMBUSCFG_BASE						((volatile unsigned long*)0xF0930000)
 
 typedef struct _CAMBUSCFG {
-	volatile unsigned int   PowerDownMode;              // 0xB0230000
-    volatile unsigned int   SoftResetRegister;          // 0xB0230004
+	volatile unsigned int	HCLKMASK;			//0x00			RW
+	volatile unsigned int	SoftResetRegister;			//0x04			RW
     volatile unsigned int   CAMBusClk0Sel;              // 0xB0230008
     volatile unsigned int   MemoryEMACtrReg;            // 0xB023000C
     volatile unsigned int   NOTDEFINED[4];              //

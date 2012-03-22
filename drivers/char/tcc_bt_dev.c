@@ -42,7 +42,7 @@ typedef struct {
 extern struct tcc_freq_table_t gtBtClockLimitTable;
 #endif
 
-#ifdef CONFIG_TCC_RDA_587X_MODULE_SUPPORT
+#if 0//def CONFIG_TCC_RDA_587X_MODULE_SUPPORT  , moved to arch/arm/mach-tcc8920/board-tcc-bluetooth.c
 #if 0
 #include <linux/i2c.h>
 
@@ -159,6 +159,7 @@ static int tcc_bt_dev_release(struct inode *inode, struct file *file)
     return 0;
 }
 
+#if 0  // moved to arch/arm/mach-tcc8920/board-tcc-bluetooth.c
 int tcc_bt_power_control(int on_off)
 {
 	volatile PGPIO pGPIO = (volatile PGPIO)tcc_p2v(HwGPIO_BASE);
@@ -268,7 +269,7 @@ int tcc_bt_power_control(int on_off)
 
 	return 0;
 }
-
+#endif
 
 static int tcc_bt_get_info(tcc_bt_info_t* arg)
 {
@@ -316,12 +317,12 @@ int tcc_bt_dev_ioctl(struct file *file,
 	
     switch(cmd)
     {
-	    case IOCTL_BT_DEV_POWER:			
-    		parm1 = (int*)arg;
-    		printk("[## BT ##] IOCTL_BT_DEV_POWER cmd[%x] parm1[%x]\n", cmd, *parm1);
-			tcc_bt_power_control(*parm1);
+	    //case IOCTL_BT_DEV_POWER:		// moved to arch/arm/mach-tcc8920/board-tcc-bluetooth.c	
+    		//parm1 = (int*)arg;
+    		//printk("[## BT ##] IOCTL_BT_DEV_POWER cmd[%x] parm1[%x]\n", cmd, *parm1);
+		//	tcc_bt_power_control(*parm1);
 	        // GPIO Control
-	        break;
+	       // break;
 	        
 	     case IOCTL_BT_DEV_SPECIFIC:
 			printk("[## BT ##] IOCTL_BT_DEV_SPECIFIC cmd[%x]\n", cmd);
@@ -361,6 +362,7 @@ int init_module(void)
 	bt_dev_class = class_create(THIS_MODULE, DEV_NAME);
 	device_create(bt_dev_class, NULL, MKDEV(BT_DEV_MAJOR_NUM, BT_DEV_MINOR_NUM), NULL, DEV_NAME);
 
+#if 0  //  moved to arch/arm/mach-tcc8920/board-tcc-bluetooth.c
 	if(machine_is_tcc8900()){
 	    gpio_request(TCC_GPB(25), "bt_power");
 	    gpio_request(TCC_GPEXT2(9), "bt_reset");
@@ -399,7 +401,8 @@ int init_module(void)
 		gpio_direction_output(TCC_GPC(31), 0); // output
 		gpio_direction_output(TCC_GPD(12), 0); // output
 	}
-	
+#endif
+
     if(ret < 0){
         printk("[## BT ##] [%d]fail to register the character device\n", ret);
         return ret;

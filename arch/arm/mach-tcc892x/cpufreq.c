@@ -57,9 +57,17 @@ struct tcc_voltage_table_t {
 };
 
 #if defined(CONFIG_TCC_CORE_VOLTAGE_OFFSET) && defined(CONFIG_REGULATOR)
-#define CORE_VOLTAGE_OFFSET	(CONFIG_TCC_CORE_VOLTAGE_OFFSET * 1000)
+	#if defined(CONFIG_M805S_8925_0XX)
+	#define CORE_VOLTAGE_OFFSET	((CONFIG_TCC_CORE_VOLTAGE_OFFSET + 25) * 1000)
+	#else
+	#define CORE_VOLTAGE_OFFSET	(CONFIG_TCC_CORE_VOLTAGE_OFFSET * 1000)
+	#endif
 #else
-#define CORE_VOLTAGE_OFFSET	(0)
+	#if defined(CONFIG_M805S_8925_0XX)
+	#define CORE_VOLTAGE_OFFSET	(25 * 1000)
+	#else
+	#define CORE_VOLTAGE_OFFSET	(0)
+	#endif
 #endif
 
 static struct tcc_voltage_table_t tcc_voltage_table[] = {
@@ -72,6 +80,9 @@ static struct tcc_voltage_table_t tcc_voltage_table[] = {
 	{ 625000, 312000, 533000, 370000, 196000, 277000, 277000, 196000, 250000, 1200000+CORE_VOLTAGE_OFFSET },	// recommended freq.
 	{ 718750, 349440, 563450, 414400, 219520, 310240, 310240, 219520, 280000, 1250000+CORE_VOLTAGE_OFFSET },
 	{ 812500, 386880, 600000, 458800, 243040, 343480, 343480, 243040, 310000, 1300000+CORE_VOLTAGE_OFFSET },	// recommanded freq
+#if defined(CONFIG_M805S_8925_0XX)
+	{ 900000, 386880, 600000, 458800, 243040, 343480, 343480, 243040, 310000, 1375000+CORE_VOLTAGE_OFFSET },	// recommanded freq
+#endif
 	{ 937500, 434500, 600000, 515270, 272950, 385750, 385750, 272950, 348150, 1400000+CORE_VOLTAGE_OFFSET },	// recommanded freq
 	{1031250, 469260, 600000, 556490, 294790, 416610, 416610, 294790, 376010, 1500000+CORE_VOLTAGE_OFFSET },	// recommanded freq
 #else
@@ -461,6 +472,13 @@ int tcc_cpufreq_set_limit_table(struct tcc_freq_table_t *limit_tbl, tcc_freq_lim
 		pr_debug("tcc_cpufreq_set_limit_table idx:%d, cnt:%d\n", idx, tcc_freq_limit_table[idx].usecount);
 	}
 
+#ifdef VIDEO_USING_WVGA_LCD
+	if (tcc_freq_limit_table[TCC_FREQ_LIMIT_VPU_DEC].usecount) {
+		mutex_unlock(&tcc_freq_mutex);
+		return 0;
+	}
+#endif
+
 	if (flag && startup_cpufreq) {
 		if (tcc_freq_limit_table[idx].freq.cpu_freq > tcc_freq_curr_limit_table.cpu_freq)
 			tcc_freq_curr_limit_table.cpu_freq = tcc_freq_limit_table[idx].freq.cpu_freq;
@@ -554,6 +572,12 @@ static int tcc_cpufreq_target(struct cpufreq_policy *policy,
 
 	limit_tbl_flag = 0;
 	for (i=0 ; i<TCC_FREQ_LIMIT_MAX ; i++) {
+#ifdef VIDEO_USING_WVGA_LCD
+		if (tcc_freq_limit_table[TCC_FREQ_LIMIT_VPU_DEC].usecount && (i == TCC_FREQ_LIMIT_MALI)) {
+			continue;
+		}
+#endif
+
 		if (tcc_freq_limit_table[i].usecount > 0) {
 			if (tcc_freq_limit_table[i].freq.cpu_freq > tcc_freq_curr_limit_table.cpu_freq)
 				tcc_freq_curr_limit_table.cpu_freq = tcc_freq_limit_table[i].freq.cpu_freq;
@@ -651,6 +675,10 @@ static int tcc_cpufreq_suspend(struct cpufreq_policy *policy, pm_message_t pmsg)
 	clk_set_rate(ddi_clk, freqs->ddi_freq * 1000);
 	clk_set_rate(gpu_clk, freqs->gpu_freq * 1000);
 	clk_set_rate(hsio_clk, freqs->hsio_freq * 1000);
+
+#if !defined(CONFIG_REGULATOR)
+	tcc_cpufreq_set_voltage(tcc_cpufreq_get_voltage_table(&freqs));
+#endif
 
 	return 0;
 }

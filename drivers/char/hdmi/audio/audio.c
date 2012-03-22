@@ -826,7 +826,7 @@ static unsigned int io_ckc_get_dai_clock(unsigned int freq)
 }
 
 
-#if defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 void tcc_hdmi_audio_set_clock(unsigned int output, unsigned int clock_rate)
 {
     unsigned int clk_rate;
@@ -835,32 +835,24 @@ void tcc_hdmi_audio_set_clock(unsigned int output, unsigned int clock_rate)
     clk_rate = io_ckc_get_dai_clock(clock_rate) * 2;   /* set 512xfs for HDMI */
 
     clk_set_rate(hdmi_audio_clk, clk_rate);
-}
-#elif defined(CONFIG_ARCH_TCC892X)
-void tcc_hdmi_audio_set_clock(unsigned int output, unsigned int clock_rate)
-{
-	PCKC				pCKC ;
-	unsigned long		audio_clock;
-	unsigned int		clkdiv;
-	pCKC = (CKC *)tcc_p2v(HwCKC_BASE);
 
-	DPRINTK(KERN_WARNING "[%s], clock_rate[%u]\n", __func__, clock_rate);
+    #if defined(CONFIG_ARCH_TCC892X)    // for temporary
+    if( output == I2S_PORT )
+    {
+        PCKC				pCKC ;
+        unsigned long		audio_clock;
+        unsigned int		clkdiv;
+        pCKC = (CKC *)tcc_p2v(HwCKC_BASE);
 
-	if( output == I2S_PORT )
-	{
-		audio_clock = pCKC->PCLKCTRL28.nREG;
-		clkdiv = (audio_clock & 0xFFFF) * 2;	//I2S *2 = HDMIA : I2S - 256*fs, HDMIA = 512*fs
+        audio_clock = pCKC->PCLKCTRL28.nREG;
+        clkdiv = (audio_clock & 0xFFFF) * 2;	//I2S *2 = HDMIA : I2S - 256*fs, HDMIA = 512*fs
 
-		audio_clock &= 0xFFFF0000;
-		audio_clock |= clkdiv;
-		
-		pCKC->PCLKCTRL18.nREG = audio_clock;
-	}
-	else if( output == SPDIF_PORT )
-	{
-		audio_clock = pCKC->PCLKCTRL28.nREG;
-		pCKC->PCLKCTRL18.nREG = audio_clock;
-	}
+        audio_clock &= 0xFFFF0000;
+        audio_clock |= clkdiv;
+
+        pCKC->PCLKCTRL18.nREG = audio_clock;
+    }
+    #endif
 }
 #endif /* CONFIG_ARCH_TCC892X */
 

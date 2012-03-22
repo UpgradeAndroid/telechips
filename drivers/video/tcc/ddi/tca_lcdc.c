@@ -372,7 +372,7 @@ unsigned int DEV_LCDC_Wait_signal(char lcdc)
 	PDDICONFIG pddiconfig;
 
 	ppmu = (PPMU)(tcc_p2v(HwPMU_BASE));
-	pckc = (PCKC)(tcc_p2v(HwCLK_BASE)); 
+	pckc = (PCKC)(tcc_p2v(HwCKC_BASE)); 
 	pddiconfig = (PDDICONFIG)(tcc_p2v(HwDDI_CONFIG_BASE));
 
 	if((tca_ckc_getpmupwroff(PMU_DDIBUS))||(!(pckc->CLK1CTRL & 0x00200000)))
@@ -418,7 +418,7 @@ unsigned int DEV_LCDC_Status(char lcdc)
 	PDDICONFIG pddiconfig;
 
 	ppmu = (PPMU)(tcc_p2v(HwPMU_BASE));
-	pckc = (PCKC)(tcc_p2v(HwCLK_BASE)); 
+	pckc = (PCKC)(tcc_p2v(HwCKC_BASE)); 
 	pddiconfig = (PDDICONFIG)(tcc_p2v(HwDDI_CONFIG_BASE));
 
 	if((tca_ckc_getpmupwroff(PMU_DDIBUS))||(!(pckc->CLK1CTRL & 0x00200000)))

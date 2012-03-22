@@ -78,7 +78,7 @@ typedef void (*FuncPtr)(unsigned int type);
 /*---------------------------------------------------------------------------
  1) TCC93xx
      << sram1 >>
-     0xD0000000(0xEFE00000) ------------------
+     0x10000000(0xF0A00000) ------------------
                            | ckc change func  | 0x700
                      0x700  ------------------
                            | ckc change arg   | 0x80
@@ -88,11 +88,11 @@ typedef void (*FuncPtr)(unsigned int type);
 
 ---------------------------------------------------------------------------*/
 
-#define CKC_CHANGE_FUNC_ADDR       0xEFF00000
+#define CKC_CHANGE_FUNC_ADDR       0xF0A00000
 
 #define CKC_CHANGE_FUNC_SIZE       0x700
 
-#define CKC_CHANGE_ARG_BASE        0xEFF00700
+#define CKC_CHANGE_ARG_BASE        0xF0A00700
 
 
 
@@ -1468,25 +1468,25 @@ int tcc_change_pmu(unsigned int src, unsigned int onoff)
 //	goto err_chgpmu_beforeinit;
 
 	switch (src) {
-		case CLKCTRL1: // Display Bus
+		case FBUS_DDI: // Display Bus
 			pmu = 5;
 			reset = 1;
 			break;
-		case CLKCTRL3: // Graphic Bus
+		case FBUS_GPU: // Graphic Bus
 			pmu = 14;
 			reset = 3;
 			break;
-		case CLKCTRL5: // Video Bus
+		case FBUS_VBUS: // Video Bus
 			pmu = 11;
 			reset = 5;
 			break;
-//		case CLKCTRL6: // Video Codec
+//		case FBUS_VCORE: // Video Codec
 //			break;
-		case CLKCTRL8: // High Speed IO
+		case FBUS_HSIO: // High Speed IO
 			pmu = 20;
 			reset = 8;
 			break;
-		case CLKCTRL9: // Camera
+		case FBUS_CAM: // Camera
 			pmu = 17;
 			reset = 9;
 			break;

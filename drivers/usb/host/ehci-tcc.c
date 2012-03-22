@@ -23,7 +23,8 @@
 #include <mach/bsp.h>
 #include <asm/mach-types.h>
 
-extern int tcc_ehci_vbus_Init(void);
+extern int tcc_ehci_vbus_init(void);
+extern int tcc_ehci_vbus_exit(void);
 extern int tcc_ehci_vbus_ctrl(int on);
 extern void tcc_ehci_clkset(int on);
 
@@ -142,16 +143,14 @@ static void tcc_ehci_phy_ctrl(int on)
 
 /*-------------------------------------------------------------------------*/
 
-static void tcc_start_ehci(struct platform_device *pdev)
+static void tcc_start_ehci(void)
 {
-	dev_dbg(&pdev->dev, "start\n");
 	tcc_ehci_clkset(1);
 	clocked = 1;
 }
 
-static void tcc_stop_ehci(struct platform_device *pdev)
+static void tcc_stop_ehci(void)
 {
-	dev_dbg(&pdev->dev, "stop\n");
 	tcc_ehci_clkset(0);
 	clocked = 0;
 }
@@ -231,37 +230,154 @@ static const struct hc_driver ehci_tcc_hc_driver = {
 	.clear_tt_buffer_complete = ehci_clear_tt_buffer_complete,
 };
 
-#if 0
-#ifdef	CONFIG_PM
-int ehci_hcd_tcc_drv_suspend(struct platform_device *pdev, pm_message_t state)
+#ifdef CONFIG_PM
+#if defined(CONFIG_MACH_M805_892X) && defined(CONFIG_WIFI_PWR_CTL)
+#include <linux/err.h>
+#include <linux/regulator/machine.h>
+#include <linux/regulator/consumer.h>
+#include <linux/gpio.h>
+extern int wifi_stat;
+#endif
+static int ehci_hcd_tcc_drv_suspend(struct device *dev)
 {
-	/* USB HOST Power Enable */
+	struct usb_hcd *hcd = dev_get_drvdata(dev);
+	struct ehci_hcd *ehci = hcd_to_ehci(hcd);
+	unsigned long flags;
+
+	if (time_before(jiffies, ehci->next_statechange))
+		msleep(10);
+
+	/* Root hub was already suspended. Disable irq emission and
+	 * mark HW unaccessible.  The PM and USB cores make sure that
+	 * the root hub is either suspended or stopped.
+	 */
+	ehci_prepare_ports_for_controller_suspend(ehci, device_may_wakeup(dev));
+	spin_lock_irqsave(&ehci->lock, flags);
+	ehci_writel(ehci, 0, &ehci->regs->intr_enable);
+	(void)ehci_readl(ehci, &ehci->regs->intr_enable);
+
+	clear_bit(HCD_FLAG_HW_ACCESSIBLE, &hcd->flags);
+	spin_unlock_irqrestore(&ehci->lock, flags);
+
+	/* Telechips specific routine */
+	tcc_ehci_phy_off();
+	tcc_ehci_phy_ctrl(0);
+	tcc_stop_ehci();
 	tcc_ehci_vbus_ctrl(0);
+	tcc_ehci_vbus_exit();
+
+#if defined(CONFIG_MACH_M805_892X) && defined(CONFIG_WIFI_PWR_CTL)
+	if(system_rev == 0x2002) {
+		if(wifi_stat == 1) {
+			#if defined(CONFIG_REGULATOR)
+			struct regulator *vdd_wifi = NULL;
+			vdd_wifi = regulator_get(NULL, "vdd_wifi30");
+			if (IS_ERR(vdd_wifi)) {
+				printk("Failed to obtain vdd_wifi30\n");
+				vdd_wifi = NULL;
+			}
+			if (vdd_wifi) {
+				regulator_disable(vdd_wifi);
+				printk("regulator_disable(vdd_wifi)\n");
+			}
+		}
+		#endif
+	} else
+		gpio_direction_output(TCC_GPE(3), 0);
+#endif
 
 	return 0;
 }
 
-static int ehci_hcd_tcc_drv_resume(struct platform_device *pdev)
+static int ehci_hcd_tcc_drv_resume(struct device *dev)
 {
-	//tcc_ehci_clock_ctrl
-	tcc_start_ehci(pdev);
+	struct usb_hcd *hcd = dev_get_drvdata(dev);
+	struct ehci_hcd *ehci = hcd_to_ehci(hcd);
 
-	/* USB HS Nano-Phy Enable */
+#if defined(CONFIG_MACH_M805_892X) && defined(CONFIG_WIFI_PWR_CTL)
+	if(wifi_stat==1) {
+		if(system_rev == 0x2002) {
+			#if defined(CONFIG_REGULATOR)
+			struct regulator *vdd_wifi = NULL;
+			vdd_wifi = regulator_get(NULL, "vdd_wifi30");
+			if (IS_ERR(vdd_wifi)) {
+				printk("Failed to obtain vdd_wifi30\n");
+				vdd_wifi = NULL;
+			}
+			if (vdd_wifi) {
+				regulator_enable(vdd_wifi);
+				printk("regulator_enable(vdd_wifi)\n");
+			}
+			#endif
+		} else
+			gpio_direction_output(TCC_GPE(3), 1);
+	}
+#endif
+
+	/* Telechips specific routine */
+	tcc_ehci_vbus_init();
 	tcc_ehci_phy_ctrl(1);
-
-	/* USB HOST Power Enable */
 	tcc_ehci_vbus_ctrl(1);
-
-	//tcc_start_ehci(pdev);
+	tcc_start_ehci();
 	tcc_USB20HPHY_cfg();
 
+	if (time_before(jiffies, ehci->next_statechange))
+		msleep(100);
+
+	/* Mark hardware accessible again as we are out of D3 state by now */
+	set_bit(HCD_FLAG_HW_ACCESSIBLE, &hcd->flags);
+
+	/* If CF is still set, we maintained PCI Vaux power.
+	 * Just undo the effect of ehci_pci_suspend().
+	 */
+	if (ehci_readl(ehci, &ehci->regs->configured_flag) == FLAG_CF) {
+		int	mask = INTR_MASK;
+
+		ehci_prepare_ports_for_controller_resume(ehci);
+		if (!hcd->self.root_hub->do_remote_wakeup)
+			mask &= ~STS_PCD;
+		ehci_writel(ehci, mask, &ehci->regs->intr_enable);
+		ehci_readl(ehci, &ehci->regs->intr_enable);
+		return 0;
+	}
+
+	ehci_dbg(ehci, "lost power, restarting\n");
+	usb_root_hub_lost_power(hcd->self.root_hub);
+
+	/* Else reset, to cope with power loss or flush-to-storage
+	 * style "resume" having let BIOS kick in during reboot.
+	 */
+	(void) ehci_halt(ehci);
+	(void) ehci_reset(ehci);
+
+	/* emptying the schedule aborts any urbs */
+	spin_lock_irq(&ehci->lock);
+	if (ehci->reclaim)
+		end_unlink_async(ehci);
+	ehci_work(ehci);
+	spin_unlock_irq(&ehci->lock);
+
+	ehci_writel(ehci, ehci->command, &ehci->regs->command);
+	ehci_writel(ehci, FLAG_CF, &ehci->regs->configured_flag);
+	ehci_readl(ehci, &ehci->regs->command);	/* unblock posted writes */
+
+	/* here we "know" root ports should always stay powered */
+	ehci_port_power(ehci, 1);
+
+	hcd->state = HC_STATE_SUSPENDED;
+
 	return 0;
 }
+
+static const struct dev_pm_ops ehci_tcc_pmops = {
+    .suspend	= ehci_hcd_tcc_drv_suspend,
+    .resume		= ehci_hcd_tcc_drv_resume,
+};
+
+#define EHCI_TCC_PMOPS &ehci_tcc_pmops
 #else
-#define ohci_hcd_tcc_drv_suspend		NULL
-#define ohci_hcd_tcc_drv_resume			NULL
-#endif
-#endif /* 0 */
+#define EHCI_TCC_PMOPS NULL
+#endif	/* CONFIG_PM */
 
 static int __init ehci_tcc_drv_probe(struct platform_device *pdev)
 {
@@ -304,7 +420,7 @@ static int __init ehci_tcc_drv_probe(struct platform_device *pdev)
 	hcd->rsrc_len = res->end - res->start + 1;
 	hcd->regs = (void __iomem *)(int)(hcd->rsrc_start);
 
-	tcc_ehci_vbus_Init();
+	tcc_ehci_vbus_init();
 	
 	/* USB HS Nano-Phy Enable */
 	tcc_ehci_phy_ctrl(1);
@@ -316,7 +432,7 @@ static int __init ehci_tcc_drv_probe(struct platform_device *pdev)
 		goto fail_request_resource;
 	}
 
-	tcc_start_ehci(pdev);
+	tcc_start_ehci();
 	tcc_USB20HPHY_cfg();
 
 #ifndef USE_EHCI_TCC_SETUP
@@ -336,7 +452,7 @@ static int __init ehci_tcc_drv_probe(struct platform_device *pdev)
 	return retval;
 
 fail_add_hcd:
-	tcc_stop_ehci(pdev);
+	tcc_stop_ehci();
 fail_request_resource:
 	usb_put_hcd(hcd);
 fail_create_hcd:
@@ -356,7 +472,7 @@ static int __exit ehci_tcc_drv_remove(struct platform_device *pdev)
 
 	tcc_ehci_phy_off();
 	tcc_ehci_phy_ctrl(0);
-	tcc_stop_ehci(pdev);
+	tcc_stop_ehci();
 	tcc_ehci_vbus_ctrl(0);
 
 	return 0;
@@ -366,7 +482,10 @@ static struct platform_driver ehci_tcc_driver = {
 	.probe		= ehci_tcc_drv_probe,
 	.remove		= __exit_p(ehci_tcc_drv_remove),
 	.shutdown	= usb_hcd_platform_shutdown,
-	//.suspend		= ehci_hcd_tcc_drv_suspend,
-	//.resume			= ehci_hcd_tcc_drv_resume,
-	.driver.name	= "tcc-ehci",
+	.driver = {
+		.name	= "tcc-ehci",
+		.owner	= THIS_MODULE,
+		.pm		= EHCI_TCC_PMOPS,
+	}
 };
+

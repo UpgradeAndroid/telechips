@@ -160,6 +160,8 @@ static volatile PGRPBUSCFG      pGPUBUSCFG;
 static volatile PVIDEOBUSCFG    pVIDEOBUSCFG;
 static volatile PHSIOBUSCFG     pHSIOBUSCFG;
 static volatile PMEMBUSCFG      pMEMBUSCFG;
+static volatile PCLK_XXX_TYPE   stHDMIReg;
+static volatile PCLK_YYY_TYPE   stHDMIAudReg;
 
 static unsigned int stClockSource[MAX_CLK_SRC];
 static int initialized = 0;
@@ -200,6 +202,9 @@ void tca_ckc_init(void)
 
     if (initialized)
         return;
+
+    stHDMIReg.nREG = 0x24000000;
+    stHDMIAudReg.nREG = 0x24000000;
 
     for (i=0 ; i<MAX_TCC_PLL ; i++) {
         if (i == CPU_SRC_CH) {
@@ -302,40 +307,49 @@ unsigned int tca_ckc_getpll(unsigned int ch)
 {
     unsigned int tPLL;
     unsigned int tPCO;
-    unsigned    iP=0, iM=0, iS=0;
+    unsigned    iP=0, iM=0, iS=0, iEN = 0;
 
     switch(ch) {
         case 0:
+			iEN = pCKC->PLL0CFG.bREG.EN;
             iP = pCKC->PLL0CFG.bREG.P;
             iM = pCKC->PLL0CFG.bREG.M;
             iS = pCKC->PLL0CFG.bREG.S;
             break;
         case 1:
+			iEN = pCKC->PLL1CFG.bREG.EN;
             iP = pCKC->PLL1CFG.bREG.P;
             iM = pCKC->PLL1CFG.bREG.M;
             iS = pCKC->PLL1CFG.bREG.S;
             break;
         case 2:
+			iEN = pCKC->PLL2CFG.bREG.EN;
             iP = pCKC->PLL2CFG.bREG.P;
             iM = pCKC->PLL2CFG.bREG.M;
             iS = pCKC->PLL2CFG.bREG.S;
             break;
         case 3:
+			iEN = pCKC->PLL3CFG.bREG.EN;
             iP = pCKC->PLL3CFG.bREG.P;
             iM = pCKC->PLL3CFG.bREG.M;
             iS = pCKC->PLL3CFG.bREG.S;
             break;
         case 4:
+			iEN = pCKC->PLL4CFG.bREG.EN;
             iP = pCKC->PLL4CFG.bREG.P;
             iM = pCKC->PLL4CFG.bREG.M;
             iS = pCKC->PLL4CFG.bREG.S;
             break;
         case 5:
+			iEN = pCKC->PLL5CFG.bREG.EN;
             iP = pCKC->PLL5CFG.bREG.P;
             iM = pCKC->PLL5CFG.bREG.M;
             iS = pCKC->PLL5CFG.bREG.S;
             break;
     }
+
+	if (iEN == 0)
+		return 0;
 
     tPCO = (120000 * iM ) / iP;
     tPLL= ((tPCO) >> (iS));
@@ -352,6 +366,9 @@ unsigned int tca_ckc_getdividpll(unsigned int ch)
     unsigned int tDIVPLL;
     unsigned int tPLL = tca_ckc_getpll(ch);
     unsigned int uiPDIV = 0;
+
+	if (tPLL == 0)
+		return 0;
 
     switch(ch) {
         case 0:
@@ -828,10 +845,17 @@ unsigned int tca_ckc_setperi(unsigned int periname,unsigned int isenable, unsign
         }
 
 #if 1
-        pPCLKCTRL_YYY->nREG = ((clkmd&0x1)<<31) | ((clksrc&0x1F)<<24) | (clkdiv&0xFFFF);
-
-        if (isenable)
-            pPCLKCTRL_YYY->nREG |= (1<<29);
+        if (periname == PERI_HDMIA) {
+            stHDMIAudReg.nREG = ((clkmd&0x1)<<31) | ((clksrc&0x1F)<<24) | (clkdiv&0xFFFF);
+            if (isenable)
+                stHDMIAudReg.nREG |= (1<<29);
+            pPCLKCTRL_YYY->nREG = stHDMIAudReg.nREG;
+        }
+        else {
+            pPCLKCTRL_YYY->nREG = ((clkmd&0x1)<<31) | ((clksrc&0x1F)<<24) | (clkdiv&0xFFFF);
+            if (isenable)
+                pPCLKCTRL_YYY->nREG |= (1<<29);
+        }
 #else
         pPCLKCTRL_YYY->bREG.MD = clkmd;
         pPCLKCTRL_YYY->bREG.EN = 0;
@@ -919,12 +943,21 @@ unsigned int tca_ckc_setperi(unsigned int periname,unsigned int isenable, unsign
                 clkdiv -= 1;
         }
 
-        pPCLKCTRL_XXX->bREG.EN = 0;
-        pPCLKCTRL_XXX->bREG.DIV = clkdiv;
-        pPCLKCTRL_XXX->bREG.SEL = clksrc;
-
-        if (isenable)
-            pPCLKCTRL_XXX->bREG.EN = 1;
+        if (periname == PERI_HDMI) {
+            stHDMIReg.bREG.EN = 0;
+            stHDMIReg.bREG.DIV = 0;
+            stHDMIReg.bREG.SEL = PCHDMI;
+            if (isenable)
+                stHDMIReg.bREG.EN = 1;
+	    pPCLKCTRL_XXX->nREG = stHDMIReg.nREG;
+        }
+        else {
+            pPCLKCTRL_XXX->bREG.EN = 0;
+            pPCLKCTRL_XXX->bREG.DIV = clkdiv;
+            pPCLKCTRL_XXX->bREG.SEL = clksrc;
+            if (isenable)
+                pPCLKCTRL_XXX->bREG.EN = 1;
+        }
     }
 
     return clkrate;
@@ -1047,8 +1080,6 @@ unsigned int tca_ckc_getperi(unsigned int periname)
 * ***************************************************************************************/
 int tca_ckc_setippwdn( unsigned int sel, unsigned int ispwdn)
 {
-    unsigned int ctrl_value;
-
 #if (1)
 	static unsigned int isol = 0x0;
 	
@@ -1068,6 +1099,8 @@ int tca_ckc_setippwdn( unsigned int sel, unsigned int ispwdn)
 	}
 	return -1;
 #else
+    unsigned int ctrl_value;
+
     return 0;
 
     if (ispwdn)
@@ -1666,11 +1699,26 @@ int tca_ckc_pclk_enable(unsigned int pclk, unsigned int enable)
     volatile PCLK_XXX_TYPE *pPERI;
     pPERI = (volatile PCLK_XXX_TYPE *)((&pCKC->PCLKCTRL00)+pclk);
 
-    if (enable)
-        pPERI->bREG.EN = 1;
-    else
-        pPERI->bREG.EN = 0;
-
+    if (pclk == PERI_HDMI) {
+        if (enable)
+            stHDMIReg.bREG.EN = 1;
+        else
+            stHDMIReg.bREG.EN = 0;
+	pPERI->nREG = stHDMIReg.nREG;
+    }
+    else if (pclk == PERI_HDMIA) {
+        if (enable)
+            stHDMIAudReg.bREG.EN = 1;
+        else
+            stHDMIAudReg.bREG.EN = 0;
+	pPERI->nREG = stHDMIAudReg.nREG;
+    }
+    else {
+        if (enable)
+            pPERI->bREG.EN = 1;
+        else
+            pPERI->bREG.EN = 0;
+    }
     return 0;
 }
 

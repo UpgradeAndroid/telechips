@@ -293,6 +293,7 @@ struct tcc_lcdc_image_update
 	int odd_first_flag;
 	int m2m_mode;
 	int output_toMemory;
+	int frameInfo_interlace;
 #endif
 
 	unsigned int dst_addr0;

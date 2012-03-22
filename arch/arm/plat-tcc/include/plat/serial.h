@@ -112,6 +112,8 @@ struct tcc_uart_port {
 
     int                     tx_done;
     struct tcc_reg_info     reg;	// for suspend/resume
+
+	int                     opened;
 };
 
 #endif
