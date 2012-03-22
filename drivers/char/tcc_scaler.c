@@ -53,6 +53,7 @@
 #include <mach/vioc_plugin_tcc892x.h>
 #include <mach/vioc_scaler.h>
 #include <mach/vioc_api.h>
+#include <mach/tccfb_address.h>
 #endif // CONFIG_ARCH_TCC892X
 
 #include <linux/poll.h>
@@ -109,6 +110,12 @@ static struct clk *m2m1_clk;
 #if !defined(CONFIG_ARCH_TCC892X)
 static struct clk *m2m0_ddi_cache;
 #endif // CONFIG_ARCH_TCC892X
+
+
+#if defined(CONFIG_ARCH_TCC892X)
+extern void tccxxx_GetAddress(unsigned char format, unsigned int base_Yaddr, unsigned int src_imgx, unsigned int  src_imgy,
+									unsigned int start_x, unsigned int start_y, unsigned int* Y, unsigned int* U,unsigned int* V);
+#endif
 
 extern int range_is_allowed(unsigned long pfn, unsigned long size);
 static int tccxxx_scaler_mmap(struct file *file, struct vm_area_struct *vma)
@@ -280,70 +287,6 @@ char M2M_Scaler_Ctrl_External(SCALER_TYPE *scale_img)
 	
 	return ret;
 }
-
-#if defined(CONFIG_ARCH_TCC892X)
-void tccxxx_GetAddress(unsigned char format, unsigned int base_Yaddr, unsigned int src_imgx, unsigned int  src_imgy,
-									unsigned int start_x, unsigned int start_y, unsigned int* Y, unsigned int* U,unsigned int* V)
-{
-	unsigned int Uaddr, Vaddr, Yoffset, UVoffset, start_yPos;
-
-
-	start_yPos = (start_y>>1)<<1;
-	Yoffset = (src_imgx * start_yPos) + start_x;
-
-	//RGB format 
-	if((format >= SC_IMG_FMT_RGB332) && (format <= SC_IMG_FMT_ARGB6666))
-	{
-		int Bpp;
-
-		if(format == SC_IMG_FMT_RGB332)
-			Bpp = 1;
-		else if((format >= SC_IMG_FMT_RGB444) && (format <= SC_IMG_FMT_RGB555))
-			Bpp = 2;
-		else if((format >= SC_IMG_FMT_ARGB8888) && (format <= SC_IMG_FMT_ARGB6666))
-			Bpp = 4;
-		else 
-			Bpp = 2;
-		
-		*Y = base_Yaddr + Yoffset * Bpp;
-		
-		return 0;
-	}
-
-	if((format == SC_IMG_FMT_YCbCr422_SEQ_UYVY) || (format == SC_IMG_FMT_YCbCr422_SEQ_VYUY)
-		|| (format == SC_IMG_FMT_YCbCr422_SEQ_YUYV) || (format == SC_IMG_FMT_YCbCr422_SEQ_YVYU))
-		Yoffset = 2*Yoffset;
-
-	*Y = base_Yaddr + Yoffset;
-
-	if(*U == 0 && *V == 0) {
-		Uaddr = GET_ADDR_YUV42X_spU(base_Yaddr, src_imgx, src_imgy);
-		if(format == SC_IMG_FMT_YCbCr420_SEP)
-			Vaddr = GET_ADDR_YUV420_spV(Uaddr, src_imgx, src_imgy);
-		else
-			Vaddr = GET_ADDR_YUV422_spV(Uaddr, src_imgx, src_imgy);
-	} else {
-		Uaddr = *U;
-		Vaddr = *V;
-	}
-
-	if((format == SC_IMG_FMT_YCbCr420_SEP) || (format == SC_IMG_FMT_YCbCr420_INT_TYPE1)) {
-		if(format == SC_IMG_FMT_YCbCr420_INT_TYPE1)
-			UVoffset = ((src_imgx * start_yPos)/2 + start_x);
-		else
-			UVoffset = ((src_imgx * start_yPos)/4 + start_x/2);
-	} else {
-		if(format == SC_IMG_FMT_YCbCr422_INT_TYPE1)
-			UVoffset = ((src_imgx * start_yPos) + start_x);
-		else
-			UVoffset = ((src_imgx * start_yPos)/2 + start_x/2);
-	}
-	
-	*U = Uaddr + UVoffset;
-	*V = Vaddr + UVoffset;
-}
-EXPORT_SYMBOL(tccxxx_GetAddress);
-#endif // CONFIG_ARCH_TCC892X
 
 extern unsigned int scaler_ended;
 static unsigned int check_status_intr;

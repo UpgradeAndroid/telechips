@@ -109,6 +109,11 @@ typedef struct tcc_sensor_info
 #define USING_HW_I2C
 #include "mt9t111_3mp.h"
 #endif
+#if defined(CONFIG_VIDEO_CAMERA_SENSOR_S5K5CAGA)
+#define SENSOR_3M
+#define USING_HW_I2C
+#include "s5k5caga_3mp.h"
+#endif
 #if defined(CONFIG_VIDEO_CAMERA_SENSOR_MV9317)
 #define SENSOR_3M
 #define USING_HW_I2C
@@ -123,6 +128,11 @@ typedef struct tcc_sensor_info
 #define SENSOR_1_3M 
 #define USING_HW_I2C 
 #include "mt9m113_1.3mp.h"
+#endif
+#if defined(CONFIG_VIDEO_CAMERA_SENSOR_SR130PC10)
+#define SENSOR_1_3M 
+#define USING_HW_I2C 
+#include "sr130pc10_1.3mp.h"
 #endif
 #if defined(CONFIG_VIDEO_CAMERA_SENSOR_OV7690)
 #define SENSOR_VGA
@@ -152,6 +162,10 @@ typedef struct tcc_sensor_info
 #define SENSOR_3M
 #define USING_HW_I2C
 #include "mt9t113_3mp.h"
+#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_S5K5CAGA)
+#define SENSOR_3M
+#define USING_HW_I2C
+#include "s5k5caga_3mp.h"
 #elif defined(CONFIG_VIDEO_CAMERA_SENSOR_MV9317)
 #define SENSOR_3M
 #define USING_HW_I2C
@@ -191,6 +205,10 @@ typedef struct tcc_sensor_info
 #define SENSOR_1_3M 
 #define USING_HW_I2C 
 #include "mt9m113_1.3mp.h" 
+#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_SR130PC10)
+#define SENSOR_1_3M 
+#define USING_HW_I2C 
+#include "sr130pc10_1.3mp.h" 
 #elif defined(CONFIG_VIDEO_ATV_SENSOR_TVP5150)
 #define USING_HW_I2C
 #define SENSOR_TVP5150

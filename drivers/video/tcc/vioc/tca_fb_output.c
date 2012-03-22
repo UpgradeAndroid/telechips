@@ -229,7 +229,7 @@ int (*g2d_release) (struct inode *, struct file *);
 extern struct tcc_freq_table_t gtHdmiClockLimitTable;
 #endif//CONFIG_CPU_FREQ
 extern unsigned int tca_get_lcd_lcdc_num(viod);
-extern unsigned int tca_get_hdmi_lcdc_num(viod);
+extern unsigned int tca_get_output_lcdc_num(viod);
 
 char tcc_output_attach_state = 0;
 char tcc_output_attach_index = 0;
@@ -378,9 +378,15 @@ void TCC_OUTPUT_LCDC_Init(void)
 		scaler_open = tccxxx_scaler_open;
 		scaler_release = tccxxx_scaler_release;
 	#else
-		scaler_ioctl = tccxxx_scaler1_ioctl;
-		scaler_open = tccxxx_scaler1_open;
-		scaler_release = tccxxx_scaler1_release;
+		#if defined(TCC_OUTPUT_3DUI_SUPPORT)
+			scaler_ioctl = tccxxx_scaler2_ioctl;
+			scaler_open = tccxxx_scaler2_open;
+			scaler_release = tccxxx_scaler2_release;
+		#else
+			scaler_ioctl = tccxxx_scaler1_ioctl;
+			scaler_open = tccxxx_scaler1_open;
+			scaler_release = tccxxx_scaler1_release;
+		#endif
 	#endif
 
 	g2d_ioctl = tccxxx_grp_ioctl;
@@ -404,7 +410,7 @@ void TCC_OUTPUT_UPDATE_OnOff(char onoff, char type)
 	#if defined(CONFIG_MACH_TCC8920ST)
 	lcdc_num = pDISP_OUTPUT[type].LCDC_N;
 	#else
-	lcdc_num = tca_get_hdmi_lcdc_num();
+	lcdc_num = tca_get_output_lcdc_num();
 	#endif
 
 	if( pDISP_OUTPUT[type].pVIOC_DispBase == (VIOC_DISP*)tcc_p2v(HwVIOC_DISP0))
@@ -432,10 +438,7 @@ void TCC_OUTPUT_UPDATE_OnOff(char onoff, char type)
 		}
 		else
 		{
-
-			#if !defined(TCC_OUTPUT_3DUI_SUPPORT)
-	 			scaler_open((struct inode *)&scaler_inode, (struct file *)&scaler_filp);
-			#endif
+ 			scaler_open((struct inode *)&scaler_inode, (struct file *)&scaler_filp);
 		}
 
 		g2d_open((struct inode *)&g2d_inode, (struct file *)&g2d_filp);
@@ -448,9 +451,7 @@ void TCC_OUTPUT_UPDATE_OnOff(char onoff, char type)
 		}
 		else
 		{
-			#if !defined(TCC_OUTPUT_3DUI_SUPPORT)
 			scaler_release((struct inode *)&scaler_inode, (struct file *)&scaler_filp);
-			#endif
 		}
 
 		g2d_release((struct inode *)&g2d_inode, (struct file *)&g2d_filp);
@@ -1011,7 +1012,7 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 					fbscaler.dest_winBottom = fbscaler.dest_winTop + img_ht;
 					fbscaler.dest_winLeft = (x_offset>>2);
 					fbscaler.dest_winRight = fbscaler.dest_winLeft + (img_wd>>1);
-					fbscaler.plugin_path = 0x10;	// temporary setting
+					fbscaler.divide_path = 0x01;
 				}
 				else
 				/* 3D MKV : TNB(Top&Bottom) Mode */
@@ -1020,12 +1021,10 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 					fbscaler.dest_winRight = fbscaler.dest_winLeft + img_wd;
 					fbscaler.dest_winTop = (y_offset>>2);
 					fbscaler.dest_winBottom = fbscaler.dest_winTop + (img_ht>>1);
-					fbscaler.plugin_path = 0x11;	// temporary setting
+					fbscaler.divide_path = 0x02;
 				}
 
-				tccxxx_scaler2_open((struct inode *)&scaler_inode, (struct file *)&scaler_filp);
-				tccxxx_scaler2_ioctl((struct file *)&scaler_filp, TCC_SCALER_IOCTRL_KERENL, &fbscaler);
-				tccxxx_scaler2_release((struct inode *)&scaler_inode, (struct file *)&scaler_filp);
+				scaler_ioctl((struct file *)&scaler_filp, TCC_SCALER_IOCTRL_KERENL, &fbscaler);
 
 				dprintk("src_fmt=%d, src_ImgWidth=%d, src_ImgHeight=%d, dest_ImgWidth=%d, dest_ImgHeight=%d\n",
 						fbscaler.src_fmt, fbscaler.src_ImgWidth, fbscaler.src_ImgHeight, fbscaler.dest_ImgWidth, fbscaler.dest_ImgHeight);
@@ -1057,14 +1056,9 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 				fbscaler.dest_winTop = 0;
 				fbscaler.dest_winRight = img_width;
 				fbscaler.dest_winBottom = img_height;
+				fbscaler.divide_path = 0x00;
 
-				#if defined(TCC_OUTPUT_3DUI_SUPPORT)
-					scaler_open((struct inode *)&scaler_inode, (struct file *)&scaler_filp);
-					scaler_ioctl((struct file *)&scaler_filp, TCC_SCALER_IOCTRL_KERENL, &fbscaler);
-					scaler_release((struct inode *)&scaler_inode, (struct file *)&scaler_filp);
-				#else
-					scaler_ioctl((struct file *)&scaler_filp, TCC_SCALER_IOCTRL_KERENL, &fbscaler);
-				#endif
+				scaler_ioctl((struct file *)&scaler_filp, TCC_SCALER_IOCTRL_KERENL, &fbscaler);
 
 				dprintk("src_fmt=%d, src_ImgWidth=%d, src_ImgHeight=%d, dest_ImgWidth=%d, dest_ImgHeight=%d\n",
 						fbscaler.src_fmt, fbscaler.src_ImgWidth, fbscaler.src_ImgHeight, fbscaler.dest_ImgWidth, fbscaler.dest_ImgHeight);
@@ -1703,6 +1697,7 @@ void TCC_OUTPUT_FB_AttachUpdate(char src_lcdc_num)
 		fbscaler.dest_winTop = 0;
 		fbscaler.dest_winRight = dst_wd;
 		fbscaler.dest_winBottom = dst_ht;
+		fbscaler.divide_path = 0x00;
 
 		tccxxx_scaler2_open((struct inode *)&sc_inode, (struct file *)&sc_filp);
 		tccxxx_scaler2_ioctl((struct file *)&sc_filp, TCC_SCALER_IOCTRL_KERENL, &fbscaler);

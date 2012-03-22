@@ -472,6 +472,7 @@ static int tcc_pcm_hw_params(struct snd_pcm_substream *substream, struct snd_pcm
 #if defined(CONFIG_ARCH_TCC892X)
     volatile PADMA    pADMA     = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA0);
     volatile PADMADAI pADMA_DAI = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI0);
+	volatile PADMASPDIFTX pADMA_SPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX1);
     irq_handler_t handler;
 
     if (substream->pcm->device == __SPDIF_DEV_NUM__)
@@ -484,6 +485,7 @@ static int tcc_pcm_hw_params(struct snd_pcm_substream *substream, struct snd_pcm
 #else
     volatile PADMA    pADMA     = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA);
     volatile PADMADAI pADMA_DAI = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI);
+	volatile PADMASPDIFTX pADMA_SPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX);
 #endif
 
     dma = snd_soc_dai_get_dma_data(rtd->cpu_dai, substream);
@@ -648,6 +650,21 @@ static int tcc_pcm_hw_params(struct snd_pcm_substream *substream, struct snd_pcm
         BITCLR(pADMA->ChCtrl,(Hw24 | Hw21 | Hw20));
     }
 #endif
+
+	if (substream->pcm->device == __SPDIF_DEV_NUM__) {
+		//Set Audio or Data Format
+		printk("%s : runtime->format11 = %d\n", __func__, params_format(params));
+
+		if (params_format(params) == SNDRV_PCM_FORMAT_U16) {
+			BITSET(pADMA_SPDIFTX->TxChStat, Hw0);	//Data format
+			printk("%s : set SPDIF TX Channel STATUS to Data format \n",__func__);
+		}
+		else {
+			BITCLR(pADMA_SPDIFTX->TxChStat, Hw0);	//Audio format
+			printk("%s : set SPDIF TX Channel STATUS to PCM format \n",__func__);
+		}
+	}
+
 
     return ret;
 }

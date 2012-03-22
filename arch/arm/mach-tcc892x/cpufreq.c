@@ -472,6 +472,13 @@ int tcc_cpufreq_set_limit_table(struct tcc_freq_table_t *limit_tbl, tcc_freq_lim
 		pr_debug("tcc_cpufreq_set_limit_table idx:%d, cnt:%d\n", idx, tcc_freq_limit_table[idx].usecount);
 	}
 
+#ifdef VIDEO_USING_WVGA_LCD
+	if (tcc_freq_limit_table[TCC_FREQ_LIMIT_VPU_DEC].usecount) {
+		mutex_unlock(&tcc_freq_mutex);
+		return 0;
+	}
+#endif
+
 	if (flag && startup_cpufreq) {
 		if (tcc_freq_limit_table[idx].freq.cpu_freq > tcc_freq_curr_limit_table.cpu_freq)
 			tcc_freq_curr_limit_table.cpu_freq = tcc_freq_limit_table[idx].freq.cpu_freq;
@@ -565,6 +572,12 @@ static int tcc_cpufreq_target(struct cpufreq_policy *policy,
 
 	limit_tbl_flag = 0;
 	for (i=0 ; i<TCC_FREQ_LIMIT_MAX ; i++) {
+#ifdef VIDEO_USING_WVGA_LCD
+		if (tcc_freq_limit_table[TCC_FREQ_LIMIT_VPU_DEC].usecount && (i == TCC_FREQ_LIMIT_MALI)) {
+			continue;
+		}
+#endif
+
 		if (tcc_freq_limit_table[i].usecount > 0) {
 			if (tcc_freq_limit_table[i].freq.cpu_freq > tcc_freq_curr_limit_table.cpu_freq)
 				tcc_freq_curr_limit_table.cpu_freq = tcc_freq_limit_table[i].freq.cpu_freq;
@@ -663,6 +676,10 @@ static int tcc_cpufreq_suspend(struct cpufreq_policy *policy, pm_message_t pmsg)
 	clk_set_rate(gpu_clk, freqs->gpu_freq * 1000);
 	clk_set_rate(hsio_clk, freqs->hsio_freq * 1000);
 
+#if !defined(CONFIG_REGULATOR)
+	tcc_cpufreq_set_voltage(tcc_cpufreq_get_voltage_table(&freqs));
+#endif
+
 	return 0;
 }
 
@@ -670,6 +687,7 @@ static int tcc_cpufreq_resume(struct cpufreq_policy *policy)
 {
 #if !defined(CONFIG_REGULATOR)
 	int ret;
+#endif
 	struct tcc_freq_table_t freqs;
 
 	if (cpufreq_is_performace_governor())
@@ -685,11 +703,13 @@ static int tcc_cpufreq_resume(struct cpufreq_policy *policy)
 		freqs.cpu_freq = TCC_CPU_FREQ_NORMAL_SPEED;
 #endif
 
+#if !defined(CONFIG_REGULATOR)
 	ret = tcc_cpufreq_set_voltage(tcc_cpufreq_get_voltage_table(&freqs));
 	if (ret != 0) {
 		pr_err("cpufreq: regulator_set_voltage failed\n");
 		return -1;
 	}
+#endif
 
 	clk_set_rate(mem_clk, freqs.mem_freq * 1000);
 	clk_set_rate(cpu_clk, freqs.cpu_freq * 1000);
@@ -700,7 +720,6 @@ static int tcc_cpufreq_resume(struct cpufreq_policy *policy)
 	clk_set_rate(hsio_clk, freqs.hsio_freq * 1000);
 
 	memcpy(&tcc_freq_old_table, &freqs, sizeof(struct tcc_freq_table_t));
-#endif
 	return 0;
 }
 

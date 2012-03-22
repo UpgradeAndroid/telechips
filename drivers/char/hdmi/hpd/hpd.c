@@ -26,6 +26,7 @@
 #include <asm/mach-types.h>
 #include <asm/uaccess.h>
 
+#include <mach/hpd.h>
 #include <mach/gpio.h>
 
 #include "../hdmi/regs-hdmi.h"
@@ -73,8 +74,12 @@ static struct hpd_struct hpd_struct;
 static int hpd_open(struct inode *inode, struct file *file);
 static int hpd_release(struct inode *inode, struct file *file);
 static ssize_t hpd_read(struct file *file, char __user *buffer, size_t count, loff_t *ppos);
+static int hpd_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 static unsigned int hpd_poll(struct file *file, poll_table *wait);
 static irqreturn_t hpd_irq_handler(int irq, void *dev_id);
+static int hpd_start(void);
+static int hpd_stop(void);
+
 static int last_hpd_state;
 
 static const struct file_operations hpd_fops =
@@ -84,6 +89,7 @@ static const struct file_operations hpd_fops =
     .release = hpd_release,
     .read    = hpd_read,
     .poll    = hpd_poll,
+    .unlocked_ioctl = hpd_ioctl,
 };
 
 static struct miscdevice hpd_misc_device =
@@ -96,11 +102,27 @@ static struct miscdevice hpd_misc_device =
 
 int hpd_open(struct inode *inode, struct file *file)
 {
-    unsigned char reg;
-
     DPRINTK(KERN_INFO "%s\n", __FUNCTION__);
 
 	clk_enable(hdmi_hpd_clk);
+
+    return 0;
+}
+
+int hpd_release(struct inode *inode, struct file *file)
+{
+    DPRINTK(KERN_INFO "%s\n", __FUNCTION__);
+
+	clk_disable(hdmi_hpd_clk);
+
+    return 0;
+}
+
+int hpd_start(void)
+{
+    unsigned char reg;
+
+    DPRINTK(KERN_INFO "%s\n", __FUNCTION__);
 
 //	if(tcc_hpd_open_num == 0)
 	{
@@ -120,7 +142,7 @@ int hpd_open(struct inode *inode, struct file *file)
     return 0;
 }
 
-int hpd_release(struct inode *inode, struct file *file)
+int hpd_stop(void)
 {
     unsigned char reg;
 
@@ -131,8 +153,6 @@ int hpd_release(struct inode *inode, struct file *file)
     reg &= ~(1<<HDMI_IRQ_HPD_PLUG);
     reg &= ~(1<<HDMI_IRQ_HPD_UNPLUG);
     writeb(reg, HDMI_SS_INTC_CON);
-
-	clk_disable(hdmi_hpd_clk);
 
     return 0;
 }
@@ -164,6 +184,27 @@ unsigned int hpd_poll(struct file *file, poll_table *wait)
         return POLLIN | POLLRDNORM;
 
     return 0;
+}
+
+int hpd_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+{
+    unsigned int laddr;
+	unsigned int uiData;
+
+    DPRINTK(KERN_INFO "%s\n", __FUNCTION__);
+
+    switch (cmd) {
+		case HPD_IOC_START:
+			hpd_start();
+			break;
+		case HPD_IOC_STOP:
+			hpd_stop();
+			break;
+        default:
+            return -EINVAL;	
+	}
+
+	return 0;
 }
 
 /**

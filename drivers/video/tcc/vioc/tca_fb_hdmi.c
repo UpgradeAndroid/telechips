@@ -54,19 +54,10 @@
 #include <mach/vioc_global.h>
 #include <mach/vioc_config.h>
 #include <mach/vioc_scaler.h>
-
-#ifndef ADDRESS_ALIGNED
-#define ADDRESS_ALIGNED
-#define ALIGN_BIT (0x8-1)
-#define BIT_0 3
-#define GET_ADDR_YUV42X_spY(Base_addr) 		(((((unsigned int)Base_addr) + ALIGN_BIT)>> BIT_0)<<BIT_0)
-#define GET_ADDR_YUV42X_spU(Yaddr, x, y) 		(((((unsigned int)Yaddr+(x*y)) + ALIGN_BIT)>> BIT_0)<<BIT_0)
-#define GET_ADDR_YUV422_spV(Uaddr, x, y) 		(((((unsigned int)Uaddr+(x*y/2)) + ALIGN_BIT) >> BIT_0)<<BIT_0)
-#define GET_ADDR_YUV420_spV(Uaddr, x, y) 		(((((unsigned int)Uaddr+(x*y/4)) + ALIGN_BIT) >> BIT_0)<<BIT_0)
-#endif
+#include <mach/tccfb_address.h>
 
 extern void tccxxx_GetAddress(unsigned char format, unsigned int base_Yaddr, unsigned int src_imgx, unsigned int  src_imgy,
-					unsigned int start_x, unsigned int start_y, unsigned int* Y, unsigned int* U,unsigned int* V);
+									unsigned int start_x, unsigned int start_y, unsigned int* Y, unsigned int* U,unsigned int* V);
 
 #if 0
 #define dprintk(msg...)	 { printk( "tca_hdmi: " msg); }
@@ -305,23 +296,23 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 	//pLCDC_channel->LISR =((scale_y<<4) | scale_x);
 	VIOC_RDMA_SetImageScale(pRDMABase, scale_x, scale_y);
 
-	//if (ImageInfo->ImageCrop)
-	if( (ImageInfo->crop_left != 0) || (ImageInfo->crop_right != 0) || (ImageInfo->crop_top != 0) || (ImageInfo->crop_bottom != 0))
+	//ImageCrop	
+	if( !( ((ImageInfo->crop_left == 0) && (ImageInfo->crop_right == ImageInfo->Frame_width)) &&  ((ImageInfo->crop_top == 0) && (ImageInfo->crop_bottom == ImageInfo->Frame_height)))  )
 	{
 		dprintk(" Image Crop left=[%d], right=[%d], top=[%d], bottom=[%d] \n", ImageInfo->crop_left, ImageInfo->crop_right, ImageInfo->crop_top, ImageInfo->crop_bottom);
 		int addr_Y = (unsigned int)ImageInfo->addr0;
 		int addr_U = (unsigned int)ImageInfo->addr1;
 		int addr_V = (unsigned int)ImageInfo->addr2;
 		
-		tccxxx_GetAddress(ImageInfo->fmt, (unsigned int)ImageInfo->addr0, ImageInfo->Frame_width, ImageInfo->Frame_height, 
-								ImageInfo->crop_left, ImageInfo->crop_top, &addr_Y, &addr_U, &addr_V);
-		
-		VIOC_RDMA_SetImageSize(pRDMABase, ImageInfo->Frame_width -ImageInfo->crop_left - ImageInfo->crop_right,
-													ImageInfo->Frame_height - ImageInfo->crop_top - ImageInfo->crop_bottom);
+		tccxxx_GetAddress(ImageInfo->fmt, (unsigned int)ImageInfo->addr0, ImageInfo->Frame_width, ImageInfo->Frame_height, 		
+								ImageInfo->crop_left, ImageInfo->crop_top, &addr_Y, &addr_U, &addr_V);		
+
+		VIOC_RDMA_SetImageSize(pRDMABase, ImageInfo->crop_right - ImageInfo->crop_left, ImageInfo->crop_bottom - ImageInfo->crop_top);
 		VIOC_RDMA_SetImageBase(pRDMABase, addr_Y, addr_U, addr_V);
 	}
 	else
-	{		
+	{	
+		dprintk(" don't Image Crop left=[%d], right=[%d], top=[%d], bottom=[%d] \n", ImageInfo->crop_left, ImageInfo->crop_right, ImageInfo->crop_top, ImageInfo->crop_bottom);
 		VIOC_RDMA_SetImageSize(pRDMABase, ImageInfo->Frame_width, ImageInfo->Frame_height);
 		VIOC_RDMA_SetImageBase(pRDMABase, ImageInfo->addr0, ImageInfo->addr1, ImageInfo->addr2);		
 	}

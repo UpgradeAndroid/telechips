@@ -79,6 +79,10 @@
 #define SENSOR_I2C_SLAVE_ID 		(0xC4>>1)
 #elif defined(CONFIG_VIDEO_CAMERA_NEXTCHIP_TEST)
 #define SENSOR_I2C_SLAVE_ID 		(0x50>>1)
+#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_S5K5CAGA)
+#define SENSOR_I2C_SLAVE_ID 		(0x5A>>1)
+#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_SR130PC10)
+#define SENSOR_I2C_SLAVE_ID 		(0x40>>1)
 #endif
 #endif // defined(CONFIG_VIDEO_TCCXX_CAMERA)
 
@@ -518,7 +522,7 @@ static struct tcc_i2c_platform_data tcc8920_core2_platform_data = {
     .core_clk_rate      = 4*1000*1000,    /* core clock rate: 4MHz */
     .core_clk_name      = "i2c2",
     .smu_i2c_flag       = 0,
-    .i2c_ch_clk_rate[0] = 100,      /* SCL clock rate : 100kHz */
+    .i2c_ch_clk_rate[0] = 400,      /* SCL clock rate : 100kHz */
 };
 #endif
 #if defined(CONFIG_I2C_TCC_CORE3)
@@ -670,6 +674,17 @@ static struct tcc_uart_platform_data uart1_data_bt = {
 };
 #endif
 
+static struct platform_device tcc_bluetooth_device = {	
+	.name = "tcc_bluetooth_rfkill",	
+	.id = -1,
+};
+
+static void tcc_add_bluetooth_device(void)
+{
+	platform_device_register(&tcc_bluetooth_device);
+}
+
+
 /*----------------------------------------------------------------------
  * Device	  : ADC touchscreen resource
  * Description: tcc8920_touchscreen_resource
@@ -706,16 +721,6 @@ static struct tcc_adc_ts_platform_data tcc_touchscreen_pdata = {
 	.max_y = 3800,
 #endif
 };
-
-static struct platform_device tcc_bluetooth_device = {	
-	.name = "tcc_bluetooth_rfkill",	
-	.id = -1,
-};
-
-static void tcc_add_bluetooth_device(void)
-{
-	platform_device_register(&tcc_bluetooth_device);
-}
 
 static struct platform_device tcc8920_touchscreen_device = {
 	.name		= "tcc-ts",

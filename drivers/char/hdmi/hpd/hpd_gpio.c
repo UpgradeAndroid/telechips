@@ -27,6 +27,7 @@
 #include <asm/uaccess.h>
 
 #include <mach/tcc_board_hdmi.h>
+#include <mach/hpd.h>
 #include <mach/gpio.h>
 
 #include "../hdmi/regs-hdmi.h"
@@ -61,11 +62,14 @@ static struct hpd_struct hpd_struct;
 static int hpd_open(struct inode *inode, struct file *file);
 static int hpd_release(struct inode *inode, struct file *file);
 static ssize_t hpd_read(struct file *file, char __user *buffer, size_t count, loff_t *ppos);
+static int hpd_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 static unsigned int hpd_poll(struct file *file, poll_table *wait);
 static irqreturn_t hpd_irq_handler(int irq, void *dev_id);
+static int hpd_start(void);
+static int hpd_stop(void);
+
 static int last_hpd_state;
 static unsigned hpd_port;
-
 
 static const struct file_operations hpd_fops =
 {
@@ -73,6 +77,7 @@ static const struct file_operations hpd_fops =
     .open    = hpd_open,
     .release = hpd_release,
     .read    = hpd_read,
+    .unlocked_ioctl = hpd_ioctl,
 //    .poll    = hpd_poll,
 };
 
@@ -86,19 +91,10 @@ static struct miscdevice hpd_misc_device =
 
 int hpd_open(struct inode *inode, struct file *file)
 {
-	unsigned char reg;
+	DPRINTK(KERN_INFO "%s\n", __FUNCTION__);
 
-    	DPRINTK(KERN_INFO "%s\n", __FUNCTION__);
 	clk_enable(hdmi_hpd_clk);
 
-	/* disable HPD interrupts */
-	reg = readb(HDMI_SS_INTC_CON);
-	reg &= ~(1<<HDMI_IRQ_HPD_PLUG);
-	reg &= ~(1<<HDMI_IRQ_HPD_UNPLUG);
-	writeb(reg, HDMI_SS_INTC_CON);
-	
-
-	last_hpd_state  = 1;
     return 0;
 }
 
@@ -145,6 +141,48 @@ unsigned int hpd_poll(struct file *file, poll_table *wait)
         return POLLIN | POLLRDNORM;
 
     return 0;
+}
+
+int hpd_start(void)
+{
+	unsigned char reg;
+
+	DPRINTK(KERN_INFO "%s\n", __FUNCTION__);
+
+	/* disable HPD interrupts */
+	reg = readb(HDMI_SS_INTC_CON);
+	reg &= ~(1<<HDMI_IRQ_HPD_PLUG);
+	reg &= ~(1<<HDMI_IRQ_HPD_UNPLUG);
+	writeb(reg, HDMI_SS_INTC_CON);
+	
+	last_hpd_state  = 1;
+
+    return 0;
+}
+
+int hpd_stop(void)
+{
+	DPRINTK(KERN_INFO "%s\n", __FUNCTION__);
+
+    return 0;
+}
+
+int hpd_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+{
+    DPRINTK(KERN_INFO "%s\n", __FUNCTION__);
+
+    switch (cmd) {
+		case HPD_IOC_START:
+			hpd_start();
+			break;
+		case HPD_IOC_STOP:
+			hpd_stop();
+			break;
+        default:
+            return -EINVAL;	
+	}
+
+	return 0;
 }
 
 /**

@@ -1496,6 +1496,8 @@ void sensor_if_set_facing_front(void)
 {
 	#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9M113)
 		sensor_info_init_mt9m113(&tcc_sensor_info);
+	#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_SR130PC10)
+		sensor_info_init_sr130pc10(&tcc_sensor_info);
 	#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_OV7690)
 		sensor_info_init_ov7690(&tcc_sensor_info);
 	#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_SIV100B)
@@ -1507,6 +1509,8 @@ void sensor_if_set_facing_back(void)
 {
 	#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9P111)
 		sensor_info_init_mt9p111(&tcc_sensor_info);
+	#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_S5K5CAGA)
+		sensor_info_init_s5k5caga(&tcc_sensor_info);
 	#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9T111)
 		sensor_info_init_mt9t111(&tcc_sensor_info);
 	#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9D112)
@@ -1518,6 +1522,8 @@ void sensor_init_func_set_facing_front(SENSOR_FUNC_TYPE *sensor_func)
 {
 	#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9M113)
 		sensor_init_fnc_mt9m113(sensor_func);
+	#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_SR130PC10)
+		sensor_init_fnc_sr130pc10(sensor_func);
 	#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_OV7690)
 		sensor_init_fnc_ov7690(sensor_func);
 	#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_SIV100B)
@@ -1529,6 +1535,8 @@ void sensor_init_func_set_facing_back(SENSOR_FUNC_TYPE *sensor_func)
 {
 	#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9P111)
 		sensor_init_fnc_mt9p111(sensor_func);
+	#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_S5K5CAGA)
+		sensor_init_fnc_s5k5caga(sensor_func);
 	#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9T111)
 		sensor_init_fnc_mt9t111(sensor_func);
 	#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9D112)

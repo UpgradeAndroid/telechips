@@ -72,9 +72,10 @@ typedef struct {
 	unsigned int		dest_winTop;
 	unsigned int		dest_winRight;
 	unsigned int		dest_winBottom;
-	unsigned int 		viqe_onthefly; 		// 0 : m to m , 0x1 : onthefly read  , 0x2 : onthefly write , 0x3 : read & write onthefly
+	unsigned int 		viqe_onthefly; 	// 0 : m to m , 0x1 : onthefly read  , 0x2 : onthefly write , 0x3 : read & write onthefly
 	unsigned int		interlaced;
 	unsigned char 		plugin_path;
+	unsigned char 		divide_path;	// 0 : Normal, 1: SBS(SideBySide), 2: TNB(Top & Botton)
 }SCALER_TYPE;
 
 typedef struct {

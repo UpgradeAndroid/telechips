@@ -15,6 +15,7 @@
  * GNU General Public License for more details.
  */
 
+//#define VIDEO_USING_WVGA_LCD //ZzaU :: Below clock table is just for 1280x800 LCD. Enable this feature if WVGA LCD will be used.
 
 static struct tcc_freq_table_t gtClockLimitTable[] = {
 	/*  CPU /   DDI /   MEM /   GPU /    IO /  VBUS /  VCOD /   SMU /  HSIO */
@@ -63,11 +64,11 @@ static struct tcc_freq_table_t gtClockLimitTable[] = {
 //sync with gtJpegClockLimitTable  default 5M / 720p 
 const struct tcc_freq_table_t gtCameraClockLimitTable[] =
 {
-       {      0, 267425, 380710,      0,      0,      0,      0,      0,      0 },     
-       {      0, 267425, 456860,      0,      0,      0,      0,      0,      0 },     
-       {      0, 267425, 456860,      0,      0,      0,      0,      0,      0 },     
-//       {      0, 386880, 533000,      0,      0,      0,      0,      0,      0 },     // Core 1.30V
-//       {      0, 386880, 533000,      0,      0,      0,      0,      0,      0 },     // Core 1.30V
+	{      0, 267425, 380710,      0,      0,      0,      0,      0,      0 },     
+	{      0, 267425, 456860,      0,      0,      0,      0,      0,      0 },     
+	{      0, 267425, 456860,      0,      0,      0,      0,      0,      0 },     
+//	{      0, 386880, 533000,      0,      0,      0,      0,      0,      0 },	// Core 1.30V
+//	{      0, 386880, 533000,      0,      0,      0,      0,      0,      0 },	// Core 1.30V
 };
 
 const struct tcc_freq_table_t gtISPCameraClockLimitTable[] =
@@ -81,39 +82,63 @@ const struct tcc_freq_table_t gtVpuNormalClockLimitTable[] =
 {
 	// PLL: 594 / 500 / 432 / 672
 	/*  CPU /   DDI /   MEM /   GPU /    IO /  VBUS /  VCOD /   SMU /  HSIO */	
+#ifdef VIDEO_USING_WVGA_LCD
+	{      0, 155150, 456860, 317140,  97470, 137750, 137750,      0,      0 },	// Core 1.00V  (137/137)
+	{      0, 189010, 456860, 317140, 118735, 167800, 167800,      0,      0 },	// Core 1.05V  (166/166)
+	{      0, 267425, 456860, 317140, 168000, 237425, 237425,      0,      0 },	// Core 1.15V  (224/224)
+#else
 	{ 343750, 189010, 322885,      0, 118735, 167800, 167800,      0,      0 },	// Core 1.05V  (166/166)
-	{ 401250, 222860, 380710,      0, 140000, 197860, 197860,      0,      0 },	// Core 1.10V  (168/168)
+	{ 401250, 222860, 380710,      0, 140000, 197860, 197860,      0,      0 },	// Core 1.10V  (182/182)
 	{ 401250, 386880, 600000,      0, 243040, 343480, 343480,      0,      0 },	// Core 1.30V  (336/336)
+#endif
 };
 
 const struct tcc_freq_table_t gtVpu_480p_ClockLimitTable[] =
 {
 	/*  CPU /   DDI /   MEM /   GPU /    IO /  VBUS /  VCOD /   SMU /  HSIO */	
-//	{ 343750, 189010, 322885,      0, 118735, 167800, 167800,      0,      0 },
+#ifdef VIDEO_USING_WVGA_LCD
+	{      0,      0,      0,      0,      0,      0,      0,      0,      0 },	// * ~ 10Mbps,  Core 1.00V
+	{      0,      0,      0,      0,      0,      0,      0,      0,      0 },	//   10~20Mbps, Core 1.00V
+	{      0,      0,      0,      0,      0,      0,      0,      0,      0 },	//   20~30Mbps, Core 1.05V
+	{      0,      0,      0,      0,      0,      0,      0,      0,      0 },	//   30Mbps ~,  Core 1.10V
+#else
 	{ 343750,      0,      0,      0, 118735,      0,      0,      0,      0 },	// * ~ 10Mbps,  Core 1.05V
 	{ 401250,      0,      0,      0, 140000,      0,      0,      0,      0 },	//   10~20Mbps, Core 1.10V
 	{ 468750,      0,      0,      0, 168000,      0,      0,      0,      0 },	//   20~30Mbps, Core 1.15V
 	{ 546875,      0,      0,      0, 168000,      0,      0,      0,      0 },	//   30Mbps ~,  Core 1.15V
+#endif
 };
 
 const struct tcc_freq_table_t gtVpu_720p_ClockLimitTable[] =
 {
 	/*  CPU /   DDI /   MEM /   GPU /    IO /  VBUS /  VCOD /   SMU /  HSIO */	
-//	{ 401250, 222860, 380710,      0, 140000, 197860, 197860,      0,      0 },
+#ifdef VIDEO_USING_WVGA_LCD
+	{      0,      0,      0,      0,      0,      0,      0,      0,      0 }, //  ~ 10Mbps,  Core 1.05V
+	{      0,      0,      0,      0,      0,      0,      0,      0,      0 }, // *10~20Mbps, Core 1.05V
+	{ 401250,      0,      0,      0,      0,      0,      0,      0,      0 }, //  20~30Mbps, Core 1.05V
+	{ 468750, 312000,      0,      0, 196000, 277000, 277000,      0,      0 },	//  30Mbps ~,  Core 1.20V (250/250)
+#else
 	{ 401250,      0,      0,      0, 168000,      0,      0,      0,      0 }, //  ~ 10Mbps,  Core 1.15V
 	{ 468750,      0,      0,      0, 168000,      0,      0,      0,      0 }, // *10~20Mbps, Core 1.15V
-	{ 625000,      0,      0,      0, 219520, 237425, 237425,      0,      0 }, //  20~30Mbps, Core 1.25V
+	{ 625000,      0,      0,      0, 219520, 237425, 237425,      0,      0 }, //  20~30Mbps, Core 1.20V
 	{ 812500, 386880, 533000,      0, 243040, 343480, 343480,      0,      0 },	//  30Mbps ~,  Core 1.30V
+#endif
 };
 
 const struct tcc_freq_table_t gtVpu_1080p_ClockLimitTable[] =
 {
 	/*  CPU /   DDI /   MEM /   GPU /    IO /  VBUS /  VCOD /   SMU /  HSIO */	
-//	{ 625000, 386880, 533000,      0, 243040, 343480, 343480,      0,      0 },	
+#ifdef VIDEO_USING_WVGA_LCD
+	{      0,      0,      0,      0,      0,      0,      0,      0,      0 }, // 	~ 10Mbps,  Core 1.15V
+	{      0,      0,      0,      0,      0,      0,      0,      0,      0 }, // * 10~20Mbps, Core 1.15V
+	{ 468750, 312000,      0,      0, 196000, 277000, 277000,      0,      0 }, //   20~30Mbps, Core 1.20V (250/250)
+	{ 625000, 386880, 600000,      0, 243040, 343480, 343480,      0,      0 }, //   30Mbps ~,  Core 1.30V (343/343)
+#else
 	{ 468750,      0,      0, 414400,      0,      0,      0,      0,      0 }, // 	~ 10Mbps,  Core 1.30V
 	{ 625000,      0,      0, 414400,      0,      0,      0,      0,      0 }, // * 10~20Mbps, Core 1.30V
 	{ 718750,      0,      0, 458800,      0,      0,      0,      0,      0 }, //   20~30Mbps, Core 1.30V
 	{ 812500,      0,      0, 458800,      0,      0,      0,      0,      0 }, //   30Mbps ~,  Core 1.30V
+#endif
 };
 
 const struct tcc_freq_table_t gtJpegClockLimitTable[]= {
@@ -123,11 +148,15 @@ const struct tcc_freq_table_t gtJpegClockLimitTable[]= {
 };
 
 const struct tcc_freq_table_t gtJpegMaxClockLimitTable = {
-	       0,      0, 533000,      0, 243040, 297000, 297000,      0,      0	// Core 1.30V
+	       0,      0, 600000,      0, 243040, 343480, 343480,      0,      0	// Core 1.30V
 };
 
 const struct tcc_freq_table_t gtHdmiClockLimitTable = {
+#ifdef VIDEO_USING_WVGA_LCD
+	  625000, 386880, 600000,      0, 243040, 343480, 343480,      0,      0	// Core 1.30V
+#else
 	  625000, 386880, 600000,      0, 243040,      0,      0,      0,      0	// Core 1.30V
+#endif
 };
 
 const struct tcc_freq_table_t gtMaliClockLimitTable = {
