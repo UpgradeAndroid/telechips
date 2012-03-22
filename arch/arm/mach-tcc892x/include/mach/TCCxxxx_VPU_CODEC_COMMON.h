@@ -56,6 +56,7 @@
 #define STD_MJPG	10//!< DEC
 #define STD_VP8		11//!< DEC
 #define STD_THEORA	12//!< DEC
+#define STD_MVC		14//!< DEC
 
 
 
