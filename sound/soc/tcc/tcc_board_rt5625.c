@@ -74,29 +74,29 @@ static int tcc_spk_func;
 
 static void spk_mute()
 {
-	gpio_set_value(TCC_GPG(6), 0);
+//	gpio_set_value(TCC_GPG(6), 0);
 }
 
 static void spk_un_mute()
 {
-	gpio_set_value(TCC_GPG(6), 1);
+//	gpio_set_value(TCC_GPG(6), 1);
 }
 
 static void hp_mute()
 {
-	gpio_set_value(TCC_GPD(11), 0);
+//	gpio_set_value(TCC_GPD(11), 0);
 }
 
 static void hp_un_mute()
 {
-	gpio_set_value(TCC_GPD(11), 1);
+//	gpio_set_value(TCC_GPD(11), 1);
 }
 
 int tcc_hp_is_valid(void)
 {
 printk("%s() \n", __func__);
     // gpio_get_value is ==> 0: disconnect, 1: connect
-    return gpio_get_value(TCC_GPD(10));
+//    return gpio_get_value(TCC_GPD(10));
 }
 
 int tcc_hp_hw_mute(int flag)
@@ -121,11 +121,12 @@ printk("%s() %d\n", __func__, flag);
 static void tcc_ext_control(struct snd_soc_codec *codec)
 {
 	int spk = 0;
+    struct snd_soc_dapm_context *dapm = &codec->dapm;
 
-    alsa_dbg("%s() tcc_jack_func=%d,  codec->bias_level=%d, SND_SOC_BIAS_ON=%d\n", __func__, tcc_jack_func, codec->bias_level, SND_SOC_BIAS_ON);
+    alsa_dbg("%s() tcc_jack_func=%d,  dapm->bias_level=%d\n", __func__, tcc_jack_func, dapm->bias_level);
 
 	/* set up jack connection */
-    if(codec->bias_level == SND_SOC_BIAS_ON) {
+    if(dapm->bias_level == SND_SOC_BIAS_ON) {
     	switch (tcc_jack_func) {
     	case TCC_HP:
             tcc_hp_hw_mute(false);
@@ -140,17 +141,17 @@ static void tcc_ext_control(struct snd_soc_codec *codec)
 	if (tcc_spk_func == TCC_SPK_ON)
 	{
 		spk = 1;
-		snd_soc_dapm_enable_pin(codec, "Ext Spk");		
+		snd_soc_dapm_enable_pin(dapm, "Ext Spk");		
 	}
 
 	/* signal a DAPM event */
-	snd_soc_dapm_sync(codec);
+	snd_soc_dapm_sync(dapm);
 }
 
 static int tcc_startup(struct snd_pcm_substream *substream)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_codec *codec = rtd->socdev->card->codec;
+	struct snd_soc_codec *codec = rtd->codec;
 
     alsa_dbg("%s()\n", __func__);
 
@@ -162,13 +163,14 @@ static int tcc_startup(struct snd_pcm_substream *substream)
 /* we need to unmute the HP at shutdown as the mute burns power on tcc83x */
 static void tcc_shutdown(struct snd_pcm_substream *substream)
 {
+	 alsa_dbg("%s() null\n", __func__);
 }
 
 static int tcc_hw_params(struct snd_pcm_substream *substream, struct snd_pcm_hw_params *params)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
-	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
+	struct snd_soc_dai *codec_dai = rtd->codec_dai;
+	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
 	unsigned int clk = 0;
 	int ret = 0;
 
@@ -185,6 +187,7 @@ static int tcc_hw_params(struct snd_pcm_substream *substream, struct snd_pcm_hw_
 	case 22050:
     case 32000:
 	case 44100:
+    default:
 		clk = 11289600;
 		break;
 	}
@@ -223,6 +226,7 @@ static struct snd_soc_ops tcc_ops = {
 
 static int tcc_get_jack(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
 {
+	 alsa_dbg("%s() tcc_jack_func = %d\n", __func__, tcc_jack_func);
 	ucontrol->value.integer.value[0] = tcc_jack_func;
 	return 0;
 }
@@ -243,6 +247,7 @@ static int tcc_set_jack(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value
 
 static int tcc_get_spk(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
 {
+	 alsa_dbg("%s() tcc_jack_func = %d\n", __func__, tcc_jack_func);
 	ucontrol->value.integer.value[0] = tcc_spk_func;
 	return 0;
 }
@@ -250,9 +255,7 @@ static int tcc_get_spk(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value 
 static int tcc_set_spk(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
 {
 	struct snd_soc_codec *codec =  snd_kcontrol_chip(kcontrol);
-
-	alsa_dbg("%s() tcc_spk_func=%d, ucontrol->value.integer.value[0]=%d\n", __func__, tcc_spk_func, ucontrol->value.integer.value[0]);
-
+	 alsa_dbg("%s()\n", __func__);
 	if (tcc_spk_func == ucontrol->value.integer.value[0])
 		return 0;
 
@@ -327,30 +330,32 @@ static const struct snd_kcontrol_new rt5625_tcc_controls[] = {
 /*
  * Logic for a rt5625 as connected on a Sharp SL-C7x0 Device
  */
-static int tcc_rt5625_init(struct snd_soc_codec *codec)
+static int tcc_rt5625_init(struct snd_soc_pcm_runtime *rtd)
 {
 	int i, err;
+	struct snd_soc_codec *codec = rtd->codec;
+	struct snd_soc_dapm_context *dapm = &codec->dapm;
 
     alsa_dbg("%s() in...\n", __func__);
 
   //  snd_soc_dapm_enable_pin(codec, "MICIN");
  
 	/* Add tcc specific controls */
-	for (i = 0; i < ARRAY_SIZE(rt5625_tcc_controls); i++) {
-		err = snd_ctl_add(codec->card,
-			snd_soc_cnew(&rt5625_tcc_controls[i],codec, NULL));
-		if (err < 0)
-			return err;
-	}
+	err = snd_soc_add_controls(codec, rt5625_tcc_controls,
+				ARRAY_SIZE(rt5625_tcc_controls));
+	if (err)
+		return err;
+
+
 
 	/* Add tcc specific widgets */
-	snd_soc_dapm_new_controls(codec, tcc_rt5625_dapm_widgets,
+	snd_soc_dapm_new_controls(dapm, tcc_rt5625_dapm_widgets,
 				  ARRAY_SIZE(tcc_rt5625_dapm_widgets));
 
 	/* Set up Telechips specific audio path telechips audio_map */
-	snd_soc_dapm_add_routes(codec, tcc_audio_map, ARRAY_SIZE(tcc_audio_map));
+	snd_soc_dapm_add_routes(dapm, tcc_audio_map, ARRAY_SIZE(tcc_audio_map));
 
-	snd_soc_dapm_sync(codec);
+	snd_soc_dapm_sync(dapm);
 
     alsa_dbg("%s() call snd_soc_jack_new()\n", __func__);
 	return 0;
@@ -366,36 +371,43 @@ static int tcc_iec958_dummy_init(struct snd_soc_codec *codec)
 /* tcc digital audio interface glue - connects codec <--> CPU */
 static struct snd_soc_dai_link tcc_dai[] = {
 	{
-		.name = "ALC5625",
-		.stream_name = "ALC5625",
-		.cpu_dai = &tcc_i2s_dai[0],
-		.codec_dai = &rt5625_dai,
+		.name = "rt5625",
+		.stream_name = "rt5625",
+		.platform_name = "tcc-pcm-audio",
+		.cpu_dai_name  = "tcc-dai-i2s",
+
+        .codec_name = "rt5625 I2C Codec.0-001f",
+        .codec_dai_name = "rt5625-hifi",
 		.init = tcc_rt5625_init,
 		.ops = &tcc_ops,
 	},
     {
         .name = "TCC",
         .stream_name = "IEC958",
-        .cpu_dai = &tcc_i2s_dai[1],
-        .codec_dai = &iec958_dai,
+        .platform_name = "tcc-pcm-audio",
+        .cpu_dai_name   = "tcc-dai-spdif",
+        
+        .codec_name = "tcc-iec958",
+        .codec_dai_name = "IEC958",
         .init = tcc_iec958_dummy_init,
         .ops = &tcc_ops,
     },
 };
 
 
-/* tcc audio machine driver */
+
+/* tcc audio subsystem */
 static struct snd_soc_card tcc_soc_card = {
-	.platform = &tcc_soc_platform,
-	.name = "tccx_board",
-	.dai_link = tcc_dai,
-	.num_links = ARRAY_SIZE(tcc_dai),
+	.driver_name = "TCC Audio",
+    .long_name = "Telechips Board",
+    .dai_link = tcc_dai,
+    .num_links = ARRAY_SIZE(tcc_dai),
 };
 
 
 /* 
  * FIXME: This is a temporary bodge to avoid cross-tree merge issues. 
- * New drivers should register the wm8988 I2C device in the machine 
+ * New drivers should register the rt5625 I2C device in the machine 
  * setup code (under arch/arm for ARM systems). 
  */
 static int rt5625_i2c_register(void)
@@ -408,7 +420,7 @@ static int rt5625_i2c_register(void)
 
     memset(&info, 0, sizeof(struct i2c_board_info));
     info.addr = 0x1F; // or 0x1E
-    strlcpy(info.type, "tcc_rt5625", I2C_NAME_SIZE);
+    strlcpy(info.type, "rt5625", I2C_NAME_SIZE);
 
     adapter = i2c_get_adapter(0);
     if (!adapter) 
@@ -428,42 +440,31 @@ static int rt5625_i2c_register(void)
 }
 
 
-/* tcc audio subsystem */
-static struct snd_soc_device tcc_snd_devdata = {
-	.card = &tcc_soc_card,
-	.codec_dev = &soc_codec_dev_rt5625,
-};
-
 static struct platform_device *tcc_snd_device;
 
 static int __init tcc_init_rt5625(void)
 {
 
 	int ret;
-//#elif defined(CONFIG_ARCH_TCC88XX)
+
+    tcc_soc_card.name = "TCC892x EVM";
     alsa_dbg("TCC Board probe [%s]\n", __FUNCTION__);
+#if defined(CONFIG_MACH_M805_892X)
+    alsa_dbg("=======TCC Board probe [%s]\n", __FUNCTION__);
 
     /* h/w mute control */
-    if(machine_is_m803()) {
-        tcc_gpio_config(TCC_GPG(6), GPIO_FN(0));
-        tcc_gpio_config(TCC_GPD(11), GPIO_FN(0));
-        tcc_gpio_config(TCC_GPF(15), GPIO_FN(0));
-        gpio_request(TCC_GPG(6), "SPK_MUTE_CTL");
-        gpio_request(TCC_GPD(11), "HP_MUTE_CTL");
-        gpio_request(TCC_GPF(15), "CODEC_RST#");
+    if(machine_is_m805_892x()) {
+        tcc_gpio_config(TCC_GPG(5), GPIO_FN(0));
+        gpio_request(TCC_GPG(5), "HP_MUTE_CTL");
         
-        gpio_direction_output(TCC_GPG(6), 0);    // Speaker mute
-        gpio_direction_output(TCC_GPD(11), 1);   // HeadPhone mute
-        gpio_direction_output(TCC_GPF(15), 1);   // HeadPhone mute
+        gpio_direction_output(TCC_GPG(5), 0);   // HeadPhone mute
         tcc_hp_hw_mute(false);
         tcc_spk_hw_mute(false);
-    }else if(machine_is_tcc8800()) {
-        gpio_request(TCC_GPEXT1(5), "CODEC_ON");
-        gpio_request(TCC_GPEXT2(0), "UN_MUTE");
-
-        gpio_direction_output(TCC_GPEXT1(5), 1);        // Codec power on
-        gpio_direction_output(TCC_GPEXT2(0), 1);        // Line ouput un-mute
     }
+
+#else
+    alsa_dbg("TCC Board probe [%s]\n", __FUNCTION__);
+#endif
 
     tca_tcc_initport();
 
@@ -473,13 +474,14 @@ static int __init tcc_init_rt5625(void)
 	if (!tcc_snd_device)
 		return -ENOMEM;
 
-	platform_set_drvdata(tcc_snd_device, &tcc_snd_devdata);
-	tcc_snd_devdata.dev = &tcc_snd_device->dev;
+	platform_set_drvdata(tcc_snd_device, &tcc_soc_card);
+
 	ret = platform_device_add(tcc_snd_device);
 
 	if (ret)
 		platform_device_put(tcc_snd_device);
 
+    alsa_dbg("=======end func: tcc_init_rt5625\n");
 	return ret;
 }
 
