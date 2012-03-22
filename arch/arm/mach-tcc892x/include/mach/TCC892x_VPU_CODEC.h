@@ -156,7 +156,6 @@ typedef struct dec_init_t
 #define M4V_DEBLK_ENABLE		1	// mpeg-4 deblocking
 #define M4V_GMC_FILE_SKIP		(0<<1)	// (default) seq.init failure
 #define M4V_GMC_FRAME_SKIP		(1<<1)	// frame skip without decoding
-#define MVC_DEC_ENABLE			(1<<20)	// H.264 MVC enable
 
 #define SEC_AXI_BUS_DISABLE		(0<<21)	//don't use sec. AXI bus.
 #define SEC_AXI_BUS_ENABLE_TCC93XX	(1<<21)	//Use SRAM for sec. AXI bus on TCC93XX(gets about 5% improvement of performance)
@@ -221,7 +220,7 @@ typedef struct dec_buffer_t
 	int m_iFrameBufferCount;				//!< allocated frame buffer count
 	codec_addr_t m_AvcSliceSaveBufferAddr;  //!< start address and size of slice save buffer which the decoder can save slice RBSP : multiple of 4
 	int m_iAvcSliceSaveBufferSize;			//!< multiple of 1024
-	codec_addr_t m_Vp8MbDataSaveBufferAddr;  //!< start address and size of mb save buffer which the decoder can save mb data : multiple of 4
+	codec_addr_t m_Vp8MbDataSaveBufferAddr; //!< start address and size of mb save buffer which the decoder can save mb data : multiple of 4
 	int m_iVp8MbDataSaveBufferSize;			//!< multiple of 1024
 	int m_iMJPGScaleRatio;				//!< JPEG Scaling Ratio
 								//!< 0 ( Original Size )
@@ -259,33 +258,7 @@ typedef struct dec_ring_buffer_status_out_t
 	codec_addr_t m_ptrWriteAddr_PA;
 } dec_ring_buffer_status_out_t;
 
-// MVC specific picture information
-typedef struct {
-    int viewIdxDisplay;
-    int viewIdxDecoded;
-} MvcPictureInfo;
 
-// AVC specific SEI information (frame packing arrangement SEI)
-typedef struct {
-    unsigned int exist;
-    unsigned int frame_packing_arrangement_id;
-    unsigned int frame_packing_arrangement_cancel_flag; 
-    unsigned int quincunx_sampling_flag;
-    unsigned int spatial_flipping_flag;
-    unsigned int frame0_flipped_flag;
-    unsigned int field_views_flag;
-    unsigned int current_frame_is_frame0_flag;
-    unsigned int frame0_self_contained_flag;
-    unsigned int frame1_self_contained_flag;
-    unsigned int frame_packing_arrangement_extension_flag;
-    unsigned int frame_packing_arrangement_type;
-    unsigned int content_interpretation_type;
-    unsigned int frame0_grid_position_x;
-    unsigned int frame0_grid_position_y;
-    unsigned int frame1_grid_position_x;
-    unsigned int frame1_grid_position_y;
-    unsigned int frame_packing_arrangement_repetition_period;
-} MvcAvcFpaSei;
 
 //-----------------------------------------------------
 // data structure to get resulting information from 
@@ -323,10 +296,6 @@ typedef struct dec_output_info_t
 
 	//! RV Only
 	int m_iRvTimestamp;				//!< RV TR syntax
-
-	//! MVC Only
-	MvcPictureInfo m_mvcPicInfo; 
-	MvcAvcFpaSei m_avcFpaSei;
 
 	int m_iHeight;					//!< Height of input bitstream. In some cases, this value can be different from the height of previous frames.
 	int m_iWidth;					//!< Width of input bitstream. In some cases, this value can be different from the height of previous frames.
@@ -390,7 +359,6 @@ typedef struct enc_init_t
 	int m_iKeyInterval;					//!< max 32767
 	int m_iIFrameQp;	
 	int m_iAvcFastEncoding;				//!< fast encoding for AVC( 0: default, 1: encode intra 16x16 only )
-	int m_iMjpg_sourceFormat;			//!< input YUV format for mjpeg encoding
 
 	//! Options
 	int m_iSliceMode;
@@ -410,10 +378,9 @@ typedef struct enc_init_t
 	codec_addr_t m_MeSearchRamAddr;		//!< physical address : multiple of 4
 	int m_iMeSearchRamSize;				//!< ( ( m_iPicWidth + 15 ) & ~15 ) * 36 + 2048; multiple of 16
 
-#define SEC_AXI_BUS_DISABLE			(0<<21)
+#define SEC_AXI_BUS_DISABLE		(0<<21)
 #define SEC_AXI_BUS_ENABLE_TCC93XX	(1<<21)
 #define SEC_AXI_BUS_ENABLE_TCC88XX	(2<<21)
-#define ENHANCED_RC_MODEL_ENABLE	(1<<10)
 
 	unsigned int m_uiEncOptFlags;
 
