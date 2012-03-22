@@ -272,7 +272,7 @@ char TCC_FB_LCDC_NumSet(char NumLcdc, char OnOff)
 	PLCDC pLCDC0, pLCDC1;
 	PLCDC_CHANNEL pLCDC0_FB_CH, pLCDC1_FB_CH;
 
-	PCKC	pCKC = (PCKC)tcc_p2v(HwCLK_BASE);
+	PCKC	pCKC = (PCKC)tcc_p2v(HwCKC_BASE);
 
 	pLCDC0 = (volatile PLCDC)tcc_p2v(HwLCDC0_BASE);
 	pLCDC0_FB_CH = (volatile PLCDC_CHANNEL)tcc_p2v(pLCDC0->LI0C);

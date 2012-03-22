@@ -1189,7 +1189,7 @@ static void shutdown_mode(void)
 {
 	volatile unsigned int nCount = 0;
 
-	CKC *ckc = (CKC *)tcc_p2v(HwCLK_BASE);
+	CKC *ckc = (CKC *)tcc_p2v(HwCKC_BASE);
 	PIC *pic = (PIC *)tcc_p2v(HwPIC_BASE);
 	VIC *vic = (VIC *)tcc_p2v(HwVIC_BASE);
 	TIMER *timer = (TIMER *)tcc_p2v(HwTMR_BASE);
@@ -1307,7 +1307,7 @@ static void shutdown_mode(void)
 		ckc->CLK4CTRL = pReg->ckc.CLK4CTRL;
 		ckc->CLK5CTRL = pReg->ckc.CLK5CTRL;
 		ckc->CLK6CTRL = pReg->ckc.CLK6CTRL;
-		//ckc->CLK7CTRL = pReg->ckc.CLK7CTRL;
+		ckc->CLK7CTRL = pReg->ckc.CLK7CTRL;
 		ckc->CLK8CTRL = pReg->ckc.CLK8CTRL;
 		ckc->CLK9CTRL = pReg->ckc.CLK9CTRL;
 
@@ -1414,7 +1414,7 @@ FUNCTION
 static void sleep(void)
 {
 	volatile unsigned int nCount = 0;
-	//CKC *ckc = (CKC *)tcc_p2v(HwCLK_BASE);
+	//CKC *ckc = (CKC *)tcc_p2v(HwCKC_BASE);
 
 // Enter SDRAM Self-refresh ------------------------------------------------------------
 
@@ -1685,7 +1685,7 @@ static void sleep_mode(void)
 	unsigned stack;
 	volatile unsigned int nCount;
 	FuncPtr  pFunc = (FuncPtr )SLEEP_FUNC_ADDR;
-	CKC *ckc = (CKC *)tcc_p2v(HwCLK_BASE);
+	CKC *ckc = (CKC *)tcc_p2v(HwCKC_BASE);
 	PMU *pmu = (PMU *)tcc_p2v(HwPMU_BASE);
 #ifdef TCC_PM_SLEEP_WFI_USED
 	PIC *pic = (PIC *)tcc_p2v(HwPIC_BASE);
@@ -1789,7 +1789,7 @@ static void sleep_mode(void)
 		ckc->CLK4CTRL = ckc_backup.CLK4CTRL;
 		ckc->CLK5CTRL = ckc_backup.CLK5CTRL;
 		ckc->CLK6CTRL = ckc_backup.CLK6CTRL;
-		//ckc->CLK7CTRL = ckc_backup.CLK7CTRL; //SMU
+		ckc->CLK7CTRL = ckc_backup.CLK7CTRL; //SMU
 		ckc->CLK8CTRL = ckc_backup.CLK8CTRL;
 		ckc->CLK9CTRL = ckc_backup.CLK9CTRL;
 

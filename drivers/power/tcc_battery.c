@@ -19,13 +19,6 @@
 #include <linux/spinlock.h>
 #include <linux/clk.h>
 #include <mach/bsp.h>
-#if defined(CONFIG_ARCH_TCC92XX)
-#include <mach/TCC92x_Structures.h>
-#include <mach/TCC92x_Physical.h>
-#elif defined(CONFIG_ARCH_TCC88XX)
-#include <mach/TCC88xx_Structures.h>
-#include <mach/TCC88xx_Physical.h>
-#endif 
 #include <asm/io.h>
 #include <mach/tcc_adc.h>
 #include <asm/mach-types.h>

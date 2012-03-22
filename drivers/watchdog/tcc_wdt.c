@@ -155,7 +155,7 @@ static void tccwdt_start(void)
 	tccwdt_set_timer(&tccwdt_timer); // start kick timer
 #else
 	{
-		PCKC pCKC = (PCKC)tcc_p2v(HwCLK_BASE);
+		PCKC pCKC = (PCKC)tcc_p2v(HwCKC_BASE);
 
 		pCKC->PCLK_TCX = 0x24000000;
 		pTMR->TCFG5 = 0x00000059;

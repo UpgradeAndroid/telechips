@@ -16,8 +16,8 @@
 extern "C" {
 #endif
 
-#include "TCC88xx_Physical.h"
-#include "TCC88xx_Structures.h"
+#include "physical.h"
+#include "structures.h"
 
 #ifdef __cplusplus
 }

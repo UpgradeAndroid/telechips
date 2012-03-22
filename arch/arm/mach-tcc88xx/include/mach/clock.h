@@ -36,11 +36,11 @@ struct clk {
 	int (*enable)(struct clk *);
 	void (*disable)(struct clk *);
 	unsigned int pwdn_idx;
-	volatile void (*pwdn)(unsigned int, unsigned int);
+	int (*pwdn)(unsigned int, unsigned int);
 	unsigned int swreset_idx;
-	volatile void (*swreset)(unsigned int, unsigned int);
+	int (*swreset)(unsigned int, unsigned int);
 	unsigned int clock_idx;
-	volatile void (*clock)(int, int);
+	int (*clock)(unsigned int, unsigned int);
 };
 
 #endif

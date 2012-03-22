@@ -225,7 +225,7 @@ int tccxxx_isalive_camera(void)
 #if	defined(CONFIG_ARCH_TCC892X)
 	//	In case of 892X, we have to add.
 #else
-	volatile PCKC pCKC = (PCKC)tcc_p2v(HwCLK_BASE);
+	volatile PCKC pCKC = (PCKC)tcc_p2v(HwCKC_BASE);
 	volatile PCIF pCIF = (PCIF)tcc_p2v(HwCIF_BASE);
 #endif
 

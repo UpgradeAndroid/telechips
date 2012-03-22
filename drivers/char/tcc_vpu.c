@@ -390,7 +390,7 @@ static int vpu_release(struct inode *inode, struct file *filp)
 	{	
 		volatile PCKC pCKC;
 
-		pCKC = (volatile PCKC)tcc_p2v(HwCLK_BASE);
+		pCKC = (volatile PCKC)tcc_p2v(HwCKC_BASE);
 		
 		//Disable overlay-ch0 in vpu-close because of performance-dead.!!
 		if(pCKC->PCLK_LCD1 & Hw28){

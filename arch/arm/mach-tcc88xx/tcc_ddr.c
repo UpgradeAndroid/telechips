@@ -1468,25 +1468,25 @@ int tcc_change_pmu(unsigned int src, unsigned int onoff)
 //	goto err_chgpmu_beforeinit;
 
 	switch (src) {
-		case CLKCTRL1: // Display Bus
+		case FBUS_DDI: // Display Bus
 			pmu = 5;
 			reset = 1;
 			break;
-		case CLKCTRL3: // Graphic Bus
+		case FBUS_GPU: // Graphic Bus
 			pmu = 14;
 			reset = 3;
 			break;
-		case CLKCTRL5: // Video Bus
+		case FBUS_VBUS: // Video Bus
 			pmu = 11;
 			reset = 5;
 			break;
-//		case CLKCTRL6: // Video Codec
+//		case FBUS_VCORE: // Video Codec
 //			break;
-		case CLKCTRL8: // High Speed IO
+		case FBUS_HSIO: // High Speed IO
 			pmu = 20;
 			reset = 8;
 			break;
-		case CLKCTRL9: // Camera
+		case FBUS_CAM: // Camera
 			pmu = 17;
 			reset = 9;
 			break;
