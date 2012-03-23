@@ -287,6 +287,21 @@ typedef struct {
     unsigned int frame_packing_arrangement_repetition_period;
 } MvcAvcFpaSei;
 
+typedef struct {
+    unsigned int hScaleFactor;
+    unsigned int vScaleFactor;
+    unsigned int picWidth;
+    unsigned int picHeight;
+} Vp8DecScaleInfo;
+
+typedef struct {
+    unsigned int showFrame;
+    unsigned int versionNumber;
+    unsigned int refIdxLast;
+    unsigned int refIdxAltr;
+    unsigned int refIdxGold;
+} Vp8DecPicInfo;
+
 //-----------------------------------------------------
 // data structure to get resulting information from 
 // VPU after decoding a frame
@@ -323,6 +338,10 @@ typedef struct dec_output_info_t
 
 	//! RV Only
 	int m_iRvTimestamp;				//!< RV TR syntax
+
+	//! VP8 Only
+	Vp8DecScaleInfo m_vp8ScaleInfo;
+	Vp8DecPicInfo m_vp8PicInfo;
 
 	//! MVC Only
 	MvcPictureInfo m_mvcPicInfo; 
