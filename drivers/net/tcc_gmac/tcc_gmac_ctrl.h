@@ -142,6 +142,14 @@
 #define GMAC_VLAN_TAG			0x0000001c	/* VLAN Tag */
 #define GMAC_VERSION			0x00000020	/* GMAC CORE Version */
 #define GMAC_WAKEUP_FILTER		0x00000028	/* Wake-up Frame Filter */
+#define GMAC_HASH_TABLE_0		0x00000500	/* Hash Table 0 */
+#define GMAC_HASH_TABLE_1		0x00000504	/* Hash Table 1 */
+#define GMAC_HASH_TABLE_2		0x00000508	/* Hash Table 2 */
+#define GMAC_HASH_TABLE_3		0x0000050c	/* Hash Table 3 */
+#define GMAC_HASH_TABLE_4		0x00000510	/* Hash Table 4 */
+#define GMAC_HASH_TABLE_5		0x00000514	/* Hash Table 5 */
+#define GMAC_HASH_TABLE_6		0x00000518	/* Hash Table 6 */
+#define GMAC_HASH_TABLE_7		0x0000051c	/* Hash Table 7 */
 
 #define GMAC_INT_STATUS			0x00000038	/* interrupt status register */
 enum tcc_gmac_irq_status {
