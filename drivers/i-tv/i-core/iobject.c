@@ -146,8 +146,8 @@ static int CountChildren(itv_object_t *p_this, int i_type)
 
 static itv_object_list_t *NewList(int i_count)
 {
-//20110706 koo : tcc88xx kernel은 preempt kernel이기 때문에 mem alloc 시 GFP_KERNEL 대신 GFP_ATOMIC option 사용. 
-#if defined(CONFIG_ARCH_TCC88XX)
+//20111213 koo : tcc88xx/tcc892x  kernel은 preempt kernel이기 때문에 mem alloc 시 GFP_KERNEL 대신 GFP_ATOMIC option 사용. 
+#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 	itv_object_list_t *p_list = (itv_object_list_t *)kzalloc(sizeof(itv_object_list_t), GFP_ATOMIC);
 #else
 	itv_object_list_t *p_list = (itv_object_list_t *)kzalloc(sizeof(itv_object_list_t), GFP_KERNEL);
@@ -162,8 +162,8 @@ static itv_object_list_t *NewList(int i_count)
 		return p_list;
 	}
 
-//20110706 koo : tcc88xx kernel은 preempt kernel이기 때문에 mem alloc 시 GFP_KERNEL 대신 GFP_ATOMIC option 사용. 
-#if defined(CONFIG_ARCH_TCC88XX)
+//20111213 koo : tcc88xx/tcc892x kernel은 preempt kernel이기 때문에 mem alloc 시 GFP_KERNEL 대신 GFP_ATOMIC option 사용. 
+#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 	p_list->pp_object = kzalloc(i_count * sizeof(itv_object_t *), GFP_ATOMIC);
 #else
 	p_list->pp_object = kzalloc(i_count * sizeof(itv_object_t *), GFP_KERNEL);

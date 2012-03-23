@@ -308,6 +308,11 @@ static int itv_xc5000_reset(itv_frontend_t *p_ifrontend)
 
 //20110824 koo : lgdt3305 demod & xc500c tuner porting
 #if defined(CONFIG_iTV_FE_TUNER_MODULE_XC5000C) || defined(CONFIG_iTV_FE_TUNER_MODULE_XC5000C_MODULE)
+	itv_platform_frontend_operations_t *fe_ops = p_ifrontend->fe_ops;
+
+	//20111206 koo : lgdt3305의 경우 s5h1411처럼 gpio가 나와있지 않아 ts_rst#이 그대로 xc5000c에 연결되어 있음.
+	fe_ops->demod_reset();
+
 	return XC_RESULT_SUCCESS;
 #endif
 
@@ -378,24 +383,26 @@ static int itv_xc5000_load_i2c_sequence(itv_frontend_t *p_ifrontend, const unsig
 			buf[0] = i2c_sequence[index];
 			buf[1] = i2c_sequence[index + 1];
 			pos = 2;
+
 			while(pos < len) {
 				if((len - pos) > XC_MAX_I2C_WRITE_LENGTH - 2)
 					nbytes_to_send = XC_MAX_I2C_WRITE_LENGTH;
 				else
 					nbytes_to_send = (len - pos + 2);
+				
 				for(i = 2; i < nbytes_to_send; i++) {
 					buf[i] = i2c_sequence[index + pos + i - 2];
 				}
+				
 				result = itv_xc5000_writeregs(priv, buf, nbytes_to_send);
+
 				if(result != XC_RESULT_SUCCESS)
 					return result;
-
 				pos += nbytes_to_send - 2;
 			}
 			index += len;
 		}
 	}
-	
 	return XC_RESULT_SUCCESS;
 }
 
@@ -431,6 +438,20 @@ static int itv_xc5000_fwupload(itv_frontend_t *p_ifrontend)
 	else {
 		dprintk("xc5000: firmware upload\n");
 		ret = itv_xc5000_load_i2c_sequence(p_ifrontend, fw->data);
+
+		//20111206 koo : xc5000c의 경우 firmware upload 중 가끔 이상동작이 발생되어 정상적인 firmware upload가 되지 않았을 때 다시 upload 시킴.
+		if(ret != XC_RESULT_SUCCESS) {
+			int i;
+			for(i=1; i<5; i++) {
+				if(ret != XC_RESULT_SUCCESS) {
+					eprintk("xc5000: firmware upload again!!! ==> %d\n\n", i);
+					ret = itv_xc5000_load_i2c_sequence(p_ifrontend, fw->data);
+				} else {
+					eprintk("xc5000: firmware upload complete!!! ==> %d\n\n", i);
+					break;
+				}
+			}
+		}
 	}
 #else
 	fw->size = sizeof(XC5000_firmware_SEQUENCE);
@@ -786,17 +807,14 @@ static int itv_xc5000_get_status(itv_frontend_t *p_ifrontend, unsigned int *stat
 }
 
 static itv_xc5000_config_t xc5000_config = {
-//20110126 koo : tcc9300_stb_board 용 S5H1411&XC5000_ATSC_SV6.0 brd에서는 DTV_ADDR_SEL이 0V로 설정됨.
-#if defined(CONFIG_MACH_TCC9300ST)
 	.i2c_address      = 0x61,
-#elif defined(CONFIG_MACH_TCC8800)
-	.i2c_address      = 0x61,
-#elif defined(CONFIG_MACH_TCC8800ST)
-	.i2c_address      = 0x61,
+
+//20110919 koo : lgdt3305 & xc5000c에서는 if freq를 6MHz로 설정해야 demod lock이 잡힘.
+#if defined(CONFIG_iTV_FE_TUNER_MODULE_XC5000C) || defined(CONFIG_iTV_FE_TUNER_MODULE_XC5000C_MODULE)
+	.if_khz           = 6000, 
 #else
-	.i2c_address      = 0x64,
-#endif
 	.if_khz           = 5380,
+#endif
 };
 
 static const itv_tuner_t xc5000_tuner = {
@@ -825,6 +843,8 @@ static int itv_xc5000_activate(itv_object_t *p_this)
 	itv_frontend_t *ifrontend = (itv_frontend_t *)p_this;
 	itv_platform_frontend_operations_t *fe_ops = ifrontend->fe_ops;
 	itv_tuner_priv_t *priv = NULL;
+
+	int retry_cnt = 0;
 	
 	DEBUG_CALLSTACK
 	
@@ -849,6 +869,7 @@ static int itv_xc5000_activate(itv_object_t *p_this)
 	priv->prev_if_khz = (unsigned int)(-1);
 	priv->prev_rf_mode = priv->prev_video_standard = (unsigned char)(-1);	
 
+Retry:
 	if(itv_xc5000_readreg(priv, XREG_PRODUCT_ID, &id) != 0) {
 		fe_ops->i2c_put_adapter(priv->i2c_props.i2c);
 		ifrontend->ituner.priv = NULL;
@@ -867,11 +888,23 @@ static int itv_xc5000_activate(itv_object_t *p_this)
 			break;
 		default:
 			eprintk("xc5000: Device not found at addr 0x%02x (0x%x)\n", priv->i2c_props.addr, id);
-			fe_ops->i2c_put_adapter(priv->i2c_props.i2c);
-			ifrontend->ituner.priv = NULL;
-			kfree(priv);
-			return -1;
+
+			if(++retry_cnt > 3) {
+				fe_ops->i2c_put_adapter(priv->i2c_props.i2c);
+				ifrontend->ituner.priv = NULL;
+				kfree(priv);
+				return -1;
+			} else {
+				mdelay(10);
+				goto Retry;
+			}
 	}
+
+#if defined(CONFIG_iTV_FE_TUNER_MODULE_XC5000C) || defined(CONFIG_iTV_FE_TUNER_MODULE_XC5000C_MODULE)
+	printk("%s : xc5000c detect ok!!\n", __func__);
+#else
+	printk("%s : xc5000 detect ok!!\n", __func__);
+#endif
 
 	memcpy(&ifrontend->ituner, &xc5000_tuner, sizeof(itv_tuner_t));
 	ifrontend->ituner.priv = priv;
