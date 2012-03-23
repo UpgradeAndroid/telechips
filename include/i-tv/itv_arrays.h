@@ -2,7 +2,7 @@
 #define __ITV_ARRAY_H__
 
 //20110706 koo : tcc88xx kernel은 preempt kernel이기 때문에 mem alloc 시 GFP_KERNEL 대신 GFP_ATOMIC option 사용. 
-#if defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 #define INSERT_ELEM(p_ar, i_oldsize, i_pos, elem)									\
 	do {																			\
 		if(!i_oldsize) (p_ar) = NULL;												\

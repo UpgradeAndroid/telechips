@@ -56,8 +56,7 @@ typedef enum {
 } itv_std_type_e;
 
 typedef enum {
-	ITV_IF_TYPE_TS_PARALLEL, 
-	ITV_IF_TYPE_TS_SERIAL
+	ITV_IF_TYPE_TS_PARALLEL
 } itv_if_type_e;
 
 typedef enum {

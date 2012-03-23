@@ -57,6 +57,11 @@ config iTV_FE_TUNER_MODULE_FQD1136
 	depends on iTV_FRONTEND_MODULE
 	#default iTV_CORE
 
+config iTV_FE_TUNER_MODULE_FJ2148
+	tristate "Enable FJ2148 tuner module"
+	depends on iTV_FRONTEND_MODULE
+	#default iTV_CORE
+
 endif	# iTV_FE_TUNER_MODULE
 
 endif	# iTV_FRONTEND_MODULE

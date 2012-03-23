@@ -25,15 +25,6 @@ typedef struct itv_platform_tsif_operations_t {
 	void (*tsif_p_insert_pid)(int pid);
 	void (*tsif_p_remove_pid)(int pid);
 	void (*tsif_p_set_packetcnt)(int cnt);
-	
-	// ts serail interface operations
-	int (*tsif_s_init_proc)(void);
-	int (*tsif_s_init)(unsigned char **buffer_addr, unsigned int buffer_size, unsigned int pkt_intr_cnt, 
-			unsigned int timing_mode, unsigned int pid_mode, void (*callback)(void *), void *cb_data);
-	void (*tsif_s_deinit)(void);
-	int (*tsif_s_start)(void);
-	int (*tsif_s_stop)(void);
-	int (*tsif_s_get_pos)(void);
 } itv_platform_tsif_operations_t;
 
 /* frontend operations */

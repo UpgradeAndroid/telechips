@@ -1116,6 +1116,8 @@ static int itv_s5h1411_activate(itv_object_t *p_this)
 	itv_s5h1411_writereg(priv, ITV_S5H1411_I2C_TOP_ADDR, 0xf5, 1);
 #endif
 
+	printk("%s : s5h1411 detect ok!!\n", __func__);
+
 	return 0;
 }
 
@@ -1169,7 +1171,7 @@ out:
 	return retval;
 }
 
-#if defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 #include <mach/gpio.h>
 #include <mach/bsp.h>
 #include <mach/io.h>
@@ -1201,6 +1203,14 @@ static void __exit itv_s5h1411_module_exit(void)
 	BITCSET(regs->GPFN3, (Hw8-Hw4), 0);
 	BITSET(regs->GPEN, Hw25);
 	BITCLR(regs->GPDAT, Hw25);				//TS_PWDN	
+#elif defined(CONFIG_MACH_TCC8920ST)
+	PGPION regs;
+
+	regs = (volatile PGPION)tcc_p2v(HwGPIOE_BASE);
+
+	BITCSET(regs->GPFN3.nREG, (Hw20-Hw16), 0);
+	BITSET(regs->GPEN.nREG, Hw28);
+	BITCLR(regs->GPDAT.nREG, Hw28);				//TS_PWDN	
 #endif
 
 	dprintk("iTV s5h1411 module unregister success\n");

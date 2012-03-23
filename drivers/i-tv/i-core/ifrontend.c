@@ -45,6 +45,7 @@ char *itv_atsc_tuner_name[] = {
 	"xc5000",
 	"xc5000c",
 	"fqd1136",
+	"fj2148",
 	NULL
 	};
 
@@ -186,7 +187,7 @@ itv_dtv_cmds_h_t dtv_cmds[] = {
 	},
 };
 
-static int itv_frontend_ioctl_legacy(struct inode *inode, struct file *file, unsigned int cmd, void *parg);
+static int itv_frontend_ioctl_legacy(struct file *file, unsigned int cmd, void *parg);
 
 //#define FE_LOCK_TIME_CHECK
 #ifdef FE_LOCK_TIME_CHECK
@@ -424,8 +425,7 @@ static void itv_frontend_dtv_property_cache_submit(itv_frontend_t *p_ifrontend)
 	}
 }
 
-static int itv_frontend_dtv_property_process_get(itv_frontend_t *p_ifrontend, itv_dtv_property_t *tvp, 
-	struct inode *inode, struct file *file)
+static int itv_frontend_dtv_property_process_get(itv_frontend_t *p_ifrontend, itv_dtv_property_t *tvp, struct file *file)
 {
 	int retval = 0;
 
@@ -498,8 +498,7 @@ static int itv_frontend_dtv_property_process_get(itv_frontend_t *p_ifrontend, it
 	return retval;
 }
 
-static int itv_frontend_dtv_property_process_set(itv_frontend_t *p_ifrontend, itv_dtv_property_t *tvp, 
-	struct inode *inode, struct file *file)
+static int itv_frontend_dtv_property_process_set(itv_frontend_t *p_ifrontend, itv_dtv_property_t *tvp, struct file *file)
 {
 	int retval = 0;
 
@@ -526,7 +525,7 @@ static int itv_frontend_dtv_property_process_set(itv_frontend_t *p_ifrontend, it
 			dprintk("Finalised property cache\n");
 			itv_frontend_dtv_property_cache_submit(p_ifrontend);
 
-			retval |= itv_frontend_ioctl_legacy(inode, file, ITV_FE_SET_FRONTEND, &priv->params);
+			retval |= itv_frontend_ioctl_legacy(file, ITV_FE_SET_FRONTEND, &priv->params);
 			break;
 		case ITV_DTV_FREQUENCY:
 			p_ifrontend->dtv_property_cache.frequency = tvp->u.data;
@@ -557,11 +556,11 @@ static int itv_frontend_dtv_property_process_set(itv_frontend_t *p_ifrontend, it
 			break;
 		case ITV_DTV_VOLTAGE:
 			p_ifrontend->dtv_property_cache.voltage = tvp->u.data;
-			retval = itv_frontend_ioctl_legacy(inode, file, ITV_FE_SET_VOLTAGE, (void *)p_ifrontend->dtv_property_cache.voltage);
+			retval = itv_frontend_ioctl_legacy(file, ITV_FE_SET_VOLTAGE, (void *)p_ifrontend->dtv_property_cache.voltage);
 			break;
 		case ITV_DTV_TONE:
 			p_ifrontend->dtv_property_cache.sectone = tvp->u.data;
-			retval = itv_frontend_ioctl_legacy(inode, file, ITV_FE_SET_TONE, (void *)p_ifrontend->dtv_property_cache.sectone);
+			retval = itv_frontend_ioctl_legacy(file, ITV_FE_SET_TONE, (void *)p_ifrontend->dtv_property_cache.sectone);
 			break;
 		case ITV_DTV_CODE_RATE_HP:
 			p_ifrontend->dtv_property_cache.code_rate_HP = tvp->u.data;
@@ -1037,6 +1036,20 @@ static void itv_frontend_init(itv_frontend_t *p_ifrontend)
 	dprintk("initialising adapter %i frontend %i (%s)...\n", ((itv_adapter_t *)p_ifrontend->iadapter)->id, 
 		p_ifrontend->id, p_ifrontend->idemod.info.name);
 
+//20111206 koo : lgdt3305의 경우 s5h1411처럼 gpio가 나와있지 않아 ts_rst#이 그대로 xc5000c에 연결되어 있기 때문에 xc5000c firmware upload시 문제가 
+//발생되어 다시 reset을 할 경우 demod까지 reset 되므로 xc500c 사용시 tuner init을 먼저 하도록 수정. 추후 firmware upload 문제 수정 시 원복하도록 함.
+#if defined(CONFIG_iTV_FE_TUNER_MODULE_XC5000C) || defined(CONFIG_iTV_FE_TUNER_MODULE_XC5000C_MODULE)
+	if(p_ifrontend->ituner.init) {
+		if(p_ifrontend->idemod.i2c_gate_ctrl)
+			p_ifrontend->idemod.i2c_gate_ctrl(p_ifrontend, 1);
+		p_ifrontend->ituner.init(p_ifrontend);
+		if(p_ifrontend->idemod.i2c_gate_ctrl)
+			p_ifrontend->idemod.i2c_gate_ctrl(p_ifrontend, 0);
+	}
+
+	if(p_ifrontend->idemod.init)
+		p_ifrontend->idemod.init(p_ifrontend);
+#else
 	if(p_ifrontend->idemod.init)
 		p_ifrontend->idemod.init(p_ifrontend);
 	
@@ -1047,6 +1060,7 @@ static void itv_frontend_init(itv_frontend_t *p_ifrontend)
 		if(p_ifrontend->idemod.i2c_gate_ctrl)
 			p_ifrontend->idemod.i2c_gate_ctrl(p_ifrontend, 0);
 	}	
+#endif
 }
 
 static int itv_frontend_thread(void *data)
@@ -1182,7 +1196,8 @@ static void itv_frontend_stop(itv_frontend_t *p_ifrontend)
 
 	kthread_stop(priv->thread);
 
-	init_MUTEX(&priv->sem);
+	sema_init(&priv->sem, 1);
+	
 	priv->state = FE_STATE_IDLE;
 
 	if(priv->thread)
@@ -1224,7 +1239,7 @@ static int itv_frontend_start(itv_frontend_t *p_ifrontend)
 	return 0;
 }
 
-static int itv_frontend_ioctl_properties(struct inode *inode, struct file *file, unsigned int cmd, void *parg)
+static int itv_frontend_ioctl_properties(struct file *file, unsigned int cmd, void *parg)
 {
 	int i;
 	int err = 0;
@@ -1256,7 +1271,7 @@ static int itv_frontend_ioctl_properties(struct inode *inode, struct file *file,
 		}
 
 		for(i = 0; i < tvps->num; i++) {
-			(tvp + i)->result = itv_frontend_dtv_property_process_set(ifrontend, tvp + i, inode, file);
+			(tvp + i)->result = itv_frontend_dtv_property_process_set(ifrontend, tvp + i, file);
 			err |= (tvp + i)->result;
 		}
 
@@ -1285,7 +1300,7 @@ static int itv_frontend_ioctl_properties(struct inode *inode, struct file *file,
 		}
 
 		for(i = 0; i < tvps->num; i++) {
-			(tvp + i)->result = itv_frontend_dtv_property_process_get(ifrontend, tvp + i, inode, file);
+			(tvp + i)->result = itv_frontend_dtv_property_process_get(ifrontend, tvp + i, file);
 			err |= (tvp + i)->result;
 		}
 
@@ -1303,7 +1318,7 @@ out:
 	return err;
 }
 
-static int itv_frontend_ioctl_legacy(struct inode *inode, struct file *file, unsigned int cmd, void *parg)
+static int itv_frontend_ioctl_legacy(struct file *file, unsigned int cmd, void *parg)
 {
 	int err = -EOPNOTSUPP;
 	
@@ -1570,7 +1585,7 @@ static int itv_frontend_ioctl_legacy(struct inode *inode, struct file *file, uns
 	return err;
 }
 
-static int itv_frontend_do_ioctl(struct inode *inode, struct file *file, unsigned int cmd, void *parg)
+static int itv_frontend_do_ioctl(struct file *file, unsigned int cmd, void *parg)
 {
 	int err = -EOPNOTSUPP;
 
@@ -1593,10 +1608,10 @@ static int itv_frontend_do_ioctl(struct inode *inode, struct file *file, unsigne
 		return -ERESTARTSYS;
 
 	if((cmd == ITV_FE_SET_PROPERTY) || (cmd == ITV_FE_GET_PROPERTY))
-		err = itv_frontend_ioctl_properties(inode, file, cmd, parg);
+		err = itv_frontend_ioctl_properties(file, cmd, parg);
 	else {
 		ifrontend->dtv_property_cache.state = ITV_DTV_UNDEFINED;
-		err = itv_frontend_ioctl_legacy(inode, file, cmd, parg);
+		err = itv_frontend_ioctl_legacy(file, cmd, parg);
 	}
 
 	up(&priv->sem);
@@ -1604,11 +1619,11 @@ static int itv_frontend_do_ioctl(struct inode *inode, struct file *file, unsigne
 	return err;
 }
 
-static int itv_frontend_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long arg)
+static int itv_frontend_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {	
 //	DEBUG_CALLSTACK
 
-	return itv_usercopy(inode, file, cmd, arg, itv_frontend_do_ioctl);
+	return itv_usercopy(file, cmd, arg, itv_frontend_do_ioctl);
 }
 
 static unsigned int itv_frontend_poll(struct file *file, poll_table *wait)
@@ -1690,11 +1705,11 @@ static int itv_frontend_release(struct inode *inode, struct file *file)
 }
 
 struct file_operations ifrontend_fops = {
-	.owner 		= THIS_MODULE, 
-	.poll 		= itv_frontend_poll, 
-	.ioctl 		= itv_frontend_ioctl, 
-	.open 		= itv_frontend_open, 
-	.release 	= itv_frontend_release
+	.owner 			= THIS_MODULE, 
+	.poll 			= itv_frontend_poll, 
+	.unlocked_ioctl	= itv_frontend_ioctl, 
+	.open 			= itv_frontend_open, 
+	.release 			= itv_frontend_release
 };
 
 itv_frontend_t *itv_frontend_create(itv_object_t *p_this)
@@ -1733,7 +1748,7 @@ itv_frontend_t *itv_frontend_create(itv_object_t *p_this)
 
 	itv_object_set_destructor(ifrontend, itv_frontend_destructor);
 
-	init_MUTEX(&priv->sem);
+	sema_init(&priv->sem, 1);
 	init_waitqueue_head(&priv->wait_queue);
 	init_waitqueue_head(&priv->events.wait_queue);
 	mutex_init(&priv->events.mutex);

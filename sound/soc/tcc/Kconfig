@@ -82,7 +82,7 @@ config SND_SOC_TCC_BOARD_RT5625
 	bool "RT5625"
 	select SND_SOC_TCC_I2S
 	select SND_SOC_RT5625
-	depends on SND_SOC_TCC && (MACH_TCC9300 || MACH_TCC9300CM || MACH_TCC8800 || MACH_TCC8900 || MACH_TCC9201)
+	depends on SND_SOC_TCC && (MACH_TCC9300 || MACH_TCC9300CM || MACH_TCC8800 || MACH_TCC8900 || MACH_TCC9201 || MACH_TCC8920)
 	help
 	  Say Y if you want to add support for SoC audio on Telechips
 	  TCC (RT5625).

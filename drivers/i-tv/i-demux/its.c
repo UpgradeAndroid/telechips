@@ -44,7 +44,7 @@ typedef	struct {
 	unsigned int total_err;
 	unsigned int packet_cnt;
 
-	#define DEBUG_CHK_TIME		60	//sec
+	#define DEBUG_CHK_TIME		10	//sec
 	unsigned int cur_time;
 	unsigned int prev_time;
 	unsigned int debug_time;
@@ -59,7 +59,7 @@ static void itv_ts_cc_debug(int mod)
 {
 	if(ts_packet_chk_info != NULL) {
 		if(ts_packet_chk_info->packet != NULL) {
-			printk("[total:%llu / err:%d (%dmin)]\n", ts_packet_chk_info->total_cnt, ts_packet_chk_info->total_err, ts_packet_chk_info->debug_time);
+			printk("[total:%llu / err:%d (%d sec)]\n", ts_packet_chk_info->total_cnt, ts_packet_chk_info->total_err, (ts_packet_chk_info->debug_time * DEBUG_CHK_TIME));
 			
 			if(mod) {
 				ts_packet_chk_t* tmp = NULL;
@@ -117,7 +117,7 @@ static void itv_ts_cc_check(unsigned char* buf)
 							tmp->err += ((cc - tmp->cc + 0xf) % 0xf) - 1;
 							if(temp != tmp->err) {
 								ts_packet_chk_info->total_err += tmp->err - temp;
-								//printk("\t(%dmin) pid:0x%04x => cnt:%llu err:%d [%d -> %d]\n", ts_packet_chk_info->debug_time, tmp->pid, tmp->cnt, tmp->err, tmp->cc, cc);
+								printk("\t(%dmin) pid:0x%04x => cnt:%llu err:%d [%d -> %d]\n", ts_packet_chk_info->debug_time, tmp->pid, tmp->cnt, tmp->err, tmp->cc, cc);
 							}
 							tmp->cc = cc;
 						} else if(cc < tmp->cc) {
@@ -125,7 +125,7 @@ static void itv_ts_cc_check(unsigned char* buf)
 							tmp->err += (0x10 - tmp->cc + cc) - 1;
 							if(temp != tmp->err) {
 								ts_packet_chk_info->total_err += tmp->err - temp;
-								//printk("\t(%dmin) pid:0x%04x => cnt:%llu err:%d [%d -> %d]\n", ts_packet_chk_info->debug_time, tmp->pid, tmp->cnt, tmp->err, tmp->cc, cc);
+								printk("\t(%dmin) pid:0x%04x => cnt:%llu err:%d [%d -> %d]\n", ts_packet_chk_info->debug_time, tmp->pid, tmp->cnt, tmp->err, tmp->cc, cc);
 							}
 							tmp->cc = cc;
 						}
@@ -165,8 +165,8 @@ static void itv_ts_cc_check(unsigned char* buf)
 						tmp_ = tmp_->next;
 					}
 				} while(1);
-				
-				//printk("\t>>>> create[%d] : 0x%04x / %02d\n", ts_packet_chk_info->packet_cnt, tmp->pid, tmp->cc);
+
+				printk("\t>>>> create[%d] : 0x%04x / %02d\n", ts_packet_chk_info->packet_cnt, tmp->pid, tmp->cc);
 			}
 		}
 
@@ -193,7 +193,8 @@ static int itv_ts_filter_write_ts(const unsigned char *buffer1, size_t buffer1_l
 	const unsigned char *buffer2, size_t buffer2_len, itv_ts_filter_t *p_filter)
 {	
 	int ret;
-	unsigned long flags;
+	//20110224 koo : itv_ts_filter_packets¿¡¼­ lock/unlock ½ÃÅ´.
+	//unsigned long flags;
 
 	itv_demux_t *idemux = p_filter->priv->idemux;
 	itv_ringbuffer_t *buffer;
@@ -313,145 +314,6 @@ static void itv_ts_irq_handler(void *data)
 	tasklet_schedule(&priv->ts_tasklet);
 }
 
-static void itv_ts_irq_s_tsif(unsigned long data)
-{
-	itv_demux_priv_t *priv = (itv_demux_priv_t *)data;
-	itv_demux_t *idemux = priv->idemux;
-	itv_ts_buffer_t *buffer = &priv->buffer;	
-	unsigned char *mem = (unsigned char *)(buffer->buffer);
-	unsigned int olddma = buffer->bufp;
-	unsigned int newdma = idemux->tsif_ops->tsif_s_get_pos() * 188;
-	unsigned int count;
-
-	DEBUG_CALLSTACK
-
-	newdma -= newdma % 188;
-
-	if(newdma >= buffer->size)
-		return;
-
-	buffer->bufp = newdma;
-
-	if(priv->filtering == 0 || newdma == olddma)
-		return;
-
-	if(newdma > olddma)
-	{
-		count = newdma - olddma;
-		itv_ts_filter_packets(priv, mem + olddma, count / 188);
-	}
-	else
-	{
-		count = buffer->size - olddma;
-		itv_ts_filter_packets(priv, mem + olddma, count / 188);
-		count += newdma;
-		itv_ts_filter_packets(priv, mem, newdma / 188);
-	}
-
-	if(count > buffer->warning_threshold)
-	{
-		printk("@@@@@@@@@@@\n");
-		buffer->warnings++;
-	}
-
-	if(buffer->warnings && time_after(jiffies, buffer->warning_time))
-	{
-		dprintk("%s %s: used %d times >80%% of buffer (%u bytes now)\n",
-				idemux->psz_object_name, __func__, buffer->warnings, count);
-		buffer->warning_time = jiffies + ITV_TS_WARNING_WAIT;
-		buffer->warnings = 0;
-	}
-}
-
-#if 0
-static void itv_ts_irq_p_tsif(unsigned long data)
-{
-	itv_demux_priv_t *priv = (itv_demux_priv_t *)data;
-	itv_demux_t *idemux = priv->idemux;
-	itv_ts_buffer_t *buffer = &priv->buffer;
-	unsigned char *mem = (unsigned char *)(buffer->buffer);
-	unsigned char *memend = (unsigned char *)(mem + buffer->size);
-	unsigned int olddma = buffer->bufp;
-	unsigned int newdma = idemux->tsif_ops->tsif_p_get_pos();
-	unsigned int count;
-
-//	DEBUG_CALLSTACK
-
-	if(newdma > olddma)
-	{
-		newdma -= (newdma - olddma) % 188;
-	}
-	else
-	{
-		unsigned int remainder;
-
-		remainder = ((unsigned int)memend - olddma + (newdma - (unsigned int)mem)) % 188;
-		if(remainder)
-		{
-			if((newdma - (unsigned int)mem) <= remainder)
-			{
-				remainder -= newdma - (unsigned int)mem;
-
-				if(remainder)
-					newdma = (unsigned int)memend - remainder;
-				else
-					newdma = (unsigned int)memend;
-			}
-			else
-				newdma -= remainder;
-		}
-	}
-
-	buffer->bufp = newdma;
-
-	if(priv->filtering == 0 || newdma == olddma)
-		return;
-
-	if(newdma > olddma)
-	{
-		count = newdma - olddma;
-		itv_ts_filter_packets(priv, (unsigned char *)olddma, count / 188);
-	}
-	else
-	{
-		unsigned int remainder;
-		count = (unsigned int)memend - olddma;
-		if(count % 188)
-		{
-			unsigned char temp[188];
-			unsigned int temp_size = count % 188;
-
-			count -= temp_size;
-			itv_ts_filter_packets(priv, (unsigned char *)olddma, count / 188);
-			memcpy(temp, (unsigned char *)(olddma + count), temp_size);
-			memcpy(temp + temp_size, mem, 188 - temp_size);
-			itv_ts_filter_packets(priv, temp, 1);
-			count += 188;
-			remainder = (newdma - (unsigned int)mem) - (188 - temp_size);
-			newdma = (unsigned int)mem + (188 - temp_size);
-		}
-		else
-		{
-			itv_ts_filter_packets(priv, (unsigned char *)olddma, count / 188);
-			remainder = newdma - (unsigned int)mem;
-			newdma = (unsigned int)mem;
-		}
-		itv_ts_filter_packets(priv, (unsigned char *)newdma, remainder / 188);
-		count += remainder;
-	}
-
-	if(count > buffer->warning_threshold)
-		buffer->warnings++;
-
-	if(buffer->warnings && time_after(jiffies, buffer->warning_time))
-	{
-		dprintk("%s %s: used %d times >80%% of buffer (%u bytes now)\n",
-				idemux->psz_object_name, __func__, buffer->warnings, count);
-		buffer->warning_time = jiffies + ITV_TS_WARNING_WAIT;
-		buffer->warnings = 0;
-	}
-}
-#else
 static void itv_ts_irq_p_tsif(unsigned long data)
 {
 	itv_demux_priv_t *priv = (itv_demux_priv_t *)data;
@@ -556,7 +418,6 @@ static void itv_ts_irq_p_tsif(unsigned long data)
 	flag = 1;
 }
 
-#endif
 static inline void itv_ts_filter_state_set(itv_ts_filter_t *filter, int state)
 {
 //	DEBUG_CALLSTACK
@@ -578,22 +439,28 @@ static int itv_ts_start(itv_demux_t *p_idemux)
 
 	itv_ringbuffer_flush(&p_idemux->stream_buffer);
 
+#ifdef TS_PACKET_CHK_MODE
+	ts_packet_chk_info = (ts_packet_chk_info_t*)kmalloc(sizeof(ts_packet_chk_info_t), GFP_ATOMIC);
+	if(ts_packet_chk_info == NULL) {
+		printk("\t ts_packet_chk_info_t mem alloc err..\n");
+	}
+	memset(ts_packet_chk_info, 0x0, sizeof(ts_packet_chk_info_t));
+#endif	
+
+//20120320 koo test debug : tsif module test
+#if 1
 	switch(p_idemux->if_type)
 	{
 		case ITV_IF_TYPE_TS_PARALLEL:
 			priv->buffer.bufp = (unsigned int)priv->buffer.buffer;
 			tsif_ops->tsif_p_start();
 			break;
-		case ITV_IF_TYPE_TS_SERIAL:
-			priv->buffer.bufp = 0;
-			tsif_ops->tsif_s_start();			
-			break;		
 		default:
 			break;
 	}
-
+#endif
 	dprintk("demux start\n");
-	
+
 	return 0;
 }
 
@@ -608,14 +475,34 @@ static int itv_ts_stop(itv_demux_t *p_idemux)
 		case ITV_IF_TYPE_TS_PARALLEL:
 			tsif_ops->tsif_p_stop();
 			break;
-		case ITV_IF_TYPE_TS_SERIAL:
-			tsif_ops->tsif_s_stop();
-			break;
 		default:
 			break;
 	}
 
 	dprintk("demux stop\n");
+
+#ifdef TS_PACKET_CHK_MODE
+{
+	ts_packet_chk_t* tmp = NULL;
+	ts_packet_chk_t* tmp_ = NULL;
+
+	if(ts_packet_chk_info != NULL) {
+		if(ts_packet_chk_info->packet != NULL) {
+
+			itv_ts_cc_debug(1);
+			
+			tmp = ts_packet_chk_info->packet;
+			do {
+				tmp_ = tmp;
+				tmp = tmp->next;
+				kfree(tmp_);
+			} while(tmp != NULL);
+		}
+		kfree(ts_packet_chk_info);
+		ts_packet_chk_info = NULL;
+	}
+}
+#endif
 	
 	return 0;
 }
@@ -950,7 +837,6 @@ static int itv_ts_activate(itv_object_t *p_this)
 	switch(idemux->if_type)
 	{
 		case ITV_IF_TYPE_TS_PARALLEL:
-		case ITV_IF_TYPE_TS_SERIAL:
 			priv->buffer.width = ITV_TS_WIDTH;
 			bufsize = ITV_TS_MAX_BUFSIZE;
 			height_mask = ITV_TS_HEIGHT_MASK;
@@ -979,6 +865,8 @@ static int itv_ts_activate(itv_object_t *p_this)
 	priv->buffer.warnings = 0;
 	priv->buffer.warning_time = jiffies;
 
+//20120320 koo test debug : tsif module test
+#if 1
 	tsif_ops = idemux->tsif_ops;
 	switch(idemux->if_type)
 	{
@@ -997,32 +885,10 @@ static int itv_ts_activate(itv_object_t *p_this)
 				return -1;
 			}
 			break;
-			
-		case ITV_IF_TYPE_TS_SERIAL:
-			dprintk("ITV_IF_TYPE_TS_SERIAL\n");
-			if(tsif_ops->tsif_s_init_proc() < 0)
-			{
-				eprintk("tsif_s_init_proc() is failed\n");
-				kfree(priv);
-				idemux->priv = NULL;
-				return -1;
-			}
-
-			tasklet_init(&priv->ts_tasklet, itv_ts_irq_s_tsif, (unsigned long)priv);
-			if(tsif_ops->tsif_s_init(&priv->buffer.buffer, priv->buffer.size, 512, 
-				0x04, 0x01, itv_ts_irq_handler, (void *)priv) != 0)
-			{
-				eprintk("itv_s_tsif_init() is failed\n");
-				tasklet_kill(&priv->ts_tasklet);
-				kfree(priv);
-				idemux->priv = NULL;
-				return -1;
-			}
-			break;
-			
 		default:
 			break;
 	}
+#endif
 
 	priv->filtering = 0;
 	INIT_LIST_HEAD(&priv->filter_list);
@@ -1044,14 +910,6 @@ static int itv_ts_activate(itv_object_t *p_this)
 	idemux->filter_put = itv_ts_filter_put;
 	idemux->filter_set = itv_ts_filter_set;	
 		
-#ifdef TS_PACKET_CHK_MODE
-	ts_packet_chk_info = (ts_packet_chk_info_t*)kmalloc(sizeof(ts_packet_chk_info_t), GFP_KERNEL);
-	if(ts_packet_chk_info == NULL) {
-		printk("\t ts_packet_chk_info_t mem alloc err..\n");
-	}
-	memset(ts_packet_chk_info, 0x0, sizeof(ts_packet_chk_info_t));
-#endif
-		
 	return 0;
 }
 
@@ -1072,9 +930,6 @@ static void itv_ts_deactivate(itv_object_t *p_this)
 		case ITV_IF_TYPE_TS_PARALLEL:
 			tsif_ops->tsif_p_deinit();
 			break;
-		case ITV_IF_TYPE_TS_SERIAL:			
-			tsif_ops->tsif_s_deinit();
-			break;
 		default:
 			break;
 	}
@@ -1083,28 +938,6 @@ static void itv_ts_deactivate(itv_object_t *p_this)
 
 	kfree(priv);
 	idemux->priv = NULL;
-
-#ifdef TS_PACKET_CHK_MODE
-{
-	ts_packet_chk_t* tmp = NULL;
-	ts_packet_chk_t* tmp_ = NULL;
-
-	if(ts_packet_chk_info != NULL) {
-		if(ts_packet_chk_info->packet != NULL) {
-
-			itv_ts_cc_debug(1);
-			
-			tmp = ts_packet_chk_info->packet;
-			do {
-				tmp_ = tmp;
-				tmp = tmp->next;
-				kfree(tmp_);
-			} while(tmp != NULL);
-		}
-		kfree(ts_packet_chk_info);
-	}
-}
-#endif	
 }
 
 itv_module_t itv_ts_module =

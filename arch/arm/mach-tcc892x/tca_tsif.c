@@ -617,7 +617,7 @@ static int tcc_tsif_dmastart(struct tcc_tsif_handle *h)
     {
 #if defined(SUPPORT_PIDFILTER_INTERNAL)
       	BITSET(h->regs->TSRXCR, Hw17);      	
-#endif      	
+#endif
     }
 	
 	BITSET(dma_regs->DMACTR.nREG, Hw0);				//enable DMA

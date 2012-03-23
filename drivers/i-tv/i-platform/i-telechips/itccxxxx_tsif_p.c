@@ -18,18 +18,18 @@
 #include <asm/dma.h>
 
 #include <mach/bsp.h>
-#include <linux/spi/tcc_tsif.h>
-#include "../../../spi/tcc/tca_tsif_hwset.h"
+
+#if defined(CONFIG_ARCH_TCC892X)
+#include <mach/tca_tsif.h>
+#else
+#include "../../../spi/tcc/tca_tsif_module_hwset.h"
+#endif
 
 #include <i-tv/itv_common.h>
 #include "itccxxxx_tsif_p.h"
 
 //20110321 koo : tsif/dma reg & input ts data debug option
 //#define TSIF_DEBUG
-
-#if defined(CONFIG_ARCH_TCC93XX)
-static struct clk *gpsb_clk;
-#endif
 
 extern int tca_tsif_init(struct tcc_tsif_handle *h, volatile struct tcc_tsif_regs *regs, dma_alloc_f tea_dma_alloc, dma_free_f tea_dma_free, int dma_size, int tsif_ch, int dma_controller, int dma_ch, int port);
 extern void tca_tsif_clean(struct tcc_tsif_handle *h);
@@ -244,7 +244,7 @@ EXPORT_SYMBOL_GPL(tcc_tsif_p_get_pos);
 void tcc_tsif_p_insert_pid(int pid)
 {
 #ifdef GDMA
-#ifdef TSIF_PIDMATCH_USE
+#ifdef SUPPORT_PIDFILTER_INTERNAL
 	st_p_tsif *instance = &p_tsif_inst;
 	
 	int i, pos=0;
@@ -270,14 +270,32 @@ void tcc_tsif_p_insert_pid(int pid)
 
 #if defined(CONFIG_ARCH_TCC88XX)
 	PTSIF	tsif_regs;
+	
 	tsif_regs = (volatile PTSIF)tcc_p2v((TSIF_CH == 1) ? HwTSIF1_BASE : HwTSIF0_BASE);
 
 	tsif_regs->TSPID[pos] = 0;
 	tsif_regs->TSPID[pos] = (pid & 0x1FFF) | Hw13;
+#elif defined(CONFIG_ARCH_TCC892X)
+	PTSIF	tsif_regs;
+	int idx;
+	
+	tsif_regs = (volatile PTSIF)tcc_p2v(((TSIF_CH == 0) ? HwTSIF0_BASE : ((TSIF_CH == 1) ? HwTSIF1_BASE : HwTSIF2_BASE)));
+
+	if((pos % 2) == 0) {
+		if(pos != 0)		idx = (pos / 2);
+		else				idx = pos;
+		tsif_regs->TSPID[idx].nREG &= 0xffff0000;
+		tsif_regs->TSPID[idx].nREG |= (pid & 0x1FFF) | Hw13;
+	} else {
+		if(pos != 1)		idx = (pos / 2) - 1;
+		else				idx = pos - 1;
+		tsif_regs->TSPID[idx].nREG &= 0x0000ffff;
+		tsif_regs->TSPID[idx].nREG |= ((pid & 0x1FFF) << 16) | Hw29;
+	}
 #endif
 
 	instance->pidtable[pos] = pid;
-	
+
 	//printk("[%s] pidtable insert : %d-%d\n", __func__, pos, pid);
 #endif
 #else
@@ -304,14 +322,8 @@ void tcc_tsif_p_insert_pid(int pid)
 		}
 	}
 
-#if defined(CONFIG_ARCH_TCC93XX)
-	volatile unsigned long* PIDT;
-
-	PIDT = (volatile unsigned long *)tcc_p2v(HwGPSB_PIDT(pos));
-	*PIDT = 0x0;
-	*PIDT = (pid & 0x1FFF) | ((TSIF_CH == 1) ? Hw30 : Hw29);
-#elif defined(CONFIG_ARCH_TCC88XX)
-#ifdef TSIF_PIDMATCH_USE
+#if defined(CONFIG_ARCH_TCC88XX)
+#ifdef SUPPORT_PIDFILTER_INTERNAL
 	PTSIF	tsif_regs;
 	tsif_regs = (volatile PTSIF)tcc_p2v((TSIF_CH == 1) ? HwTSIF1_BASE : HwTSIF0_BASE);
 
@@ -321,11 +333,36 @@ void tcc_tsif_p_insert_pid(int pid)
 	HwGPSB_PIDT(pos) = 0;
 	HwGPSB_PIDT(pos) = (pid & 0x1FFF) | ((TSIF_CH == 1) ? Hw30 : Hw29);
 #endif
+#elif defined(CONFIG_ARCH_TCC892X)
+#ifdef SUPPORT_PIDFILTER_INTERNAL
+	PTSIF	tsif_regs;
+	int idx;
+
+	tsif_regs = (volatile PTSIF)tcc_p2v(((TSIF_CH == 0) ? HwTSIF0_BASE : ((TSIF_CH == 1) ? HwTSIF1_BASE : HwTSIF2_BASE)));
+
+	if((pos % 2) == 0) {
+		if(pos != 0)		idx = (pos / 2);
+		else				idx = pos;
+		tsif_regs->TSPID[idx].nREG &= 0xffff0000;
+		tsif_regs->TSPID[idx].nREG |= (pid & 0x1FFF) | Hw13;
+	} else {
+		if(pos != 1)		idx = (pos / 2) - 1;
+		else				idx = pos - 1;
+		tsif_regs->TSPID[idx].nREG &= 0x0000ffff;
+		tsif_regs->TSPID[idx].nREG |= ((pid & 0x1FFF) << 16) | Hw29;
+	}
+#else
+	volatile unsigned long* PIDT;
+
+	PIDT = (volatile unsigned long *)tcc_p2v(HwTSIF_PIDT(pos));
+	*PIDT = 0x0;
+	*PIDT = (pid & 0x1FFF) | ((TSIF_CH == 0) ? Hw29 : ((TSIF_CH == 1) ? Hw30 : Hw31));
 #endif	
+#endif
 
 	instance->pidtable[pos] = pid;
-	
-	//printk("[%s] pidtable insert : %d-%d\n", __func__, pos, pid);
+
+//	printk("[%s] pidtable insert : %d-%d\n", __func__, pos, pid);
 #endif
 }
 EXPORT_SYMBOL_GPL(tcc_tsif_p_insert_pid);
@@ -333,7 +370,7 @@ EXPORT_SYMBOL_GPL(tcc_tsif_p_insert_pid);
 void tcc_tsif_p_remove_pid(int pid)
 {
 #ifdef GDMA	
-#ifdef TSIF_PIDMATCH_USE
+#ifdef SUPPORT_PIDFILTER_INTERNAL
 	st_p_tsif *instance = &p_tsif_inst;
 	
 	int i, pos=0;
@@ -355,6 +392,21 @@ void tcc_tsif_p_remove_pid(int pid)
 	tsif_regs = (volatile PTSIF)tcc_p2v((TSIF_CH == 1) ? HwTSIF1_BASE : HwTSIF0_BASE);
 
 	tsif_regs->TSPID[i] = 0;
+#elif defined(CONFIG_ARCH_TCC892X)	
+	PTSIF	tsif_regs;
+	int idx;
+	
+	tsif_regs = (volatile PTSIF)tcc_p2v(((TSIF_CH == 0) ? HwTSIF0_BASE : ((TSIF_CH == 1) ? HwTSIF1_BASE : HwTSIF2_BASE)));
+
+	if(!(pos % 2)) {
+		if(pos != 0)		idx = (pos / 2);
+		else				idx = pos;
+		tsif_regs->TSPID[idx].nREG &= 0xffff0000;
+	} else {
+		if(pos != 1)		idx = (pos / 2) - 1;
+		else				idx = pos - 1;
+		tsif_regs->TSPID[idx].nREG &= 0x0000ffff;
+	}
 #endif
 
 	instance->pidtable[pos] = 0xffff;
@@ -378,13 +430,8 @@ void tcc_tsif_p_remove_pid(int pid)
 		}
 	}
 
-#if defined(CONFIG_ARCH_TCC93XX)
-	volatile unsigned long* PIDT;
-
-	PIDT = (volatile unsigned long *)tcc_p2v(HwGPSB_PIDT(pos));
-	*PIDT = 0x0;
-#elif defined(CONFIG_ARCH_TCC88XX)
-#ifdef TSIF_PIDMATCH_USE
+#if defined(CONFIG_ARCH_TCC88XX)
+#ifdef SUPPORT_PIDFILTER_INTERNAL
 	PTSIF	tsif_regs;
 	tsif_regs = (volatile PTSIF)tcc_p2v((TSIF_CH == 1) ? HwTSIF1_BASE : HwTSIF0_BASE);
 
@@ -392,10 +439,32 @@ void tcc_tsif_p_remove_pid(int pid)
 #else
 	HwGPSB_PIDT(i) = 0;
 #endif
+#elif defined(CONFIG_ARCH_TCC892X)
+#ifdef SUPPORT_PIDFILTER_INTERNAL
+	PTSIF	tsif_regs;
+	int idx;
+	
+	tsif_regs = (volatile PTSIF)tcc_p2v(((TSIF_CH == 0) ? HwTSIF0_BASE : ((TSIF_CH == 1) ? HwTSIF1_BASE : HwTSIF2_BASE)));
+
+	if(!(pos % 2)) {
+		if(pos != 0)		idx = (pos / 2);
+		else				idx = pos;
+		tsif_regs->TSPID[idx].nREG &= 0xffff0000;
+	} else {
+		if(pos != 1)		idx = (pos / 2) - 1;
+		else				idx = pos - 1;
+		tsif_regs->TSPID[idx].nREG &= 0x0000ffff;
+	}
+#else
+	volatile unsigned long* PIDT;
+
+	PIDT = (volatile unsigned long *)tcc_p2v(HwTSIF_PIDT(pos));
+	*PIDT = 0x0;
+#endif
 #endif
 
 	instance->pidtable[pos] = 0xffff;
-	
+
 	//printk("[%s] pidtable remove : %d-%d\n", __func__, pos, pid);
 #endif
 }
@@ -416,7 +485,7 @@ EXPORT_SYMBOL_GPL(tcc_tsif_p_set_packetcnt);
 #ifdef TSIF_DEBUG
 void tcc_tsif_p_debug(int mod)
 {
-#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC93XX)
+#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 	PGPION	gpio_regs;
 	PTSIF	tsif_regs;
 	volatile unsigned int* tsif_port_reg;
@@ -424,36 +493,14 @@ void tcc_tsif_p_debug(int mod)
 #ifdef GDMA
 	PGDMACTRL	gdma_regs;
 #else
-	PGPSB	gpsb_regs;
-#endif
-
-#if defined(CONFIG_ARCH_TCC93XX)
-	tsif_port_reg = (volatile unsigned int *)tcc_p2v(HwTSIFPORTSEL_BASE);
-
-#if (TSIF_GPIO_PORT == 0xD)
-	gpio_regs = (volatile PGPION)tcc_p2v(HwGPIOD_BASE);
-#elif (TSIF_GPIO_PORT == 0xE)
-	gpio_regs = (volatile PGPION)tcc_p2v(HwGPIOE_BASE);
-#elif (TSIF_GPIO_PORT == 0xF)
-	gpio_regs = (volatile PGPION)tcc_p2v(HwGPIOF_BASE);
-#endif
-
-#if (TSIF_CH == 1)
-	tsif_regs = (volatile PTSIF)tcc_p2v(HwTSIF1_BASE);
+#if defined(CONFIG_ARCH_TCC892X)
+	PTSIFDMA	dma_regs;
 #else
-	tsif_regs = (volatile PTSIF)tcc_p2v(HwTSIF0_BASE);
+	PGPSB		dma_regs;
+#endif
 #endif
 
-#ifdef GDMA
-	gdma_regs = (volatile PGDMACTRL)tcc_p2v(HwGDMA1_BASE); 
-#else
-#if (TSIF_CH == 1)
-	gpsb_regs = (volatile PGPSB)tcc_p2v(HwGPSBCH1_BASE);; 
-#else
-	gpsb_regs = (volatile PGPSB)tcc_p2v(HwGPSBCH0_BASE); 
-#endif
-#endif	
-#elif defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC88XX)
 	tsif_port_reg = (volatile unsigned int *)tcc_p2v(HwTSIF_PORTSEL_BASE);
 
 	gpio_regs = (volatile PGPION)tcc_p2v(((TSIF_GPIO_PORT == 0xE) ? HwGPIOE_BASE : HwGPIOF_BASE));
@@ -462,15 +509,39 @@ void tcc_tsif_p_debug(int mod)
 #ifdef GDMA
 	gdma_regs = (volatile PGDMACTRL)tcc_p2v(HwGDMA1_BASE); 
 #else
-	gpsb_regs = (volatile PGPSB)tcc_p2v((TSIF_CH == 1) ? HwGPSBCH1_BASE : HwGPSBCH0_BASE); 
+	dma_regs = (volatile PGPSB)tcc_p2v((TSIF_CH == 1) ? HwGPSBCH1_BASE : HwGPSBCH0_BASE); 
 #endif	
+#elif defined(CONFIG_ARCH_TCC892X)
+	tsif_port_reg = (volatile unsigned int *)tcc_p2v(HwTSIF_TSCHS_BASE);
+	tsif_regs = (volatile PTSIF)tcc_p2v((TSIF_CH == 0) ? HwTSIF0_BASE : ((TSIF_CH == 1) ? HwTSIF1_BASE : HwTSIF2_BASE));
+
+#if (TSIF_GPIO_PORT == GPIO_D_PORT_TSIFNUM)
+	gpio_regs = (volatile PGPION)tcc_p2v(HwGPIOD_BASE);
+#elif (TSIF_GPIO_PORT == GPIO_B0_PORT_TSIFNUM)
+	gpio_regs = (volatile PGPION)tcc_p2v(HwGPIOB_BASE);
+#elif (TSIF_GPIO_PORT == GPIO_B1_PORT_TSIFNUM)
+	gpio_regs = (volatile PGPION)tcc_p2v(HwGPIOB_BASE);
+#elif (TSIF_GPIO_PORT == GPIO_C_PORT_TSIFNUM)
+	gpio_regs = (volatile PGPION)tcc_p2v(HwGPIOC_BASE);
+#elif (TSIF_GPIO_PORT == GPIO_E_PORT_TSIFNUM)
+	gpio_regs = (volatile PGPION)tcc_p2v(HwGPIOE_BASE);
+#elif (TSIF_GPIO_PORT == GPIO_F_PORT_TSIFNUM)
+	gpio_regs = (volatile PGPION)tcc_p2v(HwGPIOF_BASE);
 #endif
+
+#ifdef GDMA
+	gdma_regs = (volatile PGDMACTRL)tcc_p2v(HwGDMA1_BASE); 
+#else
+	dma_regs = (volatile PTSIFDMA)tcc_p2v((TSIF_CH == 0) ? HwTSIF_DMA0_BASE : ((TSIF_CH == 1) ? HwTSIF_DMA1_BASE : HwTSIF_DMA2_BASE));
+#endif
+#endif
+
 	if(mod == 0) {
 		printk("\n####################################\n");
-		printk("GP%cFN0 : 0x%08x > 0x%08x\n", ((TSIF_GPIO_PORT == 0xE) ? 'E' : 'F'), (int)&gpio_regs->GPFN0, gpio_regs->GPFN0);
-		printk("GP%cFN1 : 0x%08x > 0x%08x\n", ((TSIF_GPIO_PORT == 0xE) ? 'E' : 'F'), (int)&gpio_regs->GPFN1, gpio_regs->GPFN1);
-		printk("GP%cFN2 : 0x%08x > 0x%08x\n", ((TSIF_GPIO_PORT == 0xE) ? 'E' : 'F'), (int)&gpio_regs->GPFN2, gpio_regs->GPFN2);
-		printk("GP%cFN3 : 0x%08x > 0x%08x\n\n", ((TSIF_GPIO_PORT == 0xE) ? 'E' : 'F'), (int)&gpio_regs->GPFN3, gpio_regs->GPFN3);
+		printk("GPFN0  : 0x%08x > 0x%08x\n", (int)&gpio_regs->GPFN0, gpio_regs->GPFN0);
+		printk("GPFN1  : 0x%08x > 0x%08x\n", (int)&gpio_regs->GPFN1, gpio_regs->GPFN1);
+		printk("GPFN2  : 0x%08x > 0x%08x\n", (int)&gpio_regs->GPFN2, gpio_regs->GPFN2);
+		printk("GPFN3  : 0x%08x > 0x%08x\n\n", (int)&gpio_regs->GPFN3, gpio_regs->GPFN3);
 		printk("TSCR   : 0x%08x > 0x%08x\n", (int)&tsif_regs->TSCR, tsif_regs->TSCR);
 		printk("TSIC   : 0x%08x > 0x%08x\n", (int)&tsif_regs->TSIC, tsif_regs->TSIC);
 		printk("TSCHS  : 0x%08x > 0x%08x\n\n", (int)tsif_port_reg, *tsif_port_reg);
@@ -484,10 +555,10 @@ void tcc_tsif_p_debug(int mod)
 		printk("RPTCTRL: 0x%08x > 0x%08x\n", (int)&gdma_regs->RPTCTRL2, gdma_regs->RPTCTRL2);
 		printk("EXTREQ : 0x%08x > 0x%08x\n", (int)&gdma_regs->EXTREQ2, gdma_regs->EXTREQ2);
 #else
-		printk("RXBASE : 0x%08x > 0x%08x\n", (int)&gpsb_regs->RXBASE, gpsb_regs->RXBASE);
-		printk("PACKET : 0x%08x > 0x%08x\n", (int)&gpsb_regs->PACKET, gpsb_regs->PACKET);
-		printk("DMACTR : 0x%08x > 0x%08x\n", (int)&gpsb_regs->DMACTR, gpsb_regs->DMACTR);
-		printk("DMAICR : 0x%08x > 0x%08x\n", (int)&gpsb_regs->DMAICR, gpsb_regs->DMAICR);
+		printk("RXBASE : 0x%08x > 0x%08x\n", (int)&dma_regs->RXBASE, dma_regs->RXBASE);
+		printk("PACKET : 0x%08x > 0x%08x\n", (int)&dma_regs->PACKET, dma_regs->PACKET);
+		printk("DMACTR : 0x%08x > 0x%08x\n", (int)&dma_regs->DMACTR, dma_regs->DMACTR);
+		printk("DMAICR : 0x%08x > 0x%08x\n", (int)&dma_regs->DMAICR, dma_regs->DMAICR);
 #endif	
 		printk("####################################\n\n");
 	} else {
@@ -496,8 +567,8 @@ void tcc_tsif_p_debug(int mod)
 		printk("C_DADR : 0x%08x > 0x%08x\n", (int)&gdma_regs->C_DADR2, gdma_regs->C_DADR2);
 		printk("HCOUNT : 0x%08x > 0x%08x\n", (int)&gdma_regs->HCOUNT2, gdma_regs->HCOUNT2);
 #else
-		printk("DMASTR : 0x%08x > 0x%08x\n",(int)&gpsb_regs->DMASTR, gpsb_regs->DMASTR);
-		printk("DMAICR : 0x%08x > 0x%08x\n\n", (int)&gpsb_regs->DMAICR, gpsb_regs->DMAICR);
+		printk("DMASTR : 0x%08x > 0x%08x\n",(int)&dma_regs->DMASTR, dma_regs->DMASTR);
+		printk("DMAICR : 0x%08x > 0x%08x\n\n", (int)&dma_regs->DMAICR, dma_regs->DMAICR);
 #endif
 	}
 #endif
@@ -541,10 +612,6 @@ int tcc_tsif_p_start(void)
 	st_p_tsif *instance = &p_tsif_inst;
 	struct tcc_tsif_handle *handle = &instance->handle;
 
-#if defined(CONFIG_ARCH_TCC93XX)
-	clk_enable(gpsb_clk);	
-#endif
-
 	if(instance->state == P_TSIF_STATE_DEINIT)
 	{
 		printk("[%s] Could not start : 0x%x\n", __func__, instance->state);
@@ -561,7 +628,16 @@ int tcc_tsif_p_start(void)
 	tca_ckc_setioswreset(RB_GPSBCONTROLLER1, OFF);
 	tca_ckc_setiobus(RB_GPSBCONTROLLER1, ENABLE);
 #endif
+#elif defined(CONFIG_ARCH_TCC892X)
+	tca_ckc_setioswreset(((TSIF_CH == 0) ? RB_TSIF0 : ((TSIF_CH == 1) ? RB_TSIF1 : RB_TSIF2)), ON);
+	tca_ckc_setioswreset(((TSIF_CH == 0) ? RB_TSIF0 : ((TSIF_CH == 1) ? RB_TSIF1 : RB_TSIF2)), OFF);
+	tca_ckc_setiopwdn(((TSIF_CH == 0) ? RB_TSIF0 : ((TSIF_CH == 1) ? RB_TSIF1 : RB_TSIF2)), DISABLE);
 #endif
+
+
+//20120319 koo : android tcc880x kernel에서는 module init 후에 tsif & gpsb1을 swret state 및 clk disable 상태로 만들기 때문에 module init 시의 tsif & dma reg 설정 value가 
+//				reset 되기 때문에 start 시 다시 설정.
+	handle->hw_init(handle);
 
     handle->msb_first		= 0x01;
 
@@ -571,10 +647,17 @@ int tcc_tsif_p_start(void)
 	handle->big_endian		= 0x00;		//1:big endian, 0:little endian
 #endif	
 	handle->serial_mode		= instance->mode;
-	handle->clk_polarity	= 0x00;
+//20111114 koo : clk polarityy change
+#if defined(CONFIG_iTV_FE_DEMOD_MODULE_LGDT3305) || defined(CONFIG_iTV_FE_DEMOD_MODULE_LGDT3305_MODULE)
+	handle->clk_polarity	= 0x01;			//falling edge : lgdt3305
+#else	
+	handle->clk_polarity	= 0x00;			//rising edge : s5h1411
+#endif
 	handle->valid_polarity	= 0x01;
 	handle->sync_polarity	= 0x00;
 	handle->sync_delay		= 0x00;
+
+	handle->mpeg_ts = Hw1 | Hw0;
 
 	handle->dma_stop(handle);
 	handle->tsif_set(handle);
@@ -589,7 +672,7 @@ int tcc_tsif_p_start(void)
 	if(debug_thread == NULL) {
 		debug_time = 0;
 		debug_cnt = 0;
-		debug_thread = kthread_run(tcc_tsif_p_debug_thread, NULL, "itv_debug_thread");
+		//debug_thread = kthread_run(tcc_tsif_p_debug_thread, NULL, "itv_debug_thread");
 	}
 #endif
 
@@ -616,10 +699,6 @@ int tcc_tsif_p_stop(void)
 
 	instance->state = P_TSIF_STATE_STOP;
 
-#if defined(CONFIG_ARCH_TCC93XX)
-	clk_disable(gpsb_clk);	
-#endif
-
 //20110526 koo : tsif start 시 swreset cancel & clk enable 시켜주기 때문에 stop 시 다시 swreset state & clk disable 시켜줌.
 #if defined(CONFIG_ARCH_TCC88XX)
 	tca_ckc_setioswreset(((TSIF_CH == 0) ? RB_TSIF0CONTROLLER : RB_TSIF1CONTROLLER), ON);
@@ -628,6 +707,8 @@ int tcc_tsif_p_stop(void)
 	tca_ckc_setioswreset(RB_GPSBCONTROLLER1, ON);
 	tca_ckc_setiobus(RB_GPSBCONTROLLER1, DISABLE);
 #endif
+#elif defined(CONFIG_ARCH_TCC892X)
+	tca_ckc_setiopwdn(((TSIF_CH == 0) ? RB_TSIF0 : ((TSIF_CH == 1) ? RB_TSIF1 : RB_TSIF2)), ENABLE);
 #endif
 
 	return 0;
@@ -652,8 +733,8 @@ int tcc_tsif_p_init(unsigned char **buffer_addr, unsigned int *real_buffer_size,
 
 #if defined(CONFIG_ARCH_TCC88XX)
 	reg_addr = (struct tcc_tsif_regs *)((TSIF_CH == 0) ? HwTSIF0_BASE : HwTSIF1_BASE);
-#elif defined(CONFIG_ARCH_TCC93XX)
-	reg_addr = (struct tcc_tsif_regs *)((TSIF_CH == 0) ? &(HwTSIF0_BASE) : &(HwTSIF1_BASE));
+#elif defined(CONFIG_ARCH_TCC892X)
+	reg_addr = (struct tcc_tsif_regs *)tcc_p2v(((TSIF_CH == 0) ? HwTSIF0_BASE : ((TSIF_CH == 1) ? HwTSIF1_BASE : HwTSIF2_BASE)));
 #endif
 
 	memset(instance, 0x00, sizeof(st_p_tsif));
@@ -665,26 +746,8 @@ int tcc_tsif_p_init(unsigned char **buffer_addr, unsigned int *real_buffer_size,
 	handle->dma_intr_packet_cnt = TSIF_DMA_PACKET_CNT;
 	handle->dma_total_packet_cnt = ((TSIF_DMA_SIZE / MPEG_PACKET_SIZE) / handle->dma_intr_packet_cnt) * handle->dma_intr_packet_cnt;
 	printk("tsif > dma size:0x%x / intr_cnt:%d / total_intr_cnt:%d\n", TSIF_DMA_SIZE, handle->dma_intr_packet_cnt, handle->dma_total_packet_cnt);	
-	
-#if defined(CONFIG_ARCH_TCC93XX)
-	tca_ckc_set_iobus_swreset(((TSIF_CH == 0) ? RB_TSIF0CONTROLLER : RB_TSIF1CONTROLLER), OFF);
-	tca_ckc_set_iobus_swreset(((TSIF_CH == 0) ? RB_TSIF0CONTROLLER : RB_TSIF1CONTROLLER), ON);
-	tca_ckc_setiobus(((TSIF_CH == 0) ? RB_TSIF0CONTROLLER : RB_TSIF1CONTROLLER), ENABLE);
-		
-#ifndef GDMA
-	tca_ckc_set_iobus_swreset((TSIF_CH == 0) ? RB_GPSBCONTROLLER0 : RB_GPSBCONTROLLER1, OFF);
-	tca_ckc_set_iobus_swreset((TSIF_CH == 0) ? RB_GPSBCONTROLLER0 : RB_GPSBCONTROLLER1, ON);
-	tca_ckc_setiobus((TSIF_CH == 0) ? RB_GPSBCONTROLLER0 : RB_GPSBCONTROLLER1, ENABLE);
-#endif	
-		
-	if(TSIF_CH == 0)	gpsb_clk = clk_get(NULL, "gpsb0");
-    else		        gpsb_clk = clk_get(NULL, "gpsb1");
-    
-    if(gpsb_clk == NULL) {
-        printk("gpsb clock error on tsif: cannot get clock\n");
-        return -EINVAL;
-    }
-#elif defined(CONFIG_ARCH_TCC88XX)
+
+#if defined(CONFIG_ARCH_TCC88XX)
 	//20110321 koo : tcc93xx와 tcc88xx의 swreset value가 뒤바뀌어져 있지만 tca_ckc_set_iobus_swreset를 동일하게 사용하고 있음
 	tca_ckc_setioswreset(((TSIF_CH == 0) ? RB_TSIF0CONTROLLER : RB_TSIF1CONTROLLER), ON);
 	tca_ckc_setioswreset(((TSIF_CH == 0) ? RB_TSIF0CONTROLLER : RB_TSIF1CONTROLLER), OFF);
@@ -695,6 +758,20 @@ int tcc_tsif_p_init(unsigned char **buffer_addr, unsigned int *real_buffer_size,
 	tca_ckc_setioswreset((TSIF_CH == 0) ? RB_GPSBCONTROLLER0 : RB_GPSBCONTROLLER1, OFF);
 	tca_ckc_setiobus((TSIF_CH == 0) ? RB_GPSBCONTROLLER0 : RB_GPSBCONTROLLER1, ENABLE);
 #endif	
+#elif defined(CONFIG_ARCH_TCC892X)
+	tca_ckc_setioswreset(((TSIF_CH == 0) ? RB_TSIF0 : ((TSIF_CH == 1) ? RB_TSIF1 : RB_TSIF2)), ON);
+	tca_ckc_setioswreset(((TSIF_CH == 0) ? RB_TSIF0 : ((TSIF_CH == 1) ? RB_TSIF1 : RB_TSIF2)), OFF);
+	tca_ckc_setiopwdn(((TSIF_CH == 0) ? RB_TSIF0 : ((TSIF_CH == 1) ? RB_TSIF1 : RB_TSIF2)), DISABLE);
+
+//20111220 koo : tsif interrupt가 enable 되어있으면 tsrxirq intr이 발생시 ts쪽 interrupt가 발생되어 gdma 사용시 mask 시킴.
+#ifdef GDMA
+	{
+		static volatile PPIC pPIC;
+		pPIC = (volatile PPIC)tcc_p2v(HwPIC_BASE);
+		pPIC->IEN1.bREG.TSIF = 0;
+		pPIC->INTMSK1.bREG.TSIF = 0;
+	}
+#endif
 #else
     // reset
 	tca_ckc_set_iobus_swreset(RB_TSIFCONTROLLER, OFF);
@@ -737,17 +814,19 @@ int tcc_tsif_p_init(unsigned char **buffer_addr, unsigned int *real_buffer_size,
 		for(i=0; i<32; i++) {
 			instance->pidtable[i] = 0xffff;
 			
-#if defined(CONFIG_ARCH_TCC93XX)			
+#if defined(CONFIG_ARCH_TCC88XX)
+			HwGPSB_PIDT(i) = 0;
+#elif defined(CONFIG_ARCH_TCC892X)
 			volatile unsigned long* PIDT;
 
-			PIDT = (volatile unsigned long *)tcc_p2v(HwGPSB_PIDT(i));
+			PIDT = (volatile unsigned long *)tcc_p2v(HwTSIF_PIDT(i));
 			*PIDT = 0x0;
-#elif defined(CONFIG_ARCH_TCC88XX)
-			HwGPSB_PIDT(i) = 0;
 #endif
 		}
 	}	
 
+	handle->hw_init(handle);
+	
 	handle->prev_q_pos = (int)handle->rx_dma.v_addr;
 	instance->state = P_TSIF_STATE_INIT;
 
@@ -760,9 +839,11 @@ err_tsif_p:
 	
 	tca_tsif_clean(handle);
 	
-#if defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC88XX)
 	tca_ckc_setiobus(((TSIF_CH == 0) ? RB_TSIF0CONTROLLER : RB_TSIF1CONTROLLER), DISABLE);
 	tca_ckc_setiobus((TSIF_CH == 0) ? RB_GPSBCONTROLLER0 : RB_GPSBCONTROLLER1, DISABLE);
+#elif defined(CONFIG_ARCH_TCC892X)
+	tca_ckc_setiopwdn(((TSIF_CH == 0) ? RB_TSIF0 : ((TSIF_CH == 1) ? RB_TSIF1 : RB_TSIF2)), ENABLE);
 #else
 	tca_ckc_setiobus(RB_TSIFCONTROLLER, DISABLE);
 #endif	
@@ -790,12 +871,11 @@ void tcc_tsif_p_deinit(void)
 	
 	tca_tsif_clean(handle);
 	
-#if defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC88XX)
 	tca_ckc_setiobus(((TSIF_CH == 0) ? RB_TSIF0CONTROLLER : RB_TSIF1CONTROLLER), DISABLE);
 	tca_ckc_setiobus((TSIF_CH == 0) ? RB_GPSBCONTROLLER0 : RB_GPSBCONTROLLER1, DISABLE);
-#if defined(CONFIG_ARCH_TCC93XX)
-	clk_put(gpsb_clk);
-#endif
+#elif defined(CONFIG_ARCH_TCC892X)
+	tca_ckc_setiopwdn(((TSIF_CH == 0) ? RB_TSIF0 : ((TSIF_CH == 1) ? RB_TSIF1 : RB_TSIF2)), ENABLE);
 #else
 	tca_ckc_setiobus(RB_TSIFCONTROLLER, DISABLE);
 #endif	

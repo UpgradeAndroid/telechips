@@ -54,7 +54,7 @@ static ssize_t itv_demux_read(struct file *file, char __user *buf, size_t count,
 	return idemux->demux_read(hfilter->handle, file->f_flags & O_NONBLOCK, buf, count, ppos);
 }
 
-static int itv_demux_do_ioctl(struct inode *inode, struct file *file, unsigned int cmd, void *parg)
+static int itv_demux_do_ioctl(struct file *file, unsigned int cmd, void *parg)
 {
 	int ret = 0;
 //	unsigned long arg = (unsigned long)parg;
@@ -96,11 +96,11 @@ static int itv_demux_do_ioctl(struct inode *inode, struct file *file, unsigned i
 	return ret;
 }
 
-static int itv_demux_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long arg)
+static int itv_demux_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 //	DEBUG_CALLSTACK
-		
-	return itv_usercopy(inode, file, cmd, arg, itv_demux_do_ioctl);
+
+	return itv_usercopy(file, cmd, arg, itv_demux_do_ioctl);
 }
 
 static int itv_demux_open(struct inode *inode, struct file *file)
@@ -198,12 +198,12 @@ int itv_demux_stop(itv_demux_t *p_idemux)
 EXPORT_SYMBOL(itv_demux_stop);
 
 struct file_operations idemux_fops = {
-	.owner 		= THIS_MODULE, 
-	.read 		= itv_demux_read, 
-	.ioctl 		= itv_demux_ioctl, 
-	.open 		= itv_demux_open, 
-	.release 	= itv_demux_release, 
-	.poll 		= itv_demux_poll
+	.owner 			= THIS_MODULE, 
+	.read 			= itv_demux_read, 
+	.unlocked_ioctl 	= itv_demux_ioctl, 
+	.open 			= itv_demux_open, 
+	.release 			= itv_demux_release, 
+	.poll 			= itv_demux_poll
 };
 
 itv_demux_t *itv_demux_create(itv_object_t *p_this)
