@@ -607,6 +607,8 @@ static int itv_fqd1136_activate(itv_object_t *p_this)
 		return -1;
 	}
 
+	printk("%s : fqd1136 detect ok!!\n", __func__);
+
 	return 0;
 }
 

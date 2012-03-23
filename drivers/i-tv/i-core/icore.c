@@ -1,4 +1,4 @@
-#include <linux/smp_lock.h>
+#include <linux/mutex.h>
 #include <i-tv/itv_common.h>
 #include <i-tv/itv_adapter.h>
 #include <i-tv/itv_core.h>
@@ -16,6 +16,8 @@ MODULE_PARM_DESC(icore_debug_cs, "Turn on/off core callstack debugging (default:
 #undef dprintk
 #endif
 
+static DEFINE_MUTEX(itv_core_mutex);
+
 #define dprintk(args...) \
 	do { if(itv_core_debug) { printk("[%s] ", __func__); printk(args); } } while (0)
 
@@ -25,8 +27,8 @@ MODULE_PARM_DESC(icore_debug_cs, "Turn on/off core callstack debugging (default:
 itv_core_t *p_icore = NULL;
 EXPORT_SYMBOL(p_icore);
 
-int itv_usercopy(struct inode *inode, struct file *file, unsigned int cmd, unsigned long arg, 
-	int (*func)(struct inode *inode, struct file *file, unsigned int cmd, void *arg))
+int itv_usercopy(struct file *file, unsigned int cmd, unsigned long arg, 
+	int (*func)(struct file *file, unsigned int cmd, void *arg))
 {
 	char sbuf[128];
 	void *mbuf = NULL;
@@ -58,7 +60,7 @@ int itv_usercopy(struct inode *inode, struct file *file, unsigned int cmd, unsig
 			break;
 	}
 
-	if((err = func(inode, file, cmd, parg)) == -ENOIOCTLCMD)
+	if((err = func(file, cmd, parg)) == -ENOIOCTLCMD)
 		err = -EINVAL;
 
 	if(err < 0)
@@ -116,12 +118,12 @@ static int itv_core_open(struct inode *inode, struct file *file)
 
 //	DEBUG_CALLSTACK
 
-	lock_kernel();
+	mutex_lock(&itv_core_mutex);
 
 	p_list = itv_list_children(p_icore);
 	if(p_list->i_count == 0) {
 		itv_list_release(p_list);
-		unlock_kernel();
+		mutex_unlock(&itv_core_mutex);
 		return -ENODEV;
 	}
 	for(i = 0; i < p_list->i_count; i++) {
@@ -144,12 +146,13 @@ static int itv_core_open(struct inode *inode, struct file *file)
 		}
 		fops_put(old_fops);
 		itv_list_release(p_list);
-		unlock_kernel();
+		mutex_unlock(&itv_core_mutex);
 		return err;
 	}
 	itv_list_release(p_list);
 
-	unlock_kernel();
+	mutex_unlock(&itv_core_mutex);
+	
 	return -ENODEV;
 }
 

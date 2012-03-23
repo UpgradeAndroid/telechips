@@ -774,7 +774,12 @@ static void tcc_gmac_set_filter(struct net_device *dev)
 		writel(0xffffffff, ioaddr + GMAC_HASH_LOW);
 	} else if (netdev_mc_count(dev)  > 0) {
 		int i;
+		#if defined(CONFIG_ARCH_TCC892X)
+		u32 mc_filter[8];
+		#else
 		u32 mc_filter[2];
+		#endif
+		
 		struct netdev_hw_addr *ha; 
 
 		/* Hash filter for multicast */
@@ -785,16 +790,31 @@ static void tcc_gmac_set_filter(struct net_device *dev)
 		netdev_for_each_mc_addr(ha, dev) {
 			/* The upper 6 bits of the calculated CRC are used to
 			   index the contens of the hash table */
-			int bit_nr =
-				bitrev32(~crc32_le(~0, ha->addr, 6)) >> 26;
+			   
+		#if defined(CONFIG_ARCH_TCC892X)
+			u32 bit_nr = bitrev32(~crc32_le(~0, ha->addr, 6)) >> 24;
+		#else
+			u32 bit_nr = bitrev32(~crc32_le(~0, ha->addr, 6)) >> 26;
+		#endif
 			/* The most significant bit determines the register to
 			 * use (H/L) while the other 5 bits determine the bit
 			 * within the register. */
-			mc_filter[bit_nr >> 5] |= 1 << (bit_nr & 31);
+			mc_filter[bit_nr >> 5] |= 1 << (bit_nr & 0x1f);
 		}
 		
+		#if defined(CONFIG_ARCH_TCC892X)
+		writel(mc_filter[0], ioaddr + GMAC_HASH_TABLE_0);
+		writel(mc_filter[1], ioaddr + GMAC_HASH_TABLE_1);
+		writel(mc_filter[2], ioaddr + GMAC_HASH_TABLE_2);
+		writel(mc_filter[3], ioaddr + GMAC_HASH_TABLE_3);
+		writel(mc_filter[4], ioaddr + GMAC_HASH_TABLE_4);
+		writel(mc_filter[5], ioaddr + GMAC_HASH_TABLE_5);
+		writel(mc_filter[6], ioaddr + GMAC_HASH_TABLE_6);
+		writel(mc_filter[7], ioaddr + GMAC_HASH_TABLE_7);
+		#else
 		writel(mc_filter[0], ioaddr + GMAC_HASH_LOW);
 		writel(mc_filter[1], ioaddr + GMAC_HASH_HIGH);
+		#endif
 	}
 
 	/* Handle multiple unicast addresses (perfect filtering)*/
@@ -818,9 +838,21 @@ static void tcc_gmac_set_filter(struct net_device *dev)
 #endif
 	writel(value, ioaddr + GMAC_FRAME_FILTER);
 
+	#if defined(CONFIG_ARCH_TCC892X)
+	CTRL_DBG("\tFrame Filter reg: 0x%08x\n\tHash regs: "
+		"TABLE0 0x%08x, TABLE1 0x%08x TABLE2 : 0x%08x TABLE3 0x%08x\n" 
+		"TABLE4 0x%08x, TABLE5 0x%08x TABLE6 : 0x%08x TABLE7 0x%08x\n", 
+		readl(ioaddr + GMAC_FRAME_FILTER),
+		readl(ioaddr + GMAC_HASH_TABLE_0), readl(ioaddr + GMAC_HASH_TABLE_1),
+		readl(ioaddr + GMAC_HASH_TABLE_2), readl(ioaddr + GMAC_HASH_TABLE_3),
+		readl(ioaddr + GMAC_HASH_TABLE_4), readl(ioaddr + GMAC_HASH_TABLE_5),
+		readl(ioaddr + GMAC_HASH_TABLE_6), readl(ioaddr + GMAC_HASH_TABLE_7));
+	#else
 	CTRL_DBG(KERN_INFO "\tFrame Filter reg: 0x%08x\n\tHash regs: "
 		"HI 0x%08x, LO 0x%08x\n", readl(ioaddr + GMAC_FRAME_FILTER),
 		readl(ioaddr + GMAC_HASH_HIGH), readl(ioaddr + GMAC_HASH_LOW));
+	#endif
+
 	return;
 }
 

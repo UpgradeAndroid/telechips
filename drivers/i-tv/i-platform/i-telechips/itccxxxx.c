@@ -5,57 +5,22 @@
 #include <i-tv/itv_platform.h>
 
 #include "itccxxxx_tsif_p.h"
-#include "itccxxxx_tsif_s.h"
 
-#if defined(CONFIG_ARCH_TCC93XX) || defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 struct tcc_gpio_regs {
     volatile unsigned long GPDAT, GPEN, GPSET, GPCLR, GPXOR, GPCD0, GPCD1, GPPD0, GPPD1, GPFN0, GPFN1, GPFN2,GPFN3;
 };
 #endif
 
 //20110321 koo : S5H1411&XC5000_ATSC_SV6.0 brd에서는 cam1을 사용하므로 cam1_on on/off
-#if defined(CONFIG_ARCH_TCC88XX)
+#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
 #include <mach/gpio.h>
 #endif
 
 /* frontend operations */
 static void itv_platform_demod_reset(void)
 {
-#if defined(CONFIG_ARCH_TCC93XX)
-	struct tcc_gpio_regs *reg_addr;
-	volatile struct tcc_gpio_regs *regs;
-
-//20110126 koo : tcc9300_stb_board TS_PWDN# & TS_RST set
-#if defined(CONFIG_MACH_TCC9300ST)
-	reg_addr = (struct tcc_gpio_regs *)&HwGPIOD_BASE;
-	regs = (volatile struct tcc_gpio_regs *)tcc_p2v(*reg_addr);
-	
-	BITCSET(regs->GPFN3, (Hw8-Hw0), 0);
-
-	BITSET(regs->GPEN, Hw25);
-	BITSET(regs->GPDAT, Hw25);
-
-	msleep(10);
-	
-	BITSET(regs->GPEN, Hw24);
-	BITSET(regs->GPDAT, Hw24);
-	msleep(50);
-	BITCLR(regs->GPDAT, Hw24);
-	msleep(50);
-	BITSET(regs->GPDAT, Hw24);
-#else
-	reg_addr = (struct tcc_gpio_regs *)&HwGPIOE_BASE;
-	regs = (volatile struct tcc_gpio_regs *)tcc_p2v(*reg_addr);
-	
-	BITCSET(regs->GPFN1, (Hw16-Hw12), 0);
-	BITSET(regs->GPEN, Hw11);
-	BITSET(regs->GPDAT, Hw11);
-	msleep(50);
-	BITCLR(regs->GPDAT, Hw11);
-	msleep(50);
-	BITSET(regs->GPDAT, Hw11);
-#endif	//#if defined(CONFIG_MACH_TCC9300ST)
-#elif defined(CONFIG_MACH_TCC8800)		//TCC93&88_DEMO_V6.1에서 xc5000을 사용할 때는 cam1 interface를 이용하고, fqd1136을 사용할 때는 ts parallel interface를 이용.
+#if defined(CONFIG_MACH_TCC8800)		//TCC93&88_DEMO_V6.1에서 xc5000을 사용할 때는 cam1 interface를 이용하고, fqd1136을 사용할 때는 ts parallel interface를 이용.
 #if defined(CONFIG_iTV_FE_TUNER_MODULE_XC5000) || defined(CONFIG_iTV_FE_TUNER_MODULE_XC5000_MODULE)
 	volatile PGPION regs;
 
@@ -120,6 +85,24 @@ static void itv_platform_demod_reset(void)
 	BITCLR(regs->GPDAT, Hw11);				
 	msleep(50);
 	BITSET(regs->GPDAT, Hw11);				
+#elif defined(CONFIG_MACH_TCC8920ST)
+	PGPION regs;
+
+	regs = (volatile PGPION)tcc_p2v(HwGPIOE_BASE);
+
+	BITCSET(regs->GPFN3.nREG, (Hw20-Hw16), 0);
+	BITSET(regs->GPEN.nREG, Hw28);
+	BITSET(regs->GPDAT.nREG, Hw28);				//TS_PWDN	
+
+	msleep(10);
+
+	BITCSET(regs->GPFN3.nREG, (Hw24-Hw20), 0);
+	BITSET(regs->GPEN.nREG, Hw29);
+	BITSET(regs->GPDAT.nREG, Hw29);				//TS_RST
+	msleep(50);
+	BITCLR(regs->GPDAT.nREG, Hw29);
+	msleep(50);
+	BITSET(regs->GPDAT.nREG, Hw29);
 #else
 	BITCSET(HwGPIOE->GPFN1, (Hw16-Hw12), 0);
 	BITSET(HwGPIOE->GPEN, Hw11);
@@ -139,18 +122,7 @@ static void itv_platform_demod_pwroff(int tsif_mod)
 	//tsif stop
 	if(tsif_mod)	tcc_tsif_p_stop();
 
-#if defined(CONFIG_ARCH_TCC93XX)
-	struct tcc_gpio_regs *reg_addr;
-	volatile struct tcc_gpio_regs *regs;
-
-#if defined(CONFIG_MACH_TCC9300ST)
-	reg_addr = (struct tcc_gpio_regs *)&HwGPIOD_BASE;
-	regs = (volatile struct tcc_gpio_regs *)tcc_p2v(*reg_addr);
-	
-	BITCLR(regs->GPDAT, Hw25);
-	BITCLR(regs->GPDAT, Hw24);
-#endif
-#elif defined(CONFIG_MACH_TCC8800)		//TCC93&88_DEMO_V6.1에서 xc5000을 사용할 때는 cam1 interface를 이용하고, fqd1136을 사용할 때는 ts parallel interface를 이용.
+#if defined(CONFIG_MACH_TCC8800)		//TCC93&88_DEMO_V6.1에서 xc5000을 사용할 때는 cam1 interface를 이용하고, fqd1136을 사용할 때는 ts parallel interface를 이용.
 #if defined(CONFIG_iTV_FE_TUNER_MODULE_XC5000) || defined(CONFIG_iTV_FE_TUNER_MODULE_XC5000_MODULE)
 	PGPION regs;
 
@@ -174,17 +146,21 @@ static void itv_platform_demod_pwroff(int tsif_mod)
 
 	regs = (volatile PGPION)tcc_p2v(HwGPIOF_BASE);
 	BITCLR(regs->GPDAT, Hw25);																				//TS_PWDN
+#elif defined(CONFIG_MACH_TCC8920ST)
+	PGPION regs;
+
+	regs = (volatile PGPION)tcc_p2v(HwGPIOE_BASE);
+	BITCLR(regs->GPDAT.nREG, Hw28);																		//TS_PWDN
 #endif
 }
 
-//20110126 koo : tcc9300_stb_board i2c1-0 using
-#if defined(CONFIG_MACH_TCC9300ST)
-#define ITV_TCCXXXX_I2C_CH		2
 //20110324 koo : i2c ch0를 사용할 경우 wm8731(addr : 0x1a)와 slave addr이 동일하여 i2c ch1를 사용하도록 board 시방.
-#elif defined(CONFIG_MACH_TCC8800)
+#if defined(CONFIG_MACH_TCC8800)
 #define ITV_TCCXXXX_I2C_CH		1
 #elif defined(CONFIG_MACH_TCC8800ST)
 #define ITV_TCCXXXX_I2C_CH		0
+#elif defined(CONFIG_MACH_TCC8920ST)
+#define ITV_TCCXXXX_I2C_CH		1
 #else
 #define ITV_TCCXXXX_I2C_CH		1
 #endif
@@ -252,14 +228,6 @@ itv_platform_tsif_operations_t *itv_platform_get_tsif_operations(void)
 	p_tsif_ops->tsif_p_insert_pid 		= tcc_tsif_p_insert_pid;
 	p_tsif_ops->tsif_p_remove_pid 		= tcc_tsif_p_remove_pid;
 	p_tsif_ops->tsif_p_set_packetcnt 	= tcc_tsif_p_set_packetcnt;
-
-	// TS serial interface operations
-	p_tsif_ops->tsif_s_init_proc 	= tcc_tsif_s_init_proc;
-	p_tsif_ops->tsif_s_init 		= tcc_tsif_s_init;
-	p_tsif_ops->tsif_s_deinit 		= tcc_tsif_s_deinit;
-	p_tsif_ops->tsif_s_get_pos 		= tcc_tsif_s_get_pos;
-	p_tsif_ops->tsif_s_start 		= tcc_tsif_s_start;
-	p_tsif_ops->tsif_s_stop 		= tcc_tsif_s_stop;
 
 	return p_tsif_ops;
 }

@@ -17,12 +17,8 @@
 #define    SUPPORT_PIDFILTER_INTERNAL    //filtering support using internal logic(TSPID reg)
 //#define    SUPPORT_PIDFILTER_DMA       //filtering suuport using dma logic
 
-
 //20111212 koo : GDMA가 not defined 상태면 tsif-dma using으로 변경 됨. 
 //#define GDMA 
-
-//20111212 koo :  tsif pid reg를 이용한 pid filtering 기능 사용 option. 해당 기능 사용시 gpsb-dma의 pid match 기능은 사용하지 않음.
-//#define TSIF_PIDMATCH_USE
 
 #define TSIF_CH 					0		//tsif use ch0,1,2
 
@@ -69,7 +65,7 @@
 #define TSIF_DMA_INCREASE_SIZE	0x4
 
 #ifdef GDMA
-#ifdef TSIF_PIDMATCH_USE
+#ifdef SUPPORT_PIDFILTER_INTERNAL
 #define TSIF_DMA_PACKET_CNT		4
 #else
 #define TSIF_DMA_PACKET_CNT		512

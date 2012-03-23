@@ -153,11 +153,7 @@ static int lgdt3305_read_reg(itv_demod_priv_t *state, u16 reg, u8 *val)
 
 	//printk("\n\tlgdt3305 [%s][0x%x] 0x%x => 0x%x\n\n", state->i2c_adap->name, state->cfg->i2c_addr, reg, *val);
 
-#if defined(CONFIG_ARCH_TCC93XX)
-	if (ret < 0) {
-#else
-	if (ret != 2) {
-#endif
+	if(ret <= 0) {
 		eprintk("error (addr %02x reg %04x error (ret == %i)\n",
 		       state->cfg->i2c_addr, reg, ret);
 		if (ret < 0)
@@ -629,16 +625,6 @@ static int lgdt3305_init(struct itv_frontend_t *fe)
 		  .val = 0x1b, },
 	};
 
-//20110825 koo :  lgdt3305 demod & xc500c tuner porting : xc5000c init 시 fwupload 하기 위해 reset 시켜줌. 해당 동작 없이 xc5000c 동작시 이상동작 발생.
-#if 1
-{
-	itv_frontend_t *ifrontend = (itv_frontend_t *)fe;
-	itv_platform_frontend_operations_t *fe_ops = ifrontend->fe_ops;
-
-	fe_ops->demod_reset();
-}
-#endif
-
 	dprintk("\n");
 
 	ret = lgdt3305_write_regs(state, lgdt3305_init_data,
@@ -652,6 +638,71 @@ fail:
 	return ret;
 }
 
+static void lgdt3305_regall_debug(itv_demod_priv_t *state)
+{
+	u8 val;
+	int ret;
+	unsigned short reg_addr = 0;
+
+	printk("\nLGDT3305 #######################\n");
+	for(reg_addr=0; reg_addr<=0x13; reg_addr++) {
+		ret = lgdt3305_read_reg(state, reg_addr, &val);
+		printk("addr : 0x%04x  =>  data : 0x%02x\n", reg_addr, val);
+	}
+	for(reg_addr=0x106; reg_addr<=0x11d; reg_addr++) {
+		if(!((reg_addr == 0x10a) | (reg_addr == 0x10b) | (reg_addr == 0x10c) | (reg_addr == 0x10d) | (reg_addr == 0x10f) | (reg_addr == 0x110) |	\
+			 (reg_addr == 0x111) | (reg_addr == 0x117))) {
+			ret = lgdt3305_read_reg(state, reg_addr, &val);
+			printk("addr : 0x%04x  =>  data : 0x%02x\n", reg_addr, val);
+		}
+	}
+	reg_addr = 0x126;
+	ret = lgdt3305_read_reg(state, reg_addr, &val);
+	printk("addr : 0x%04x  =>  data : 0x%02x\n", reg_addr, val);
+	for(reg_addr=0x200; reg_addr<=0x206; reg_addr++) {
+		if(!((reg_addr == 0x201))) {
+			ret = lgdt3305_read_reg(state, reg_addr, &val);
+			printk("addr : 0x%04x  =>  data : 0x%02x\n", reg_addr, val);
+		}
+	}
+	for(reg_addr=0x214; reg_addr<=0x21c; reg_addr++) {
+		if(!((reg_addr == 0x215) | (reg_addr == 0x216))) {
+			ret = lgdt3305_read_reg(state, reg_addr, &val);
+			printk("addr : 0x%04x  =>  data : 0x%02x\n", reg_addr, val);
+		}
+	}
+	for(reg_addr=0x300; reg_addr<=0x323; reg_addr++) {
+		ret = lgdt3305_read_reg(state, reg_addr, &val);
+		printk("addr : 0x%04x  =>  data : 0x%02x\n", reg_addr, val);
+	}
+	for(reg_addr=0x400; reg_addr<=0x41d; reg_addr++) {
+		if(!((reg_addr == 0x402) | (reg_addr == 0x406) | (reg_addr == 0x408) | (reg_addr == 0x40a) | (reg_addr == 0x40b) | (reg_addr == 0x40c) | (reg_addr == 0x40d)	\
+			 | (reg_addr == 0x416) | (reg_addr == 0x41a) | (reg_addr == 0x41b) | (reg_addr == 0x41c))) {
+			ret = lgdt3305_read_reg(state, reg_addr, &val);
+			printk("addr : 0x%04x  =>  data : 0x%02x\n", reg_addr, val);
+		}
+	}
+	for(reg_addr=0x500; reg_addr<=0x523; reg_addr++) {
+		if(!((reg_addr == 0x505))) {
+			ret = lgdt3305_read_reg(state, reg_addr, &val);
+			printk("addr : 0x%04x  =>  data : 0x%02x\n", reg_addr, val);
+		}
+	}
+	for(reg_addr=0x800; reg_addr<=0x80d; reg_addr++) {
+		if(!((reg_addr == 0x802))) {
+			ret = lgdt3305_read_reg(state, reg_addr, &val);
+			printk("addr : 0x%04x  =>  data : 0x%02x\n", reg_addr, val);
+		}
+	}
+	for(reg_addr=0x900; reg_addr<=0x939; reg_addr++) {
+		if(!((reg_addr == 0x908) | (reg_addr == 0x918) | (reg_addr == 0x92a) | (reg_addr == 0x932) | (reg_addr == 0x936))) {
+			ret = lgdt3305_read_reg(state, reg_addr, &val);
+			printk("addr : 0x%04x  =>  data : 0x%02x\n", reg_addr, val);
+		}
+	}
+	printk("################################\n\n");
+}
+
 static int lgdt3305_set_parameters(struct itv_frontend_t *fe,
 				   struct itv_frontend_parameters_t *param)
 {
@@ -660,6 +711,9 @@ static int lgdt3305_set_parameters(struct itv_frontend_t *fe,
 
 	dprintk("(%d, %d)\n", param->frequency, param->u.vsb.modulation);
 
+	//20110919 koo : swzigzag에서 digital/analog check
+	fe->tune_digital = 1;
+	
 	if (fe->ituner.set_params) {
 		ret = fe->ituner.set_params(fe, param);
 		if (fe->idemod.i2c_gate_ctrl)
@@ -714,6 +768,9 @@ static int lgdt3305_set_parameters(struct itv_frontend_t *fe,
 	ret = lgdt3305_mpeg_mode_polarity(state,
 					  state->cfg->tpclk_edge,
 					  state->cfg->tpvalid_polarity);
+
+	//lgdt3305_regall_debug(state);
+	
 fail:
 	return ret;
 }
@@ -802,7 +859,6 @@ static int lgdt3305_read_fec_lock_status(itv_demod_priv_t *state,
 		viterbi_lock = (val & (1 << 3)) ? 1 : 0;
 
 		*locked = mpeg_lock && fec_lock && viterbi_lock;
-
 		dprintk("(%d) %s%s%s\n", *locked,
 		       mpeg_lock    ? "mpeg lock  "  : "",
 		       fec_lock     ? "fec lock  "   : "",
@@ -931,9 +987,9 @@ static int lgdt3305_read_snr(struct itv_frontend_t *fe, u16 *snr)
 	state->snr = calculate_snr(noise, c);
 	/* report SNR in dB * 10 */
 	*snr = (state->snr / ((1 << 24) / 10));
+	
 	dprintk("noise = 0x%08x, snr = %d.%02d dB\n", noise,
 	       state->snr >> 24, (((state->snr >> 8) & 0xffff) * 100) >> 16);
-
 	return 0;
 }
 
@@ -962,6 +1018,11 @@ static int lgdt3305_read_signal_strength(struct itv_frontend_t *fe,
 		*strength = 0xffff;
 	else
 		*strength = state->snr / 8960;
+
+	//20111117 koo test debug : snr max 256
+	#define APP_SNR_MAX_GUAGE		256
+	*strength /= (65535 / APP_SNR_MAX_GUAGE);
+
 fail:
 	return ret;
 }
@@ -997,13 +1058,18 @@ static struct lgdt3305_config hcw_lgdt3305_config = {
 	.mpeg_mode          = LGDT3305_MPEG_PARALLEL,
 	.tpclk_edge         = LGDT3305_TPCLK_RISING_EDGE,
 	.tpvalid_polarity   = LGDT3305_TP_VALID_HIGH,
-	//20110825 koo :  lgdt3305 demod & xc500c tuner porting : tuner setting은 cpu에서 direct 하도록 되어 있음. 해당 기능 사용시 xc5000c access에 문제발생됨.
+	//20110825 koo :  lgdt3305 demod & xc500c tuner porting : tuner setting은 cpu에서 direct 하도록 되어 있음.
 	.deny_i2c_rptr      = 1,
-	//20110825 koo :  lgdt3305 demod & xc500c tuner porting : datasheet에 vsb operation mode 설정 rf_agc_loop value setting (rf_agc_loop = 1).
 	.rf_agc_loop 	= 0,
+#if defined(CONFIG_iTV_FE_TUNER_MODULE_FJ2148) || defined(CONFIG_iTV_FE_TUNER_MODULE_FJ2148_MODULE)
 	.spectral_inversion = 1,
+	.qam_if_khz         = 3600,
+	.vsb_if_khz         = 3600,
+#else
+	.spectral_inversion = 0,
 	.qam_if_khz         = 6000,
 	.vsb_if_khz         = 6000,
+#endif
 	.usref_8vsb         = 0x0500,
 }; 
  
@@ -1056,6 +1122,9 @@ static int itv_lgdt3305_activate(itv_object_t *p_this)
 	}
 
 	fe_ops->demod_reset();
+
+	//20120315 koo : demod reset 후 detect 시 delay 없이 동작시켰을 경우 read 시에 문제가 발생하는 경우가 나와 delay 추가.
+	mdelay(10);
 	
 	ret = lgdt3305_read_reg(priv, LGDT3305_GEN_CTRL_2, &val);
 	if ((lg_fail(ret)) | (val == 0))
@@ -1063,12 +1132,18 @@ static int itv_lgdt3305_activate(itv_object_t *p_this)
 	ret = lgdt3305_write_reg(priv, 0x0808, 0x80);
 	if (lg_fail(ret))
 		goto fail;
+
+	//20120315 koo : demod reset 후 detect 시 delay 없이 동작시켰을 경우 read 시에 문제가 발생하는 경우가 나와 delay 추가.
+	mdelay(10);
+	
 	ret = lgdt3305_read_reg(priv, 0x0808, &val);
 	if ((lg_fail(ret)) | (val != 0x80))
 		goto fail;
 	ret = lgdt3305_write_reg(priv, 0x0808, 0x00);
 	if (lg_fail(ret))
 		goto fail;
+
+	printk("%s : lgdt3305 detect ok!!\n", __func__);
 
 	priv->current_frequency = -1;
 	priv->current_modulation = -1;

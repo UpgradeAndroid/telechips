@@ -104,18 +104,18 @@ static int itv_stream_write(struct file *file, const char __user *buf, size_t co
 	return 0;
 }
 
-static int itv_stream_do_ioctl(struct inode *inode, struct file *file, unsigned int cmd, void *parg)
+static int itv_stream_do_ioctl(struct file *file, unsigned int cmd, void *parg)
 {
 	DEBUG_CALLSTACK
 		
 	return 0;
 }
 
-static int itv_stream_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long arg)
+static int itv_stream_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	DEBUG_CALLSTACK
 		
-	return itv_usercopy(inode, file, cmd, arg, itv_stream_do_ioctl);
+	return itv_usercopy(file, cmd, arg, itv_stream_do_ioctl);
 }
 
 static int itv_stream_open(struct inode *inode, struct file *file)
@@ -222,13 +222,13 @@ static unsigned int itv_stream_poll(struct file *file, poll_table *wait)
 }
 
 struct file_operations istream_fops = {
-	.owner 		= THIS_MODULE, 
-	.read 		= itv_stream_read, 
-	.write 		= itv_stream_write, 
-	.ioctl 		= itv_stream_ioctl, 
-	.open 		= itv_stream_open, 
-	.release 	= itv_stream_release, 
-	.poll 		= itv_stream_poll
+	.owner 			= THIS_MODULE, 
+	.read 			= itv_stream_read, 
+	.write 			= itv_stream_write, 
+	.unlocked_ioctl 	= itv_stream_ioctl, 
+	.open 			= itv_stream_open, 
+	.release 			= itv_stream_release, 
+	.poll 			= itv_stream_poll
 };
 
 itv_stream_t *itv_stream_create(itv_object_t *p_this)

@@ -14,8 +14,8 @@ struct itv_core_t {
 	spinlock_t structure_lock;
 };
 
-ITV_EXPORT(int, itv_usercopy, (struct inode *, struct file *, unsigned int, unsigned long, 
-	int (*func)(struct inode *, struct file *, unsigned int, void *)));
+ITV_EXPORT(int, itv_usercopy, (struct file *, unsigned int, unsigned long, 
+	int (*func)(struct file *, unsigned int, void *)));
 ITV_EXPORT(int, itv_get_adapter_id, (itv_core_t *));
 ITV_EXPORT(void, itv_put_adapter_id, (itv_core_t *, int));
 
