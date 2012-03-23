@@ -377,7 +377,7 @@ static struct snd_soc_dai_link tcc_dai[] = {
 		.cpu_dai_name  = "tcc-dai-i2s",
 
         .codec_name = "rt5625 I2C Codec.0-001f",
-        .codec_dai_name = "rt5625-hifi",
+        .codec_dai_name = "rt5625-aif1",
 		.init = tcc_rt5625_init,
 		.ops = &tcc_ops,
 	},
