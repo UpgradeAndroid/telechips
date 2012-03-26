@@ -49,20 +49,6 @@ typedef struct {
 
 	unsigned int 			img_width; 	// source image width
 	unsigned int 			img_height; // source image height
-
-	unsigned char 			alphablending_enable;
-	unsigned int 			alpha_region;
-	unsigned int 			alpha_acon0;
-	unsigned int 			alpha_acon1;
-	unsigned int 			alpha_ccon0;
-	unsigned int 			alpha_ccon1;
-	unsigned int 			alpha_rop_mode;
-	unsigned int 			alpha_rop_asel;
-	unsigned int 			alpha_rop_alpha0;
-	unsigned int 			alpha_rop_alpha1;
-	unsigned int 			alpha_patR;
-	unsigned int 			alpha_patG;
-	unsigned int 			alpha_patB;
 } WMIXER_INFO_TYPE;
 
 
