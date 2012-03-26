@@ -499,6 +499,19 @@ static struct tcc_uart_platform_data uart1_data_bt = {
 };
 #endif
 
+#if defined(CONFIG_TCC_BT_DEV)
+static struct platform_device tcc_bluetooth_device = {	
+	.name = "tcc_bluetooth_rfkill",	
+	.id = -1,
+};
+
+static void tcc_add_bluetooth_device(void)
+{
+	platform_device_register(&tcc_bluetooth_device);
+}
+#endif
+
+
 /*----------------------------------------------------------------------
  * Device	  : ADC touchscreen resource
  * Description: tcc8800_touchscreen_resource
@@ -739,6 +752,10 @@ static void __init tcc8800_init_machine(void)
 #if CONFIG_TCC_BT_DEV
 	/* BT: use UART1 and TX DMA */
 	platform_device_add_data(&tcc8800_uart1_device, &uart1_data_bt, sizeof(struct tcc_uart_platform_data));
+#endif
+
+#if defined(CONFIG_TCC_BT_DEV)
+	tcc_add_bluetooth_device();
 #endif
 
 #if CONFIG_TCC_UART2_DMA
