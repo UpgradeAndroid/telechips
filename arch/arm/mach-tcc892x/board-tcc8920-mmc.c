@@ -158,6 +158,7 @@ static struct mmc_port_config mmc_ports[] = {
 #endif	//#if defined(CONFIG_MMC_TCC_SD30_TEST)
 
 static int tccUsedSDportNum = TCC_MMC_TYPE_MAX;
+#define TCC_SDMMC_DRIVE_STRENGTH	GPIO_CD(1)
 
 int tcc8920_mmc_init(struct device *dev, int id)
 {
@@ -184,20 +185,20 @@ int tcc8920_mmc_init(struct device *dev, int id)
 	}
 	#endif
 
-	tcc_gpio_config(mmc_ports[id].data0, mmc_ports[id].func | GPIO_CD(1));
-	tcc_gpio_config(mmc_ports[id].data1, mmc_ports[id].func | GPIO_CD(1));
-	tcc_gpio_config(mmc_ports[id].data2, mmc_ports[id].func | GPIO_CD(1));
-	tcc_gpio_config(mmc_ports[id].data3, mmc_ports[id].func | GPIO_CD(1));
+	tcc_gpio_config(mmc_ports[id].data0, mmc_ports[id].func | TCC_SDMMC_DRIVE_STRENGTH);
+	tcc_gpio_config(mmc_ports[id].data1, mmc_ports[id].func | TCC_SDMMC_DRIVE_STRENGTH);
+	tcc_gpio_config(mmc_ports[id].data2, mmc_ports[id].func | TCC_SDMMC_DRIVE_STRENGTH);
+	tcc_gpio_config(mmc_ports[id].data3, mmc_ports[id].func | TCC_SDMMC_DRIVE_STRENGTH);
 
 	if(mmc_ports[id].width == TCC_MMC_BUS_WIDTH_8)
 	{
-		tcc_gpio_config(mmc_ports[id].data4, mmc_ports[id].func | GPIO_CD(1));
-		tcc_gpio_config(mmc_ports[id].data5, mmc_ports[id].func | GPIO_CD(1));
-		tcc_gpio_config(mmc_ports[id].data6, mmc_ports[id].func | GPIO_CD(1));
-		tcc_gpio_config(mmc_ports[id].data7, mmc_ports[id].func | GPIO_CD(1));
+		tcc_gpio_config(mmc_ports[id].data4, mmc_ports[id].func | TCC_SDMMC_DRIVE_STRENGTH);
+		tcc_gpio_config(mmc_ports[id].data5, mmc_ports[id].func | TCC_SDMMC_DRIVE_STRENGTH);
+		tcc_gpio_config(mmc_ports[id].data6, mmc_ports[id].func | TCC_SDMMC_DRIVE_STRENGTH);
+		tcc_gpio_config(mmc_ports[id].data7, mmc_ports[id].func | TCC_SDMMC_DRIVE_STRENGTH);
 	}
 
-	tcc_gpio_config(mmc_ports[id].cmd, mmc_ports[id].func | GPIO_CD(1));
+	tcc_gpio_config(mmc_ports[id].cmd, mmc_ports[id].func | TCC_SDMMC_DRIVE_STRENGTH);
 	tcc_gpio_config(mmc_ports[id].clk, mmc_ports[id].func | GPIO_CD(3));
 
 	if(mmc_ports[id].cd != TCC_MMC_PORT_NULL)
@@ -558,6 +559,7 @@ static void tcc8920_mmc_port_setup(void)
 		// for SDHC
 		mmc_ports[TCC_MMC_TYPE_SD].cd = TCC_GPE(0);
 
+		tcc8920_mmc_platform_data[TCC_MMC_TYPE_SD].f_max	= 24000000,	/* support highspeed mode */
 		tcc8920_mmc_platform_data[TCC_MMC_TYPE_SD].caps &= ~(MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED);
 		tcc8920_mmc_platform_data[TCC_MMC_TYPE_SD].cd_ext_irq = EXTINT_GPIOE_00;
 
