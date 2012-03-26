@@ -102,8 +102,18 @@ typedef struct {
 
 typedef struct {
 	unsigned char 	rsp_type;
+	unsigned char 	region;
 
 	unsigned char 	src0_fmt;
+	unsigned char 	src0_layer;
+	unsigned short 	src0_acon0;
+	unsigned short 	src0_acon1;
+	unsigned short 	src0_ccon0;
+	unsigned short 	src0_ccon1;
+	unsigned short 	src0_rop_mode;
+	unsigned short 	src0_asel;
+	unsigned short 	src0_alpha0;
+	unsigned short 	src0_alpha1;
 	unsigned int 	src0_Yaddr;
 	unsigned int 	src0_Uaddr;
 	unsigned int 	src0_Vaddr;
@@ -114,7 +124,17 @@ typedef struct {
 	unsigned short	src0_winRight;
 	unsigned short	src0_winBottom;
 
+
 	unsigned char 	src1_fmt;
+	unsigned char 	src1_layer;
+	unsigned short 	src1_acon0;
+	unsigned short 	src1_acon1;
+	unsigned short 	src1_ccon0;
+	unsigned short 	src1_ccon1;
+	unsigned short 	src1_rop_mode;
+	unsigned short 	src1_asel;
+	unsigned short 	src1_alpha0;
+	unsigned short 	src1_alpha1;
 	unsigned int 	src1_Yaddr;
 	unsigned int 	src1_Uaddr;
 	unsigned int 	src1_Vaddr;
@@ -135,20 +155,6 @@ typedef struct {
 	unsigned short	dst_winTop;
 	unsigned short	dst_winRight;
 	unsigned short	dst_winBottom;
-
-	unsigned short 	layer;
-	unsigned short 	region;
-	unsigned short 	acon0;
-	unsigned short 	acon1;
-	unsigned short 	ccon0;
-	unsigned short 	ccon1;
-	unsigned short 	rop_mode;
-	unsigned short 	asel;
-	unsigned short 	alpha0;
-	unsigned short 	alpha1;
-	//unsigned short 	patR;
-	//unsigned short 	patG;
-	//unsigned short 	patB;
 } SCALER_ALPHABLENDING_TYPE;
 
 

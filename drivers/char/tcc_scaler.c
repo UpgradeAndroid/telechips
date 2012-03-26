@@ -609,11 +609,19 @@ char Alphablending_Ctrl_Func(SCALER_ALPHABLENDING_TYPE* apb_info)
 
 	// set to WMIX
 	VIOC_WMIX_SetSize(pWIXBase, apb_info->dst_width, apb_info->dst_height);
-	VIOC_API_WMIX_SetOverlayAlphaValueControl(pWIXBase, apb_info->layer, apb_info->region, apb_info->acon0, apb_info->acon1);
-	VIOC_API_WMIX_SetOverlayAlphaColorControl(pWIXBase, apb_info->layer, apb_info->region, apb_info->ccon0, apb_info->ccon1);
-	VIOC_API_WMIX_SetOverlayAlphaROPMode(pWIXBase, apb_info->layer, apb_info->rop_mode);
-	VIOC_API_WMIX_SetOverlayAlphaSelection(pWIXBase, apb_info->layer, apb_info->asel);
-	VIOC_API_WMIX_SetOverlayAlphaValue(pWIXBase, apb_info->layer, apb_info->alpha0, apb_info->alpha1);
+	// set to layer0 of WMIX.
+	VIOC_API_WMIX_SetOverlayAlphaValueControl(pWIXBase, apb_info->src0_layer, apb_info->region, apb_info->src0_acon0, apb_info->src0_acon1);
+	VIOC_API_WMIX_SetOverlayAlphaColorControl(pWIXBase, apb_info->src0_layer, apb_info->region, apb_info->src0_ccon0, apb_info->src0_ccon1);
+	VIOC_API_WMIX_SetOverlayAlphaROPMode(pWIXBase, apb_info->src0_layer, apb_info->src0_rop_mode);
+	VIOC_API_WMIX_SetOverlayAlphaSelection(pWIXBase, apb_info->src0_layer, apb_info->src0_asel);
+	VIOC_API_WMIX_SetOverlayAlphaValue(pWIXBase, apb_info->src0_layer, apb_info->src0_alpha0, apb_info->src0_alpha1);
+	// set to layer1 of WMIX.
+	VIOC_API_WMIX_SetOverlayAlphaValueControl(pWIXBase, apb_info->src1_layer, apb_info->region, apb_info->src1_acon0, apb_info->src1_acon1);
+	VIOC_API_WMIX_SetOverlayAlphaColorControl(pWIXBase, apb_info->src1_layer, apb_info->region, apb_info->src1_ccon0, apb_info->src1_ccon1);
+	VIOC_API_WMIX_SetOverlayAlphaROPMode(pWIXBase, apb_info->src1_layer, apb_info->src1_rop_mode);
+	VIOC_API_WMIX_SetOverlayAlphaSelection(pWIXBase, apb_info->src1_layer, apb_info->src1_asel);
+	VIOC_API_WMIX_SetOverlayAlphaValue(pWIXBase, apb_info->src1_layer, apb_info->src1_alpha0, apb_info->src1_alpha1);
+	// update WMIX.
 	VIOC_WMIX_SetUpdate(pWIXBase);
 
 	// set to VWRMA
