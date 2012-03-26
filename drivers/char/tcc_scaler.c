@@ -584,6 +584,7 @@ char M2M_Scaler_Ctrl_Detail(SCALER_TYPE *scale_img)
 }
 
 
+#if defined(CONFIG_ARCH_TCC892X)
 char Alphablending_Ctrl_Func(SCALER_ALPHABLENDING_TYPE* apb_info)
 {
 	char ret = 0;
@@ -644,6 +645,7 @@ char Alphablending_Ctrl_Func(SCALER_ALPHABLENDING_TYPE* apb_info)
 
 	return ret;
 }
+#endif // CONFIG_ARCH_TCC892X
 
 
 static unsigned int tccxxx_scaler_poll(struct file *filp, poll_table *wait)
