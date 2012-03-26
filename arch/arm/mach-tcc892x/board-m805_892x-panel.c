@@ -90,6 +90,15 @@ static struct platform_device claa104xa01cw_lcd = {
 };
 #endif
 
+#ifdef CONFIG_LCD_CLAA070NP01
+static struct platform_device claa070np01_lcd = {
+	.name	= "claa070np01_lcd",
+	.dev	= {
+		.platform_data	= &lvds_pdata,
+	},
+};
+#endif
+
 #ifdef CONFIG_LCD_HT121WX2
 static struct platform_device ht121wx2_lcd = {
 	.name	= "ht121wx2_lcd",
@@ -314,6 +323,12 @@ int __init m805_892x_init_panel(void)
 #ifdef CONFIG_LCD_KR080PA2S
 	case PANEL_ID_KR080PA2S:
 		platform_device_register(&kr080pa2s_lcd);
+		break;
+#endif//
+
+#ifdef CONFIG_LCD_CLAA070NP01
+	case PANEL_ID_CLAA070NP01:
+		platform_device_register(&claa070np01_lcd);
 		break;
 #endif//
 
