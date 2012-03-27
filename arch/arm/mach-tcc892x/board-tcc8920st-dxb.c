@@ -30,7 +30,6 @@
 #include "board-tcc8920st.h"
 
 // DxB
-#define SUPPORT_STB_TSIF_INTERFACE
 #ifdef  SUPPORT_STB_TSIF_INTERFACE
 ////////////////////////////////////////
 #define GPIO_DXB_ON		    TCC_GPD(6)
