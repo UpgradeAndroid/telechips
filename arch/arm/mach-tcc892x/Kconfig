@@ -51,7 +51,24 @@ config M805S_8925_0XX
 	help
 	  Support for the TCC8925-0XX chipset.
 endchoice
-	  
+
+choice
+	prompt "TCC892x Chipset Wafer Type"
+	default TCC892X_SS
+	help
+	  Select TC892x Chipset Wafer Type.
+
+config TCC892X_SS
+	bool "TCC892X_SS"
+ 	help
+	  Support for the TCC892X_SS.
+
+config TCC892X_NN
+	bool "TCC892X_NN"
+ 	help
+	  Support for the TCC892X_NN.
+endchoice
+
 choice
 	prompt "TCC892x STB Board"
 	default STB_BOARD_EV

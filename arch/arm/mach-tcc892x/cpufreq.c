@@ -36,7 +36,11 @@
 #if defined(CONFIG_DRAM_DDR2)
 #include "tcc_clocktbl_ddr2.h"
 #elif defined(CONFIG_DRAM_DDR3)
-#include "tcc_clocktbl_ddr3.h"
+  #if defined(CONFIG_TCC892X_NN)
+    #include "tcc_clocktbl_ddr3_nn.h"
+  #else
+    #include "tcc_clocktbl_ddr3.h"
+  #endif
 #elif defined(CONFIG_DRAM_LPDDR2)
 #include "tcc_clocktbl_lpddr2.h"
 #else
@@ -70,6 +74,34 @@ struct tcc_voltage_table_t {
 	#endif
 #endif
 
+#if defined(CONFIG_TCC892X_NN)
+static struct tcc_voltage_table_t tcc_voltage_table[] = {
+	/*   cpu     ddi     mem     gpu      io    vbus    vcod     smu    hsio      vol */
+#if defined(CONFIG_DRAM_DDR3)
+	{ 343750, 155150, 265050, 184000,  97470, 137750, 137750,  97470, 124320, 1000000+CORE_VOLTAGE_OFFSET },	// recommended freq.
+	{ 401250, 189010, 322885, 224140, 118735, 167800, 167800, 118735, 151445, 1050000+CORE_VOLTAGE_OFFSET },
+	{ 468750, 222860, 380710, 264290, 140000, 197860, 197860, 140000, 178570, 1100000+CORE_VOLTAGE_OFFSET },	// recommended freq.
+	{ 546875, 267425, 456860, 317140, 168000, 237425, 237425, 168000, 214285, 1150000+CORE_VOLTAGE_OFFSET },
+	{ 625000, 312000, 533000, 370000, 196000, 277000, 277000, 196000, 250000, 1200000+CORE_VOLTAGE_OFFSET },	// recommended freq.
+	{ 716500, 349440, 563450, 414400, 219520, 310240, 310240, 219520, 280000, 1250000+CORE_VOLTAGE_OFFSET },
+	{ 808000, 386880, 600000, 458800, 243040, 343480, 343480, 243040, 310000, 1300000+CORE_VOLTAGE_OFFSET },	// recommanded freq
+	{ 960800, 434500, 600000, 515270, 272950, 385750, 385750, 272950, 348150, 1400000+CORE_VOLTAGE_OFFSET },	// recommanded freq
+//	{ 989600, 441450, 600000, 523510, 277320, 391930, 391930, 277320, 353720, 1420000+CORE_VOLTAGE_OFFSET },	// recommanded freq
+	{ 996800, 441450, 600000, 523510, 277320, 391930, 391930, 277320, 353720, 1425000+CORE_VOLTAGE_OFFSET },
+#else
+	{ 343750, 155150, 149190, 184000,  97470, 137750, 137750,  97470, 124320, 1000000+CORE_VOLTAGE_OFFSET },	// recommended freq.
+	{ 401250, 189010, 181740, 224140, 118735, 167800, 167800, 118735, 151445, 1050000+CORE_VOLTAGE_OFFSET },
+	{ 468750, 222860, 214290, 264290, 140000, 197860, 197860, 140000, 178570, 1100000+CORE_VOLTAGE_OFFSET },	// recommended freq.
+	{ 546875, 267425, 257140, 317140, 168000, 237425, 237425, 168000, 214285, 1150000+CORE_VOLTAGE_OFFSET },
+	{ 625000, 312000, 300000, 370000, 196000, 277000, 277000, 196000, 250000, 1200000+CORE_VOLTAGE_OFFSET },	// recommended freq.
+	{ 716500, 349440, 342850, 414400, 219520, 310240, 310240, 219520, 280000, 1250000+CORE_VOLTAGE_OFFSET },
+	{ 808000, 386880, 385700, 458800, 243040, 343480, 343480, 243040, 310000, 1320000+CORE_VOLTAGE_OFFSET },	// recommanded freq
+	{ 960800, 434500, 400000, 515270, 272950, 385750, 385750, 272950, 348150, 1400000+CORE_VOLTAGE_OFFSET },	// recommanded freq
+//	{ 989600, 441450, 400000, 523510, 277320, 391930, 391930, 277320, 353720, 1420000+CORE_VOLTAGE_OFFSET },	// recommanded freq
+	{ 996800, 441450, 400000, 523510, 277320, 391930, 391930, 277320, 353720, 1425000+CORE_VOLTAGE_OFFSET },
+#endif
+};
+#else
 static struct tcc_voltage_table_t tcc_voltage_table[] = {
 	/*   cpu     ddi     mem     gpu      io    vbus    vcod     smu    hsio      vol */
 #if defined(CONFIG_DRAM_DDR3)
@@ -97,6 +129,7 @@ static struct tcc_voltage_table_t tcc_voltage_table[] = {
 	{1031250, 469260, 400000, 556490, 294790, 416610, 416610, 294790, 376010, 1500000+CORE_VOLTAGE_OFFSET },	// recommanded freq
 #endif
 };
+#endif
 
 static struct tcc_freq_table_t tcc_freq_old_table = {
 	       0,      0,      0,      0,      0,      0,      0,      0,      0
