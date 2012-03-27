@@ -13,6 +13,7 @@
 
 #include <mach/memory.h>
 #include <mach/irqs.h>
+#define    SUPPORT_STB_TSIF_INTERFACE //Support TSIF interface at STB solution
 
 #define    SUPPORT_PIDFILTER_INTERNAL    //filtering support using internal logic(TSPID reg)
 //#define    SUPPORT_PIDFILTER_DMA       //filtering suuport using dma logic
@@ -152,4 +153,5 @@ extern int tca_tsif_init(struct tcc_tsif_handle *h, volatile struct tcc_tsif_reg
 extern void tca_tsif_clean(struct tcc_tsif_handle *h);
 
 extern int tca_tsif_register_pids(struct tcc_tsif_handle *h, unsigned int *pids, unsigned int count);
+extern int tca_tsif_can_support(void);
 #endif /*__TCC_TSIF_MODULE_HWSET_H__*/
