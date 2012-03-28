@@ -452,15 +452,6 @@ void TCC_VIQE_DI_Run60Hz(int useSCALER, unsigned int addr0, unsigned int addr1, 
 		}
 	}
 
-	VIOC_DISP_GetSize(pDISPBase, &lcd_width, &lcd_height);
-	if((!lcd_width) || (!lcd_height))
-	{
-		printk("%s invalid lcd size\n", __func__);
-		return;
-	}
-
-	dprintk("%s lcd_width:%d, lcd_height:%d\n", __func__, lcd_width, lcd_height);
-	
 	// position
 	VIOC_WMIX_SetPosition(pWMIXBase, gLcdc_layer,  offset_x, offset_y);
 	VIOC_WMIX_SetUpdate(pWMIXBase);
@@ -484,8 +475,9 @@ void TCC_VIQE_DI_Run60Hz(int useSCALER, unsigned int addr0, unsigned int addr1, 
 	{
 		if(!gusingDI_S)
 		{
-			gusingDI_S = 1;
 			VIOC_CONFIG_PlugIn(VIOC_DEINTLS, gVIQE_RDMA_num);
+			VIOC_RDMA_SetImageIntl(pRDMABase, 1);
+			gusingDI_S = 1;
 		}
 
 	}
@@ -495,8 +487,7 @@ void TCC_VIQE_DI_Run60Hz(int useSCALER, unsigned int addr0, unsigned int addr1, 
 		{
 			VIOC_RDMA_SetImageDisable(pRDMABase);
 			VIOC_CONFIG_PlugOut(VIOC_DEINTLS);
-			BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<17), (0x01<<17)); // DEINTLS reset
-			BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<17), (0x00<<17)); // DEINTLS reset
+			VIOC_RDMA_SetImageIntl(pRDMABase, 0);
 			gusingDI_S = 0;
 		}
 	}
