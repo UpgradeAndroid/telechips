@@ -121,6 +121,7 @@ extern int tca_spi_init(tca_spi_handle_t *h,
 
 extern void tca_spi_clean(tca_spi_handle_t *h);
 extern int tca_spi_register_pids(tca_spi_handle_t *h, unsigned int *pids, unsigned int count);
+extern int tca_tsif_can_support(void);
 #ifdef __cplusplus
 }
 #endif

@@ -34,11 +34,17 @@ void tca_i2c_setgpio(int core, int ch)
 	{
 		case 0:
 			#if defined(CONFIG_MACH_TCC8920ST)
+				#if defined(CONFIG_STB_BOARD_DONGLE)
+				BITCSET(((PI2CPORTCFG)io_p2v(HwI2C_PORTCFG_BASE))->PCFG0.nREG, 0x0000FF00, 25<<8);
+				tcc_gpio_config(TCC_GPE(14), GPIO_FN6|GPIO_OUTPUT|GPIO_LOW);
+				tcc_gpio_config(TCC_GPE(14), GPIO_FN6|GPIO_OUTPUT|GPIO_LOW);
+				#else
 				//I2C[26] - GPIOG[18][19]
 				//i2c_portcfg->PCFG0.bREG.MASTER0 = 26;
 				BITCSET(((PI2CPORTCFG)io_p2v(HwI2C_PORTCFG_BASE))->PCFG0.nREG, 0x000000FF, 26);
 				tcc_gpio_config(TCC_GPG(18), GPIO_FN4|GPIO_OUTPUT|GPIO_LOW);
 				tcc_gpio_config(TCC_GPG(19), GPIO_FN4|GPIO_OUTPUT|GPIO_LOW);
+				#endif
 			#elif defined(CONFIG_MACH_M805_892X)
 				if (system_rev == 0x2002)
 				{

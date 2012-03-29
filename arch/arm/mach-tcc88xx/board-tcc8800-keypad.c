@@ -23,7 +23,7 @@
 		TCC GPIO KEY
 *******************************************************************/
 static const struct gpio_event_direct_entry tcc88xx_gpio_keymap[] = {
-	{ GPIO_PWR_KEY,	KEY_END },
+	{ GPIO_PWR_KEY,	KEY_POWER/*KEY_END*/ },
 };
 
 static struct gpio_event_input_info tcc8800_gpio_key_input_info = {
@@ -84,7 +84,7 @@ static struct platform_device tcc8801_gpio_key_device = {
 };
 
 static const struct gpio_event_direct_entry tcc8803_2cs_gpio_keymap[] = {
-	{ GPIO_PWR_KEY, KEY_END },
+	{ GPIO_PWR_KEY, KEY_POWER/*KEY_END*/ },
 	{ TCC_GPF(2), KEY_MENU },
 	{ TCC_GPF(3), KEY_BACK },
 	{ TCC_GPF(4), KEY_UP },
@@ -184,7 +184,7 @@ static unsigned int tcc8803_2cs_row_gpios[] = { GPIO_PORTG|13, GPIO_PORTG|14, GP
 static const unsigned short tcc8803_2cs_keymap[] = {
 	[KEYMAP_INDEX_TCC8803_2CS(0, 0)] = KEY_MENU,
 	[KEYMAP_INDEX_TCC8803_2CS(0, 1)] = KEY_RESERVED,
-	[KEYMAP_INDEX_TCC8803_2CS(0, 2)] = KEY_END,
+	[KEYMAP_INDEX_TCC8803_2CS(0, 2)] = KEY_POWER/*KEY_END*/,
 
 	[KEYMAP_INDEX_TCC8803_2CS(1, 0)] = KEY_VOLUMEUP,
 	[KEYMAP_INDEX_TCC8803_2CS(1, 1)] = KEY_VOLUMEDOWN,

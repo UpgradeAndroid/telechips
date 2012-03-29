@@ -322,7 +322,7 @@ void VIOC_RDMA_SetImageScale(VIOC_RDMA *pRDMA, unsigned int scaleX, unsigned int
 		}
 	}
 	
-	VIOC_RDMA_SetImageEnable(pRDMA);
+//	VIOC_RDMA_SetImageEnable(pRDMA);
 }
 
 void VIOC_RDMA_SetTestConfig(VIOC_RDMA * pRDMA)
