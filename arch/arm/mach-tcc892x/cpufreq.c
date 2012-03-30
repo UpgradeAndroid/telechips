@@ -337,6 +337,19 @@ static unsigned int tcc_cpufreq_get(unsigned int cpu)
 #if defined(CONFIG_GPIO_CORE_VOLTAGE_CONTROL)
 static int tcc_cpufreq_set_voltage_by_gpio(int uV)
 {
+	if(machine_is_tcc8920st()) {
+		if( uV > 1300000 ) {
+			//CORE1_ON == 1, CORE2_ON == 1 ==> 1.40V
+			gpio_set_value(TCC_GPB(19), 1);
+			gpio_set_value(TCC_GPB(21), 1);
+		} 
+		else {
+			//CORE1_ON == 0, CORE2_ON == 1 ==> 1.30V
+			gpio_set_value(TCC_GPB(19), 0);
+			gpio_set_value(TCC_GPB(21), 1);
+		}
+	}
+
 	return 0;
 }
 #endif

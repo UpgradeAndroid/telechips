@@ -34,7 +34,9 @@ static void tcc_dxb_ctrl_power_off(int deviceIdx)
 {
 	if(machine_is_tcc8800st())
 	{
-		if(guiBoardType == BOARD_DXB_TCC3510 || guiBoardType == BOARD_TDMB_TCC3161)	
+		if(guiBoardType == BOARD_DXB_TCC3510 
+		|| guiBoardType == BOARD_TDMB_TCC3161
+		||  guiBoardType == BOARD_ISDBT_TCC353X)
 		{
 			switch(deviceIdx)
 			{
@@ -106,7 +108,10 @@ static void tcc_dxb_ctrl_power_on(int deviceIdx)
 				break;
 			}
 		}
-		else if(guiBoardType == BOARD_DXB_TCC3510 || guiBoardType == BOARD_TDMB_TCC3161)	
+		else if(guiBoardType == BOARD_DXB_TCC3510 
+			|| guiBoardType == BOARD_TDMB_TCC3161
+			||  guiBoardType == BOARD_ISDBT_TCC353X)
+		
 		{
 			switch(deviceIdx)
 			{
@@ -152,7 +157,9 @@ static void tcc_dxb_ctrl_power_reset(int deviceIdx)
 {
 	if(machine_is_tcc8800st())
 	{
-		if(guiBoardType == BOARD_DXB_TCC3510 || guiBoardType == BOARD_TDMB_TCC3161)	
+		if(guiBoardType == BOARD_DXB_TCC3510 
+		|| guiBoardType == BOARD_TDMB_TCC3161
+		||  guiBoardType == BOARD_ISDBT_TCC353X)
 		{
 			switch(deviceIdx)
 			{
