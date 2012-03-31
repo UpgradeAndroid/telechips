@@ -75,6 +75,7 @@ static int debug	   = 0;
 #if defined(CONFIG_ARCH_TCC892X)
 volatile PVIOC_SC 		pM2MSCALER;
 volatile PVIOC_RDMA 	pRDMABase;
+volatile PVIOC_RDMA 	pRDMA1Base;
 volatile PVIOC_WMIX 	pWIXBase;
 volatile PVIOC_WDMA 	pWDMABase;
 #else // CONFIG_ARCH_TCC892X
@@ -583,6 +584,70 @@ char M2M_Scaler_Ctrl_Detail(SCALER_TYPE *scale_img)
 }
 
 
+#if defined(CONFIG_ARCH_TCC892X)
+char Alphablending_Ctrl_Func(SCALER_ALPHABLENDING_TYPE* apb_info)
+{
+	char ret = 0;
+
+	spin_lock_irq(&(sc_data.cmd_lock));
+
+	// set to VRDMA12
+	VIOC_CONFIG_RDMA12PathCtrl(0); // enable rdma path.
+	VIOC_RDMA_SetImageAlphaEnable(pRDMABase, 1);
+	VIOC_RDMA_SetImageFormat(pRDMABase, apb_info->src0_fmt);
+	VIOC_RDMA_SetImageSize(pRDMABase, apb_info->src0_width, apb_info->src0_height);
+	VIOC_RDMA_SetImageOffset(pRDMABase, apb_info->src0_fmt, apb_info->src0_width);
+	VIOC_RDMA_SetImageBase(pRDMABase, apb_info->src0_Yaddr, apb_info->src0_Uaddr, apb_info->src0_Vaddr);
+
+	// set to VRDMA13
+	VIOC_RDMA_SetImageAlphaEnable(pRDMA1Base, 1);
+	VIOC_RDMA_SetImageFormat(pRDMA1Base, apb_info->src1_fmt);
+	VIOC_RDMA_SetImageSize(pRDMA1Base, apb_info->src1_width, apb_info->src1_height);
+	VIOC_RDMA_SetImageOffset(pRDMA1Base, apb_info->src1_fmt, apb_info->src1_width);
+	VIOC_RDMA_SetImageBase(pRDMA1Base, apb_info->src1_Yaddr, apb_info->src1_Uaddr, apb_info->src1_Vaddr);
+	VIOC_RDMA_SetImageEnable(pRDMABase); // SoC guide info.
+	VIOC_RDMA_SetImageEnable(pRDMA1Base);
+
+	// set to WMIX
+	VIOC_WMIX_SetSize(pWIXBase, apb_info->dst_width, apb_info->dst_height);
+	// set to layer0 of WMIX.
+	VIOC_API_WMIX_SetOverlayAlphaValueControl(pWIXBase, apb_info->src0_layer, apb_info->region, apb_info->src0_acon0, apb_info->src0_acon1);
+	VIOC_API_WMIX_SetOverlayAlphaColorControl(pWIXBase, apb_info->src0_layer, apb_info->region, apb_info->src0_ccon0, apb_info->src0_ccon1);
+	VIOC_API_WMIX_SetOverlayAlphaROPMode(pWIXBase, apb_info->src0_layer, apb_info->src0_rop_mode);
+	VIOC_API_WMIX_SetOverlayAlphaSelection(pWIXBase, apb_info->src0_layer, apb_info->src0_asel);
+	VIOC_API_WMIX_SetOverlayAlphaValue(pWIXBase, apb_info->src0_layer, apb_info->src0_alpha0, apb_info->src0_alpha1);
+	// set to layer1 of WMIX.
+	VIOC_API_WMIX_SetOverlayAlphaValueControl(pWIXBase, apb_info->src1_layer, apb_info->region, apb_info->src1_acon0, apb_info->src1_acon1);
+	VIOC_API_WMIX_SetOverlayAlphaColorControl(pWIXBase, apb_info->src1_layer, apb_info->region, apb_info->src1_ccon0, apb_info->src1_ccon1);
+	VIOC_API_WMIX_SetOverlayAlphaROPMode(pWIXBase, apb_info->src1_layer, apb_info->src1_rop_mode);
+	VIOC_API_WMIX_SetOverlayAlphaSelection(pWIXBase, apb_info->src1_layer, apb_info->src1_asel);
+	VIOC_API_WMIX_SetOverlayAlphaValue(pWIXBase, apb_info->src1_layer, apb_info->src1_alpha0, apb_info->src1_alpha1);
+	// update WMIX.
+	VIOC_WMIX_SetUpdate(pWIXBase);
+
+	// set to VWRMA
+	VIOC_WDMA_SetImageFormat(pWDMABase, apb_info->dst_fmt);
+	VIOC_WDMA_SetImageSize(pWDMABase, apb_info->dst_width, apb_info->dst_height);
+	VIOC_WDMA_SetImageOffset(pWDMABase, apb_info->dst_fmt, apb_info->dst_width);
+	VIOC_WDMA_SetImageBase(pWDMABase, apb_info->dst_Yaddr, apb_info->dst_Uaddr, apb_info->dst_Vaddr);
+	VIOC_WDMA_SetImageEnable(pWDMABase, 0 /* OFF */);
+	pWDMABase->uIRQSTS.nREG = 0xFFFFFFFF; // wdma status register all clear.
+
+	spin_unlock_irq(&(sc_data.cmd_lock));
+
+	if(apb_info->rsp_type == SCALER_POLLING) {
+		ret = wait_event_interruptible_timeout(sc_data.poll_wq,  sc_data.block_operating == 0, msecs_to_jiffies(500));
+		if(ret <= 0) {
+			 sc_data.block_operating = 0;
+			printk("Scaler  time out :%d Line :%d \n", __LINE__, ret);
+		}
+	}
+
+	return ret;
+}
+#endif // CONFIG_ARCH_TCC892X
+
+
 static unsigned int tccxxx_scaler_poll(struct file *filp, poll_table *wait)
 {
 	int ret = 0;
@@ -787,6 +852,7 @@ long tccxxx_scaler_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	#if defined(CONFIG_ARCH_TCC892X)
 	SCALER_PLUGIN_Type scaler_plugin;
 	VIOC_SCALER_INFO_Type pScalerInfo;
+	SCALER_ALPHABLENDING_TYPE alpha_blending;
 	#endif
 	intr_data_t *msc_data = (intr_data_t *)file->private_data;
 
@@ -867,7 +933,45 @@ long tccxxx_scaler_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			VIOC_RDMA_SetImageIntl(pRDMABase, 0);
 			ret = VIOC_API_SCALER_SetPlugOut((unsigned int)arg);
 			return ret;
-		#endif
+
+		case TCC_SCALER_VIOC_ALPHA_INIT:
+			pRDMA1Base = (volatile PVIOC_RDMA)tcc_p2v((unsigned int)HwVIOC_RDMA13);
+			VIOC_SC_SetSWReset(100, 13/*RDMA13*/, 100); // only rdma13 reset.
+			return ret;
+
+		case TCC_SCALER_VIOC_ALPHA_RUN:
+			mutex_lock(&msc_data->io_mutex);
+
+			if(msc_data->block_operating) {
+				msc_data->block_waiting = 1;
+				ret = wait_event_interruptible_timeout(msc_data->cmd_wq, msc_data->block_operating == 0, msecs_to_jiffies(200));
+				if(ret <= 0) {
+					msc_data->block_operating = 0;
+					printk("[%d]: scaler 0 timed_out block_operation:%d!! cmd_count:%d \n", ret, msc_data->block_waiting, msc_data->cmd_count);
+				}
+				ret = 0;
+			}
+
+			if(copy_from_user(&alpha_blending,(SCALER_ALPHABLENDING_TYPE *)arg, sizeof(SCALER_ALPHABLENDING_TYPE))) {
+				printk(KERN_ALERT "Not Supported copy_from_user(%d)\n", cmd);
+				ret = -EFAULT;
+			}
+
+			if(ret >= 0) {
+				if(msc_data->block_operating >= 1) {
+					printk("scaler + :: block_operating(%d) - block_waiting(%d) - cmd_count(%d) - poll_count(%d)!!!\n", \
+							msc_data->block_operating, msc_data->block_waiting, msc_data->cmd_count, msc_data->poll_count);
+				}
+
+				msc_data->block_waiting = 0;
+				msc_data->block_operating = 1;
+				ret = Alphablending_Ctrl_Func(&alpha_blending);
+				if(ret < 0) 	msc_data->block_operating = 0;
+			}
+
+			mutex_unlock(&msc_data->io_mutex);
+			return ret;
+		#endif // CONFIG_ARCH_TCC892X
 
 		default:
 			printk(KERN_ALERT "Not Supported SCALER_IOCTL(%d)\n", cmd);

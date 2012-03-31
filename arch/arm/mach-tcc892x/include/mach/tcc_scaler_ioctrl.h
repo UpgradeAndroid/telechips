@@ -18,6 +18,8 @@
 #define TCC_SCALER_IOCTRL_KERENL 			0x10
 #define TCC_SCALER_VIOC_PLUGIN 				0x100
 #define TCC_SCALER_VIOC_PLUGOUT 			0x101
+#define TCC_SCALER_VIOC_ALPHA_INIT 			0x102
+#define TCC_SCALER_VIOC_ALPHA_RUN 			0x103
 
 #ifndef ADDRESS_ALIGNED
 #define ADDRESS_ALIGNED
@@ -97,5 +99,62 @@ typedef struct {
 	unsigned short	dst_win_right;
 	unsigned short	dst_win_bottom;
 } SCALER_PLUGIN_Type;
+
+typedef struct {
+	unsigned char 	rsp_type;
+	unsigned char 	region;
+
+	unsigned char 	src0_fmt;
+	unsigned char 	src0_layer;
+	unsigned short 	src0_acon0;
+	unsigned short 	src0_acon1;
+	unsigned short 	src0_ccon0;
+	unsigned short 	src0_ccon1;
+	unsigned short 	src0_rop_mode;
+	unsigned short 	src0_asel;
+	unsigned short 	src0_alpha0;
+	unsigned short 	src0_alpha1;
+	unsigned int 	src0_Yaddr;
+	unsigned int 	src0_Uaddr;
+	unsigned int 	src0_Vaddr;
+	unsigned short 	src0_width;
+	unsigned short 	src0_height;
+	unsigned short 	src0_winLeft;
+	unsigned short	src0_winTop;
+	unsigned short	src0_winRight;
+	unsigned short	src0_winBottom;
+
+
+	unsigned char 	src1_fmt;
+	unsigned char 	src1_layer;
+	unsigned short 	src1_acon0;
+	unsigned short 	src1_acon1;
+	unsigned short 	src1_ccon0;
+	unsigned short 	src1_ccon1;
+	unsigned short 	src1_rop_mode;
+	unsigned short 	src1_asel;
+	unsigned short 	src1_alpha0;
+	unsigned short 	src1_alpha1;
+	unsigned int 	src1_Yaddr;
+	unsigned int 	src1_Uaddr;
+	unsigned int 	src1_Vaddr;
+	unsigned short 	src1_width;
+	unsigned short 	src1_height;
+	unsigned short 	src1_winLeft;
+	unsigned short	src1_winTop;
+	unsigned short	src1_winRight;
+	unsigned short	src1_winBottom;
+
+	unsigned char 	dst_fmt;
+	unsigned int 	dst_Yaddr;
+	unsigned int 	dst_Uaddr;
+	unsigned int 	dst_Vaddr;
+	unsigned short 	dst_width;
+	unsigned short 	dst_height;
+	unsigned short 	dst_winLeft;
+	unsigned short	dst_winTop;
+	unsigned short	dst_winRight;
+	unsigned short	dst_winBottom;
+} SCALER_ALPHABLENDING_TYPE;
 
 

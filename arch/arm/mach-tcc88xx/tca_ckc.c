@@ -1,18 +1,18 @@
 /****************************************************************************
- *	 FileName	 : tca_ckc.c
- *	 Description :
+ *     FileName     : tca_ckc.c
+ *     Description :
  ****************************************************************************
-*
- *	 TCC Version 1.0
- *	 Copyright (c) Telechips, Inc.
- *	 ALL RIGHTS RESERVED
-*
+ *
+ *     TCC Version 1.0
+ *     Copyright (c) Telechips, Inc.
+ *     ALL RIGHTS RESERVED
+ *
  ****************************************************************************/
 
 
 #include <mach/bsp.h>
 #include <asm/io.h>
-#include <linux/mm.h>	// for PAGE_ALIGN
+#include <linux/mm.h>    // for PAGE_ALIGN
 #include <linux/kernel.h>
 #include <linux/module.h>
 
@@ -1448,9 +1448,9 @@ int tca_ckc_setcampwdn(unsigned int sel , unsigned int ispwdn)
         return -2;
 
     if (ispwdn)
-        pCAMBUSCFG->HCLKMASK &= ~(0x1 << sel);
-    else
         pCAMBUSCFG->HCLKMASK |= (0x1 << sel);
+    else
+        pCAMBUSCFG->HCLKMASK &= ~(0x1 << sel);
 
     return 0;
 }

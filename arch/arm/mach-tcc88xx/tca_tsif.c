@@ -608,3 +608,10 @@ EXPORT_SYMBOL(tca_tsif_init);
 EXPORT_SYMBOL(tca_tsif_clean);
 EXPORT_SYMBOL(tca_tsif_register_pids);
 
+int tca_tsif_can_support(void)
+{
+    return 0;
+}
+
+EXPORT_SYMBOL(tca_tsif_can_support);
+

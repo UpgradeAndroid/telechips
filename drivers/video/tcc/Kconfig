@@ -225,6 +225,14 @@ config LCD_KR080PA2S
 	bool "EMDOOR 1024 * 768 LVDS support"
         depends on FB_TCC
 
+config LCD_CLAA070NP01
+	bool "COBY CHUNGWHA 1024 * 600 LVDS support"
+	depends on FB_TCC
+
+config LCD_HV070WSA
+	bool "COBY BOE 1024 * 600 LVDS support"
+	depends on FB_TCC
+
 config LCD_LCDC0_USE
 	bool "platform LCDC is use LCD control 0"
 	depends on FB_TCC

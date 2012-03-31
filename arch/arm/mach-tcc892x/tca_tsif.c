@@ -14,6 +14,7 @@
 #include <mach/io.h>
 #include <linux/gpio.h>
 #include <mach/bsp.h>
+#include <asm/mach-types.h>
 #include <mach/tca_tsif.h>
 
 //#define DEBUG_INFO
@@ -863,5 +864,27 @@ int tca_tsif_register_pids(struct tcc_tsif_handle *h, unsigned int *pids, unsign
 EXPORT_SYMBOL(tca_tsif_init);
 EXPORT_SYMBOL(tca_tsif_clean);
 EXPORT_SYMBOL(tca_tsif_register_pids);
+
+int tca_tsif_can_support(void)
+{
+   	if(machine_is_tcc8920())
+    {
+        if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 || system_rev == 0x1008)
+        { 
+            return 1;
+        }
+    }
+
+#ifdef  SUPPORT_STB_TSIF_INTERFACE
+	if(machine_is_tcc8920st())
+    {
+        return 1;
+    }
+#endif
+
+    return 0;
+}
+
+EXPORT_SYMBOL(tca_tsif_can_support);
 
 

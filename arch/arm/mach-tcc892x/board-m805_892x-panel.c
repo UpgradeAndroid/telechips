@@ -90,6 +90,15 @@ static struct platform_device claa104xa01cw_lcd = {
 };
 #endif
 
+#ifdef CONFIG_LCD_CLAA070NP01
+static struct platform_device claa070np01_lcd = {
+	.name	= "claa070np01_lcd",
+	.dev	= {
+		.platform_data	= &lvds_pdata,
+	},
+};
+#endif
+
 #ifdef CONFIG_LCD_HT121WX2
 static struct platform_device ht121wx2_lcd = {
 	.name	= "ht121wx2_lcd",
@@ -164,6 +173,15 @@ static struct platform_device ed090na_lcd= {
 #ifdef CONFIG_LCD_KR080PA2S
 static struct platform_device kr080pa2s_lcd = {
 	.name	= "kr080pa2s_lcd",
+	.dev	= {
+		.platform_data	= &lcd_pdata,
+	},
+};
+#endif
+
+#ifdef CONFIG_LCD_HV070WSA
+static struct platform_device hv070wsa_lcd = {
+	.name	= "hv070wsa_lcd",
 	.dev	= {
 		.platform_data	= &lcd_pdata,
 	},
@@ -316,6 +334,18 @@ int __init m805_892x_init_panel(void)
 		platform_device_register(&kr080pa2s_lcd);
 		break;
 #endif//
+
+#ifdef CONFIG_LCD_CLAA070NP01
+	case PANEL_ID_CLAA070NP01:
+		platform_device_register(&claa070np01_lcd);
+		break;
+#endif//
+
+#ifdef CONFIG_LCD_HV070WSA
+	case PANEL_ID_HV070WSA:
+		platform_device_register(&hv070wsa_lcd);
+		break;
+#endif
 
 	default:
 		pr_err("Not supported LCD panel type %d\n", tcc_panel_id);

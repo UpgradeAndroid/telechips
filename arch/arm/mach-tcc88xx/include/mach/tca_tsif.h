@@ -152,5 +152,6 @@ extern int tca_tsif_init(struct tcc_tsif_handle *h, volatile struct tcc_tsif_reg
 		dma_alloc_f tea_dma_alloc, dma_free_f tea_dma_free, int dma_size, int tsif_ch, int dma_controller, int dma_ch, int port);
 extern void tca_tsif_clean(struct tcc_tsif_handle *h);
 extern int tca_tsif_register_pids(struct tcc_tsif_handle *h, unsigned int *pids, unsigned int count);
+extern int tca_tsif_can_support(void);
 
 #endif /*__TCC_TSIF_MODULE_HWSET_H__*/

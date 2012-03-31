@@ -591,23 +591,12 @@ static int __init tsif_init(void)
 {
     int ret = 0;
 #ifdef      SUPPORT_TSIF_BLOCK
-	if(machine_is_tcc8920())
-    {
-        if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 || system_rev == 0x1008)
-        { 
-            g_use_tsif_block = 1;
-            tsif_ex_init();
-            return 0;
-        }
-    }
-#if 0    
-	if(machine_is_tcc8920st())
+	if(tca_tsif_can_support())
     {
         g_use_tsif_block = 1;
         tsif_ex_init();
         return 0;
     }
-#endif    
 #endif
     memset(&tsif_pri, 0, sizeof(struct tca_spi_pri_handle));
     ret = register_chrdev(0, TSIF_DEV_NAME, &tcc_tsif_fops);
