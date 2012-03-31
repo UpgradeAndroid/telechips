@@ -18,6 +18,7 @@ snd-soc-tcc-board-wm8988-objs := tcc_board_wm8988.o
 snd-soc-tcc-board-es8388-objs := tcc_board_es8388.o
 snd-soc-tcc-board-rt5625-objs := tcc_board_rt5625.o
 snd-soc-tcc-board-rt5633-objs := tcc_board_rt5633.o
+snd-soc-tcc-board-rt5631-objs := tcc_board_rt5631.o
 
 obj-$(CONFIG_SND_SOC_TCC_BOARD_TCC250) += snd-soc-tcc-board-tcc250.o
 
@@ -30,4 +31,4 @@ obj-$(CONFIG_SND_SOC_TCC_BOARD_WM8994) += snd-soc-tcc-board-wm8994.o
 obj-$(CONFIG_SND_SOC_TCC_BOARD_ES8388) += snd-soc-tcc-board-es8388.o
 obj-$(CONFIG_SND_SOC_TCC_BOARD_RT5625) += snd-soc-tcc-board-rt5625.o
 obj-$(CONFIG_SND_SOC_TCC_BOARD_RT5633) += snd-soc-tcc-board-rt5633.o
-
+obj-$(CONFIG_SND_SOC_TCC_BOARD_RT5631) += snd-soc-tcc-board-rt5631.o

@@ -87,6 +87,7 @@ snd-soc-es8388-objs := es8388.o
 # Realtek
 snd-soc-rt5625-objs := rt5625.o
 snd-soc-rt5633-objs := rt5633.o
+snd-soc-rt5631-objs := rt5631.o
 
 # Amp
 snd-soc-lm4857-objs := lm4857.o
@@ -184,6 +185,7 @@ obj-$(CONFIG_SND_SOC_ES8388)	+= snd-soc-es8388.o
 # RealTek
 obj-$(CONFIG_SND_SOC_RT5625)	+= snd-soc-rt5625.o
 obj-$(CONFIG_SND_SOC_RT5633)	+= snd-soc-rt5633.o
+obj-$(CONFIG_SND_SOC_RT5631)	+= snd-soc-rt5631.o
 
 # Amp
 obj-$(CONFIG_SND_SOC_LM4857)	+= snd-soc-lm4857.o
