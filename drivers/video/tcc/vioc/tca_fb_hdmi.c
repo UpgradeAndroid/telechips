@@ -241,18 +241,32 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 		unsigned int RDMA_NUM;
 		RDMA_NUM = hdmi_lcdc ? (ImageInfo->Lcdc_layer + VIOC_SC_RDMA_04) : ImageInfo->Lcdc_layer;
 
+#if defined(CONFIG_MACH_TCC8920ST)
 		if(!onthefly_using) {
 			dprintk(" %s  scaler 1 is plug in RDMA %d \n",__func__, RDMA_NUM);
 			onthefly_using = 1;
 			VIOC_CONFIG_PlugIn (VIOC_SC1, RDMA_NUM);			
+		}
+
+		if(ImageInfo->Frame_width==ImageInfo->Image_width || ImageInfo->Frame_height==ImageInfo->Image_height) {
+			VIOC_SC_SetBypass (pSC, ON);
+			dprintk(" %s  scaler 1 is plug in SetBypass ON \n",__func__);
+		}else {
+			VIOC_SC_SetBypass (pSC, OFF);
+			dprintk(" %s  scaler 1 is plug in SetBypass OFF \n",__func__);
+		}
+#else
+		if(!onthefly_using) {
+			dprintk(" %s  scaler 1 is plug in RDMA %d \n",__func__, RDMA_NUM);
+			onthefly_using = 1;
+			VIOC_CONFIG_PlugIn (VIOC_SC1, RDMA_NUM);
 			VIOC_SC_SetBypass (pSC, OFF);
 		}
-		
+#endif
 		VIOC_SC_SetSrcSize(pSC, ImageInfo->Frame_width, ImageInfo->Frame_height);
 		VIOC_SC_SetDstSize (pSC, ImageInfo->Image_width, ImageInfo->Image_height);			// set destination size in scaler
 		VIOC_SC_SetOutSize (pSC, ImageInfo->Image_width, ImageInfo->Image_height);			// set output size in scaer
 	}
-
 	else
 	{
 		if(onthefly_using == 1)	{
