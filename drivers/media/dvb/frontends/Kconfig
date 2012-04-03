@@ -640,6 +640,13 @@ config DVB_IX2505V
 	help
 	  A DVB-S tuner module. Say Y when you want to support this frontend.
 
+config DVB_TCC_XXXX
+	tristate "Telechips TCCXXXX based"
+	default m if DVB_FE_CUSTOMISE
+	help
+	  A DxB tuner module. Designed for mobile usage. Say Y when you want
+	  to support this frontend.
+
 comment "Tools to develop new frontends"
 
 config DVB_DUMMY_FE
