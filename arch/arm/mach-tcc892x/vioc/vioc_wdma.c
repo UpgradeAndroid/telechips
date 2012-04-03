@@ -446,4 +446,10 @@ void VIOC_WDMA_IreqHandler(unsigned int vectorID)
 #endif//
 }
 
+void VIOC_WDMA_SWReset(PVIOC_IREQ_CONFIG pIrgConfig, unsigned int WDMA)
+{
+	BITCSET(pIrgConfig->uSOFTRESET.nREG[1], (0x1<<WDMA), (0x1<<WDMA)); // wdma reset
+	BITCSET(pIrgConfig->uSOFTRESET.nREG[1], (0x1<<WDMA), (0x00<<WDMA)); // wdma reset
+}
+
 /* EOF */

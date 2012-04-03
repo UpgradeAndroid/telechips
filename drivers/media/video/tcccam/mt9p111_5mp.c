@@ -3450,8 +3450,7 @@ static int write_regs_mt9p111(const struct sensor_reg reglist[])
 
 				err = DDI_I2C_Write(data, 2, bytes-2);				
 			}
-			
-			
+
 			if (err)
 			{
 				err_cnt++;

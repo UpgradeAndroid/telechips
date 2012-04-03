@@ -77,14 +77,10 @@
 #include "tccisp/isp_interface.h"
 #endif
 
+
 #define FEATURE_ANDROID_ICS
 
-#if 0
-static int debug	   = 1;
-#else
 static int debug	   = 0;
-#endif
-
 #define dprintk(msg...)	if (debug) { printk( "Tcc_cam: " msg); }
 
 #if defined(CONFIG_VIDEO_CAMERA_SENSOR_AIT848_ISP)
@@ -2615,13 +2611,16 @@ int tccxxx_cif_stop_stream(void)
 {	
 	int nCnt;
 	struct TCCxxxCIF *data = (struct TCCxxxCIF *) &hardware_data;
+#if defined(CONFIG_ARCH_TCC892X) //20120403 ysseung   if the camera is not connected, modify to an infinite loop issue of camera stop.
+	volatile PVIOC_IREQ_CONFIG pIREQConfig = (volatile PVIOC_IREQ_CONFIG)tcc_p2v((unsigned int)HwVIOC_IREQ);
+#endif
 
 	dprintk("%s Start!! \n", __FUNCTION__);
 
 #if defined(CONFIG_USE_ISP)
 	ISP_SetPreview_Control(OFF);
 	cif_timer_deregister();
-	cif_interrupt_disable();	
+	cif_interrupt_disable();
 #elif defined(CONFIG_ARCH_TCC892X)
 	VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_ALL_MASK, 0x1);
 		
@@ -2630,12 +2629,17 @@ int tccxxx_cif_stop_stream(void)
 
 	BITCSET(pWDMABase->uCTRL.nREG, 1<<16, 1<<16);
 
+	#if 1  //20120403 ysseung   if the camera is not connected, modify to an infinite loop issue of camera stop.
+	VIOC_WDMA_SetImageEnable(pWDMABase, OFF);
+	VIOC_WDMA_SWReset(pIREQConfig, 0x5/* WDMA05 */);
+	#else
 	// Before camera quit, we have to wait WMDA's SEN signal to LOW.
-	while(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_STSEN_MASK){
+	while(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_STSEN_MASK) {
 		for(nCnt=0; nCnt<10000; nCnt++);
-	}	
+	}
+	#endif
 
-		// Disable VIN
+	// Disable VIN
 	VIOC_VIN_SetEnable(pVINBase, OFF);
 #else
 	cif_timer_deregister();
