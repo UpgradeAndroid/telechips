@@ -342,14 +342,14 @@ void tccxxx_overlay_check_priority(void)
 		// LCD channel
 		pRDMABase0 = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA05);
 		pRDMABase1 = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA06);
-		pWMIXBase = (VIOC_WMIX *) tcc_p2v(HwVIOC_WDMA01);
+		pWMIXBase = (VIOC_WMIX *) tcc_p2v(HwVIOC_WMIX1);
 	}
 	else
 	{
 		// External display channel
 		pRDMABase0 = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA01);
 		pRDMABase1 = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA02);
-		pWMIXBase = (VIOC_WMIX *) tcc_p2v(HwVIOC_WDMA00);
+		pWMIXBase = (VIOC_WMIX *) tcc_p2v(HwVIOC_WMIX0);
 	}
 
 	VIOC_RDMA_GetImageEnable(pRDMABase0, &ch0_en);
