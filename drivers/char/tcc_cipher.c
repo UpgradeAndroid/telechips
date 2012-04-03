@@ -125,7 +125,7 @@ static int tcc_cipher_ioctl(struct file *file, unsigned int cmd, void *arg)
 	
 	switch(cmd)
 	{
-		case TCC_CHIPHER_IOCTL_SET_ALGORITHM:
+		case TCC_CIPHER_IOCTL_SET_ALGORITHM:
 			{
 				stCIPHER_ALGORITHM stAlgorithm;
 
@@ -135,7 +135,7 @@ static int tcc_cipher_ioctl(struct file *file, unsigned int cmd, void *arg)
 			}
 			break;
 
-		case TCC_CHIPHER_IOCTL_SET_KEY:
+		case TCC_CIPHER_IOCTL_SET_KEY:
 			{
 				stCIPHER_KEY stKeyInfo;
 
@@ -144,7 +144,7 @@ static int tcc_cipher_ioctl(struct file *file, unsigned int cmd, void *arg)
 			}
 			break;
 			
-		case TCC_CHIPHER_IOCTL_SET_VECTOR:
+		case TCC_CIPHER_IOCTL_SET_VECTOR:
 			{
 				stCIPHER_VECTOR stVectorInfo;
 
@@ -153,7 +153,7 @@ static int tcc_cipher_ioctl(struct file *file, unsigned int cmd, void *arg)
 			}
 			break;
 			
-		case TCC_CHIPHER_IOCTL_ENCRYPT:
+		case TCC_CIPHER_IOCTL_ENCRYPT:
 			{
 				stCIPHER_ENCRYPTION stEncryptInfo;
 
@@ -162,7 +162,7 @@ static int tcc_cipher_ioctl(struct file *file, unsigned int cmd, void *arg)
 			}
 			break;
 			
-		case TCC_CHIPHER_IOCTL_DECRYPT:
+		case TCC_CIPHER_IOCTL_DECRYPT:
 			{
 				stCIPHER_DECRYPTION stDecryptInfo;
 
