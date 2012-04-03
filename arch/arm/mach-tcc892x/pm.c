@@ -1567,6 +1567,60 @@ static void wakeup(void)
 	//IP isolation on
 	((PPMU)HwPMU_BASE)->PMU_ISOL.nREG = 0x00000BD0;
 #endif
+
+}
+
+/*===========================================================================
+FUNCTION
+===========================================================================*/
+static void edi_init(void)
+{
+	PEDI pEDI = (PEDI)tcc_p2v(HwEDI_BASE);
+
+#if defined(CONFIG_MACH_TCC8920ST) || defined(TARGET_BOARD_STB)
+	BITCSET(pEDI->EDI_RDYCFG.nREG,  0x000FFFFF, 0x00000001 );
+	BITCSET(pEDI->EDI_CSNCFG0.nREG, 0x000FFFFF, 0x00008765 );
+#elif defined(CONFIG_MACH_M805_892X) || defined(_M805_8923_)
+	BITCSET(pEDI->EDI_RDYCFG.nREG,  0x000FFFFF, 0x00000001 );
+	BITCSET(pEDI->EDI_CSNCFG0.nREG, 0x0000FFFF, 0x00008765 );
+#else
+	BITCSET(pEDI->EDI_RDYCFG.nREG,  0x000FFFFF, 0x00032104 );
+	BITCSET(pEDI->EDI_CSNCFG0.nREG, 0x0000FFFF, 0x00008765 );
+#endif
+	BITCSET(pEDI->EDI_OENCFG.nREG,  0x0000000F, 0x00000001 );
+	BITCSET(pEDI->EDI_WENCFG.nREG,  0x0000000F, 0x00000001 ); 
+}
+
+/*===========================================================================
+FUNCTION
+===========================================================================*/
+static void tcc_nfc_suspend(PNFC pBackupNFC , PNFC pHwNFC)
+{
+	pBackupNFC->NFC_CACYC = pHwNFC->NFC_CACYC;
+	pBackupNFC->NFC_WRCYC = pHwNFC->NFC_WRCYC;
+	pBackupNFC->NFC_RECYC = pHwNFC->NFC_RECYC;
+	pBackupNFC->NFC_CTRL = pHwNFC->NFC_CTRL;
+	pBackupNFC->NFC_IRQCFG = pHwNFC->NFC_IRQCFG;
+	pBackupNFC->NFC_RFWBASE = pHwNFC->NFC_RFWBASE;
+	
+}
+
+/*===========================================================================
+FUNCTION
+===========================================================================*/
+
+
+static void tcc_nfc_resume(PNFC pHwNFC , PNFC pBackupNFC)
+{
+	edi_init();
+	pHwNFC->NFC_CACYC = pBackupNFC->NFC_CACYC;
+	pHwNFC->NFC_WRCYC = pBackupNFC->NFC_WRCYC;
+	pHwNFC->NFC_RECYC = pBackupNFC->NFC_RECYC;
+	pHwNFC->NFC_CTRL = pBackupNFC->NFC_CTRL;
+	pHwNFC->NFC_IRQCFG = pBackupNFC->NFC_IRQCFG;
+	pHwNFC->NFC_IRQ = 0xFFFFFFFF;
+	pHwNFC->NFC_RFWBASE = pBackupNFC->NFC_RFWBASE;
+
 }
 
 /*===========================================================================
@@ -1639,6 +1693,12 @@ static void shutdown_mode(void)
 	 GPIO
 	--------------------------------------------------------------*/
 	memcpy((void*)GPIO_REPOSITORY_ADDR, (PGPIO)tcc_p2v(HwGPIO_BASE), sizeof(GPIO));
+
+	/*--------------------------------------------------------------
+	 NFC suspend 
+	--------------------------------------------------------------*/
+	NFC *nfc = (NFC*)tcc_p2v(HwNFC_BASE);
+	tcc_nfc_suspend(&RegRepo.nfc, nfc);
 
 #ifdef CONFIG_CACHE_L2X0
 	/*--------------------------------------------------------------
@@ -1754,6 +1814,11 @@ static void shutdown_mode(void)
 	memcpy((PVIC)tcc_p2v(HwVIC_BASE), &RegRepo.vic, sizeof(VIC));
 	memcpy((PTIMER *)tcc_p2v(HwTMR_BASE), &RegRepo.timer, sizeof(TIMER));
 	memcpy((PSMUCONFIG)tcc_p2v(HwSMUCONFIG_BASE), &RegRepo.smuconfig, sizeof(SMUCONFIG));
+
+	/*--------------------------------------------------------------
+	 NFC
+	--------------------------------------------------------------*/
+	tcc_nfc_resume(nfc, &RegRepo.nfc);
 
 	/*--------------------------------------------------------------
 	 BUS Config
