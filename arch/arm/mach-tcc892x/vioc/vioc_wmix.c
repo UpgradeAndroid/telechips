@@ -275,19 +275,19 @@ void VIOC_WMIX_ALPHA_SetAlphaValueControl( VIOC_WMIX_ALPHA * pWALPHA, unsigned i
 			//pWALPHA->uACON.bREG.ACON0_10 = acon0;
 			//pWALPHA->uACON.bREG.ACON1_10 = acon1;
 
-			BITCSET(pWALPHA->uACON.nREG,0x00770000, acon1 << 4 | acon0 );
+			BITCSET(pWALPHA->uACON.nREG,0x00770000, (acon1 << 4 | acon0) << 16 );
 			break;
 		case 2 : /*Region C*/
 			//pWALPHA->uACON.bREG.ACON0_11 = acon0;
 			//pWALPHA->uACON.bREG.ACON1_11 = acon1;
 
-			BITCSET(pWALPHA->uACON.nREG,0x77000000, acon1 << 4 | acon0 );			
+			BITCSET(pWALPHA->uACON.nREG,0x77000000, (acon1 << 4 | acon0) << 24 );
 			break;
 		case 3 :/*Region D*/
 			//pWALPHA->uACON.bREG.ACON0_01 = acon0;
 			//pWALPHA->uACON.bREG.ACON1_01 = acon1;
 
-			BITCSET(pWALPHA->uACON.nREG,0x00007700, acon1 << 4 | acon0 );						
+			BITCSET(pWALPHA->uACON.nREG,0x00007700, (acon1 << 4 | acon0) << 8 );
 			break;
 			
 		default:
@@ -304,25 +304,25 @@ void VIOC_WMIX_ALPHA_SetColorControl( VIOC_WMIX_ALPHA * pWALPHA, unsigned int re
 			//pWALPHA->uCCON.bREG.CCON0_00 = ccon0;
 			//pWALPHA->uCCON.bREG.CCON1_00 = ccon1;
 			
-			BITCSET(pWALPHA->uCCON.nREG,0x000000FF, ccon1 << 4 | ccon0 );			
+			BITCSET(pWALPHA->uCCON.nREG,0x000000FF, ccon1 << 4 | ccon0 );
 			break;
 		case 1 :/*Region B*/
 			//pWALPHA->uCCON.bREG.CCON0_10 = ccon0;
 			//pWALPHA->uCCON.bREG.CCON1_10 = ccon1;
 
-			BITCSET(pWALPHA->uCCON.nREG,0x00FF0000, ccon1 << 4 | ccon0 );			
+			BITCSET(pWALPHA->uCCON.nREG,0x00FF0000, (ccon1 << 4 | ccon0) << 16 );
 			break;
 		case 2 :/*Region C*/
 			//pWALPHA->uCCON.bREG.CCON0_11 = ccon0;
 			//pWALPHA->uCCON.bREG.CCON1_11 = ccon1;
 
-			BITCSET(pWALPHA->uCCON.nREG,0xFF000000, ccon1 << 4 | ccon0 );						
+			BITCSET(pWALPHA->uCCON.nREG,0xFF000000, (ccon1 << 4 | ccon0) << 24 );
 			break;
 		case 3 :/*Region D*/
 			//pWALPHA->uCCON.bREG.CCON0_01 = ccon0;
 			//pWALPHA->uCCON.bREG.CCON1_01 = ccon1;
 
-			BITCSET(pWALPHA->uCCON.nREG,0x0000FF00, ccon1 << 4 | ccon0 );									
+			BITCSET(pWALPHA->uCCON.nREG,0x0000FF00, (ccon1 << 4 | ccon0) << 8 );
 			break;
 			
 		default:

@@ -55,7 +55,7 @@
 
 #define MAX_CIPHER_BUFFER_LENGTH	184
 
-#define MIN_CUPHER_BLOCK_SIZE		8
+#define MIN_CIPHER_BLOCK_SIZE		8
 
 static int debug = 0;
 #define dprintk(msg...)	if(debug) { printk( "tca_cipher: " msg); }
@@ -84,17 +84,17 @@ void tca_cipher_dma_enable(unsigned uEnable, unsigned uEndian, unsigned uAddrMod
 	if(uEnable)
 	{
 		/* Set the Byte Endian Mode */
-		if(uEndian == TCC_CHIPHER_DMA_ENDIAN_LITTLE)
-			BITCLR(pHwCIPHER->DMACTR, HwCHIPHER_DMACTR_ByteEndian);
+		if(uEndian == TCC_CIPHER_DMA_ENDIAN_LITTLE)
+			BITCLR(pHwCIPHER->DMACTR, HwCIPHER_DMACTR_ByteEndian);
 		else
-			BITSET(pHwCIPHER->DMACTR, HwCHIPHER_DMACTR_ByteEndian);
+			BITSET(pHwCIPHER->DMACTR, HwCIPHER_DMACTR_ByteEndian);
 
 		/* Set the Addressing Mode */
-		BITCSET(pHwCIPHER->DMACTR, HwCHIPHER_DMACTR_AddrModeTx_Mask, HwCHIPHER_DMACTR_AddrModeTx(uAddrModeTx));
-		BITCSET(pHwCIPHER->DMACTR, HwCHIPHER_DMACTR_AddrModeRx_Mask, HwCHIPHER_DMACTR_AddrModeRx(uAddrModeRx));
+		BITCSET(pHwCIPHER->DMACTR, HwCIPHER_DMACTR_AddrModeTx_Mask, HwCIPHER_DMACTR_AddrModeTx(uAddrModeTx));
+		BITCSET(pHwCIPHER->DMACTR, HwCIPHER_DMACTR_AddrModeRx_Mask, HwCIPHER_DMACTR_AddrModeRx(uAddrModeRx));
 
 		/* DMA Enable */
-		BITSET(pHwCIPHER->DMACTR, HwCHIPHER_DMACTR_Enable);
+		BITSET(pHwCIPHER->DMACTR, HwCIPHER_DMACTR_Enable);
 
 		/* Clear Done Interrupt Flag */
 		iDoneIrqHandled = 0;
@@ -102,7 +102,7 @@ void tca_cipher_dma_enable(unsigned uEnable, unsigned uEndian, unsigned uAddrMod
 	else
 	{
 		/* DMA Disable */
-		BITCLR(pHwCIPHER->DMACTR, HwCHIPHER_DMACTR_Enable);
+		BITCLR(pHwCIPHER->DMACTR, HwCIPHER_DMACTR_Enable);
 	}
 }
 
@@ -113,13 +113,13 @@ void tca_cipher_dma_enable_request(unsigned uEnable)
 	dprintk("%s, Enable=%d\n", __func__, uEnable);
 
 	/* Clear TX/RX packet counter */
-	BITSET(pHwCIPHER->DMACTR, HwCHIPHER_DMACTR_ClearPacketCount);
+	BITSET(pHwCIPHER->DMACTR, HwCIPHER_DMACTR_ClearPacketCount);
 
 	/* DMA Request Enable/Disable */
 	if(uEnable)
-		BITSET(pHwCIPHER->DMACTR, HwCHIPHER_DMACTR_RequestEnable);
+		BITSET(pHwCIPHER->DMACTR, HwCIPHER_DMACTR_RequestEnable);
 	else
-		BITCLR(pHwCIPHER->DMACTR, HwCHIPHER_DMACTR_RequestEnable);
+		BITCLR(pHwCIPHER->DMACTR, HwCIPHER_DMACTR_RequestEnable);
 }
 
 void tca_cipher_interrupt_config(unsigned uTxSel, unsigned uDoneIrq, unsigned uPacketIrq)
@@ -130,21 +130,21 @@ void tca_cipher_interrupt_config(unsigned uTxSel, unsigned uDoneIrq, unsigned uP
 
 	/* IRQ Select Direction */
 	if(uTxSel)
-		BITCLR(pHwCIPHER->IRQCTR, HwCHIPHER_IRQCTR_SelectIrq);
+		BITCLR(pHwCIPHER->IRQCTR, HwCIPHER_IRQCTR_SelectIrq);
 	else
-		BITSET(pHwCIPHER->IRQCTR, HwCHIPHER_IRQCTR_SelectIrq);
+		BITSET(pHwCIPHER->IRQCTR, HwCIPHER_IRQCTR_SelectIrq);
 
 	/* Enable for "Done" Interrupt */
 	if(uDoneIrq)
-		BITSET(pHwCIPHER->IRQCTR, HwCHIPHER_IRQCTR_EnableDoneIrq);
+		BITSET(pHwCIPHER->IRQCTR, HwCIPHER_IRQCTR_EnableDoneIrq);
 	else
-		BITCLR(pHwCIPHER->IRQCTR, HwCHIPHER_IRQCTR_EnableDoneIrq);
+		BITCLR(pHwCIPHER->IRQCTR, HwCIPHER_IRQCTR_EnableDoneIrq);
 
 	/* Enable for "Packet" Interrupt */
 	if(uPacketIrq)
-		BITSET(pHwCIPHER->IRQCTR, HwCHIPHER_IRQCTR_EnablePacketIrq);
+		BITSET(pHwCIPHER->IRQCTR, HwCIPHER_IRQCTR_EnablePacketIrq);
 	else
-		BITCLR(pHwCIPHER->IRQCTR, HwCHIPHER_IRQCTR_EnablePacketIrq);
+		BITCLR(pHwCIPHER->IRQCTR, HwCIPHER_IRQCTR_EnablePacketIrq);
 }
 
 void tca_cipher_interrupt_enable(unsigned uEnable)
@@ -177,24 +177,24 @@ irqreturn_t tca_cipher_interrupt_handler(int irq, void *dev_id)
 
 	//dprintk("%s\n", __func__);
 
-dprintk("%s, RXPCNT=%d, TXPCNT=%d\n", __func__, (pHwCIPHER->DMASTR & 0xFF00)>>16, (pHwCIPHER->DMASTR & 0xFF));
+	dprintk("%s, RXPCNT=%d, TXPCNT=%d\n", __func__, (pHwCIPHER->DMASTR & 0xFF00)>>16, (pHwCIPHER->DMASTR & 0xFF));
 
-	if(pHwCIPHER->IRQCTR & HwCHIPHER_IRQCTR_DoneIrqStatus)
+	if(pHwCIPHER->IRQCTR & HwCIPHER_IRQCTR_DoneIrqStatus)
 	{
 		dprintk("%s, Done Interrupt\n", __func__);
 
 		/* Clear IRQ Status */
-		BITSET(pHwCIPHER->IRQCTR, HwCHIPHER_IRQCTR_DoneIrqStatus);
+		BITSET(pHwCIPHER->IRQCTR, HwCIPHER_IRQCTR_DoneIrqStatus);
 
 		/* Set Done Interrupt Flag */
 		iDoneIrqHandled = TRUE;
 	}
-	else if(pHwCIPHER->IRQCTR & HwCHIPHER_IRQCTR_PacketIrqStatus)
+	else if(pHwCIPHER->IRQCTR & HwCIPHER_IRQCTR_PacketIrqStatus)
 	{
 		dprintk("%s, Packet Interrupt\n", __func__);
 
 		/* Clear IRQ Status */
-		BITSET(pHwCIPHER->IRQCTR, HwCHIPHER_IRQCTR_PacketIrqStatus);
+		BITSET(pHwCIPHER->IRQCTR, HwCIPHER_IRQCTR_PacketIrqStatus);
 	}
 	else
 	{
@@ -212,23 +212,23 @@ void tca_cipher_set_opmode(unsigned uOpMode)
 
 	switch(uOpMode)
 	{
-		case TCC_CHIPHER_OPMODE_ECB:
-			BITCSET(pHwCIPHER->CTRL, HwCHIPHER_CTRL_OperationMode_Mask, HwCHIPHER_CTRL_OperationMode_ECB);
+		case TCC_CIPHER_OPMODE_ECB:
+			BITCSET(pHwCIPHER->CTRL, HwCIPHER_CTRL_OperationMode_Mask, HwCIPHER_CTRL_OperationMode_ECB);
 			break;
-		case TCC_CHIPHER_OPMODE_CBC:
-			BITCSET(pHwCIPHER->CTRL, HwCHIPHER_CTRL_OperationMode_Mask, HwCHIPHER_CTRL_OperationMode_CBC);
+		case TCC_CIPHER_OPMODE_CBC:
+			BITCSET(pHwCIPHER->CTRL, HwCIPHER_CTRL_OperationMode_Mask, HwCIPHER_CTRL_OperationMode_CBC);
 			break;
-		case TCC_CHIPHER_OPMODE_CFB:
-			BITCSET(pHwCIPHER->CTRL, HwCHIPHER_CTRL_OperationMode_Mask, HwCHIPHER_CTRL_OperationMode_CFB);
+		case TCC_CIPHER_OPMODE_CFB:
+			BITCSET(pHwCIPHER->CTRL, HwCIPHER_CTRL_OperationMode_Mask, HwCIPHER_CTRL_OperationMode_CFB);
 			break;
-		case TCC_CHIPHER_OPMODE_OFB:
-			BITCSET(pHwCIPHER->CTRL, HwCHIPHER_CTRL_OperationMode_Mask, HwCHIPHER_CTRL_OperationMode_OFB);
+		case TCC_CIPHER_OPMODE_OFB:
+			BITCSET(pHwCIPHER->CTRL, HwCIPHER_CTRL_OperationMode_Mask, HwCIPHER_CTRL_OperationMode_OFB);
 			break;
-		case TCC_CHIPHER_OPMODE_CTR:
-		case TCC_CHIPHER_OPMODE_CTR_1:
-		case TCC_CHIPHER_OPMODE_CTR_2:
-		case TCC_CHIPHER_OPMODE_CTR_3:
-			BITCSET(pHwCIPHER->CTRL, HwCHIPHER_CTRL_OperationMode_Mask, HwCHIPHER_CTRL_OperationMode_CTR);
+		case TCC_CIPHER_OPMODE_CTR:
+		case TCC_CIPHER_OPMODE_CTR_1:
+		case TCC_CIPHER_OPMODE_CTR_2:
+		case TCC_CIPHER_OPMODE_CTR_3:
+			BITCSET(pHwCIPHER->CTRL, HwCIPHER_CTRL_OperationMode_Mask, HwCIPHER_CTRL_OperationMode_CTR);
 			break;
 
 		default:
@@ -247,35 +247,35 @@ void tca_cipher_set_algorithm(unsigned uAlgorithm, unsigned uArg1, unsigned uArg
 	
 	switch(uAlgorithm)
 	{
-		case TCC_CHIPHER_ALGORITM_AES:
+		case TCC_CIPHER_ALGORITM_AES:
 			{
 				/* uArg1: The Key Length in AES */
 				/* uArg2: None                  */
-				BITCSET(pHwCIPHER->CTRL, HwCHIPHER_CTRL_Algorithm_Mask, HwCHIPHER_CTRL_Algorithm_AES);
-				BITCSET(pHwCIPHER->CTRL, HwCHIPHER_CTRL_KeyLength_Mask, HwCHIPHER_CTRL_KeyLength(uArg1));
+				BITCSET(pHwCIPHER->CTRL, HwCIPHER_CTRL_Algorithm_Mask, HwCIPHER_CTRL_Algorithm_AES);
+				BITCSET(pHwCIPHER->CTRL, HwCIPHER_CTRL_KeyLength_Mask, HwCIPHER_CTRL_KeyLength(uArg1));
 			}
 			break;
 
-		case TCC_CHIPHER_ALGORITM_DES:
+		case TCC_CIPHER_ALGORITM_DES:
 			{
 				/* uArg1: The Mode in DES     */
 				/* uArg2: Parity Bit Location */
-				BITCSET(pHwCIPHER->CTRL, HwCHIPHER_CTRL_Algorithm_Mask, HwCHIPHER_CTRL_Algorithm_DES);
-				BITCSET(pHwCIPHER->CTRL, HwCHIPHER_CTRL_DESMode_Mask, HwCHIPHER_CTRL_DESMode(uArg1));
+				BITCSET(pHwCIPHER->CTRL, HwCIPHER_CTRL_Algorithm_Mask, HwCIPHER_CTRL_Algorithm_DES);
+				BITCSET(pHwCIPHER->CTRL, HwCIPHER_CTRL_DESMode_Mask, HwCIPHER_CTRL_DESMode(uArg1));
 
 				if(uArg2)
-					BITSET(pHwCIPHER->CTRL, HwCHIPHER_CTRL_ParityBit);
+					BITSET(pHwCIPHER->CTRL, HwCIPHER_CTRL_ParityBit);
 				else
-					BITCLR(pHwCIPHER->CTRL, HwCHIPHER_CTRL_ParityBit);
+					BITCLR(pHwCIPHER->CTRL, HwCIPHER_CTRL_ParityBit);
 			}
 			break;
 
-		case TCC_CHIPHER_ALGORITM_MULTI2:
-		case TCC_CHIPHER_ALGORITM_MULTI2_1:
+		case TCC_CIPHER_ALGORITM_MULTI2:
+		case TCC_CIPHER_ALGORITM_MULTI2_1:
 			{
 				/* uArg1: Round in Multi2 */
 				/* uArg2: None */
-				BITCSET(pHwCIPHER->CTRL, HwCHIPHER_CTRL_Algorithm_Mask, HwCHIPHER_CTRL_Algorithm_MULTI2);
+				BITCSET(pHwCIPHER->CTRL, HwCIPHER_CTRL_Algorithm_Mask, HwCIPHER_CTRL_Algorithm_MULTI2);
 				pHwCIPHER->ROUND = uArg1;
 			}
 			break;
@@ -295,7 +295,7 @@ void tca_cipher_set_baseaddr(unsigned uTxRx, unsigned char *pBaseAddr)
 
 	dprintk("%s\n", __func__);
 
-	if(uTxRx == TCC_CHIPHER_BASEADDR_TX)
+	if(uTxRx == TCC_CIPHER_BASEADDR_TX)
 		pHwCIPHER->TXBASE = pBaseAddr;
 	else
 		pHwCIPHER->RXBASE = pBaseAddr;
@@ -321,23 +321,23 @@ void tca_cipher_set_key(unsigned char *pucData, unsigned uLength, unsigned uOpti
 
 	dprintk("%s, Lenth: %d, Option: %d\n", __func__, uLength, uOption);
 
-	ulAlgorthm = pHwCIPHER->CTRL & HwCHIPHER_CTRL_Algorithm_Mask;
+	ulAlgorthm = pHwCIPHER->CTRL & HwCIPHER_CTRL_Algorithm_Mask;
 
 	/* Write Key Data */
 	switch(ulAlgorthm)
 	{
-		case HwCHIPHER_CTRL_Algorithm_AES:
+		case HwCIPHER_CTRL_Algorithm_AES:
 			{
-				ulAESKeyLength = pHwCIPHER->CTRL & HwCHIPHER_CTRL_KeyLength_Mask;
+				ulAESKeyLength = pHwCIPHER->CTRL & HwCIPHER_CTRL_KeyLength_Mask;
 
-				if(ulAESKeyLength == HwCHIPHER_CTRL_keyLength_128)
+				if(ulAESKeyLength == HwCIPHER_CTRL_keyLength_128)
 				{
 					pHwCIPHER->KEY0 = *pulKeyData++;
 					pHwCIPHER->KEY1 = *pulKeyData++;
 					pHwCIPHER->KEY2 = *pulKeyData++;
 					pHwCIPHER->KEY3 = *pulKeyData++;
 				}
-				else if(ulAESKeyLength == HwCHIPHER_CTRL_KeyLength_192)
+				else if(ulAESKeyLength == HwCIPHER_CTRL_KeyLength_192)
 				{
 					pHwCIPHER->KEY0 = *pulKeyData++;
 					pHwCIPHER->KEY1 = *pulKeyData++;
@@ -346,7 +346,7 @@ void tca_cipher_set_key(unsigned char *pucData, unsigned uLength, unsigned uOpti
 					pHwCIPHER->KEY4 = *pulKeyData++;
 					pHwCIPHER->KEY5 = *pulKeyData++;
 				}
-				else if(ulAESKeyLength == HwCHIPHER_CTRL_KeyLength_256)
+				else if(ulAESKeyLength == HwCIPHER_CTRL_KeyLength_256)
 				{
 					pHwCIPHER->KEY0 = *pulKeyData++;
 					pHwCIPHER->KEY1 = *pulKeyData++;
@@ -360,30 +360,30 @@ void tca_cipher_set_key(unsigned char *pucData, unsigned uLength, unsigned uOpti
 			}
 			break;
 
-		case HwCHIPHER_CTRL_Algorithm_DES:
+		case HwCIPHER_CTRL_Algorithm_DES:
 			{
-				ulDESMode = pHwCIPHER->CTRL & HwCHIPHER_CTRL_DESMode_Mask;
+				ulDESMode = pHwCIPHER->CTRL & HwCIPHER_CTRL_DESMode_Mask;
 
-				if(ulDESMode == HwCHIPHER_CTRL_DESMode_SingleDES)
+				if(ulDESMode == HwCIPHER_CTRL_DESMode_SingleDES)
 				{
 					pHwCIPHER->KEY0 = *pulKeyData++;
 					pHwCIPHER->KEY1 = *pulKeyData++;
 				}
-				else if(ulDESMode == HwCHIPHER_CTRL_DESMode_DoubleDES)
-				{
-					pHwCIPHER->KEY0 = *pulKeyData++;
-					pHwCIPHER->KEY1 = *pulKeyData++;
-					pHwCIPHER->KEY2 = *pulKeyData++;
-					pHwCIPHER->KEY3 = *pulKeyData++;
-				}
-				else if(ulDESMode == HwCHIPHER_CTRL_DESMode_TripleDES2)
+				else if(ulDESMode == HwCIPHER_CTRL_DESMode_DoubleDES)
 				{
 					pHwCIPHER->KEY0 = *pulKeyData++;
 					pHwCIPHER->KEY1 = *pulKeyData++;
 					pHwCIPHER->KEY2 = *pulKeyData++;
 					pHwCIPHER->KEY3 = *pulKeyData++;
 				}
-				else if(ulDESMode == HwCHIPHER_CTRL_DESMode_TripleDES3)
+				else if(ulDESMode == HwCIPHER_CTRL_DESMode_TripleDES2)
+				{
+					pHwCIPHER->KEY0 = *pulKeyData++;
+					pHwCIPHER->KEY1 = *pulKeyData++;
+					pHwCIPHER->KEY2 = *pulKeyData++;
+					pHwCIPHER->KEY3 = *pulKeyData++;
+				}
+				else if(ulDESMode == HwCIPHER_CTRL_DESMode_TripleDES3)
 				{
 					pHwCIPHER->KEY0 = *pulKeyData++;
 					pHwCIPHER->KEY1 = *pulKeyData++;
@@ -395,9 +395,9 @@ void tca_cipher_set_key(unsigned char *pucData, unsigned uLength, unsigned uOpti
 			}
 			break;
 
-		case HwCHIPHER_CTRL_Algorithm_MULTI2:
+		case HwCIPHER_CTRL_Algorithm_MULTI2:
 			{
-				if(uOption == TCC_CHIPHER_KEY_MULTI2_DATA)
+				if(uOption == TCC_CIPHER_KEY_MULTI2_DATA)
 				{
 					pHwCIPHER->KEY0 = *pulKeyData++;
 					pHwCIPHER->KEY1 = *pulKeyData++;
@@ -421,7 +421,7 @@ void tca_cipher_set_key(unsigned char *pucData, unsigned uLength, unsigned uOpti
 	}
 
 	/* Load Key Data */
-	BITSET(pHwCIPHER->CTRL, HwCHIPHER_CTRL_KeyDataLoad);
+	BITSET(pHwCIPHER->CTRL, HwCIPHER_CTRL_KeyDataLoad);
 }
 
 void tca_cipher_set_vector(unsigned char *pucData, unsigned uLength)
@@ -432,12 +432,12 @@ void tca_cipher_set_vector(unsigned char *pucData, unsigned uLength)
 
 	dprintk("%s, Length: %d\n", __func__, uLength);
 
-	ulAlgorthm = pHwCIPHER->CTRL & HwCHIPHER_CTRL_Algorithm_Mask;
+	ulAlgorthm = pHwCIPHER->CTRL & HwCIPHER_CTRL_Algorithm_Mask;
 
 	/* Write Initial Vector */
 	switch(ulAlgorthm)
 	{
-		case HwCHIPHER_CTRL_Algorithm_AES:
+		case HwCIPHER_CTRL_Algorithm_AES:
 			{
 				pHwCIPHER->IV0 = *pulVectorData++;
 				pHwCIPHER->IV1 = *pulVectorData++;
@@ -446,14 +446,14 @@ void tca_cipher_set_vector(unsigned char *pucData, unsigned uLength)
 			}
 			break;
 
-		case HwCHIPHER_CTRL_Algorithm_DES:
+		case HwCIPHER_CTRL_Algorithm_DES:
 			{
 				pHwCIPHER->IV0 = *pulVectorData++;
 				pHwCIPHER->IV1 = *pulVectorData++;
 			}
 			break;
 
-		case HwCHIPHER_CTRL_Algorithm_MULTI2:
+		case HwCIPHER_CTRL_Algorithm_MULTI2:
 			{
 				pHwCIPHER->IV0 = *pulVectorData++;
 				pHwCIPHER->IV1 = *pulVectorData++;
@@ -465,7 +465,7 @@ void tca_cipher_set_vector(unsigned char *pucData, unsigned uLength)
 	}
 
 	/* Load Initial Vector */
-	BITSET(pHwCIPHER->CTRL, HwCHIPHER_CTRL_InitVectorLoad);
+	BITSET(pHwCIPHER->CTRL, HwCIPHER_CTRL_InitVectorLoad);
 }
 
 int tca_cipher_get_packetcount(unsigned uTxRx)
@@ -475,7 +475,7 @@ int tca_cipher_get_packetcount(unsigned uTxRx)
 
 	dprintk("%s\n", __func__);
 
-	if(uTxRx == TCC_CHIPHER_PACKETCOUNT_TX)
+	if(uTxRx == TCC_CIPHER_PACKETCOUNT_TX)
 		iPacketCount = (pHwCIPHER->DMASTR & 0x00FF);
 	else
 		iPacketCount = (pHwCIPHER->DMASTR & 0xFF00) >> 16;
@@ -499,14 +499,14 @@ void tca_cipher_clear_counter(unsigned uIndex)
 	dprintk("%s, Index: 0x%02x\n", __func__, uIndex);
 	
 	/* Clear Transmit FIFO Counter */
-	if(uIndex & TCC_CHIPHER_CLEARCOUNTER_TX)
-		BITSET(pHwCIPHER->CTRL, HwCHIPHER_CTRL_ClearTxFIFO);	
+	if(uIndex & TCC_CIPHER_CLEARCOUNTER_TX)
+		BITSET(pHwCIPHER->CTRL, HwCIPHER_CTRL_ClearTxFIFO);
 	/* Clear Receive FIFO Counter */
-	if(uIndex & TCC_CHIPHER_CLEARCOUNTER_RX)
-		BITSET(pHwCIPHER->CTRL, HwCHIPHER_CTRL_ClearRxFIFO);	
+	if(uIndex & TCC_CIPHER_CLEARCOUNTER_RX)
+		BITSET(pHwCIPHER->CTRL, HwCIPHER_CTRL_ClearRxFIFO);
 	/* Clear Block Counter */
-	if(uIndex & TCC_CHIPHER_CLEARCOUNTER_BLOCK)
-		BITSET(pHwCIPHER->CTRL, HwCHIPHER_CTRL_ClearBlkCount);	
+	if(uIndex & TCC_CIPHER_CLEARCOUNTER_BLOCK)
+		BITSET(pHwCIPHER->CTRL, HwCIPHER_CTRL_ClearBlkCount);
 }
 
 void tca_cipher_wait_done(void)
@@ -532,7 +532,7 @@ void tca_cipher_wait_done(void)
 	/* Wait for DMA to be Disabled */
 	while(1)
 	{
-		if(!(pHwCIPHER->DMACTR & HwCHIPHER_DMACTR_Enable))
+		if(!(pHwCIPHER->DMACTR & HwCIPHER_DMACTR_Enable))
 		{
 			dprintk("DMA Disabled\n");
 			break;
@@ -568,10 +568,10 @@ int tca_cipher_encrypt(unsigned char *pucSrcAddr, unsigned char *pucDstAddr, uns
 	copy_from_user(pSrcCpu, pucSrcAddr, uLength);
 	
  	/* Clear All Conunters */
-	tca_cipher_clear_counter(TCC_CHIPHER_CLEARCOUNTER_ALL);
+	tca_cipher_clear_counter(TCC_CIPHER_CLEARCOUNTER_ALL);
 
 	/* Select Encryption */
-	BITSET(pHwCIPHER->CTRL, HwCHIPHER_CTRL_Encrytion);
+	BITSET(pHwCIPHER->CTRL, HwCIPHER_CTRL_Encrytion);
 
 	/* Set the Base Address */
 	pHwCIPHER->TXBASE = SrcDma;
@@ -584,20 +584,20 @@ int tca_cipher_encrypt(unsigned char *pucSrcAddr, unsigned char *pucDstAddr, uns
 	/* Request Enable DMA */
 	tca_cipher_dma_enable_request(TRUE);
 	/* Clear Packet Counter */
-	BITSET(pHwCIPHER->DMACTR, HwCHIPHER_DMACTR_ClearPacketCount);
+	BITSET(pHwCIPHER->DMACTR, HwCIPHER_DMACTR_ClearPacketCount);
 	
 	/* Load Key & InitVector Value */
-	BITSET(pHwCIPHER->CTRL, HwCHIPHER_CTRL_KeyDataLoad);
-	BITSET(pHwCIPHER->CTRL, HwCHIPHER_CTRL_InitVectorLoad);
+	BITSET(pHwCIPHER->CTRL, HwCIPHER_CTRL_KeyDataLoad);
+	BITSET(pHwCIPHER->CTRL, HwCIPHER_CTRL_InitVectorLoad);
 
 	/* Enable DMA */ 
-	if(uLength > MIN_CUPHER_BLOCK_SIZE)
-		tca_cipher_dma_enable(TRUE, TCC_CHIPHER_DMA_ENDIAN_LITTLE, TCC_CHIPHER_DMA_ADDRMODE_MULTI, TCC_CHIPHER_DMA_ADDRMODE_MULTI);	
+	if(uLength > MIN_CIPHER_BLOCK_SIZE)
+		tca_cipher_dma_enable(TRUE, TCC_CIPHER_DMA_ENDIAN_LITTLE, TCC_CIPHER_DMA_ADDRMODE_MULTI, TCC_CIPHER_DMA_ADDRMODE_MULTI);	
 	else
-		tca_cipher_dma_enable(TRUE, TCC_CHIPHER_DMA_ENDIAN_LITTLE, TCC_CHIPHER_DMA_ADDRMODE_SINGLE, TCC_CHIPHER_DMA_ADDRMODE_SINGLE);	
+		tca_cipher_dma_enable(TRUE, TCC_CIPHER_DMA_ENDIAN_LITTLE, TCC_CIPHER_DMA_ADDRMODE_SINGLE, TCC_CIPHER_DMA_ADDRMODE_SINGLE);	
  
-	  while(!pHwCIPHER->IRQCTR & HwCHIPHER_IRQCTR_DoneIrqStatus);
-	  while(pHwCIPHER->DMACTR & HwCHIPHER_DMACTR_Enable);
+	while(!pHwCIPHER->IRQCTR & HwCIPHER_IRQCTR_DoneIrqStatus);
+	while(pHwCIPHER->DMACTR & HwCIPHER_DMACTR_Enable);
 	
 	/* Copy Cipher Text to Destination Buffer */
 	copy_to_user(pucDstAddr, pDstCpu, uLength);
@@ -668,10 +668,10 @@ int tca_cipher_decrypt(unsigned char *pucSrcAddr, unsigned char *pucDstAddr, uns
 	copy_from_user(pSrcCpu, pucSrcAddr, uLength);
 	
  	/* Clear All Conunters */
-	tca_cipher_clear_counter(TCC_CHIPHER_CLEARCOUNTER_ALL);
+	tca_cipher_clear_counter(TCC_CIPHER_CLEARCOUNTER_ALL);
 
 	/* Select Decryption */
-	BITCLR(pHwCIPHER->CTRL, HwCHIPHER_CTRL_Encrytion);
+	BITCLR(pHwCIPHER->CTRL, HwCIPHER_CTRL_Encrytion);
 
 	/* Set the Base Address */
 	pHwCIPHER->TXBASE = SrcDma;
@@ -684,20 +684,20 @@ int tca_cipher_decrypt(unsigned char *pucSrcAddr, unsigned char *pucDstAddr, uns
 	/* Request Enable DMA */
 	tca_cipher_dma_enable_request(TRUE);
 	/* Clear Packet Counter */
-	BITSET(pHwCIPHER->DMACTR, HwCHIPHER_DMACTR_ClearPacketCount);
+	BITSET(pHwCIPHER->DMACTR, HwCIPHER_DMACTR_ClearPacketCount);
 	
 	/* Load Key & InitVector Value */
-	BITSET(pHwCIPHER->CTRL, HwCHIPHER_CTRL_KeyDataLoad);
-	BITSET(pHwCIPHER->CTRL, HwCHIPHER_CTRL_InitVectorLoad);
+	BITSET(pHwCIPHER->CTRL, HwCIPHER_CTRL_KeyDataLoad);
+	BITSET(pHwCIPHER->CTRL, HwCIPHER_CTRL_InitVectorLoad);
 
 	/* Enable DMA */ 
-	if(uLength > MIN_CUPHER_BLOCK_SIZE)
-		tca_cipher_dma_enable(TRUE, TCC_CHIPHER_DMA_ENDIAN_LITTLE, TCC_CHIPHER_DMA_ADDRMODE_MULTI, TCC_CHIPHER_DMA_ADDRMODE_MULTI);	
+	if(uLength > MIN_CIPHER_BLOCK_SIZE)
+		tca_cipher_dma_enable(TRUE, TCC_CIPHER_DMA_ENDIAN_LITTLE, TCC_CIPHER_DMA_ADDRMODE_MULTI, TCC_CIPHER_DMA_ADDRMODE_MULTI);	
 	else
-		tca_cipher_dma_enable(TRUE, TCC_CHIPHER_DMA_ENDIAN_LITTLE, TCC_CHIPHER_DMA_ADDRMODE_SINGLE, TCC_CHIPHER_DMA_ADDRMODE_SINGLE);	
+		tca_cipher_dma_enable(TRUE, TCC_CIPHER_DMA_ENDIAN_LITTLE, TCC_CIPHER_DMA_ADDRMODE_SINGLE, TCC_CIPHER_DMA_ADDRMODE_SINGLE);	
  
-	 while(!pHwCIPHER->IRQCTR & HwCHIPHER_IRQCTR_DoneIrqStatus);
-	 while(pHwCIPHER->DMACTR & HwCHIPHER_DMACTR_Enable);
+	while(!pHwCIPHER->IRQCTR & HwCIPHER_IRQCTR_DoneIrqStatus);
+	while(pHwCIPHER->DMACTR & HwCIPHER_DMACTR_Enable);
 	
 	tca_cipher_dma_enable_request(FALSE);
 	tca_cipher_dma_enable(FALSE, NULL, NULL, NULL);	

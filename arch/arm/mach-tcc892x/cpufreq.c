@@ -342,11 +342,15 @@ static int tcc_cpufreq_set_voltage_by_gpio(int uV)
 			//CORE1_ON == 1, CORE2_ON == 1 ==> 1.40V
 			gpio_set_value(TCC_GPB(19), 1);
 			gpio_set_value(TCC_GPB(21), 1);
+			//wait stable.
+			udelay(30);
 		} 
 		else {
 			//CORE1_ON == 0, CORE2_ON == 1 ==> 1.30V
 			gpio_set_value(TCC_GPB(19), 0);
 			gpio_set_value(TCC_GPB(21), 1);
+			//Wait stable.
+			udelay(30);
 		}
 	}
 

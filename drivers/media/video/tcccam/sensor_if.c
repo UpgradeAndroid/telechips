@@ -51,12 +51,8 @@ struct regulator *vdd_cam_af;
 struct regulator *vdd_cam_io;
 #endif
 
-#if 0
-static int debug	   = 1;
-#else
-static int debug	   = 0;
-#endif
 
+static int debug	   = 0;
 #define dprintk(msg...)	if (debug) { printk( "Sensor_if: " msg); }
 
 static int enabled = 0;

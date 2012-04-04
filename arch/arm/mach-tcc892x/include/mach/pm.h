@@ -152,6 +152,7 @@ typedef struct _TCC_REG_{
 	SMUCONFIG smuconfig;
 	IOBUSCFG iobuscfg;
 	MEMBUSCFG membuscfg;
+	NFC nfc;
 	unsigned L2_aux;
 
 #if defined(CONFIG_PM_CONSOLE_NOT_SUSPEND)

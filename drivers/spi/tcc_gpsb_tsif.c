@@ -255,7 +255,6 @@ static irqreturn_t tcc_tsif_dma_handler(int irq, void *dev_id)
                     }
                 }
             }
-            return IRQ_HANDLED;
         }
 
         if (tpri->open_cnt > 0) {

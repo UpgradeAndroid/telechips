@@ -811,7 +811,7 @@ int DDI_I2C_Write(unsigned char* data, unsigned short reg_bytes, unsigned short 
 {
 	unsigned short bytes = reg_bytes + data_bytes;
 
-	#ifdef USING_HW_I2C
+#if defined(USING_HW_I2C)
 	#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
 	if(i2c_master_send(cam_i2c_client[CameraID], data, bytes) != bytes)
 	#else // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
@@ -821,14 +821,14 @@ int DDI_I2C_Write(unsigned char* data, unsigned short reg_bytes, unsigned short 
 		printk("write error!!!! \n");
 		return -EIO; 
 	}
-	#else
+#else // USING_HW_I2C
 	delay_set();
 	if(i2c_write(I2C_CAMERA, (unsigned char)SENSOR_I2C_ADDR, data, reg_bytes, data+reg_bytes, data_bytes) == i2c_err)
 	{
 		printk("write error, delay_cnt = %d !!!! \n", delay_cnt);
 		return -EIO; 
 	}
-	#endif
+#endif // USING_HW_I2C
 
 	return 0;
 }

@@ -59,16 +59,13 @@
 #include <linux/cpufreq.h>
 
 #include <linux/jiffies.h>
+
+
 extern unsigned long volatile __jiffy_data jiffies;
 extern int tcc_is_camera_enable;
 
-#if 0
-static int debug	   = 1;
-#else
 static int debug	   = 0;
-#endif
-
-#define dprintk(msg...)	if (debug) { printk( "Camera_core: " msg); }
+#define dprintk(msg...)	if(debug) { printk( "Camera_core: " msg); }
 
 
 #ifdef JPEG_ENCODE_WITH_CAPTURE
@@ -461,7 +458,7 @@ int tcc_videobuf_dqbuf(struct v4l2_buffer *buf, struct file *file )
 		}
 			
 		data->wakeup_int = 0;
-		if(wait_event_interruptible_timeout(data->frame_wait, data->wakeup_int == 1, msecs_to_jiffies(500)) <= 0){
+		if(wait_event_interruptible_timeout(data->frame_wait, data->wakeup_int == 1, msecs_to_jiffies(500)) <= 0) {
 			printk("wait_event_interruptible_timeout 500ms!!\n");
 			return -EFAULT;
 		}

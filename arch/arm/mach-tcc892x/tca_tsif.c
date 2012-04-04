@@ -869,7 +869,9 @@ int tca_tsif_can_support(void)
 {
    	if(machine_is_tcc8920())
     {
-        if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 || system_rev == 0x1008)
+        //0x1006:8925, 0x1008:8923, 0x1005,0x1007:8920
+        //if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 || system_rev == 0x1008)
+        if( system_rev == 0x1006 || system_rev == 0x1008)
         { 
             return 1;
         }
