@@ -16,7 +16,9 @@
 #include <mach/bsp.h>
 #include <asm/mach-types.h>
 #include <mach/tca_tsif.h>
-
+#if defined(SUPPORT_PIDFILTER_INTERNAL)
+#define     USE_DMA_SYNCMATCH
+#endif
 //#define DEBUG_INFO
 static void tsif_delay(int m_sec)
 {
@@ -615,7 +617,11 @@ static int tcc_tsif_dmastart(struct tcc_tsif_handle *h)
       	BITCLR(h->regs->TSRXCR, Hw17);      	
     }
     else if(h->mpeg_ts == (Hw0|Hw1))
-    {
+    { 
+#if defined(USE_DMA_SYNCMATCH)        
+       	BITCSET(dma_regs->DMACTR.nREG, Hw19|Hw18, Hw18);		//Sync Byte match
+        BITCSET(dma_regs->DMACTR.nREG, Hw5|Hw4, Hw4);	//00:normal mode, 01:MPEG2_TS mode
+#endif        
 #if defined(SUPPORT_PIDFILTER_INTERNAL)
       	BITSET(h->regs->TSRXCR, Hw17);      	
 #endif
@@ -681,7 +687,7 @@ static void tcc_tsif_hw_init(struct tcc_tsif_handle *h)
 #if defined(SUPPORT_PIDFILTER_INTERNAL)
     BITSET(h->regs->TSRXCR, Hw17);
 #endif	
-#if defined(SUPPORT_PIDFILTER_DMA)    
+#if defined(SUPPORT_PIDFILTER_DMA) || defined(USE_DMA_SYNCMATCH)
     //DMA Sync Delay Options
     //25: enable sync delay, 20-24 : Delay Value
     BITSET(h->regs->TSRXCR,Hw25|Hw24|Hw23|Hw21);

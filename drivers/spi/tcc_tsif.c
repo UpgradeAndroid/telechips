@@ -64,6 +64,7 @@ struct tcc_tsif_pri_handle {
 	u32 bus_num;
 	u32 irq_no;
 	u32 resync_count;
+	u32 packet_read_count;
 	const char *name;
 };
 
@@ -208,6 +209,22 @@ static int tsif_resync(struct tcc_tsif_handle *H)
     H->dma_start(H);   
     return 0;
 }
+static int tsif_calculate_readable_cnt(struct tcc_tsif_handle *H)
+{
+     if (H) {
+        int dma_pos = H->cur_q_pos;
+        int q_pos = H->q_pos;
+        int readable_cnt = 0;
+        if (dma_pos > q_pos) {
+            readable_cnt = dma_pos - q_pos;
+        } else if (dma_pos < q_pos) {
+            readable_cnt = H->dma_total_packet_cnt - q_pos;
+            readable_cnt += dma_pos;
+        } 
+        return readable_cnt;
+     }
+     return 0;
+}
 
 static irqreturn_t tsif_ex_dma_handler(int irq, void *dev_id)
 {
@@ -233,7 +250,9 @@ static irqreturn_t tsif_ex_dma_handler(int irq, void *dev_id)
             }	
             TSDEMUX_MakeSTC((unsigned char *)handle->rx_dma.v_addr + search_pos*TSIF_PACKET_SIZE, search_size*TSIF_PACKET_SIZE, h_pri->pcr_pid );				
         }			
-        wake_up(&(h_pri->wait_q));
+        //check read count & wake_up wait_q
+        if( tsif_calculate_readable_cnt(handle) >= tsif_ex_pri.packet_read_count)
+            wake_up(&(h_pri->wait_q));
     }
     return IRQ_HANDLED;
 }
@@ -242,16 +261,9 @@ static irqreturn_t tsif_ex_dma_handler(int irq, void *dev_id)
 static int tsif_get_readable_cnt(struct tcc_tsif_handle *H)
 {
     if (H) {
-        int dma_pos = H->cur_q_pos;
         int q_pos = H->q_pos;
         int readable_cnt = 0;
-        if (dma_pos > q_pos) {
-            readable_cnt = dma_pos - q_pos;
-        } else if (dma_pos < q_pos) {
-            readable_cnt = H->dma_total_packet_cnt - q_pos;
-            readable_cnt += dma_pos;
-        } 
-
+        readable_cnt = tsif_calculate_readable_cnt(H);
         //check data validation
         if(readable_cnt){
             if(q_pos < H->dma_total_packet_cnt){
@@ -295,6 +307,7 @@ static ssize_t tcc_tsif_read(struct file *filp, char *buf, size_t len, loff_t *p
 
     readable_cnt = tsif_get_readable_cnt(&tsif_ex_handle);
     if (readable_cnt > 0) {
+        tsif_ex_pri.packet_read_count = len/TSIF_PACKET_SIZE;
         copy_byte = readable_cnt * TSIF_PACKET_SIZE;
         if (copy_byte > len) {
             copy_byte = len;
@@ -338,12 +351,12 @@ static ssize_t tcc_tsif_read(struct file *filp, char *buf, size_t len, loff_t *p
 
 static unsigned int tcc_tsif_poll(struct file *filp, struct poll_table_struct *wait)
 {
-    if (tsif_get_readable_cnt(&tsif_ex_handle) >= tsif_ex_handle.dma_intr_packet_cnt) {
+    if (tsif_get_readable_cnt(&tsif_ex_handle) >= tsif_ex_pri.packet_read_count) {
 		return  (POLLIN | POLLRDNORM);
     }
 
     poll_wait(filp, &(tsif_ex_pri.wait_q), wait);
-    if (tsif_get_readable_cnt(&tsif_ex_handle) >= tsif_ex_handle.dma_intr_packet_cnt) {
+    if (tsif_get_readable_cnt(&tsif_ex_handle) >= tsif_ex_pri.packet_read_count) {
 		return  (POLLIN | POLLRDNORM);
     }
     return 0;
@@ -423,6 +436,7 @@ static int tcc_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long arg
 
             tsif_ex_handle.dma_total_packet_cnt = param.ts_total_packet_cnt;
             tsif_ex_handle.dma_intr_packet_cnt = param.ts_intr_packet_cnt;
+            tsif_ex_pri.packet_read_count = tsif_ex_handle.dma_intr_packet_cnt;
             tsif_ex_handle.q_pos = tsif_ex_handle.cur_q_pos = 0;
             printk("interrupt packet count [%u]\n", tsif_ex_handle.dma_intr_packet_cnt);
             tsif_ex_handle.dma_start(&tsif_ex_handle);                        
