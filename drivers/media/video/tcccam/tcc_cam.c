@@ -141,6 +141,9 @@ static unsigned int gtCamSizeTable[NUM_FREQS] =
 	1280 * 720, //HD720P,
 };
 
+extern int camera_no_connect_cnt; //20120404 ysseung   if the camera is not connected, modify to an infinite loop issue of camera stop.
+
+
 void cif_timer_register(void* priv, unsigned long timeover);
 void cif_dma_hw_reg(unsigned char frame_num);
 
@@ -2611,9 +2614,6 @@ int tccxxx_cif_stop_stream(void)
 {	
 	int nCnt;
 	struct TCCxxxCIF *data = (struct TCCxxxCIF *) &hardware_data;
-#if defined(CONFIG_ARCH_TCC892X) //20120403 ysseung   if the camera is not connected, modify to an infinite loop issue of camera stop.
-	volatile PVIOC_IREQ_CONFIG pIREQConfig = (volatile PVIOC_IREQ_CONFIG)tcc_p2v((unsigned int)HwVIOC_IREQ);
-#endif
 
 	dprintk("%s Start!! \n", __FUNCTION__);
 
@@ -2624,20 +2624,25 @@ int tccxxx_cif_stop_stream(void)
 #elif defined(CONFIG_ARCH_TCC892X)
 	VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_ALL_MASK, 0x1);
 		
-		// Disable WDMA
+	// Disable WDMA
 	BITCSET(pWDMABase->uCTRL.nREG, 1<<28, 0<<28);
-
 	BITCSET(pWDMABase->uCTRL.nREG, 1<<16, 1<<16);
 
-	#if 1  //20120403 ysseung   if the camera is not connected, modify to an infinite loop issue of camera stop.
-	VIOC_WDMA_SetImageEnable(pWDMABase, OFF);
-	VIOC_WDMA_SWReset(pIREQConfig, 0x5/* WDMA05 */);
-	#else
 	// Before camera quit, we have to wait WMDA's SEN signal to LOW.
 	while(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_STSEN_MASK) {
-		for(nCnt=0; nCnt<10000; nCnt++);
+		for(nCnt=0; nCnt < 10000; nCnt++);
+
+		//20120404 ysseung   if the camera is not connected, modify to an infinite loop issue of camera stop. - start -
+		if(camera_no_connect_cnt > 3) {
+			volatile PVIOC_IREQ_CONFIG pIREQConfig = (volatile PVIOC_IREQ_CONFIG)tcc_p2v((unsigned int)HwVIOC_IREQ);
+			VIOC_WDMA_SetImageEnable(pWDMABase, OFF);
+			VIOC_WDMA_SWReset(pIREQConfig, 0x5/* WDMA05 */);
+			printk("camera_no_connect_cnt = %d. \n", camera_no_connect_cnt);
+			camera_no_connect_cnt = 0;
+			break;
+		}
+		//20120404 ysseung   if the camera is not connected, modify to an infinite loop issue of camera stop. - end -
 	}
-	#endif
 
 	// Disable VIN
 	VIOC_VIN_SetEnable(pVINBase, OFF);

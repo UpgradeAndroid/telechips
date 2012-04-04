@@ -119,6 +119,8 @@ static int capture_mem = 1280*960*2*2;
 
 #define NUM_FREQS 3
 static unsigned int out_width, out_height;
+int camera_no_connect_cnt = 0; //20120404 ysseung   if the camera is not connected, modify to an infinite loop issue of camera stop.
+
 
 static unsigned int gtCamSizeTable[NUM_FREQS] = {
 	 720 *  480, // D1
@@ -459,6 +461,7 @@ int tcc_videobuf_dqbuf(struct v4l2_buffer *buf, struct file *file )
 			
 		data->wakeup_int = 0;
 		if(wait_event_interruptible_timeout(data->frame_wait, data->wakeup_int == 1, msecs_to_jiffies(500)) <= 0) {
+			camera_no_connect_cnt++;
 			printk("wait_event_interruptible_timeout 500ms!!\n");
 			return -EFAULT;
 		}
