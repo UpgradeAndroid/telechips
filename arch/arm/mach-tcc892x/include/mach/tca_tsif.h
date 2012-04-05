@@ -13,7 +13,7 @@
 
 #include <mach/memory.h>
 #include <mach/irqs.h>
-#define    SUPPORT_STB_TSIF_INTERFACE //Support TSIF interface at STB solution
+//#define    SUPPORT_STB_TSIF_INTERFACE //Support TSIF interface at STB solution
 
 #define    SUPPORT_PIDFILTER_INTERNAL    //filtering support using internal logic(TSPID reg)
 //#define    SUPPORT_PIDFILTER_DMA       //filtering suuport using dma logic
