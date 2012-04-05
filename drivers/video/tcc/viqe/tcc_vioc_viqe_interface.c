@@ -473,21 +473,21 @@ void TCC_VIQE_DI_Run60Hz(int useSCALER, unsigned int addr0, unsigned int addr1, 
 
 	if(FrameInfo_Interlace)
 	{
+		VIOC_RDMA_SetImageIntl(pRDMABase, 1);
 		if(!gusingDI_S)
 		{
 			VIOC_CONFIG_PlugIn(VIOC_DEINTLS, gVIQE_RDMA_num);
-			VIOC_RDMA_SetImageIntl(pRDMABase, 1);
 			gusingDI_S = 1;
 		}
 
 	}
 	else
 	{
+		VIOC_RDMA_SetImageIntl(pRDMABase, 0);
 		if(gusingDI_S)
 		{
-			VIOC_RDMA_SetImageDisable(pRDMABase);
+//			VIOC_RDMA_SetImageDisable(pRDMABase);
 			VIOC_CONFIG_PlugOut(VIOC_DEINTLS);
-			VIOC_RDMA_SetImageIntl(pRDMABase, 0);
 			gusingDI_S = 0;
 		}
 	}

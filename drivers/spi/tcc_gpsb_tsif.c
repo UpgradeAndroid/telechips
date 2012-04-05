@@ -475,6 +475,102 @@ static int tcc_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long arg
     return ret;
 }
 
+static int tcc_export_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+{
+    int ret = 0;
+//	printk("%s::%d::0x%X\n", __func__, __LINE__, cmd);	
+    switch (cmd) {
+    case IOCTL_TSIF_DMA_START:
+        {
+            struct tcc_tsif_param param;
+            memcpy(&param, (void *)arg, sizeof(struct tcc_tsif_param));
+
+            if (((TSIF_PACKET_SIZE * param.ts_total_packet_cnt) > tsif_handle.dma_total_size)
+                || (param.ts_total_packet_cnt <= 0)) {
+                printk("so big ts_total_packet_cnt !!! \n");
+                return -EFAULT;
+            }
+
+            tsif_handle.dma_stop(&tsif_handle);
+
+            tca_spi_setCPHA(tsif_handle.regs, param.mode & SPI_CPHA);
+            tca_spi_setCPOL(tsif_handle.regs, param.mode & SPI_CPOL);
+            tca_spi_setCS_HIGH(tsif_handle.regs, param.mode & SPI_CS_HIGH);
+            tca_spi_setLSB_FIRST(tsif_handle.regs, param.mode & SPI_LSB_FIRST);
+
+			tsif_handle.dma_mode = param.dma_mode;
+			if (tsif_handle.dma_mode == 0) {
+				tsif_handle.set_mpegts_pidmode(&tsif_handle, 0);
+			}
+
+            tsif_handle.dma_total_packet_cnt = param.ts_total_packet_cnt;
+            tsif_handle.dma_intr_packet_cnt = param.ts_intr_packet_cnt;
+
+            #ifdef      SUPORT_USE_SRAM
+            tsif_handle.dma_total_packet_cnt = SRAM_TOT_PACKET;
+            tsif_handle.dma_intr_packet_cnt = SRAM_INT_PACKET;
+            #endif
+            tsif_handle.clear_fifo_packet(&tsif_handle);
+            tsif_handle.q_pos = tsif_handle.cur_q_pos = 0;
+
+            tsif_handle.set_packet_cnt(&tsif_handle, MPEG_PACKET_SIZE);
+            printk("interrupt packet count [%u]\n", tsif_handle.dma_intr_packet_cnt);
+            tsif_handle.dma_start(&tsif_handle);
+        }
+        break;
+		
+    case IOCTL_TSIF_DMA_STOP:
+            tsif_handle.dma_stop(&tsif_handle);
+        break;
+		
+    case IOCTL_TSIF_GET_MAX_DMA_SIZE:
+        {
+            struct tcc_tsif_param param;
+            param.ts_total_packet_cnt = tsif_handle.dma_total_size / TSIF_PACKET_SIZE;
+            param.ts_intr_packet_cnt = 1;
+
+            memcpy((void *)arg, (void *)&param, sizeof(struct tcc_tsif_param));
+        }
+        break;
+		
+    case IOCTL_TSIF_SET_PID:
+        {
+            struct tcc_tsif_pid_param param;
+            memcpy(&param, (void *)arg, sizeof(struct tcc_tsif_pid_param));
+            ret = tca_spi_register_pids(&tsif_handle, param.pid_data, param.valid_data_cnt);
+        } 
+        break;
+		
+	case IOCTL_TSIF_DXB_POWER:
+		{
+			// the power control moves to tcc_dxb_control driver.
+		}
+		break;
+	case IOCTL_TSIF_SET_PCRPID:		
+		memcpy((void *)&tsif_pri.pcr_pid, (const void *)arg, sizeof(int));
+		printk("Set PCR PID[0x%X]\n", tsif_pri.pcr_pid);
+		if( tsif_pri.pcr_pid < 0x1FFF)
+			TSDEMUX_Open();
+		break;
+	case IOCTL_TSIF_GET_STC:	
+		{
+			unsigned int uiSTC;
+			uiSTC = TSDEMUX_GetSTC();
+			//printk("STC %d\n", uiSTC);
+			memcpy((void *)arg, (void *)&uiSTC, sizeof(int));
+		}
+		break;	
+    case IOCTL_TSIF_RESET:
+        break;
+    default:
+        printk("tsif: unrecognized ioctl (0x%X)\n", cmd);
+        ret = -EINVAL;
+        break;
+    }
+    return ret;
+}
+EXPORT_SYMBOL(tcc_export_tsif_ioctl);
+	
 static int tcc_tsif_init(void)
 {
 	int ret = 0;
@@ -554,6 +650,7 @@ static int tcc_tsif_open(struct inode *inode, struct file *filp)
     tsif_handle.set_mpegts_pidmode(&tsif_handle, 0);	
 	return ret;
 }
+EXPORT_SYMBOL(tcc_tsif_open);
 
 static int tcc_tsif_release(struct inode *inode, struct file *filp)
 {
@@ -568,6 +665,7 @@ static int tcc_tsif_release(struct inode *inode, struct file *filp)
     clk_disable(gpsb_clk);
     return 0;
 }
+EXPORT_SYMBOL(tcc_tsif_release);
 
 struct file_operations tcc_tsif_fops =
 {
