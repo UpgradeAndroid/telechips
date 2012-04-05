@@ -148,7 +148,7 @@ const struct tcc_freq_table_t gtJpegClockLimitTable[]= {
 };
 
 const struct tcc_freq_table_t gtJpegMaxClockLimitTable = {
-	       0,      0, 600000,      0, 243040, 343480, 343480,      0,      0	// Core 1.30V
+	       0,      0, 600000,      0, 243040, 296000, 296000,      0,      0	// Core 1.30V
 };
 
 const struct tcc_freq_table_t gtHdmiClockLimitTable = {
