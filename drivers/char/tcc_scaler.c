@@ -58,9 +58,9 @@
 
 #include <linux/poll.h>
 
+//#define TEST_FEATURE
 #if defined(TEST_FEATURE)
 #include <plat/pmap.h>
-#include "test_sc.h"
 #endif
 
 #include "tcc_scaler.h"
@@ -594,6 +594,7 @@ char Alphablending_Ctrl_Func(SCALER_ALPHABLENDING_TYPE* apb_info)
 	// set to VRDMA12
 	VIOC_CONFIG_RDMA12PathCtrl(0); // enable rdma path.
 	VIOC_RDMA_SetImageAlphaEnable(pRDMABase, 1);
+	VIOC_RDMA_SetImageAlphaSelect(pRDMABase, 1);
 	VIOC_RDMA_SetImageFormat(pRDMABase, apb_info->src0_fmt);
 	VIOC_RDMA_SetImageSize(pRDMABase, apb_info->src0_width, apb_info->src0_height);
 	VIOC_RDMA_SetImageOffset(pRDMABase, apb_info->src0_fmt, apb_info->src0_width);
@@ -601,6 +602,7 @@ char Alphablending_Ctrl_Func(SCALER_ALPHABLENDING_TYPE* apb_info)
 
 	// set to VRDMA13
 	VIOC_RDMA_SetImageAlphaEnable(pRDMA1Base, 1);
+	VIOC_RDMA_SetImageAlphaSelect(pRDMA1Base, 1);
 	VIOC_RDMA_SetImageFormat(pRDMA1Base, apb_info->src1_fmt);
 	VIOC_RDMA_SetImageSize(pRDMA1Base, apb_info->src1_width, apb_info->src1_height);
 	VIOC_RDMA_SetImageOffset(pRDMA1Base, apb_info->src1_fmt, apb_info->src1_width);
@@ -617,11 +619,11 @@ char Alphablending_Ctrl_Func(SCALER_ALPHABLENDING_TYPE* apb_info)
 	VIOC_API_WMIX_SetOverlayAlphaSelection(pWIXBase, apb_info->src0_layer, apb_info->src0_asel);
 	VIOC_API_WMIX_SetOverlayAlphaValue(pWIXBase, apb_info->src0_layer, apb_info->src0_alpha0, apb_info->src0_alpha1);
 	// set to layer1 of WMIX.
-	VIOC_API_WMIX_SetOverlayAlphaValueControl(pWIXBase, apb_info->src1_layer, apb_info->region, apb_info->src1_acon0, apb_info->src1_acon1);
-	VIOC_API_WMIX_SetOverlayAlphaColorControl(pWIXBase, apb_info->src1_layer, apb_info->region, apb_info->src1_ccon0, apb_info->src1_ccon1);
-	VIOC_API_WMIX_SetOverlayAlphaROPMode(pWIXBase, apb_info->src1_layer, apb_info->src1_rop_mode);
-	VIOC_API_WMIX_SetOverlayAlphaSelection(pWIXBase, apb_info->src1_layer, apb_info->src1_asel);
-	VIOC_API_WMIX_SetOverlayAlphaValue(pWIXBase, apb_info->src1_layer, apb_info->src1_alpha0, apb_info->src1_alpha1);
+	//VIOC_API_WMIX_SetOverlayAlphaValueControl(pWIXBase, apb_info->src1_layer, apb_info->region, apb_info->src1_acon0, apb_info->src1_acon1);
+	//VIOC_API_WMIX_SetOverlayAlphaColorControl(pWIXBase, apb_info->src1_layer, apb_info->region, apb_info->src1_ccon0, apb_info->src1_ccon1);
+	//VIOC_API_WMIX_SetOverlayAlphaROPMode(pWIXBase, apb_info->src1_layer, apb_info->src1_rop_mode);
+	//VIOC_API_WMIX_SetOverlayAlphaSelection(pWIXBase, apb_info->src1_layer, apb_info->src1_asel);
+	//VIOC_API_WMIX_SetOverlayAlphaValue(pWIXBase, apb_info->src1_layer, apb_info->src1_alpha0, apb_info->src1_alpha1);
 	// update WMIX.
 	VIOC_WMIX_SetUpdate(pWIXBase);
 
@@ -715,9 +717,96 @@ static irqreturn_t tccxxx_scaler_handler(int irq, void *client_data/*, struct pt
 }
 
 #if defined(TEST_FEATURE)
-char *pSrc, *pDst, *pVDst;
+char *pSrc0, *pSrc1, *pDst, *pVSrc0, *pVSrc1;
 void test_scaler_init(void)
 {
+#if 1 // alpha-blending test code.
+	int ret = 0, fd;
+	SCALER_ALPHABLENDING_TYPE alpha_info;
+	pmap_t pmap_video;
+	mm_segment_t old_fs = get_fs();
+
+	pmap_get_info("video", &pmap_video);
+	pSrc0 = (char *)pmap_video.base;
+	pSrc1 = (char *)(unsigned int)pSrc0 + (960 * 540 * 4);
+	pDst =  (char *)(unsigned int)pSrc1 + (960 * 540 * 4);
+
+	clk_enable(m2m1_clk);
+
+	// set to SCALER2
+	pM2MSCALER = (volatile PVIOC_SC)tcc_p2v((unsigned int)HwVIOC_SC1);
+
+	// set to VRDMA
+	pRDMABase = (volatile PVIOC_RDMA)tcc_p2v((unsigned int)HwVIOC_RDMA12);
+	pRDMA1Base = (volatile PVIOC_RDMA)tcc_p2v((unsigned int)HwVIOC_RDMA13);
+
+	// set to WMIX3
+	pWIXBase = (volatile PVIOC_WMIX)tcc_p2v((unsigned int)HwVIOC_WMIX3);
+
+	// set to VWDMA
+	pWDMABase = (volatile PVIOC_WDMA)tcc_p2v((unsigned int)HwVIOC_WDMA03);
+
+	VIOC_SC_SetSWReset(VIOC_SC1, 12/*RDMA12*/, 3/*WDMA03*/);
+	VIOC_SC_SetSWReset(100, 13/*RDMA13*/, 100); // only rdma13 reset.
+	VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_ALL_MASK, 0x00000000UL);
+	ret = request_irq(INT_VIOC_WD3, tccxxx_scaler_handler, IRQF_SHARED, "scaler", &sc_data);
+
+	alpha_info.rsp_type 		= SCALER_INTERRUPT;
+	alpha_info.region 			= 2; 	/* Region C */
+
+	alpha_info.src0_fmt 		= SC_IMG_FMT_ARGB8888;
+	alpha_info.src0_layer		= 0;
+	alpha_info.src0_acon0 		= 0;
+	alpha_info.src0_acon1 		= 1;
+	alpha_info.src0_ccon0 		= 0;
+	alpha_info.src0_ccon1 		= 1;
+	alpha_info.src0_rop_mode 	= 3; 	/* pixel alpha */
+	alpha_info.src0_asel 		= 0; 	/* image alpha (0% ~ 99.6%) */
+	alpha_info.src0_alpha0 		= 0xff;
+	alpha_info.src0_alpha1 		= 0xff;
+	alpha_info.src0_Yaddr 		= pSrc0;
+	alpha_info.src0_Uaddr 		= NULL;
+	alpha_info.src0_Vaddr 		= NULL;
+	alpha_info.src0_width 		= 960;
+	alpha_info.src0_height 		= 540;
+	alpha_info.src0_winLeft 	= 0;
+	alpha_info.src0_winTop 		= 0;
+	alpha_info.src0_winRight 	= 0;
+	alpha_info.src0_winBottom 	= 0;
+
+	alpha_info.src1_fmt 		= SC_IMG_FMT_ARGB8888;
+	alpha_info.src1_layer 		= 1;
+	alpha_info.src1_acon0 		= 0;
+	alpha_info.src1_acon1 		= 1;
+	alpha_info.src1_ccon0 		= 0;
+	alpha_info.src1_ccon1 		= 1;
+	alpha_info.src1_rop_mode 	= 3;
+	alpha_info.src1_asel 		= 0;
+	alpha_info.src1_alpha0 		= 0xff;
+	alpha_info.src1_alpha1 		= 0xff;
+	alpha_info.src1_Yaddr 		= pSrc1;
+	alpha_info.src1_Uaddr 		= NULL;
+	alpha_info.src1_Vaddr 		= NULL;
+	alpha_info.src1_width 		= 960;
+	alpha_info.src1_height 		= 540;
+	alpha_info.src1_winLeft 	= 0;
+	alpha_info.src1_winTop 		= 0;
+	alpha_info.src1_winRight 	= 0;
+	alpha_info.src1_winBottom 	= 0;
+
+	alpha_info.dst_fmt 			= SC_IMG_FMT_ARGB8888;
+	alpha_info.dst_Yaddr 		= pDst;
+	alpha_info.dst_Uaddr 		= NULL;
+	alpha_info.dst_Vaddr 		= NULL;
+	alpha_info.dst_width 		= 960;
+	alpha_info.dst_height 		= 540;
+	alpha_info.dst_winLeft 		= 0;
+	alpha_info.dst_winTop 		= 0;
+	alpha_info.dst_winRight 	= 0;
+	alpha_info.dst_winBottom 	= 0;
+
+	ret = Alphablending_Ctrl_Func(&alpha_info);
+#else // scaler test code.
 	int ret = 0;
 	SCALER_TYPE scaler_v;
 	char *pVSrc;
@@ -763,6 +852,7 @@ void test_scaler_init(void)
 	scaler_v.dest_Vaddr 	= NULL;
 	
 	ret = M2M_Scaler_Ctrl_Detail(&scaler_v);
+#endif
 }
 #endif
 
