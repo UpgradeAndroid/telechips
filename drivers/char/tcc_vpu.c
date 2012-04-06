@@ -296,14 +296,14 @@ int vpu_setClock(CONTENTS_INFO info)
 	
 	#ifdef CONFIG_VIDEO_TCCXX_CAMERA
 		cif_set_frameskip(20, 1); //Pause frame-update to prevent overflowing cif fifo buffer while memory clock is change. 
-		tcc_cpufreq_set_limit_table(&clk_table, TCC_FREQ_LIMIT_VPU_ENC, 1);
+		tcc_cpufreq_set_limit_table(&clk_table, TCC_FREQ_LIMIT_VPU, 1);
 		cif_set_frameskip(0, 0);
 	#else
-		tcc_cpufreq_set_limit_table(&clk_table, TCC_FREQ_LIMIT_VPU_ENC, 1);
+		tcc_cpufreq_set_limit_table(&clk_table, TCC_FREQ_LIMIT_VPU, 1);
 	#endif
 	}
 	else
-		tcc_cpufreq_set_limit_table(&clk_table, TCC_FREQ_LIMIT_VPU_DEC, 1);
+		tcc_cpufreq_set_limit_table(&clk_table, TCC_FREQ_LIMIT_VPU, 1);
 
 	return 0;
 }
@@ -426,10 +426,8 @@ static int vpu_release(struct inode *inode, struct file *filp)
 	dprintk("VPU CLOCK ::rel initialized to 0 \n");
 
 #ifdef CONFIG_CPU_FREQ
-	if(curr_type == VPU_ENC)
-		tcc_cpufreq_set_limit_table(&gtVpuNormalClockLimitTable[0], TCC_FREQ_LIMIT_VPU_ENC, 0);
-	else
-		tcc_cpufreq_set_limit_table(&gtVpuNormalClockLimitTable[0], TCC_FREQ_LIMIT_VPU_DEC, 0);
+	if(opened_info.count == 0)
+		tcc_cpufreq_set_limit_table(&gtVpuNormalClockLimitTable[0], TCC_FREQ_LIMIT_VPU, 0);
 #endif
 
 #if defined(CONFIG_DRAM_DDR3) && defined(CONFIG_ARCH_TCC88XX)

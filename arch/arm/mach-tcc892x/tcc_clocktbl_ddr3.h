@@ -148,12 +148,16 @@ const struct tcc_freq_table_t gtJpegClockLimitTable[]= {
 };
 
 const struct tcc_freq_table_t gtJpegMaxClockLimitTable = {
+	       0,      0, 600000,      0, 243040, 343480, 343480,      0,      0	// Core 1.30V
+};
+
+const struct tcc_freq_table_t gtMultiVpuClockLimitTable = {
 	       0,      0, 600000,      0, 243040, 296000, 296000,      0,      0	// Core 1.30V
 };
 
 const struct tcc_freq_table_t gtHdmiClockLimitTable = {
 #ifdef VIDEO_USING_WVGA_LCD
-	  625000, 386880, 600000,      0, 243040, 343480, 343480,      0,      0	// Core 1.30V
+	  625000, 386880, 600000,      0, 243040, 296000, 296000,      0,      0	// Core 1.30V
 #else
 #if defined(CONFIG_STB_BOARD_DONGLE)
 	  625000, 312000, 533000,      0, 196000, 277000, 277000,      0,      0	// Core 1.20V
@@ -217,6 +221,7 @@ EXPORT_SYMBOL(gtVpu_720p_ClockLimitTable);
 EXPORT_SYMBOL(gtVpu_1080p_ClockLimitTable);
 EXPORT_SYMBOL(gtJpegClockLimitTable);
 EXPORT_SYMBOL(gtJpegMaxClockLimitTable);
+EXPORT_SYMBOL(gtMultiVpuClockLimitTable);
 EXPORT_SYMBOL(gtHdmiClockLimitTable);
 EXPORT_SYMBOL(gtMaliClockLimitTable);
 EXPORT_SYMBOL(stFBClockLimitTable);

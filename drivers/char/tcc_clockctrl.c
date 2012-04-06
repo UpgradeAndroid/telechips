@@ -41,8 +41,8 @@ enum {
 	TCC_CLOCKCTRL_APP_MAX_CLOCK_ENABLE,
 	TCC_CLOCKCTRL_USB_MAX_CLOCK_DISABLE = 102,
 	TCC_CLOCKCTRL_USB_MAX_CLOCK_ENABLE,
-	TCC_CLOCKCTRL_V2IP_MAX_CLOCK_DISABLE = 104,
-	TCC_CLOCKCTRL_V2IP_MAX_CLOCK_ENABLE,	
+	TCC_CLOCKCTRL_MULTI_VPU_CLOCK_DISABLE = 104,
+	TCC_CLOCKCTRL_MULTI_VPU_CLOCK_ENABLE,
 	TCC_CLOCKCTRL_VOIP_MAX_CLOCK_DISABLE = 106,
 	TCC_CLOCKCTRL_VOIP_MAX_CLOCK_ENABLE,
 	TCC_CLOCKCTRL_FLASH_MAX_CLOCK_DISABLE = 108,
@@ -69,6 +69,9 @@ static int MajorNum;
 extern struct tcc_freq_table_t gtAppClockLimitTable;
 extern struct tcc_freq_table_t gtUSBClockLimitTable[];
 extern struct tcc_freq_table_t gtJpegMaxClockLimitTable;
+#if defined(CONFIG_ARCH_TCC892X) //VPU bug related with high-clock.
+extern struct tcc_freq_table_t gtMultiVpuClockLimitTable;
+#endif
 extern struct tcc_freq_table_t gtVoipClockLimitTable[];
 
 static long tcc_clockctrl_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
@@ -88,11 +91,19 @@ static long tcc_clockctrl_ioctl(struct file *filp, unsigned int cmd, unsigned lo
 		case TCC_CLOCKCTRL_USB_MAX_CLOCK_DISABLE:
 			tcc_cpufreq_set_limit_table(&gtUSBClockLimitTable[1], TCC_FREQ_LIMIT_USB_ACTIVED, 0);
 			break;
-		case TCC_CLOCKCTRL_V2IP_MAX_CLOCK_ENABLE:
-			tcc_cpufreq_set_limit_table(&gtJpegMaxClockLimitTable, TCC_FREQ_LIMIT_V2IP, 1);
+		case TCC_CLOCKCTRL_MULTI_VPU_CLOCK_ENABLE:
+#if defined(CONFIG_ARCH_TCC892X) //VPU bug related with high-clock.
+			tcc_cpufreq_set_limit_table(&gtMultiVpuClockLimitTable, TCC_FREQ_LIMIT_MULTI_VPU, 1);
+#else
+			tcc_cpufreq_set_limit_table(&gtJpegMaxClockLimitTable, TCC_FREQ_LIMIT_MULTI_VPU, 1);
+#endif
 			break;
-		case TCC_CLOCKCTRL_V2IP_MAX_CLOCK_DISABLE:			
-			tcc_cpufreq_set_limit_table(&gtJpegMaxClockLimitTable, TCC_FREQ_LIMIT_V2IP, 0);
+		case TCC_CLOCKCTRL_MULTI_VPU_CLOCK_DISABLE:
+#if defined(CONFIG_ARCH_TCC892X) //VPU bug related with high-clock.
+			tcc_cpufreq_set_limit_table(&gtMultiVpuClockLimitTable, TCC_FREQ_LIMIT_MULTI_VPU, 0);
+#else
+			tcc_cpufreq_set_limit_table(&gtJpegMaxClockLimitTable, TCC_FREQ_LIMIT_MULTI_VPU, 0);
+#endif
 			break;	
 		case TCC_CLOCKCTRL_FLASH_MAX_CLOCK_ENABLE:
 			tcc_cpufreq_set_limit_table(&gtJpegMaxClockLimitTable, TCC_FREQ_LIMIT_FLASH, 1);

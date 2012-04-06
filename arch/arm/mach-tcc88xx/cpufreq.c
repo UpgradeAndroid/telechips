@@ -582,7 +582,7 @@ int tcc_cpufreq_set_limit_table(struct tcc_freq_table_t *limit_tbl, tcc_freq_lim
 					tcc_freq_curr_limit_table.mem_freq = tcc_freq_limit_table[TCC_FREQ_LIMIT_VPU_ENC].freq.mem_freq;
 				else if (tcc_freq_limit_table[TCC_FREQ_LIMIT_CAMERA].freq.mem_freq)
 				#endif
-				if(tcc_freq_limit_table[TCC_FREQ_LIMIT_V2IP].usecount == 0)
+				if(tcc_freq_limit_table[TCC_FREQ_LIMIT_MULTI_VPU].usecount == 0)
 					tcc_freq_curr_limit_table.mem_freq = tcc_freq_limit_table[TCC_FREQ_LIMIT_CAMERA].freq.mem_freq;
 			}
 
@@ -683,7 +683,7 @@ static int tcc_cpufreq_target(struct cpufreq_policy *policy,
 				tcc_freq_curr_limit_table.mem_freq = tcc_freq_limit_table[TCC_FREQ_LIMIT_VPU_ENC].freq.mem_freq;
 			else if (tcc_freq_limit_table[TCC_FREQ_LIMIT_CAMERA].freq.mem_freq)
 			#endif
-			if(tcc_freq_limit_table[TCC_FREQ_LIMIT_V2IP].usecount == 0)
+			if(tcc_freq_limit_table[TCC_FREQ_LIMIT_MULTI_VPU].usecount == 0)
 				tcc_freq_curr_limit_table.mem_freq = tcc_freq_limit_table[TCC_FREQ_LIMIT_CAMERA].freq.mem_freq;
 		}
 
