@@ -17,8 +17,10 @@
 #include <asm/mach-types.h>
 #include <mach/tca_tsif.h>
 #if defined(SUPPORT_PIDFILTER_INTERNAL)
-#define     USE_DMA_SYNCMATCH
+//#define     USE_DMA_SYNCMATCH
+#define     UPDATE_ONLY_CHANGED_PID
 #endif
+#define     DEFAULT_PID     0x0  //0 is PAT PID, PAT will be always registered. to prevent disabling pid filter.
 //#define DEBUG_INFO
 static void tsif_delay(int m_sec)
 {
@@ -172,6 +174,24 @@ static int tca_tsif_set_port(struct tcc_tsif_handle *h)
 	return ret;
 }
 
+static void tca_clear_pid_tables(struct tcc_tsif_handle *h)
+{
+    int i;
+#if defined(SUPPORT_PIDFILTER_DMA)
+    volatile unsigned long* PIDT;
+    for (i = 0; i < 32; i++) {
+        PIDT = (volatile unsigned long *)tcc_p2v(HwTSIF_PIDT(i));
+        *PIDT = 0;
+    }
+#endif        
+#ifdef      SUPPORT_PIDFILTER_INTERNAL
+    for (i = 0; i < 16; i++) {            
+        BITCLR(h->regs->TSPID[i], (Hw32-Hw0));
+    }
+//    printk("%s\n", __func__);
+#endif
+}
+
 static void tcc_tsif_release_port(struct tcc_tsif_handle *h)
 {
 	volatile unsigned long* TSIFPORT = (volatile unsigned long *)tcc_p2v(HwTSIF_TSCHS_BASE);
@@ -312,9 +332,6 @@ static void tcc_tsif_set(struct tcc_tsif_handle *h)
 
 	if(h->sync_delay)		BITSET(h->regs->TSRXCR, Hw5);
 	else					BITCLR(h->regs->TSRXCR, Hw5);
-	
-	//BITSET(h->regs->TSRXCR, (h->sync_delay & 0x1f));
-
 #ifdef DEBUG_INFO
 	printk("%s : mode set : %s, %s, %s, %s, %s, %s, sync delay %d port 0x%X\n", __func__, 
 																		(h->msb_first		? "msb first" 		: "lsb first"),
@@ -579,9 +596,10 @@ static int tcc_tsif_dmastart(struct tcc_tsif_handle *h)
 	unsigned int packet_cnt = (h->dma_total_packet_cnt & 0x1FFF) - 1;
 	unsigned int packet_size = (MPEG_PACKET_SIZE & 0x1FFF);
 	unsigned int intr_packet_cnt = (h->dma_intr_packet_cnt & 0x1FFF) - 1;
-
    if(h->regs->TSRXCR & Hw31)
+   {
         return 1;    
+   }
 #ifdef DEBUG_INFO
 	printk("%s - in\n", __func__);
 #endif
@@ -613,7 +631,7 @@ static int tcc_tsif_dmastart(struct tcc_tsif_handle *h)
     }
 #endif
     if( (h->mpeg_ts == 0) || (h->mpeg_ts == Hw0))
-    {   	    
+    {   	
       	BITCLR(h->regs->TSRXCR, Hw17);      	
     }
     else if(h->mpeg_ts == (Hw0|Hw1))
@@ -807,6 +825,146 @@ void tca_tsif_clean(struct tcc_tsif_handle *h)
 	}
 }
 
+static int tca_tsif_update_changed_pids(struct tcc_tsif_handle *h, unsigned int *pids, unsigned int count)
+{
+    int i,j,reg_index, reg_data;
+    int num_registered, registered_pids[32], *new_pids;
+    new_pids =  (int *)pids;
+#if defined(SUPPORT_PIDFILTER_INTERNAL)
+//backup pids to handle
+     for (i = 0; i < count; i++) 
+         h->match_pids[i]=  new_pids[i];
+     h->match_pids_count = count;
+     h->mpeg_ts = Hw0|Hw1;
+
+//get current registerd pids
+    num_registered = 0;
+    for (i=0; i<32; i++)
+	{
+	    reg_index = i/2;
+        if (i%2)
+            reg_data = ((h->regs->TSPID[reg_index] & 0xFFFF0000)>>16);
+        else
+            reg_data = ((h->regs->TSPID[reg_index] & 0x0000FFFF));
+        if(reg_data & Hw13)
+            registered_pids[num_registered++] = reg_data & 0x1FFF;
+    }
+
+#if 0
+{
+    for(i=0;i<count;i++)
+        printk("pids[%d] = 0x%X\n", i, pids[i]);
+
+    for(i=0;i<num_registered;i++)
+        printk("registered_pids[%d] = 0x%X\n", i, registered_pids[i]);
+}
+#endif
+
+//check pids
+    for(i=0;i<count;i++)
+    {
+        for(j=0;j<num_registered;j++)
+        {
+            if( registered_pids[j] != -1 && new_pids[i] == registered_pids[j] )
+            {
+                new_pids[i] = registered_pids[j] = -1;
+                break;
+            }
+        }
+    }
+#if 0
+{
+    for(i=0;i<count;i++)
+        printk("::::pids[%d] = 0x%X\n", i, pids[i]);
+
+    for(i=0;i<num_registered;i++)
+        printk("::::registered_pids[%d] = 0x%X\n", i, registered_pids[i]);    
+}
+#endif
+
+
+/*NOW PID SYNC!!!!
+ */
+//delete pids    
+    for (i=0; i<32; i++)
+	{
+   	    reg_index = i/2;
+        if (i%2)
+            reg_data = ((h->regs->TSPID[reg_index] & 0xFFFF0000)>>16);
+        else
+        {
+            reg_data = ((h->regs->TSPID[reg_index] & 0x0000FFFF));
+            if(i==0 && (reg_data & Hw13))
+            {
+                if( (reg_data&0x1FFF) == DEFAULT_PID )
+                   continue; //don't delete PID, if pid is default pid.
+                else
+                    printk("%s:ERROR !!!, default packet is not PAT [0x%X]!!!!",__func__, reg_data&0x1FFF);
+            }
+        }
+
+        if(reg_data & Hw13)
+        {
+            for(j=0;j<num_registered;j++)
+            {
+                if( registered_pids[j] != -1 && registered_pids[j] == (reg_data&0x1FFF) )
+                {
+                    if(i%2)
+                    {
+                        BITCLR(h->regs->TSPID[reg_index], Hw29);
+                        printk("PIDT %d-H : 0x%08X [DELETE]\n",reg_index, (h->regs->TSPID[reg_index] & 0xFFFF0000)>>16);
+                    }
+                    else    
+                    {
+                        BITCLR(h->regs->TSPID[reg_index], Hw13);
+                        printk("PIDT %d-L : 0x%08X [DELETE]\n",reg_index, h->regs->TSPID[reg_index] & 0xFFFF);                   
+                    }
+                    registered_pids[j] = -1;
+                }
+            }
+        }
+    }
+
+//add pids
+    for (i=0; i<count; i++)
+    {
+         if( new_pids[i] != -1)
+         {
+            //find free slot 
+            for (j=0; j<32; j++)
+            {
+                reg_index = j/2;
+                if (j%2)
+                    reg_data = ((h->regs->TSPID[reg_index] & 0xFFFF0000)>>16);
+                else
+                    reg_data = ((h->regs->TSPID[reg_index] & 0x0000FFFF));
+
+                if((reg_data & Hw13) == 0) //if free slot
+                {
+                    reg_data = Hw13|(new_pids[i]&0x1FFF);
+                    if(j%2)
+                    {                        
+                        BITCSET(h->regs->TSPID[reg_index],(Hw32-Hw16),reg_data<<16);
+                        printk("PIDT %d-H : 0x%08X [ADD]\n",reg_index, (h->regs->TSPID[reg_index] & 0xFFFF0000)>>16);
+                    }
+                    else    
+                    {
+                        BITCSET(h->regs->TSPID[reg_index],(Hw16-Hw0),reg_data);
+                        printk("PIDT %d-L : 0x%08X [ADD]\n",reg_index, h->regs->TSPID[reg_index] & 0xFFFF);                   
+                    }
+                    new_pids[i] = -1;
+                    break;
+                }
+            }
+         }
+
+    }
+#endif    
+    return 0;
+}
+
+
+
 int tca_tsif_register_pids(struct tcc_tsif_handle *h, unsigned int *pids, unsigned int count)
 {
     int ret = 0, tsif_channel;
@@ -833,7 +991,11 @@ int tca_tsif_register_pids(struct tcc_tsif_handle *h, unsigned int *pids, unsign
         } 
 #endif
 #if defined(SUPPORT_PIDFILTER_INTERNAL)
-        for (i = 0; i < 16; i++) {            
+        BITCSET(h->regs->TSPID[i], (Hw32-Hw0), Hw13);    //to prevent disabling pid filter        
+    #if defined(UPDATE_ONLY_CHANGED_PID)
+        tca_tsif_update_changed_pids(h, pids, count);
+    #else
+        for (i = 1; i < 16; i++) {            
 		    BITCLR(h->regs->TSPID[i], (Hw32-Hw0));
         }
 
@@ -855,7 +1017,8 @@ int tca_tsif_register_pids(struct tcc_tsif_handle *h, unsigned int *pids, unsign
                 }
                 h->mpeg_ts = Hw0|Hw1;
             }            
-        } 
+        }
+    #endif
 #endif
         h->match_pids_count = count;
     }
