@@ -109,6 +109,7 @@ MODULE_PARM_DESC(dvb_mfe_wait_time, "Wait up to <mfe_wait_time> seconds on open(
 #define FALSE 0
 #endif
 
+#define SUPPORT_SMART_STARTDMA
 #define MAX_PID_TABLE_CNT             32
 
 #define	TSIF_PACKETSIZE             (188)
@@ -118,6 +119,8 @@ static int gTSIFDataReadSize = TSIF_INT_PACKETCOUNT * TSIF_PACKETSIZE;
 
 static struct tcc_tsif_param param;
 static struct tcc_tsif_pid_param pid_param;
+
+static unsigned int guiIsStartDMA = 0;
 
 void TCC_TSIF_ShowPIDTable(void)
 {
@@ -180,6 +183,8 @@ void TCC_TSIF_Open(int packet_intr_cnt, int packet_dma_cnt ,int mode, int dma_mo
 		pid_param.pid_data[i] = 0;		//PAT_PID:0 
 	}
 	pid_param.valid_data_cnt = 0;
+
+	guiIsStartDMA = 0;
 }
 
 int TCC_TSIF_DxBPower(struct file *file, int on_off)
@@ -202,6 +207,27 @@ int	TCC_TSIF_ClearPIDTable(struct file *file, int PID)
 
 	int err;
 
+#ifdef SUPPORT_SMART_STARTDMA
+	pid_param.valid_data_cnt = 0;
+	pid_param.pid_data[pid_param.valid_data_cnt] = PID;
+	if (fe->ops.tsif_ioctl(file, IOCTL_TSIF_SET_PID, &pid_param) != 0) {
+		printk("error IOCTL_TSIF_SET_PID ioctl !!!\n");
+		printk("PID setting error\n");
+		return 0;
+	}
+
+	if (guiIsStartDMA == 0) {
+		if (fe->ops.tsif_ioctl(file, IOCTL_TSIF_DMA_START, &param) != 0) {
+			printk("error IOCTL_TSIF_DMA_START ioctl !!!\n");
+			printk("PID setting error\n");
+			return 0;
+		}
+		guiIsStartDMA = 1;
+	}
+
+	TCC_TSIF_ShowPIDTable();
+	return pid_param.valid_data_cnt;
+#else
 	if((err = fe->ops.tsif_ioctl(file, IOCTL_TSIF_DMA_STOP, &param))!=-1) {
 		pid_param.valid_data_cnt =0 ;
 		pid_param.pid_data[pid_param.valid_data_cnt] = PID;
@@ -224,6 +250,7 @@ int	TCC_TSIF_ClearPIDTable(struct file *file, int PID)
 		printk(" error = %x\n", err);
 		return 0;
 	}
+#endif
 }
 
 int	TCC_TSIF_SetPID(struct file *file, int PID)	
@@ -248,6 +275,28 @@ int	TCC_TSIF_SetPID(struct file *file, int PID)
 		}
 	}
 
+#ifdef SUPPORT_SMART_STARTDMA
+	pid_param.pid_data[pid_param.valid_data_cnt] = PID;
+	pid_param.valid_data_cnt ++;
+
+	if (fe->ops.tsif_ioctl(file, IOCTL_TSIF_SET_PID, &pid_param) != 0) {
+		printk("error IOCTL_TSIF_SET_PID ioctl !!!\n");
+		printk("PID setting error\n");
+		return 0;
+	}
+
+	if (guiIsStartDMA == 0) {
+		if (fe->ops.tsif_ioctl(file, IOCTL_TSIF_DMA_START, &param) != 0) {
+			printk("error IOCTL_TSIF_DMA_START ioctl !!!\n");
+			printk("PID setting error\n");
+			return 0;
+		}
+		guiIsStartDMA = 1;
+	}
+
+	TCC_TSIF_ShowPIDTable();
+	return pid_param.valid_data_cnt;
+#else
 	if((err = fe->ops.tsif_ioctl(file, IOCTL_TSIF_DMA_STOP, &param))!=-1) {
 		pid_param.pid_data[pid_param.valid_data_cnt] = PID;
 		pid_param.valid_data_cnt ++;
@@ -271,6 +320,7 @@ int	TCC_TSIF_SetPID(struct file *file, int PID)
 		printk("error = %x\n", err);
 		return 0;
 	}
+#endif
 }
 
 int	TCC_TSIF_RemovePID(struct file *file, int PID)	
@@ -284,6 +334,40 @@ int	TCC_TSIF_RemovePID(struct file *file, int PID)
 	if( pid_param.valid_data_cnt < 1)
 		return -1;
 
+#ifdef SUPPORT_SMART_STARTDMA
+	for(i=0; i<pid_param.valid_data_cnt; i++) {
+		if(pid_param.pid_data[i] == PID) {
+			break;
+		}
+	}
+
+	if( i == pid_param.valid_data_cnt )
+		return -1; //cannot find pid
+
+	for(;i<pid_param.valid_data_cnt; i++)
+		pid_param.pid_data[i] = pid_param.pid_data[i+1];		
+
+	pid_param.pid_data[i] = 0;
+	pid_param.valid_data_cnt--;
+
+	if (fe->ops.tsif_ioctl(file, IOCTL_TSIF_SET_PID, &pid_param) != 0) {
+		printk("error IOCTL_TSIF_SET_PID ioctl !!!\n");
+		printk("PID setting error\n");
+		return 0;
+	}
+
+    if(pid_param.valid_data_cnt == 0)
+    {
+       	if(fe->ops.tsif_ioctl(file, IOCTL_TSIF_DMA_STOP, &param)!=0)        
+        {
+			printk("error IOCTL_TSIF_DMA_STOP ioctl !!!\n");
+        }
+        guiIsStartDMA = 0;
+    }
+
+	TCC_TSIF_ShowPIDTable();
+	return pid_param.valid_data_cnt;
+#else
 	if((err = fe->ops.tsif_ioctl(file, IOCTL_TSIF_DMA_STOP, &param))!=-1) {
 		for(i=0; i<pid_param.valid_data_cnt; i++) {
 			if(pid_param.pid_data[i] == PID) {
@@ -321,6 +405,7 @@ int	TCC_TSIF_RemovePID(struct file *file, int PID)
 		printk("error = %x\n", err);
 		return 0;
 	}
+#endif
 }
 
 int TCC_TSIF_Close(void)

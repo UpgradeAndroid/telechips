@@ -71,6 +71,39 @@ struct tcc_tsif_pri_handle {
 static tcc_tsif_handle_t tsif_ex_handle;
 static struct tcc_tsif_pri_handle tsif_ex_pri;
 
+struct ts_demux_feed_struct
+{
+    int is_active; //0:don't use external demuxer, 1:use external decoder
+    int index;
+    int call_decoder_index;
+    int (*ts_demux_decoder)(char *p1, int p1_size, char *p2, int p2_size)
+};
+
+static struct ts_demux_feed_struct ts_demux_feed_handle;
+
+int tcc_ex_tsif_set_external_tsdemux(int (*decoder)(char *p1, int p1_size, char *p2, int p2_size), int max_dec_packet)
+{
+	if(max_dec_packet == 0)
+	{
+		//turn off external decoding
+		memset(&ts_demux_feed_handle, 0x0, sizeof(struct ts_demux_feed_struct));
+		return 0;
+	}
+	if(ts_demux_feed_handle.call_decoder_index != max_dec_packet)
+	{
+		ts_demux_feed_handle.is_active = 1;
+		ts_demux_feed_handle.ts_demux_decoder = decoder;
+		ts_demux_feed_handle.index = 0;
+		if(tsif_ex_handle.dma_intr_packet_cnt < max_dec_packet)
+			ts_demux_feed_handle.call_decoder_index = max_dec_packet; //every max_dec_packet calling isr, call decoder
+		else
+			ts_demux_feed_handle.call_decoder_index = 1;
+		printk("%s::%d::max_dec_packet[%d]int_packet[%d]\n", __func__, __LINE__, ts_demux_feed_handle.call_decoder_index, tsif_ex_handle.dma_intr_packet_cnt);
+	}
+
+    return 0;
+}
+
 static ssize_t show_port(struct device *dev, struct device_attribute *attr, char *buf)
 {
 	return sprintf(buf, "tsif port : %d\n", tsif_ex_pri.tsif_port);
@@ -227,37 +260,50 @@ static int tsif_calculate_readable_cnt(struct tcc_tsif_handle *H)
      return 0;
 }
 
-static irqreturn_t tsif_ex_dma_handler(int irq, void *dev_id)
+#if 0
 {
-    tcc_tsif_handle_t *handle = (tcc_tsif_handle_t *)dev_id;
-    struct tcc_tsif_pri_handle *h_pri = (struct tcc_tsif_pri_handle *)handle->private_data;
-    handle->tsif_isr(handle);
-  	if (h_pri->open_cnt > 0) 
-   	{
-        //Check PCR & Make STC
-        if(h_pri->pcr_pid < 0x1FFF )
-        {	
-            int start_pos, search_pos, search_size;
-            start_pos = handle->cur_q_pos - handle->dma_intr_packet_cnt;
-            if(start_pos > 0 )
-            {
-                search_pos = start_pos;
-                search_size = handle->dma_intr_packet_cnt;
-            }	
-            else
-            {
-                search_pos = 0;
-                search_size = handle->cur_q_pos;
-            }	
-            TSDEMUX_MakeSTC((unsigned char *)handle->rx_dma.v_addr + search_pos*TSIF_PACKET_SIZE, search_size*TSIF_PACKET_SIZE, h_pri->pcr_pid );				
-        }			
-        //check read count & wake_up wait_q
-        if( tsif_calculate_readable_cnt(handle) >= tsif_ex_pri.packet_read_count)
-            wake_up(&(h_pri->wait_q));
-    }
-    return IRQ_HANDLED;
-}
+	size_t len = ts_demux_feed_handle.call_decoder_index * TSIF_PACKET_SIZE;
 
+    tsif_ex_pri.packet_read_count = len/TSIF_PACKET_SIZE;
+    copy_byte = readable_cnt * TSIF_PACKET_SIZE;
+    if (copy_byte > len) {
+        copy_byte = len;
+    }
+
+    copy_byte -= copy_byte % TSIF_PACKET_SIZE;
+    copy_cnt = copy_byte / TSIF_PACKET_SIZE;
+    copy_cnt -= copy_cnt % tsif_ex_handle.dma_intr_packet_cnt;
+    copy_byte = copy_cnt * TSIF_PACKET_SIZE;
+
+    if (copy_cnt >= tsif_ex_handle.dma_intr_packet_cnt) {
+        int offset = tsif_ex_handle.q_pos * TSIF_PACKET_SIZE;
+        if (copy_cnt > tsif_ex_handle.dma_total_packet_cnt - tsif_ex_handle.q_pos) {
+            int first_copy_byte = (tsif_ex_handle.dma_total_packet_cnt - tsif_ex_handle.q_pos) * TSIF_PACKET_SIZE;
+            int first_copy_cnt = first_copy_byte / TSIF_PACKET_SIZE;
+            int second_copy_byte = (copy_cnt - first_copy_cnt) * TSIF_PACKET_SIZE;
+
+            if (copy_to_user(buf, tsif_ex_handle.rx_dma.v_addr + offset, first_copy_byte)) {
+                return -EFAULT;
+            }
+            if (copy_to_user(buf + first_copy_byte, tsif_ex_handle.rx_dma.v_addr, second_copy_byte)) {
+                return -EFAULT;
+            }
+
+            tsif_ex_handle.q_pos = copy_cnt - first_copy_cnt;
+        } else {
+            if (copy_to_user(buf, tsif_ex_handle.rx_dma.v_addr + offset, copy_byte)) {
+                return -EFAULT;
+            }
+
+            tsif_ex_handle.q_pos += copy_cnt;
+            if (tsif_ex_handle.q_pos >= tsif_ex_handle.dma_total_packet_cnt) {
+                tsif_ex_handle.q_pos = 0;
+            }
+        }
+        return copy_byte;
+    }
+}
+#endif
 
 static int tsif_get_readable_cnt(struct tcc_tsif_handle *H)
 {
@@ -299,6 +345,139 @@ static int tsif_get_readable_cnt(struct tcc_tsif_handle *H)
         return readable_cnt;
     }
 	return 0;
+}
+
+static irqreturn_t tsif_ex_dma_handler(int irq, void *dev_id)
+{
+    tcc_tsif_handle_t *handle = (tcc_tsif_handle_t *)dev_id;
+    struct tcc_tsif_pri_handle *h_pri = (struct tcc_tsif_pri_handle *)handle->private_data;
+    handle->tsif_isr(handle);
+
+	if(ts_demux_feed_handle.is_active)
+	{
+		if (h_pri->open_cnt > 0) 
+		{
+			if(ts_demux_feed_handle.ts_demux_decoder)
+			{
+				int readable_cnt = 0, copy_cnt = 0;
+				int copy_byte = 0;
+	
+				if(++ts_demux_feed_handle.index >= ts_demux_feed_handle.call_decoder_index)
+				{
+#if 1
+					int offset = tsif_ex_handle.q_pos * TSIF_PACKET_SIZE;
+					char *p1 = NULL, *p2 = NULL;
+					int p1_size = 0, p2_size = 0;						 
+
+					size_t len = ts_demux_feed_handle.index * TSIF_PACKET_SIZE;
+					readable_cnt = tsif_get_readable_cnt(&tsif_ex_handle);
+				
+					tsif_ex_pri.packet_read_count = len/TSIF_PACKET_SIZE;
+					copy_byte = readable_cnt * TSIF_PACKET_SIZE;
+					if (copy_byte > len) {
+						copy_byte = len;
+					}
+				
+					copy_byte -= copy_byte % TSIF_PACKET_SIZE;
+					copy_cnt = copy_byte / TSIF_PACKET_SIZE;
+					copy_cnt -= copy_cnt % tsif_ex_handle.dma_intr_packet_cnt;
+					copy_byte = copy_cnt * TSIF_PACKET_SIZE;
+				
+					if (copy_cnt >= tsif_ex_handle.dma_intr_packet_cnt) {
+						int offset = tsif_ex_handle.q_pos * TSIF_PACKET_SIZE;
+						if (copy_cnt > tsif_ex_handle.dma_total_packet_cnt - tsif_ex_handle.q_pos) {
+							int first_copy_byte = (tsif_ex_handle.dma_total_packet_cnt - tsif_ex_handle.q_pos) * TSIF_PACKET_SIZE;
+							int first_copy_cnt = first_copy_byte / TSIF_PACKET_SIZE;
+							int second_copy_byte = (copy_cnt - first_copy_cnt) * TSIF_PACKET_SIZE;
+
+							p1 = tsif_ex_handle.rx_dma.v_addr + offset;
+							p1_size = first_copy_byte;
+							//if (copy_to_user(buf, tsif_ex_handle.rx_dma.v_addr + offset, first_copy_byte)) {
+							//	return -EFAULT;
+							//}
+							p2 = tsif_ex_handle.rx_dma.v_addr;
+							p2_size = second_copy_byte;
+							//if (copy_to_user(buf + first_copy_byte, tsif_ex_handle.rx_dma.v_addr, second_copy_byte)) {
+							//	return -EFAULT;
+							//}
+				
+							tsif_ex_handle.q_pos = copy_cnt - first_copy_cnt;
+						} else {
+							p1 = tsif_ex_handle.rx_dma.v_addr + offset;
+							p1_size = copy_byte;
+							//if (copy_to_user(buf, tsif_ex_handle.rx_dma.v_addr + offset, copy_byte)) {
+							//	return -EFAULT;
+							//}
+				
+							tsif_ex_handle.q_pos += copy_cnt;
+							if (tsif_ex_handle.q_pos >= tsif_ex_handle.dma_total_packet_cnt) {
+								tsif_ex_handle.q_pos = 0;
+							}
+						}
+					}
+#else
+					int offset = tsif_ex_handle.q_pos * TSIF_PACKET_SIZE;
+					char *p1 = NULL, *p2 = NULL;
+					int p1_size = 0, p2_size = 0;						 
+	
+					copy_cnt = ts_demux_feed_handle.index;
+					copy_byte = ts_demux_feed_handle.index * TSIF_PACKET_SIZE;
+	
+					if (copy_cnt > tsif_ex_handle.dma_total_packet_cnt - tsif_ex_handle.q_pos) {
+						int first_copy_byte = (tsif_ex_handle.dma_total_packet_cnt - tsif_ex_handle.q_pos) * TSIF_PACKET_SIZE;
+						int first_copy_cnt = first_copy_byte / TSIF_PACKET_SIZE;
+						int second_copy_byte = (copy_cnt - first_copy_cnt) * TSIF_PACKET_SIZE;
+					
+						p1 = (char *)tsif_ex_handle.rx_dma.v_addr + offset;
+						p1_size = first_copy_byte;
+	
+						p2 = (char *)tsif_ex_handle.rx_dma.v_addr;
+						p2_size = second_copy_byte;
+	
+						tsif_ex_handle.q_pos = copy_cnt - first_copy_cnt;
+					} else {
+						p1 = (char *)tsif_ex_handle.rx_dma.v_addr + offset;
+						p1_size = copy_byte;
+	
+						tsif_ex_handle.q_pos += copy_cnt;
+						if (tsif_ex_handle.q_pos >= tsif_ex_handle.dma_total_packet_cnt) {
+							tsif_ex_handle.q_pos = 0;
+						}
+					}
+#endif
+					if(ts_demux_feed_handle.ts_demux_decoder(p1, p1_size, p2, p2_size) == 0)
+					{
+						ts_demux_feed_handle.index = 0;
+					}
+				}
+			}
+		}
+	}
+
+  	if (h_pri->open_cnt > 0)
+   	{
+        //Check PCR & Make STC
+        if(h_pri->pcr_pid < 0x1FFF )
+        {	
+            int start_pos, search_pos, search_size;
+            start_pos = handle->cur_q_pos - handle->dma_intr_packet_cnt;
+            if(start_pos > 0 )
+            {
+                search_pos = start_pos;
+                search_size = handle->dma_intr_packet_cnt;
+            }	
+            else
+            {
+                search_pos = 0;
+                search_size = handle->cur_q_pos;
+            }	
+            TSDEMUX_MakeSTC((unsigned char *)handle->rx_dma.v_addr + search_pos*TSIF_PACKET_SIZE, search_size*TSIF_PACKET_SIZE, h_pri->pcr_pid );				
+        }			
+        //check read count & wake_up wait_q
+        if( tsif_calculate_readable_cnt(handle) >= tsif_ex_pri.packet_read_count)
+            wake_up(&(h_pri->wait_q));
+    }
+    return IRQ_HANDLED;
 }
 
 static ssize_t tcc_tsif_read(struct file *filp, char *buf, size_t len, loff_t *ppos)
@@ -674,9 +853,173 @@ void tsif_ex_exit(void)
     }
 }
 
+int tcc_ex_tsif_open(struct inode *inode, struct file *filp)
+{
+    int ret = 0;	
+    if (tsif_ex_pri.open_cnt == 0) {
+        tsif_ex_pri.open_cnt++;
+    } else {
+        return -EBUSY;
+    }
+
+   	if(tsif_clk == NULL)
+        return -EBUSY;
+
+    clk_enable(tsif_clk); 
+    mutex_lock(&(tsif_ex_pri.mutex));
+	tsif_ex_pri.pcr_pid = 0xFFFF;
+	tsif_ex_pri.resync_count = 0;
+	tcc_tsif_init();
+    mutex_unlock(&(tsif_ex_pri.mutex));
+	return ret;
+}
+
+int tcc_ex_tsif_release(struct inode *inode, struct file *filp)
+{
+    if (tsif_ex_pri.open_cnt > 0) {
+        tsif_ex_pri.open_cnt--;
+    }	
+
+    if(tsif_ex_pri.open_cnt == 0)
+    {
+   	    mutex_lock(&(tsif_ex_pri.mutex));
+        tsif_ex_handle.dma_stop(&tsif_ex_handle);
+        tcc_tsif_deinit();
+      	TSDEMUX_Close();
+        mutex_unlock(&(tsif_ex_pri.mutex));
+        clk_disable(tsif_clk);
+    }    
+    return 0;
+}
+
+int tcc_ex_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+{
+	int ret = 0;
+
+	//printk("%s[0x%X] - in\n", __func__, cmd);
+    switch (cmd) {
+    case IOCTL_TSIF_DMA_START:
+        {
+            struct tcc_tsif_param param;
+            int clk_polarity,  valid_polarity, sync_polarity, msb_first, mpeg_ts;
+            memcpy(&param, (void *)arg, sizeof(struct tcc_tsif_param));
+
+            if (((TSIF_PACKET_SIZE * param.ts_total_packet_cnt) > tsif_ex_handle.dma_total_size)
+                || (param.ts_total_packet_cnt <= 0)) {
+                printk("so big ts_total_packet_cnt !!! \n");
+                param.ts_total_packet_cnt = tsif_ex_handle.dma_total_size /(TSIF_PACKET_SIZE*param.ts_intr_packet_cnt);
+            }
+            if(param.ts_total_packet_cnt > 0x1fff) //Max packet is 0x1fff(13bit)
+                param.ts_total_packet_cnt = 0x1fff;
+
+            if(tsif_ex_handle.dma_stop(&tsif_ex_handle) == 0)
+                tsif_ex_handle.clear_fifo_packet(&tsif_ex_handle);
+
+            if(param.dma_mode == 1)
+                tsif_ex_handle.mpeg_ts |= Hw0;
+            else
+                tsif_ex_handle.mpeg_ts = 0;
+
+            if(param.mode & SPI_CPOL)
+               clk_polarity = 0x01;    //1:falling edge 0:rising edge
+            else
+               clk_polarity = 0x00;    //1:falling edge 0:rising edge
+
+            sync_polarity = 0x00;   //0:sync high active 1:sync low active
+            if(param.mode & SPI_CS_HIGH)
+            {
+                valid_polarity = 0x01;  //1:valid high active 0:valid low active
+                if(tsif_ex_handle.mpeg_ts == 0)
+                    sync_polarity = 0x00;   //0:sync high active 1:sync low active
+            }
+            else
+            {
+                valid_polarity = 0x00;  //1:valid high active 0:valid low active
+                if(tsif_ex_handle.mpeg_ts == 0)
+                    sync_polarity = 0x01;   //0:sync high active 1:sync low active
+            }
+
+            if(param.mode & SPI_LSB_FIRST)
+           	    msb_first = 0x00;       //1:msb first, 0:lsb first
+            else
+               	msb_first = 0x01;       //1:msb first, 0:lsb first
+
+            if( tsif_ex_handle.clk_polarity != clk_polarity ||\
+                tsif_ex_handle.valid_polarity != valid_polarity ||\
+                tsif_ex_handle.sync_polarity != sync_polarity ||\
+                tsif_ex_handle.msb_first != msb_first)
+            {
+                tsif_ex_handle.msb_first = msb_first;       //1:msb first, 0:lsb first
+                tsif_ex_handle.clk_polarity = clk_polarity;    //1:falling edge 0:rising edge
+                tsif_ex_handle.valid_polarity = valid_polarity;  //1:valid high active 0:valid low active
+                tsif_ex_handle.sync_polarity = sync_polarity;   //0:sync high active 1:sync low active
+                tsif_ex_handle.tsif_set(&tsif_ex_handle);
+            }
+
+            tsif_ex_handle.dma_total_packet_cnt = param.ts_total_packet_cnt;
+            tsif_ex_handle.dma_intr_packet_cnt = param.ts_intr_packet_cnt;
+            tsif_ex_pri.packet_read_count = tsif_ex_handle.dma_intr_packet_cnt;
+            tsif_ex_handle.q_pos = tsif_ex_handle.cur_q_pos = 0;
+            printk("interrupt packet count [%u]\n", tsif_ex_handle.dma_intr_packet_cnt);
+            tsif_ex_handle.dma_start(&tsif_ex_handle);                        
+        }
+        break;			
+    case IOCTL_TSIF_DMA_STOP:
+            if(tsif_ex_handle.dma_stop(&tsif_ex_handle) == 0)
+                tsif_ex_handle.clear_fifo_packet(&tsif_ex_handle);
+        break;			
+    case IOCTL_TSIF_GET_MAX_DMA_SIZE:
+        {
+            struct tcc_tsif_param param;
+            param.ts_total_packet_cnt = tsif_ex_handle.dma_total_size / TSIF_PACKET_SIZE;
+            param.ts_intr_packet_cnt = 1;
+
+            memcpy((void *)arg, (void *)&param, sizeof(struct tcc_tsif_param));
+        }
+        break;        
+    case IOCTL_TSIF_SET_PID:
+        {
+            struct tcc_tsif_pid_param param;
+            memcpy(&param, (void *)arg, sizeof(struct tcc_tsif_pid_param));
+            ret = tca_tsif_register_pids(&tsif_ex_handle, param.pid_data, param.valid_data_cnt);
+        } 
+        break;		    
+    case IOCTL_TSIF_DXB_POWER:
+        break;
+
+    case IOCTL_TSIF_SET_PCRPID:
+        memcpy((void *)&tsif_ex_pri.pcr_pid, (const void *)arg, sizeof(int));
+        printk("Set PCR PID[0x%X]\n", tsif_ex_pri.pcr_pid);
+        if( tsif_ex_pri.pcr_pid < 0x1FFF)
+            TSDEMUX_Open();
+        break;
+    case IOCTL_TSIF_GET_STC:
+        {
+            unsigned int uiSTC;
+            uiSTC = TSDEMUX_GetSTC();
+            //printk("STC %d\n", uiSTC);
+            memcpy((void *)arg, (void *)&uiSTC, sizeof(int));
+        }
+        break;
+    case IOCTL_TSIF_RESET:
+        tsif_resync(&tsif_ex_handle);
+        break;
+    default:
+        printk("tcc-tsif : unrecognized ioctl (0x%X)\n", cmd);
+        ret = -EINVAL;
+        break;
+    }
+	//printk("%s[0x%X] - out\n", __func__, cmd);
+    return ret;
+}
+
 #if 1
 EXPORT_SYMBOL(tsif_ex_init);
 EXPORT_SYMBOL(tsif_ex_exit);
+EXPORT_SYMBOL(tcc_ex_tsif_open);
+EXPORT_SYMBOL(tcc_ex_tsif_release);
+EXPORT_SYMBOL(tcc_ex_tsif_ioctl);
+EXPORT_SYMBOL(tcc_ex_tsif_set_external_tsdemux);
 #else
 static int __init tsif_ex_init(void)
 {

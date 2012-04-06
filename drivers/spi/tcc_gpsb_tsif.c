@@ -39,7 +39,18 @@
 #include <linux/spi/tcc_tsif.h>
 #include <mach/tca_spi.h>
 #include "tsdemux/TSDEMUX_sys.h"
+
 #define      SUPPORT_TSIF_BLOCK
+
+extern int tsif_ex_init(void);
+extern void tsif_ex_exit(void);
+extern int tcc_ex_tsif_open(struct inode *inode, struct file *filp);
+extern int tcc_ex_tsif_release(struct inode *inode, struct file *filp);
+extern int tcc_ex_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
+extern int tcc_ex_tsif_set_external_tsdemux(int (*decoder)(char *p1, int p1_size, char *p2, int p2_size), int max_dec_packet);
+
+static int g_use_tsif_block = 0;
+
 static int tcc_tsif_init(void);
 
 static struct clk *gpsb_clk;
@@ -59,7 +70,6 @@ struct tca_spi_pri_handle {
 	const char *name;
 };
 
-
 static tca_spi_handle_t tsif_handle;
 static struct tca_spi_pri_handle tsif_pri;
 //External Decoder :: Send packet to external kernel ts demuxer
@@ -74,21 +84,31 @@ static tsdemux_extern_t tsdemux_extern_handle;
 
 static int tcc_tsif_set_external_tsdemux(int (*decoder)(char *p1, int p1_size, char *p2, int p2_size), int max_dec_packet)
 {
-    if(max_dec_packet == 0)
-    {
-        //turn off external decoding
-	    memset(&tsdemux_extern_handle, 0x0, sizeof(tsdemux_extern_t));
-	    return 0;
-    }
+    if(g_use_tsif_block)
+	{
+		tcc_ex_tsif_set_external_tsdemux(decoder, max_dec_packet);
+	}
+	else
+	{
+		if(max_dec_packet == 0)
+		{
+			//turn off external decoding
+			memset(&tsdemux_extern_handle, 0x0, sizeof(tsdemux_extern_t));
+			return 0;
+		}
 
-    tsdemux_extern_handle.is_active = 1;
-    tsdemux_extern_handle.tsdemux_decoder = decoder;
-    tsdemux_extern_handle.index = 0;
-    if(tsif_handle.dma_intr_packet_cnt < max_dec_packet)
-        tsdemux_extern_handle.call_decoder_index = max_dec_packet; //every max_dec_packet calling isr, call decoder
-    else
-        tsdemux_extern_handle.call_decoder_index = 1;
-    printk("%s::%d::max_dec_packet[%d]int_packet[%d]\n", __func__, __LINE__, tsdemux_extern_handle.call_decoder_index, tsif_handle.dma_intr_packet_cnt);
+		if(tsdemux_extern_handle.call_decoder_index != max_dec_packet)
+		{
+			tsdemux_extern_handle.is_active = 1;
+			tsdemux_extern_handle.tsdemux_decoder = decoder;
+			tsdemux_extern_handle.index = 0;
+			if(tsif_handle.dma_intr_packet_cnt < max_dec_packet)
+				tsdemux_extern_handle.call_decoder_index = max_dec_packet; //every max_dec_packet calling isr, call decoder
+			else
+				tsdemux_extern_handle.call_decoder_index = 1;
+			printk("%s::%d::max_dec_packet[%d]int_packet[%d]\n", __func__, __LINE__, tsdemux_extern_handle.call_decoder_index, tsif_handle.dma_intr_packet_cnt);
+		}
+	}
     return 0;
 }
 EXPORT_SYMBOL(tcc_tsif_set_external_tsdemux);
@@ -478,95 +498,102 @@ static int tcc_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long arg
 static int tcc_export_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
     int ret = 0;
-//	printk("%s::%d::0x%X\n", __func__, __LINE__, cmd);	
-    switch (cmd) {
-    case IOCTL_TSIF_DMA_START:
-        {
-            struct tcc_tsif_param param;
-            memcpy(&param, (void *)arg, sizeof(struct tcc_tsif_param));
-
-            if (((TSIF_PACKET_SIZE * param.ts_total_packet_cnt) > tsif_handle.dma_total_size)
-                || (param.ts_total_packet_cnt <= 0)) {
-                printk("so big ts_total_packet_cnt !!! \n");
-                return -EFAULT;
-            }
-
-            tsif_handle.dma_stop(&tsif_handle);
-
-            tca_spi_setCPHA(tsif_handle.regs, param.mode & SPI_CPHA);
-            tca_spi_setCPOL(tsif_handle.regs, param.mode & SPI_CPOL);
-            tca_spi_setCS_HIGH(tsif_handle.regs, param.mode & SPI_CS_HIGH);
-            tca_spi_setLSB_FIRST(tsif_handle.regs, param.mode & SPI_LSB_FIRST);
-
-			tsif_handle.dma_mode = param.dma_mode;
-			if (tsif_handle.dma_mode == 0) {
-				tsif_handle.set_mpegts_pidmode(&tsif_handle, 0);
+	//	printk("%s::%d::0x%X\n", __func__, __LINE__, cmd);	
+    if(g_use_tsif_block)
+	{
+		ret = tcc_ex_tsif_ioctl(filp, cmd, arg);
+	}
+	else
+	{
+		switch (cmd) {
+		case IOCTL_TSIF_DMA_START:
+			{
+				struct tcc_tsif_param param;
+				memcpy(&param, (void *)arg, sizeof(struct tcc_tsif_param));
+		
+				if (((TSIF_PACKET_SIZE * param.ts_total_packet_cnt) > tsif_handle.dma_total_size)
+					|| (param.ts_total_packet_cnt <= 0)) {
+					printk("so big ts_total_packet_cnt !!! \n");
+					return -EFAULT;
+				}
+		
+				tsif_handle.dma_stop(&tsif_handle);
+		
+				tca_spi_setCPHA(tsif_handle.regs, param.mode & SPI_CPHA);
+				tca_spi_setCPOL(tsif_handle.regs, param.mode & SPI_CPOL);
+				tca_spi_setCS_HIGH(tsif_handle.regs, param.mode & SPI_CS_HIGH);
+				tca_spi_setLSB_FIRST(tsif_handle.regs, param.mode & SPI_LSB_FIRST);
+		
+				tsif_handle.dma_mode = param.dma_mode;
+				if (tsif_handle.dma_mode == 0) {
+					tsif_handle.set_mpegts_pidmode(&tsif_handle, 0);
+				}
+		
+				tsif_handle.dma_total_packet_cnt = param.ts_total_packet_cnt;
+				tsif_handle.dma_intr_packet_cnt = param.ts_intr_packet_cnt;
+		
+		#ifdef		SUPORT_USE_SRAM
+				tsif_handle.dma_total_packet_cnt = SRAM_TOT_PACKET;
+				tsif_handle.dma_intr_packet_cnt = SRAM_INT_PACKET;
+		#endif
+				tsif_handle.clear_fifo_packet(&tsif_handle);
+				tsif_handle.q_pos = tsif_handle.cur_q_pos = 0;
+		
+				tsif_handle.set_packet_cnt(&tsif_handle, MPEG_PACKET_SIZE);
+				printk("interrupt packet count [%u]\n", tsif_handle.dma_intr_packet_cnt);
+				tsif_handle.dma_start(&tsif_handle);
 			}
-
-            tsif_handle.dma_total_packet_cnt = param.ts_total_packet_cnt;
-            tsif_handle.dma_intr_packet_cnt = param.ts_intr_packet_cnt;
-
-            #ifdef      SUPORT_USE_SRAM
-            tsif_handle.dma_total_packet_cnt = SRAM_TOT_PACKET;
-            tsif_handle.dma_intr_packet_cnt = SRAM_INT_PACKET;
-            #endif
-            tsif_handle.clear_fifo_packet(&tsif_handle);
-            tsif_handle.q_pos = tsif_handle.cur_q_pos = 0;
-
-            tsif_handle.set_packet_cnt(&tsif_handle, MPEG_PACKET_SIZE);
-            printk("interrupt packet count [%u]\n", tsif_handle.dma_intr_packet_cnt);
-            tsif_handle.dma_start(&tsif_handle);
-        }
-        break;
+			break;
+			
+		case IOCTL_TSIF_DMA_STOP:
+				tsif_handle.dma_stop(&tsif_handle);
+			break;
+			
+		case IOCTL_TSIF_GET_MAX_DMA_SIZE:
+			{
+				struct tcc_tsif_param param;
+				param.ts_total_packet_cnt = tsif_handle.dma_total_size / TSIF_PACKET_SIZE;
+				param.ts_intr_packet_cnt = 1;
 		
-    case IOCTL_TSIF_DMA_STOP:
-            tsif_handle.dma_stop(&tsif_handle);
-        break;
-		
-    case IOCTL_TSIF_GET_MAX_DMA_SIZE:
-        {
-            struct tcc_tsif_param param;
-            param.ts_total_packet_cnt = tsif_handle.dma_total_size / TSIF_PACKET_SIZE;
-            param.ts_intr_packet_cnt = 1;
-
-            memcpy((void *)arg, (void *)&param, sizeof(struct tcc_tsif_param));
-        }
-        break;
-		
-    case IOCTL_TSIF_SET_PID:
-        {
-            struct tcc_tsif_pid_param param;
-            memcpy(&param, (void *)arg, sizeof(struct tcc_tsif_pid_param));
-            ret = tca_spi_register_pids(&tsif_handle, param.pid_data, param.valid_data_cnt);
-        } 
-        break;
-		
-	case IOCTL_TSIF_DXB_POWER:
-		{
-			// the power control moves to tcc_dxb_control driver.
+				memcpy((void *)arg, (void *)&param, sizeof(struct tcc_tsif_param));
+			}
+			break;
+			
+		case IOCTL_TSIF_SET_PID:
+			{
+				struct tcc_tsif_pid_param param;
+				memcpy(&param, (void *)arg, sizeof(struct tcc_tsif_pid_param));
+				ret = tca_spi_register_pids(&tsif_handle, param.pid_data, param.valid_data_cnt);
+			} 
+			break;
+			
+		case IOCTL_TSIF_DXB_POWER:
+			{
+				// the power control moves to tcc_dxb_control driver.
+			}
+			break;
+		case IOCTL_TSIF_SET_PCRPID: 	
+			memcpy((void *)&tsif_pri.pcr_pid, (const void *)arg, sizeof(int));
+			printk("Set PCR PID[0x%X]\n", tsif_pri.pcr_pid);
+			if( tsif_pri.pcr_pid < 0x1FFF)
+				TSDEMUX_Open();
+			break;
+		case IOCTL_TSIF_GET_STC:	
+			{
+				unsigned int uiSTC;
+				uiSTC = TSDEMUX_GetSTC();
+				//printk("STC %d\n", uiSTC);
+				memcpy((void *)arg, (void *)&uiSTC, sizeof(int));
+			}
+			break;	
+		case IOCTL_TSIF_RESET:
+			break;
+		default:
+			printk("tsif: unrecognized ioctl (0x%X)\n", cmd);
+			ret = -EINVAL;
+			break;
 		}
-		break;
-	case IOCTL_TSIF_SET_PCRPID:		
-		memcpy((void *)&tsif_pri.pcr_pid, (const void *)arg, sizeof(int));
-		printk("Set PCR PID[0x%X]\n", tsif_pri.pcr_pid);
-		if( tsif_pri.pcr_pid < 0x1FFF)
-			TSDEMUX_Open();
-		break;
-	case IOCTL_TSIF_GET_STC:	
-		{
-			unsigned int uiSTC;
-			uiSTC = TSDEMUX_GetSTC();
-			//printk("STC %d\n", uiSTC);
-			memcpy((void *)arg, (void *)&uiSTC, sizeof(int));
-		}
-		break;	
-    case IOCTL_TSIF_RESET:
-        break;
-    default:
-        printk("tsif: unrecognized ioctl (0x%X)\n", cmd);
-        ret = -EINVAL;
-        break;
-    }
+	}
     return ret;
 }
 EXPORT_SYMBOL(tcc_export_tsif_ioctl);
@@ -633,37 +660,55 @@ static void tcc_tsif_deinit(void)
 
 static int tcc_tsif_open(struct inode *inode, struct file *filp)
 {
-    int ret = 0;	
-    clk_enable(gpsb_clk);
+	int ret = 0;	
 
-    mutex_lock(&(tsif_pri.mutex));
-	tsif_pri.pcr_pid = 0xFFFF;
-	
-    if (tsif_pri.open_cnt == 0) {
-        tsif_pri.open_cnt++;
-    } else {
-        ret = -EBUSY;
-    }
-    mutex_unlock(&(tsif_pri.mutex));
-
-
-    tsif_handle.set_mpegts_pidmode(&tsif_handle, 0);	
+    if(g_use_tsif_block)
+	{
+		ret = tcc_ex_tsif_open(inode, filp);
+	}
+	else
+	{
+		clk_enable(gpsb_clk);
+		
+		mutex_lock(&(tsif_pri.mutex));
+		tsif_pri.pcr_pid = 0xFFFF;
+		
+		if (tsif_pri.open_cnt == 0) {
+			tsif_pri.open_cnt++;
+		} else {
+			ret = -EBUSY;
+		}
+		mutex_unlock(&(tsif_pri.mutex));
+		
+		
+		tsif_handle.set_mpegts_pidmode(&tsif_handle, 0);	
+	}
 	return ret;
 }
 EXPORT_SYMBOL(tcc_tsif_open);
 
 static int tcc_tsif_release(struct inode *inode, struct file *filp)
 {
-	mutex_lock(&(tsif_pri.mutex));
-    tsif_handle.dma_stop(&tsif_handle);
-	TSDEMUX_Close();
-    if (tsif_pri.open_cnt > 0) {
-        tsif_pri.open_cnt--;
-    }	
-    mutex_unlock(&(tsif_pri.mutex));
+	int ret = 0;	
 
-    clk_disable(gpsb_clk);
-    return 0;
+    if(g_use_tsif_block)
+	{
+		ret = tcc_ex_tsif_release(inode, filp);
+	}
+	else
+	{
+		mutex_lock(&(tsif_pri.mutex));
+		tsif_handle.dma_stop(&tsif_handle);
+		TSDEMUX_Close();
+		if (tsif_pri.open_cnt > 0) {
+			tsif_pri.open_cnt--;
+		}	
+		mutex_unlock(&(tsif_pri.mutex));
+		
+		clk_disable(gpsb_clk);
+		ret = 0;
+	}
+	return ret;
 }
 EXPORT_SYMBOL(tcc_tsif_release);
 
@@ -679,10 +724,6 @@ struct file_operations tcc_tsif_fops =
 };
 
 static struct class *tsif_class;
-
-extern int tsif_ex_init(void);
-extern void tsif_ex_exit(void);
-static int g_use_tsif_block = 0;
 
 static int __init tsif_init(void)
 {
