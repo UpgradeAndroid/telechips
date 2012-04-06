@@ -107,7 +107,7 @@ typedef void (*CoreFuncPtr)(unsigned int goto_state);
 FUNCTION
 ===========================================================================*/
 #if defined(CONFIG_MACH_TCC8920ST)
-static void tcc_stb_suspend(void)
+static inline void tcc_stb_suspend(void)
 {
 #if defined(TCC_PM_MEMQ_PWR_CTRL)
 #if defined(CONFIG_STB_BOARD_HDB892F)
@@ -125,7 +125,7 @@ static void tcc_stb_suspend(void)
 	BITCLR(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<21); //CORE2_ON : low
 }
 
-static void tcc_stb_resume(void)
+static inline void tcc_stb_resume(void)
 {
 #if defined(TCC_PM_MEMQ_PWR_CTRL)
 #if defined(CONFIG_STB_BOARD_HDB892F)
