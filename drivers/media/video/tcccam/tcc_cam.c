@@ -822,7 +822,6 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 				while(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_STSEN_MASK) {
 					for(nCnt=0; nCnt < 10000; nCnt++);
 				}
-
 				// Disable VIN
 				VIOC_VIN_SetEnable(pVINBase, OFF);
 
@@ -936,7 +935,7 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 						// Before camera quit, we have to wait WMDA's SEN signal to LOW.
 						// Note that do not decrease below Cnt.
 						while(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_STSEN_MASK) {
-							for(nCnt=0; nCnt<10000; nCnt++);
+							for(nCnt=0; nCnt < 10000; nCnt++);
 						}
 
 						VIOC_VIN_SetImageSize(pVINBase, data->cif_cfg.main_set.source_x, data->cif_cfg.main_set.source_y);
@@ -2547,7 +2546,7 @@ int tccxxx_cif_start_stream(void)
 
 				// Before camera quit, we have to wait WMDA's SEN signal to LOW.
 				while(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_STSEN_MASK) {
-					for(nCnt=0; nCnt<10000; nCnt++);
+					for(nCnt=0; nCnt < 10000; nCnt++);
 				}
 
 				// Disable VIN
@@ -2629,6 +2628,7 @@ int tccxxx_cif_stop_stream(void)
 	BITCSET(pWDMABase->uCTRL.nREG, 1<<16, 1<<16);
 
 	// Before camera quit, we have to wait WMDA's SEN signal to LOW.
+	
 	while(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_STSEN_MASK) {
 		for(nCnt=0; nCnt < 10000; nCnt++);
 
@@ -2878,7 +2878,7 @@ int tccxxx_cif_capture(int quality)
 
 		// Before camera quit, we have to wait WMDA's SEN signal to LOW.
 		while(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_STSEN_MASK) {
-			for(nCnt=0; nCnt<10000; nCnt++);
+			for(nCnt=0; nCnt < 10000; nCnt++);
 		}
 
 		// Disable VIN

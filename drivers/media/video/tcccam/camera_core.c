@@ -648,7 +648,7 @@ int tcc_videobuf_user_get_capture_info(TCCXXX_JPEG_ENC_DATA * Jpeg_data )
 int tcc_videobuf_get_zoom_support(int cameraIndex)
 {
 	// cameraIndex는 나중에 사용할 수 있음.
-	#if defined(CONFIG_DRAM_16BIT_USED)
+	#if (defined(CONFIG_DRAM_16BIT_USED)&&(defined(CONFIG_ARCH_TCC88XX)||defined(CONFIG_ARCH_TCC93XX)||defined(CONFIG_ARCH_TCC89XX)))
 	printk("Camera zoom not supported. \n");
 	return 0;
 	#else

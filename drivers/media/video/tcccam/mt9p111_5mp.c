@@ -3805,7 +3805,11 @@ void sensor_info_init_mt9p111(TCC_SENSOR_INFO_TYPE *sensor_info)
 	sensor_info->max_zoom_step 			= 5;
 	sensor_info->cam_capchg_width 		= 1280;
 	sensor_info->framerate 				= 20;
+	#if defined(CONFIG_ARCH_TCC892X)
+	sensor_info->p_clock_pol 			= NEGATIVE_EDGE;//POSITIVE_EDGE; // NEGATIVE_EDGE;
+	#else
 	sensor_info->p_clock_pol 			= POSITIVE_EDGE; // NEGATIVE_EDGE;
+	#endif
 	sensor_info->v_sync_pol 			= ACT_HIGH;
 	sensor_info->h_sync_pol 			= ACT_HIGH;
 	sensor_info->format 				= M420_ZERO;
