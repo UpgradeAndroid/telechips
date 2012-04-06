@@ -883,7 +883,7 @@ static void __exit tcc_cpufreq_exit(void)
 MODULE_AUTHOR("Telechips, Inc.");
 MODULE_DESCRIPTION("CPU frequency scaling driver for TCC92xx");
 
-#if defined(CONFIG_MACH_TCC8800ST) || defined(CONFIG_MACH_TCC8920ST) || defined(CONFIG_TCC_STB_MODE)
+#if defined(CONFIG_MACH_TCC8800ST) || defined(CONFIG_TCC_STB_MODE)
 device_initcall(tcc_cpufreq_register);
 #else
 late_initcall(tcc_cpufreq_register);

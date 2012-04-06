@@ -28,6 +28,7 @@ struct tag_tcc_display {
 	__u32 hdmi_resolution;
 	__u32 composite_resolution;
 	__u32 component_resolution;
+	__u32 hdmi_mode;
 };
 
 extern struct display_platform_data tcc_display_data;
@@ -41,9 +42,10 @@ static int __init parse_tag_tcc_display(const struct tag *tag)
 	tcc_display_data.hdmi_resolution = entry->hdmi_resolution;
 	tcc_display_data.composite_resolution = entry->composite_resolution;
 	tcc_display_data.component_resolution = entry->component_resolution;
+	tcc_display_data.hdmi_mode = entry->hdmi_mode;
 
-	printk("kernel start display option [output:%d] [resolution:%d] [hdmi_r:%d] [composite_r:%d] [component_r:%d]\n", 
-		tcc_display_data.output, tcc_display_data.resolution, tcc_display_data.hdmi_resolution, tcc_display_data.composite_resolution, tcc_display_data.component_resolution);
+	printk("kernel start display option [output:%d] [resolution:%d] [hdmi_r:%d] [composite_r:%d] [component_r:%d] [hdmi_m:%d]\n", 
+		tcc_display_data.output, tcc_display_data.resolution, tcc_display_data.hdmi_resolution, tcc_display_data.composite_resolution, tcc_display_data.component_resolution, tcc_display_data.hdmi_mode);
 
 	return 0;
 }

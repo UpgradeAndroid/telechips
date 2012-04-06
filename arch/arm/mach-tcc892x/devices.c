@@ -581,6 +581,7 @@ struct display_platform_data tcc_display_data = {
 	.hdmi_resolution = 0,
 	.composite_resolution = 0,
 	.component_resolution = 0,
+	.hdmi_mode = 0
 };
 
 static struct android_pmem_platform_data pmem_pdata = {

@@ -178,6 +178,7 @@ struct display_platform_data
 	uint32_t hdmi_resolution;
 	uint32_t composite_resolution;
 	uint32_t component_resolution;
+	uint32_t hdmi_mode;
 }; 
 
 #define TCCFB_ROT_90	0x4
