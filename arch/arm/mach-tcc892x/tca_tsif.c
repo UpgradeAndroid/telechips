@@ -173,6 +173,7 @@ static int tca_tsif_set_port(struct tcc_tsif_handle *h)
 
 	return ret;
 }
+
 static void tca_clear_pid_tables(struct tcc_tsif_handle *h)
 {
     int i;
@@ -187,7 +188,7 @@ static void tca_clear_pid_tables(struct tcc_tsif_handle *h)
     for (i = 0; i < 16; i++) {            
         BITCLR(h->regs->TSPID[i], (Hw32-Hw0));
     }
-    printk("%s\n", __func__);
+//    printk("%s\n", __func__);
 #endif
 }
 
@@ -340,11 +341,6 @@ static void tcc_tsif_set(struct tcc_tsif_handle *h)
 																		(h->valid_polarity 	? "valid high active": "valid low active"),
 																		(h->sync_polarity	? "sync high active" : "sync low active"),
 																		 h->sync_delay, h->gpio_port );
-#endif
-#if defined(UPDATE_ONLY_CHANGED_PID)
-//register default pid to enable pid filter
-    tca_clear_pid_tables(h);
-    BITCSET(h->regs->TSPID[0], (Hw32-Hw0), Hw13|DEFAULT_PID);
 #endif
 }
 
@@ -600,11 +596,8 @@ static int tcc_tsif_dmastart(struct tcc_tsif_handle *h)
 	unsigned int packet_cnt = (h->dma_total_packet_cnt & 0x1FFF) - 1;
 	unsigned int packet_size = (MPEG_PACKET_SIZE & 0x1FFF);
 	unsigned int intr_packet_cnt = (h->dma_intr_packet_cnt & 0x1FFF) - 1;
-
    if(h->regs->TSRXCR & Hw31)
    {
-        if( (h->mpeg_ts == 0) || (h->mpeg_ts == Hw0))
-            tca_clear_pid_tables(h); //if resync at not mpeg-ts(tdmb), it needed because of no tsif input
         return 1;    
    }
 #ifdef DEBUG_INFO
@@ -629,7 +622,6 @@ static int tcc_tsif_dmastart(struct tcc_tsif_handle *h)
 #if defined(SUPPORT_PIDFILTER_DMA)
     if(h->mpeg_ts == Hw0)
     {
-        tca_clear_pid_tables(h);
    	    BITCSET(dma_regs->DMACTR.nREG, Hw5|Hw4, Hw4);	//00:normal mode, 01:MPEG2_TS mode
     }
     else if(h->mpeg_ts == (Hw0|Hw1))
@@ -640,7 +632,6 @@ static int tcc_tsif_dmastart(struct tcc_tsif_handle *h)
 #endif
     if( (h->mpeg_ts == 0) || (h->mpeg_ts == Hw0))
     {   	
-        tca_clear_pid_tables(h);
       	BITCLR(h->regs->TSRXCR, Hw17);      	
     }
     else if(h->mpeg_ts == (Hw0|Hw1))
@@ -890,9 +881,10 @@ static int tca_tsif_update_changed_pids(struct tcc_tsif_handle *h, unsigned int 
         printk("::::registered_pids[%d] = 0x%X\n", i, registered_pids[i]);    
 }
 #endif
+
+
 /*NOW PID SYNC!!!!
  */
-
 //delete pids    
     for (i=0; i<32; i++)
 	{
@@ -999,10 +991,10 @@ int tca_tsif_register_pids(struct tcc_tsif_handle *h, unsigned int *pids, unsign
         } 
 #endif
 #if defined(SUPPORT_PIDFILTER_INTERNAL)
+        BITCSET(h->regs->TSPID[i], (Hw32-Hw0), Hw13);    //to prevent disabling pid filter        
     #if defined(UPDATE_ONLY_CHANGED_PID)
         tca_tsif_update_changed_pids(h, pids, count);
     #else
-        BITCSET(h->regs->TSPID[i], (Hw32-Hw0), Hw13);    //to prevent disabling pid filter        
         for (i = 1; i < 16; i++) {            
 		    BITCLR(h->regs->TSPID[i], (Hw32-Hw0));
         }
