@@ -166,7 +166,9 @@ void TCC_HDMI_LCDC_OutputEnable(char hdmi_lcdc, unsigned int onoff)
 	#endif
 }
 
-static int onthefly_using;
+// 0 : 3 : layer enable/disable 
+
+static unsigned int onthefly_using;
 void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *ImageInfo)
 {
 	VIOC_DISP * pDISPBase;
@@ -231,7 +233,7 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 
 		if(onthefly_using == 1)	{
 			VIOC_CONFIG_PlugOut(VIOC_SC1);
-			onthefly_using = 0;
+			BITCLR(onthefly_using, 1 << ImageInfo->Lcdc_layer);
 		}
 		return;
 	}	
@@ -244,7 +246,7 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 #if defined(CONFIG_MACH_TCC8920ST)
 		if(!onthefly_using) {
 			dprintk(" %s  scaler 1 is plug in RDMA %d \n",__func__, RDMA_NUM);
-			onthefly_using = 1;
+			BITSET(onthefly_using, 1 << ImageInfo->Lcdc_layer);
 			VIOC_CONFIG_PlugIn (VIOC_SC1, RDMA_NUM);			
 		}
 
@@ -258,7 +260,7 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 #else
 		if(!onthefly_using) {
 			dprintk(" %s  scaler 1 is plug in RDMA %d \n",__func__, RDMA_NUM);
-			onthefly_using = 1;
+			BITSET(onthefly_using, 1 << ImageInfo->Lcdc_layer);
 			VIOC_CONFIG_PlugIn (VIOC_SC1, RDMA_NUM);
 			VIOC_SC_SetBypass (pSC, OFF);
 		}
@@ -269,11 +271,12 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 	}
 	else
 	{
-		if(onthefly_using == 1)	{
+		if(ISSET(onthefly_using, 1<<ImageInfo->Lcdc_layer))
+		{
 			dprintk(" %s  scaler 1 is plug  \n",__func__);
 			VIOC_RDMA_SetImageDisable(pRDMABase);
 			VIOC_CONFIG_PlugOut(VIOC_SC1);
-			onthefly_using = 0;
+			BITCLR(onthefly_using, 1 << ImageInfo->Lcdc_layer);
 		}
 	}
 
