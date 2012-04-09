@@ -458,21 +458,21 @@ void VIOC_WMIX_IreqHandler( unsigned int vectorID )
 void VIOC_API_WMIX_SetOverlayAlphaROPMode( VIOC_WMIX *pWMIX, unsigned int layer, unsigned int opmode )
 {
 	unsigned int baseAddr;
-	baseAddr = ((unsigned int)pWMIX + 0x48  + (0x10 * layer));
+	baseAddr = ((unsigned int)pWMIX + 0x40  + (0x10 * layer));
 	VIOC_WMIX_ALPHA_SetROPMode((VIOC_WMIX_ALPHA *)baseAddr, opmode);
 }
 
 void VIOC_API_WMIX_SetOverlayAlphaValue( VIOC_WMIX *pWMIX, unsigned int layer, unsigned int alpha0, unsigned int alpha1 )
 {
 	unsigned int baseAddr;
-	baseAddr = ((unsigned int)pWMIX + 0x48  + (0x10 * layer));
+	baseAddr = ((unsigned int)pWMIX + 0x40  + (0x10 * layer));
 	VIOC_WMIX_ALPHA_SetAlphaValue((VIOC_WMIX_ALPHA *)baseAddr, alpha0, alpha1);
 }
 
 void VIOC_API_WMIX_SetOverlayAlphaSelection(VIOC_WMIX *pWMIX, unsigned int layer,unsigned int asel )
 {
 	unsigned int baseAddr;
-	baseAddr = ((unsigned int)pWMIX + 0x48  + (0x10 * layer));
+	baseAddr = ((unsigned int)pWMIX + 0x40  + (0x10 * layer));
 	VIOC_WMIX_ALPHA_SetAlphaSelection((VIOC_WMIX_ALPHA *)baseAddr, asel);
 }
 
@@ -486,7 +486,7 @@ void VIOC_API_WMIX_SetOverlayAlphaValueControl(VIOC_WMIX *pWMIX, unsigned int la
 void VIOC_API_WMIX_SetOverlayAlphaColorControl(VIOC_WMIX *pWMIX, unsigned int layer, unsigned int region, unsigned int ccon0, unsigned int ccon1 )
 {
 	unsigned int baseAddr;
-	baseAddr = ((unsigned int)pWMIX + 0x44  + (0x10 * layer));
+	baseAddr = ((unsigned int)pWMIX + 0x40  + (0x10 * layer));
 	VIOC_WMIX_ALPHA_SetColorControl((VIOC_WMIX_ALPHA *)baseAddr, region, ccon0, ccon1);
 }
 
