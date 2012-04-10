@@ -158,7 +158,7 @@ static struct mmc_port_config mmc_ports[] = {
 #endif	//#if defined(CONFIG_MMC_TCC_SD30_TEST)
 
 static int tccUsedSDportNum = TCC_MMC_TYPE_MAX;
-#define TCC_SDMMC_DRIVE_STRENGTH	GPIO_CD(1)
+static int TCC_SDMMC_DRIVE_STRENGTH = GPIO_CD(1);
 
 int tcc8920_mmc_init(struct device *dev, int id)
 {
@@ -556,7 +556,9 @@ static void tcc8920_mmc_port_setup(void)
 		// for eMMC
 		tcc8920_mmc_platform_data[TCC_MMC_TYPE_EMMC].caps |= (MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED);
 
-		// for SDHC
+		TCC_SDMMC_DRIVE_STRENGTH = GPIO_CD(0);
+
+		// for SDHC - WiFi
 		mmc_ports[TCC_MMC_TYPE_SD].cd = TCC_GPE(0);
 
 		tcc8920_mmc_platform_data[TCC_MMC_TYPE_SD].f_max	= 24000000,	/* support highspeed mode */
