@@ -364,7 +364,6 @@ static irqreturn_t tsif_ex_dma_handler(int irq, void *dev_id)
 	
 				if(++ts_demux_feed_handle.index >= ts_demux_feed_handle.call_decoder_index)
 				{
-#if 1
 					int offset = tsif_ex_handle.q_pos * TSIF_PACKET_SIZE;
 					char *p1 = NULL, *p2 = NULL;
 					int p1_size = 0, p2_size = 0;						 
@@ -392,22 +391,13 @@ static irqreturn_t tsif_ex_dma_handler(int irq, void *dev_id)
 
 							p1 = tsif_ex_handle.rx_dma.v_addr + offset;
 							p1_size = first_copy_byte;
-							//if (copy_to_user(buf, tsif_ex_handle.rx_dma.v_addr + offset, first_copy_byte)) {
-							//	return -EFAULT;
-							//}
 							p2 = tsif_ex_handle.rx_dma.v_addr;
 							p2_size = second_copy_byte;
-							//if (copy_to_user(buf + first_copy_byte, tsif_ex_handle.rx_dma.v_addr, second_copy_byte)) {
-							//	return -EFAULT;
-							//}
 				
 							tsif_ex_handle.q_pos = copy_cnt - first_copy_cnt;
 						} else {
 							p1 = tsif_ex_handle.rx_dma.v_addr + offset;
 							p1_size = copy_byte;
-							//if (copy_to_user(buf, tsif_ex_handle.rx_dma.v_addr + offset, copy_byte)) {
-							//	return -EFAULT;
-							//}
 				
 							tsif_ex_handle.q_pos += copy_cnt;
 							if (tsif_ex_handle.q_pos >= tsif_ex_handle.dma_total_packet_cnt) {
@@ -415,36 +405,6 @@ static irqreturn_t tsif_ex_dma_handler(int irq, void *dev_id)
 							}
 						}
 					}
-#else
-					int offset = tsif_ex_handle.q_pos * TSIF_PACKET_SIZE;
-					char *p1 = NULL, *p2 = NULL;
-					int p1_size = 0, p2_size = 0;						 
-	
-					copy_cnt = ts_demux_feed_handle.index;
-					copy_byte = ts_demux_feed_handle.index * TSIF_PACKET_SIZE;
-	
-					if (copy_cnt > tsif_ex_handle.dma_total_packet_cnt - tsif_ex_handle.q_pos) {
-						int first_copy_byte = (tsif_ex_handle.dma_total_packet_cnt - tsif_ex_handle.q_pos) * TSIF_PACKET_SIZE;
-						int first_copy_cnt = first_copy_byte / TSIF_PACKET_SIZE;
-						int second_copy_byte = (copy_cnt - first_copy_cnt) * TSIF_PACKET_SIZE;
-					
-						p1 = (char *)tsif_ex_handle.rx_dma.v_addr + offset;
-						p1_size = first_copy_byte;
-	
-						p2 = (char *)tsif_ex_handle.rx_dma.v_addr;
-						p2_size = second_copy_byte;
-	
-						tsif_ex_handle.q_pos = copy_cnt - first_copy_cnt;
-					} else {
-						p1 = (char *)tsif_ex_handle.rx_dma.v_addr + offset;
-						p1_size = copy_byte;
-	
-						tsif_ex_handle.q_pos += copy_cnt;
-						if (tsif_ex_handle.q_pos >= tsif_ex_handle.dma_total_packet_cnt) {
-							tsif_ex_handle.q_pos = 0;
-						}
-					}
-#endif
 					if(ts_demux_feed_handle.ts_demux_decoder(p1, p1_size, p2, p2_size) == 0)
 					{
 						ts_demux_feed_handle.index = 0;
