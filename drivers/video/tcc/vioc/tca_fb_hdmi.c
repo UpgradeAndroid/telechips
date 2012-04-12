@@ -231,7 +231,8 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 	if(!ImageInfo->enable)	{
 		VIOC_RDMA_SetImageDisable(pRDMABase);	
 
-		if(onthefly_using == 1)	{
+		if(ISSET(onthefly_using, 1<<ImageInfo->Lcdc_layer))
+			{
 			VIOC_CONFIG_PlugOut(VIOC_SC1);
 			BITCLR(onthefly_using, 1 << ImageInfo->Lcdc_layer);
 		}
