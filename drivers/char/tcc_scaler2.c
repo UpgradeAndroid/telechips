@@ -145,8 +145,6 @@ char M2M_Scaler2_Ctrl_Detail(SCALER_TYPE *scale_img)
 
 	spin_lock_irq(&(SC2_data.cmd_lock));
 
-	// set to VRDMA switch path
-	VIOC_CONFIG_RDMA12PathCtrl(0 /* RDMA12 */);
 
 	// set to VRDMA
 	VIOC_RDMA_SetImageFormat(SC2_pRDMABase, scale_img->src_fmt);
@@ -172,7 +170,7 @@ char M2M_Scaler2_Ctrl_Detail(SCALER_TYPE *scale_img)
 	VIOC_RDMA_SetImageEnable(SC2_pRDMABase); // SoC guide info.
 
 	// set to WMIX30  
-	//VIOC_CONFIG_WMIXPath(WMIX30, 0 /* by-pass */);
+	VIOC_CONFIG_WMIXPath(WMIX60, 0 /* by-pass */);
 	VIOC_WMIX_SetSize(SC2_pWIXBase, scale_img->dest_ImgWidth, scale_img->dest_ImgHeight);
 	VIOC_WMIX_SetUpdate(SC2_pWIXBase);
 
@@ -439,12 +437,12 @@ int tccxxx_scaler2_release(struct inode *inode, struct file *filp)
 		}
 
 		if(SC2_data.irq_reged) {
-			free_irq(INT_VIOC_WD8, &SC2_data);
+			free_irq(INT_VIOC_WD7, &SC2_data);
 			SC2_data.irq_reged = 0;
 		}
 		
 		VIOC_CONFIG_PlugOut(VIOC_SC0);
-		VIOC_SC_SetSWReset(VIOC_SC0, VIOC_SC_RDMA_17, VIOC_SC_WDMA_08);
+		VIOC_SC_SetSWReset(VIOC_SC0, VIOC_SC_RDMA_17, VIOC_SC_WDMA_07);
 
 		SC2_data.block_operating = SC2_data.block_waiting = 0;
 		SC2_data.poll_count = SC2_data.cmd_count = 0;
@@ -472,11 +470,11 @@ int tccxxx_scaler2_open(struct inode *inode, struct file *filp)
 		SC2_pWIXBase = (volatile PVIOC_WMIX)tcc_p2v((unsigned int)HwVIOC_WMIX6);
 
 		// set to VWDMA
-		SC2_pWDMABase = (volatile PVIOC_WDMA)tcc_p2v((unsigned int)HwVIOC_WDMA08);
+		SC2_pWDMABase = (volatile PVIOC_WDMA)tcc_p2v((unsigned int)HwVIOC_WDMA07);
 
-		VIOC_SC_SetSWReset(VIOC_SC0, VIOC_SC_RDMA_17, VIOC_SC_WDMA_08);
+		VIOC_SC_SetSWReset(VIOC_SC0, VIOC_SC_RDMA_17, VIOC_SC_WDMA_07);
 		VIOC_WDMA_SetIreqMask(SC2_pWDMABase, VIOC_WDMA_IREQ_EOFR_MASK, 0x0);
-		ret = request_irq(INT_VIOC_WD8, tccxxx_scaler2_handler, IRQF_SHARED, "scaler2", &SC2_data);
+		ret = request_irq(INT_VIOC_WD7, tccxxx_scaler2_handler, IRQF_SHARED, "scaler2", &SC2_data);
 		
 		if(ret) {
 			clk_disable(scaler2_clk);
@@ -513,7 +511,7 @@ tccxxx_scaler2_cleanup(void)
 	return;
 }
 
-static char banner[] __initdata = KERN_INFO "TCC Scaler-0 Driver Initializing. \n";
+static char banner[] __initdata = KERN_INFO "TCC Scaler-2 Driver Initializing. \n";
 static struct class *scaler2_class;
 
 int __init 
