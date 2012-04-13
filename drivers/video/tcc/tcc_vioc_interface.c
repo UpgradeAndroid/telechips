@@ -363,6 +363,7 @@ void tca_fb_late_resume(struct early_suspend *h)
 	tcafb_clock_set(PWR_CMD_ON);	
 
 	*pRDMABase = pRDMA_BackUp;
+	VIOC_RDMA_SetImageSize(pRDMABase, 0, 0);
 	VIOC_RDMA_SetImageEnable(pRDMABase);
 
 	VIOC_WMIX_SetUpdate(pWMIXBase);	

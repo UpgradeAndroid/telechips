@@ -29,12 +29,12 @@
 #include <mach/globals.h>
 #include <mach/reg_physical.h>
 #include <mach/tca_ckc.h>
-
+#include <mach/tca_tco.h>
 #include <asm/mach-types.h>
 #include <asm/io.h>
 
 static struct mutex panel_lock;
-static char lcd_pwr_state;
+
 static unsigned int lcd_bl_level;
 extern void lcdc_initialize(struct lcd_panel *lcd_spec, unsigned int lcdc_num);
 static struct clk *lvds_clk;
@@ -49,9 +49,14 @@ static int hv070wsa_set_power(struct lcd_panel *panel, int on, unsigned int lcd_
 	PDDICONFIG	pDDICfg;
 	unsigned int P, M, S, VSEL;
 	struct lcd_platform_data *pdata = panel->dev->platform_data;
+
 	printk("%s : %d %d  \n", __func__, on, lcd_bl_level);
+
+	if(!on && panel->bl_level)
+		panel->set_backlight_level(panel , 0);
+
 	mutex_lock(&panel_lock);
-	lcd_pwr_state = on;
+	panel->state = on;
 
 	pDDICfg = (volatile PDDICONFIG)tcc_p2v(HwDDI_CONFIG_BASE);
 	if (on) {
@@ -95,7 +100,10 @@ static int hv070wsa_set_power(struct lcd_panel *panel, int on, unsigned int lcd_
 		BITCSET(pDDICfg->LVDS_CTRL.nREG, 0x00FFFFF0, (VSEL<<4)|(S<<5)|(M<<8)|(P<<15)); //LCDC1
 
 		// LVDS Select LCDC 1
-		BITCSET(pDDICfg->LVDS_CTRL.nREG, 0x3 << 30 , 0x1 << 30);
+		if(pdata->lcdc_num ==1)
+			BITCSET(pDDICfg->LVDS_CTRL.nREG, 0x3 << 30 , 0x1 << 30);
+		else
+			BITCSET(pDDICfg->LVDS_CTRL.nREG, 0x3 << 30 , 0x0 << 30);
 
 	    	pDDICfg->LVDS_CTRL.bREG.RST = 1;	//  reset
 	  	pDDICfg->LVDS_CTRL.bREG.EN = 1;   // enable
@@ -152,18 +160,31 @@ static int hv070wsa_set_power(struct lcd_panel *panel, int on, unsigned int lcd_
 	}
 	mutex_unlock(&panel_lock);
 	
+	if(on && panel->bl_level)
+		panel->set_backlight_level(panel , panel->bl_level);	
+
 	return 0;
 }
 
 static int hv070wsa_set_backlight_level(struct lcd_panel *panel, int level)
 {
+    #define MAX_BACKLIGTH 255
 	struct lcd_platform_data *pdata = panel->dev->platform_data;
 
+	//printk("%s state:%d level:%d  gpio:0x%x \n " , __func__, panel->state, level, pdata->bl_on);
+
+	mutex_lock(&panel_lock);
+
+	panel->bl_level = level;
+	
 	if (level == 0) {
 		gpio_set_value(pdata->bl_on, 0);
 	} else {
-		gpio_set_value(pdata->bl_on, 1);
+		if(panel->state) {
+			tca_tco_pwm_ctrl(0, pdata->bl_on, MAX_BACKLIGTH, level);
+		}
 	}
+	mutex_unlock(&panel_lock);
 	return 0;
 }
 
@@ -182,18 +203,18 @@ struct lcd_panel hv070wsa_panel = {
 	.lpw		= 0,
 	.lpc		= 1024,
 	.lswc		= 0,
-	.lewc		= 320,
+	.lewc		= 323,	
 	.vdb		= 0,
 	.vdf		= 0,
 	.fpw1		= 0,
 	.flc1		= 600,
 	.fswc1		= 0,
-	.fewc1		= 35,
+	.fewc1		= 34,	
 	.fpw2		= 0,
 	.flc2		= 600,
 	.fswc2		= 0,
-	.fewc2		= 35,
-
+	.fewc2		= 34,
+	.sync_invert	= IV_INVERT | IH_INVERT,
 	.init		= hv070wsa_panel_init,
 	.set_power	= hv070wsa_set_power,
 	.set_backlight_level = hv070wsa_set_backlight_level,
@@ -202,20 +223,23 @@ struct lcd_panel hv070wsa_panel = {
 static int hv070wsa_probe(struct platform_device *pdev)
 {
 	struct lcd_platform_data *pdata = pdev->dev.platform_data;
-	printk("%s : %s\n", __func__,  pdev->name);
+
+	printk("%s : %s GPIO: power_on:0x%x bl_on:0x%x reset:0x%x  \n", __func__,  pdev->name, pdata->power_on, pdata->bl_on, pdata->reset);
+
 	mutex_init(&panel_lock);
-	lcd_pwr_state = 1;
+	
+	hv070wsa_panel.state = 1;
 
 	gpio_request(pdata->power_on, "lcd_on");
 	gpio_request(pdata->bl_on, "lcd_bl");
-	gpio_request(pdata->display_on, "lcd_display");
 	gpio_request(pdata->reset, "lcd_reset");
 
 	gpio_direction_output(pdata->power_on, 1);
 	gpio_direction_output(pdata->bl_on, 1);
-	gpio_direction_output(pdata->display_on, 1);
 	gpio_direction_output(pdata->reset, 1);
+	
 	hv070wsa_panel.dev = &pdev->dev;
+
 	#if defined(CONFIG_ARCH_TCC892X)
 		lvds_clk = clk_get(0, "lvds_phy"); //8920
 		if(IS_ERR(lvds_clk))
@@ -225,6 +249,7 @@ static int hv070wsa_probe(struct platform_device *pdev)
 		BUG_ON(lvds_clk == NULL);
 	#endif
 	clk_enable(lvds_clk);	
+	
 	tccfb_register_panel(&hv070wsa_panel);
 	return 0;
 }
