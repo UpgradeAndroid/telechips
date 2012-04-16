@@ -247,6 +247,7 @@ spinlock_t vsync_lock ;
 spinlock_t vsync_lockDisp ;
 
 tcc_video_disp tccvid_vsync ;
+static int vsync_started = 0;
 
 DECLARE_WAIT_QUEUE_HEAD( wq_consume ) ;
 DECLARE_WAIT_QUEUE_HEAD( wq_consume1 ) ;
@@ -1788,6 +1789,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 			tca_vsync_video_display_enable();
 
 			tcc_vsync_set_max_buffer(&tccvid_vsync.vsync_buffer, arg);
+			vsync_started = 1;
 		}
 		break ;
 
@@ -1836,7 +1838,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 				TCC_HDMI_DISPLAY_UPDATE(EX_OUT_LCDC, &ImageInfo);
 			}
 			*/
-
+			vsync_started = 0;
 		}
 		break ;
 
@@ -2134,9 +2136,10 @@ TCC_VSYNC_PUSH_ERROR:
 		
 //		if(tccvid_vsync.outputMode == Output_SelectMode)
 		{
-			if(tccvid_vsync.skipFrameStatus)
+			if(tccvid_vsync.skipFrameStatus || !vsync_started)
 			{
-				printk("frame skip mode return\n");
+				if(tccvid_vsync.skipFrameStatus)
+					vprintk("frame skip mode return\n");
 				return -1;
 			}
 			
