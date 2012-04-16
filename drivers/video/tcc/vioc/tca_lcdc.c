@@ -265,6 +265,59 @@ unsigned int DEV_LCDC_Wait_signal(char lcdc)
 }
 EXPORT_SYMBOL(DEV_LCDC_Wait_signal);
 
+unsigned int DEV_LCDC_Wait_signal_Ext(void)
+{
+	#define MAX_LCDC_WAIT_TIEM 		0x70000000
+
+	VIOC_DISP *pDISPBase0, *pDISPBase1;
+	VIOC_RDMA *pRDMABase0, *pRDMABase1;
+	VIOC_OUTCFG *pOUTCFGBase = (VIOC_OUTCFG *)tcc_p2v(HwVIOC_OUTCFG);
+	PDDICONFIG pDDICONFIG = (PDDICONFIG)tcc_p2v(HwDDI_CONFIG_BASE);
+	PPMU pPMU = (PPMU)(tcc_p2v(HwPMU_BASE));
+	PCKC pCKC = (PCKC)(tcc_p2v(HwCKC_BASE)); 
+	int disp_en0=0, disp_en1=0;
+
+	if(ISZERO(pCKC->CLKCTRL2.nREG, Hw21) || ISZERO(pPMU->PMU_PWRSTS.nREG, Hw2))
+		return FALSE;
+	
+	if(ISZERO(pDDICONFIG->PWDN.nREG, HwDDIC_PWDN_LCDC))
+		return FALSE;
+			
+	pDISPBase0 = (VIOC_DISP*)tcc_p2v(HwVIOC_DISP0);
+	pRDMABase0 = (VIOC_RDMA*)tcc_p2v(HwVIOC_RDMA00);
+	if(ISSET(pDISPBase0->uCTRL.nREG, HwDISP_LEN))
+		disp_en0 = 1;
+
+	pDISPBase1 = (VIOC_DISP*)tcc_p2v(HwVIOC_DISP1);
+	pRDMABase1 = (VIOC_RDMA*)tcc_p2v(HwVIOC_RDMA04);
+	if(ISSET(pDISPBase1->uCTRL.nREG, HwDISP_LEN))
+		disp_en1 = 1;
+
+	if(disp_en0 && disp_en1)
+	{
+		if((pOUTCFGBase->uMISCCFG.nREG & 0x3) == 1)
+		{
+			DEV_LCDC_Wait_signal(0);
+			DEV_LCDC_Wait_signal(1);
+		}
+		else
+		{
+			DEV_LCDC_Wait_signal(1);
+			DEV_LCDC_Wait_signal(0);
+		}
+	}
+	else
+	{
+		if(disp_en0)
+			DEV_LCDC_Wait_signal(0);
+			
+		if(disp_en1)
+			DEV_LCDC_Wait_signal(1);
+	}
+
+ 	return 1;
+}
+EXPORT_SYMBOL(DEV_LCDC_Wait_signal_Ext);
 
 unsigned int DEV_LCDC_Status(char lcdc)
 {

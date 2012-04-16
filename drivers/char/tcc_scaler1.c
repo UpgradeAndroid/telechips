@@ -458,7 +458,10 @@ char M2M_Scaler1_Ctrl_Detail(SCALER_TYPE *scale_img)
 	VIOC_CONFIG_RDMA14PathCtrl(0 /* RDMA14 */);
 
 	// set to VRDMA
-	VIOC_RDMA_SetImageAlphaEnable(pRDMABase1, 1);
+	#if defined(CONFIG_MACH_TCC8920ST)
+		VIOC_RDMA_SetImageAlphaSelect(pRDMABase1, 1);
+		VIOC_RDMA_SetImageAlphaEnable(pRDMABase1, 1);
+	#endif
 	VIOC_RDMA_SetImageFormat(pRDMABase1, scale_img->src_fmt);
 	VIOC_RDMA_SetImageSize(pRDMABase1, scale_img->src_ImgWidth, scale_img->src_ImgHeight);
 	VIOC_RDMA_SetImageOffset(pRDMABase1, scale_img->src_fmt, scale_img->src_ImgWidth);
