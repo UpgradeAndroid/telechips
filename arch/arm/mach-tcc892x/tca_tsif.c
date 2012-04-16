@@ -991,7 +991,7 @@ int tca_tsif_register_pids(struct tcc_tsif_handle *h, unsigned int *pids, unsign
         } 
 #endif
 #if defined(SUPPORT_PIDFILTER_INTERNAL)
-        BITCSET(h->regs->TSPID[i], (Hw32-Hw0), Hw13);    //to prevent disabling pid filter        
+        BITCSET(h->regs->TSPID[i], (Hw16-Hw0), Hw13);    //to prevent disabling pid filter        
     #if defined(UPDATE_ONLY_CHANGED_PID)
         tca_tsif_update_changed_pids(h, pids, count);
     #else

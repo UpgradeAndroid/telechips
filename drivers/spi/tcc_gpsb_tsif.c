@@ -51,7 +51,7 @@ extern int tcc_ex_tsif_set_external_tsdemux(int (*decoder)(char *p1, int p1_size
 
 static int g_use_tsif_block = 0;
 
-static int tcc_tsif_init(void);
+
 
 static struct clk *gpsb_clk;
 #define TSIF_DMA_SIZE 0x200000
@@ -67,11 +67,14 @@ struct tca_spi_pri_handle {
 	u32 pcr_pid;
 	u32 bus_num;
 	u32 irq_no;
+	u32 is_suspend;  //0:not in suspend, 1:in suspend
 	const char *name;
 };
 
 static tca_spi_handle_t tsif_handle;
 static struct tca_spi_pri_handle tsif_pri;
+static int tcc_tsif_init(void);
+static void tcc_tsif_deinit(void);
 //External Decoder :: Send packet to external kernel ts demuxer
 typedef struct
 {
@@ -177,10 +180,20 @@ static int __init tsif_drv_probe(struct platform_device *pdev)
 
 static int tsif_drv_suspend(struct platform_device *pdev, pm_message_t state)
 {
+    if(tsif_pri.is_suspend == 0)
+    {
+        tcc_tsif_deinit();
+        tsif_pri.is_suspend = 1;
+    }
 	return 0;
 }
 static int tsif_drv_resume(struct platform_device *pdev)
 {
+    if(tsif_pri.is_suspend == 1)
+    {
+        tcc_tsif_init();
+        tsif_pri.is_suspend = 0;
+    }
 
 	return 0;
 }
@@ -765,7 +778,9 @@ static void __exit tsif_exit(void)
         tsif_ex_exit();
         return;
     }
-    tcc_tsif_deinit();
+    if(tsif_pri.is_suspend == 0)
+        tcc_tsif_deinit();
+
 	unregister_chrdev(tsif_pri.drv_major_num, TSIF_DEV_NAME);
     platform_driver_unregister(&tsif_platform_driver);
 	if(gpsb_clk)
