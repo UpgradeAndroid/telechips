@@ -1941,7 +1941,7 @@ static long tcc_component_ioctl(struct file *file, unsigned int cmd, void *arg)
 				}
 			#endif
 			
-			TCC_OUTPUT_FB_DetachOutput();
+			TCC_OUTPUT_FB_DetachOutput(1);
 			
 			TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_COMPONENT, start.lcdc, TRUE);
 			

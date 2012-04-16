@@ -147,6 +147,10 @@ char M2M_Scaler2_Ctrl_Detail(SCALER_TYPE *scale_img)
 
 
 	// set to VRDMA
+	#if defined(CONFIG_MACH_TCC8920ST)
+		VIOC_RDMA_SetImageAlphaSelect(SC2_pRDMABase, 1);
+		VIOC_RDMA_SetImageAlphaEnable(SC2_pRDMABase, 1);
+	#endif
 	VIOC_RDMA_SetImageFormat(SC2_pRDMABase, scale_img->src_fmt);
 	VIOC_RDMA_SetImageSize(SC2_pRDMABase, scale_img->src_ImgWidth, scale_img->src_ImgHeight);
 	VIOC_RDMA_SetImageOffset(SC2_pRDMABase, scale_img->src_fmt, scale_img->src_ImgWidth);
