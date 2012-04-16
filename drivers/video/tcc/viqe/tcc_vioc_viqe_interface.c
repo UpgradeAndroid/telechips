@@ -110,12 +110,9 @@ void TCC_VIQE_DI_Init(int scalerCh, int useWMIXER, unsigned int srcWidth, unsign
 	unsigned int deintl_dma_base0, deintl_dma_base1, deintl_dma_base2, deintl_dma_base3;
 	unsigned int framebufWidth, framebufHeight;
 	int imgSize;
-	
 	VIOC_VIQE_FMT_TYPE img_fmt = VIOC_VIQE_FMT_YUV420;
-	VIOC_VIQE_DEINTL_MODE DI_mode = VIOC_VIQE_DEINTL_MODE_2D;
 	int top_size_dont_use = OFF;		//If this value is OFF, The size information is get from VIOC modules.
 
-	
 	pmap_get_info("viqe", &pmap_viqe);
 
 	if(useWMIXER)
@@ -152,57 +149,47 @@ void TCC_VIQE_DI_Init(int scalerCh, int useWMIXER, unsigned int srcWidth, unsign
 	framebufHeight = ((srcHeight - crop_top - crop_bottom) >> 1) << 1;		// 2bit align
 
 	printk("TCC_VIQE_DI_Init, W:%d, H:%d, FMT:%s, OddFirst:%d, RDMA:%d\n", framebufWidth, framebufHeight, (img_fmt?"YUV422":"YUV420"), OddFirst, ((gRDMA_reg-HwVIOC_RDMA00)/256));
-	if(DI_mode == VIOC_VIQE_DEINTL_S)
-	{
-		deintl_dma_base0	= NULL;
-		deintl_dma_base1	= NULL;
-		deintl_dma_base2	= NULL;
-		deintl_dma_base3	= NULL;
-	}
-	else
-	{
-		// If you use 3D(temporal) De-interlace mode, you have to set physical address for using DMA register.
-		//If 2D(spatial) mode, these registers are ignored
-		imgSize = (framebufWidth * framebufHeight * 2);
-		deintl_dma_base0	= gPMEM_VIQE_BASE;
-		deintl_dma_base1	= deintl_dma_base0 + imgSize;
-		deintl_dma_base2	= deintl_dma_base1 + imgSize;
-		deintl_dma_base3	= deintl_dma_base2 + imgSize;	
-	}
-
+	
+	VIOC_RDMA_SetImageY2REnable(pRDMABase, FALSE);
+	VIOC_RDMA_SetImageY2RMode(pRDMABase, 0x02); /* Y2RMode Default 0 (Studio Color) */
+	VIOC_RDMA_SetImageIntl(pRDMABase, 1);
+	VIOC_RDMA_SetImageBfield(pRDMABase, OddFirst);
+#ifdef USE_DEINTERLACE_S
+	deintl_dma_base0	= NULL;
+	deintl_dma_base1	= NULL;
+	deintl_dma_base2	= NULL;
+	deintl_dma_base3	= NULL;
+	VIOC_API_VIQE_SetPlugIn(VIOC_DEINTLS, gVIQE_RDMA_num);
+#else
+	// If you use 3D(temporal) De-interlace mode, you have to set physical address for using DMA register.
+	//If 2D(spatial) mode, these registers are ignored
+	imgSize = (framebufWidth * framebufHeight * 2);
+	deintl_dma_base0	= gPMEM_VIQE_BASE;
+	deintl_dma_base1	= deintl_dma_base0 + imgSize;
+	deintl_dma_base2	= deintl_dma_base1 + imgSize;
+	deintl_dma_base3	= deintl_dma_base2 + imgSize;	
 	if (top_size_dont_use == OFF)
 	{
 		framebufWidth  = 0;
 		framebufHeight = 0;
 	}
 	
-	VIOC_RDMA_SetImageY2REnable(pRDMABase, FALSE);
-	VIOC_RDMA_SetImageY2RMode(pRDMABase, 0x02); /* Y2RMode Default 0 (Studio Color) */
-	VIOC_RDMA_SetImageIntl(pRDMABase, 1);
-	VIOC_RDMA_SetImageBfield(pRDMABase, OddFirst);
-	
-	if(DI_mode == VIOC_VIQE_DEINTL_S)
+	VIOC_VIQE_SetControlRegister(pVIQE, framebufWidth, framebufHeight, img_fmt);
+	VIOC_VIQE_SetDeintlRegister(pVIQE, img_fmt, top_size_dont_use, framebufWidth, framebufHeight, gDI_mode, deintl_dma_base0, deintl_dma_base1, deintl_dma_base2, deintl_dma_base3);
+	VIOC_VIQE_SetControlEnable(pVIQE, OFF, OFF, OFF, OFF, ON);
+	if(gVIQE_RDMA_num == VIOC_VIQE_RDMA_02)
 	{
-		VIOC_API_VIQE_SetPlugIn(VIOC_DEINTLS, gVIQE_RDMA_num);
+		VIOC_VIQE_SetImageY2REnable(pVIQE, TRUE);
+		VIOC_VIQE_SetImageY2RMode(pVIQE, 0x02);
 	}
-	else
-	{
-		VIOC_VIQE_SetControlRegister(pVIQE, framebufWidth, framebufHeight, img_fmt);
-		VIOC_VIQE_SetDeintlRegister(pVIQE, img_fmt, top_size_dont_use, framebufWidth, framebufHeight, DI_mode, deintl_dma_base0, deintl_dma_base1, deintl_dma_base2, deintl_dma_base3);
-		VIOC_VIQE_SetControlEnable(pVIQE, OFF, OFF, OFF, OFF, ON);
-		if(gVIQE_RDMA_num == VIOC_VIQE_RDMA_02)
-		{
-			VIOC_VIQE_SetImageY2REnable(pVIQE, TRUE);
-			VIOC_VIQE_SetImageY2RMode(pVIQE, 0x02);
-		}
-		VIOC_API_VIQE_SetPlugIn(VIOC_VIQE, gVIQE_RDMA_num);
-	}
-
-	gFrmCnt= 0;
+	VIOC_API_VIQE_SetPlugIn(VIOC_VIQE, gVIQE_RDMA_num);
 	if(OddFirst)
 		gbfield =1;
 	else
 	gbfield =0;
+#endif
+
+	gFrmCnt= 0;
 }
 
 
@@ -226,6 +213,7 @@ void TCC_VIQE_DI_Run(unsigned int srcWidth, unsigned int srcHeight,
 	if(gFrmCnt == 0)
 		printk("TCC_VIQE_DI_Run\n");
 
+#ifndef USE_DEINTERLACE_S
 	if(gFrmCnt == 3)
 		VIOC_VIQE_SetDeintlMode(pVIQE, VIOC_VIQE_DEINTL_MODE_3D);
 
@@ -245,28 +233,25 @@ void TCC_VIQE_DI_Run(unsigned int srcWidth, unsigned int srcHeight,
 #else
 	VIOC_RDMA_SetImageBfield(pRDMABase, OddFirst);				// change the top to bottom field
 #endif
+#endif
 	gFrmCnt++;	
 }
 
 void TCC_VIQE_DI_DeInit(void)
 {
-	VIOC_VIQE_DEINTL_MODE DI_mode = VIOC_VIQE_DEINTL_MODE_2D;
 	volatile PVIOC_IREQ_CONFIG pIREQConfig;
 	pIREQConfig = (volatile PVIOC_IREQ_CONFIG)tcc_p2v((unsigned int)HwVIOC_IREQ);
 
 	printk("TCC_VIQE_DI_DeInit\n");
-	if(DI_mode == VIOC_VIQE_DEINTL_S)
-	{
-		VIOC_API_VIQE_SetPlugOut(VIOC_DEINTLS);
-		BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<17), (0x01<<17)); // DEINTLS reset
-		BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<17), (0x00<<17)); // DEINTLS reset
-	}
-	else
-	{
-		VIOC_API_VIQE_SetPlugOut(VIOC_VIQE);
-		BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<16), (0x01<<16)); // VIQE reset
-		BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<16), (0x00<<16)); // VIQE reset
-	}
+#ifdef USE_DEINTERLACE_S	
+	VIOC_API_VIQE_SetPlugOut(VIOC_DEINTLS);
+	BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<17), (0x01<<17)); // DEINTLS reset
+	BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<17), (0x00<<17)); // DEINTLS reset
+#else
+	VIOC_API_VIQE_SetPlugOut(VIOC_VIQE);
+	BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<16), (0x01<<16)); // VIQE reset
+	BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<16), (0x00<<16)); // VIQE reset
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////

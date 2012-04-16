@@ -58,6 +58,7 @@ struct tca_spi_global_setting{
     int gpsb_port;
     struct clk *gpsb_clk;
     const char *gpsb_clk_name;
+    struct spi_device *current_spi;
 };
 static struct tca_spi_global_setting tcc_spi_info;
 
@@ -410,6 +411,7 @@ static int tcc_spi_open(struct spi_device *spi)
 
 	master = spi->master;
     tcc_spi_info.gpsb_clk = clk_get(NULL, tcc_spi_info.gpsb_clk_name);
+    tcc_spi_info.current_spi =  spi;
     if(tcc_spi_info.gpsb_clk == NULL)
         goto err;
 
@@ -536,6 +538,10 @@ static int tcc_spi_remove(struct platform_device *pdev)
 
 static int tcc_spi_suspend(struct platform_device *pdev, pm_message_t state)
 {
+    if(tcc_spi_info.open){
+        tcc_spi_info.open = 0;
+        tcc_spi_close(tcc_spi_info.current_spi);
+    }
 	return 0;
 }
 static int tcc_spi_resume(struct platform_device *pdev)

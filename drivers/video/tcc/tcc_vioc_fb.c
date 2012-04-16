@@ -1406,7 +1406,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 	switch(cmd)
 	{
 		case TCC_LCDC_HDMI_START:
-			TCC_OUTPUT_FB_DetachOutput();
+			TCC_OUTPUT_FB_DetachOutput(1);
 			TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_HDMI, EX_OUT_LCDC, 1);
 			break;
 

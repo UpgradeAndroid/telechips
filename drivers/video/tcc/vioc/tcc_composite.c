@@ -1304,7 +1304,7 @@ static long tcc_composite_ioctl(struct file *file, unsigned int cmd, void *arg)
 		case TCC_COMPOSITE_IOCTL_START:
 			copy_from_user(&start,arg,sizeof(start));
 
-			TCC_OUTPUT_FB_DetachOutput();
+			TCC_OUTPUT_FB_DetachOutput(1);
 			
 			#if !defined(CONFIG_MACH_TCC8920ST)
 			start.lcdc = tca_get_output_lcdc_num();
