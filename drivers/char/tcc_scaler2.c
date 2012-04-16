@@ -442,7 +442,7 @@ int tccxxx_scaler2_release(struct inode *inode, struct file *filp)
 		}
 		
 		VIOC_CONFIG_PlugOut(VIOC_SC0);
-		VIOC_SC_SetSWReset(VIOC_SC0, VIOC_SC_RDMA_17, VIOC_SC_WDMA_07);
+		VIOC_SC_SetSWReset(VIOC_SC0, 17/*VIOC_SC_RDMA_17*/, 7/*VIOC_SC_WDMA_07*/);
 
 		SC2_data.block_operating = SC2_data.block_waiting = 0;
 		SC2_data.poll_count = SC2_data.cmd_count = 0;
@@ -472,7 +472,8 @@ int tccxxx_scaler2_open(struct inode *inode, struct file *filp)
 		// set to VWDMA
 		SC2_pWDMABase = (volatile PVIOC_WDMA)tcc_p2v((unsigned int)HwVIOC_WDMA07);
 
-		VIOC_SC_SetSWReset(VIOC_SC0, VIOC_SC_RDMA_17, VIOC_SC_WDMA_07);
+		VIOC_SC_SetSWReset(VIOC_SC0, 17/*VIOC_SC_RDMA_17*/, 7/*VIOC_SC_WDMA_07*/);
+
 		VIOC_WDMA_SetIreqMask(SC2_pWDMABase, VIOC_WDMA_IREQ_EOFR_MASK, 0x0);
 		ret = request_irq(INT_VIOC_WD7, tccxxx_scaler2_handler, IRQF_SHARED, "scaler2", &SC2_data);
 		
