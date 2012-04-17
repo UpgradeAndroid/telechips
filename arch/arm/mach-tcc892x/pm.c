@@ -2513,13 +2513,14 @@ FUNCTION
 static int tcc_pm_enter(suspend_state_t state)
 {
 	unsigned long flags;
+
 #if defined(TCC_PM_SLEEP_WFI_USED)
 	#if LOG_NDEBUG
-	volatile PPIC pPIC = (volatile PPIC)tcc_p2v(HwPIC_BASE);
-	unsigned reg_backup[20];
+		volatile PPIC pPIC = (volatile PPIC)tcc_p2v(HwPIC_BASE);
+		unsigned reg_backup[20];
 
-	reg_backup[0] = pPIC->STS0.nREG;
-	reg_backup[1] = pPIC->STS1.nREG;
+		reg_backup[0] = pPIC->STS0.nREG;
+		reg_backup[1] = pPIC->STS1.nREG;
 	#endif
 #endif
 
@@ -2550,11 +2551,8 @@ static int tcc_pm_enter(suspend_state_t state)
 
 #if defined(TCC_PM_SLEEP_WFI_USED)
 	#if LOG_NDEBUG
-	reg_backup[2] = pPIC->STS0.nREG;
-	reg_backup[3] = pPIC->STS1.nREG;
-
-	printk("WOW %08X %08X\n", reg_backup[0], reg_backup[1]);
-	printk("WOW %08X %08X\n", reg_backup[2], reg_backup[3]);
+		reg_backup[2] = pPIC->STS0.nREG;
+		reg_backup[3] = pPIC->STS1.nREG;
 	#endif
 #endif
 
