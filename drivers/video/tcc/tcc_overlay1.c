@@ -110,6 +110,7 @@ static PLCDC		pLCDC1, pLCDC0;
 static volatile PLCDC_CHANNEL pLCDC1_CH1;
 #else
 static VIOC_WMIX *pWMIXBase1;
+static VIOC_WMIX *pWMIXBaseExtend;
 static VIOC_RDMA *pRDMABase5;
 #endif//
 
@@ -618,10 +619,7 @@ static int tccxxx_overlay1_set_chroma(overlay_chroma_t* arg)
 
 		BITCSET (pLCDC0->LI1C, 	HwLCT_RU, 	HwLCT_RU); //Image update
 		#else
-		VIOC_WMIX *pWMIX;
-		pWMIX = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX0);
-
-		VIOC_WMIX_SetChromaKey(pWMIX, 2, config->enable, (config->chromaR & 0xFF), (config->chromaG & 0xFF), (config->chromaB & 0xFF), 
+		VIOC_WMIX_SetChromaKey(pWMIXBaseExtend, 2, config->enable, (config->chromaR & 0xFF), (config->chromaG & 0xFF), (config->chromaB & 0xFF), 
 										((config->chromaR >> 16) & 0xFF), ((config->chromaG >> 16) & 0xFF), ((config->chromaB >> 16) & 0xFF));
 		#endif//
 		
@@ -762,11 +760,13 @@ static int __init tcc_overlay1_probe(struct platform_device *pdev)
 		if(lcd_lcdc_num)
 		{
 			pWMIXBase1 = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX1);
+			pWMIXBaseExtend = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX0);
 			pRDMABase5 = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA05);
 		}
 		else
 		{
 			pWMIXBase1 = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX0);
+			pWMIXBaseExtend = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX1);
 			pRDMABase5 = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA01);
 		}
 	#endif//
