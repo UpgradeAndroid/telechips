@@ -50,6 +50,7 @@ extern int tcc_ex_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long 
 extern int tcc_ex_tsif_set_external_tsdemux(int (*decoder)(char *p1, int p1_size, char *p2, int p2_size), int max_dec_packet);
 
 static int g_use_tsif_block = 0;
+static char g_use_tsif_export_ioctl = 0;
 
 
 
@@ -115,6 +116,11 @@ static int tcc_tsif_set_external_tsdemux(int (*decoder)(char *p1, int p1_size, c
     return 0;
 }
 EXPORT_SYMBOL(tcc_tsif_set_external_tsdemux);
+
+static char is_use_tsif_export_ioctl(void)
+{
+	return g_use_tsif_export_ioctl;
+}
 
 static ssize_t show_port(struct device *dev, struct device_attribute *attr, char *buf)
 {
@@ -407,7 +413,12 @@ static int tcc_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long arg
     case IOCTL_TSIF_DMA_START:
         {
             struct tcc_tsif_param param;
-            if (copy_from_user(&param, (void *)arg, sizeof(struct tcc_tsif_param))) {
+			if (is_use_tsif_export_ioctl()== 1) {
+				memcpy(&param, (void *)arg, sizeof(struct tcc_tsif_param));
+			} else {
+				ret = copy_from_user(&param, (void *)arg, sizeof(struct tcc_tsif_param));
+			}
+            if (ret) {
                 printk("cannot copy from user tcc_tsif_param in IOCTL_TSIF_DMA_START !!! \n");
                 return -EFAULT;
             }
@@ -456,7 +467,12 @@ static int tcc_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long arg
             param.ts_total_packet_cnt = tsif_handle.dma_total_size / TSIF_PACKET_SIZE;
             param.ts_intr_packet_cnt = 1;
 
-            if (copy_to_user((void *)arg, (void *)&param, sizeof(struct tcc_tsif_param))) {
+			if (is_use_tsif_export_ioctl()== 1) {
+				memcpy((void *)arg, (void *)&param, sizeof(struct tcc_tsif_param));
+			} else {
+				ret = copy_to_user((void *)arg, (void *)&param, sizeof(struct tcc_tsif_param));
+			}
+            if (ret) {
                 printk("cannot copy to user tcc_tsif_param in IOCTL_TSIF_GET_MAX_DMA_SIZE !!! \n");
                 return -EFAULT;
             }
@@ -466,7 +482,12 @@ static int tcc_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long arg
     case IOCTL_TSIF_SET_PID:
         {
             struct tcc_tsif_pid_param param;
-            if (copy_from_user(&param, (void *)arg, sizeof(struct tcc_tsif_pid_param))) {
+			if (is_use_tsif_export_ioctl()== 1) {
+				memcpy(&param, (void *)arg, sizeof(struct tcc_tsif_pid_param));
+			} else {
+				ret = copy_from_user(&param, (void *)arg, sizeof(struct tcc_tsif_pid_param));
+			}
+            if (ret) {
                 printk("cannot copy from user tcc_tsif_pid_param in IOCTL_TSIF_SET_PID !!! \n");
                 return -EFAULT;
             }
@@ -480,7 +501,12 @@ static int tcc_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long arg
 		}
 		break;
 	case IOCTL_TSIF_SET_PCRPID:		
-		if (copy_from_user((void *)&tsif_pri.pcr_pid, (const void *)arg, sizeof(int))) {
+		if (is_use_tsif_export_ioctl()== 1) {
+			memcpy((void *)&tsif_pri.pcr_pid, (const void *)arg, sizeof(int));
+		} else {
+			ret = copy_from_user((void *)&tsif_pri.pcr_pid, (const void *)arg, sizeof(int));
+		}
+		if (ret) {
 			return -EFAULT;
 		}		
 		printk("Set PCR PID[0x%X]\n", tsif_pri.pcr_pid);
@@ -492,7 +518,12 @@ static int tcc_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long arg
 			unsigned int uiSTC;
 			uiSTC = TSDEMUX_GetSTC();
 			//printk("STC %d\n", uiSTC);
-			if (copy_to_user((void *)arg, (void *)&uiSTC, sizeof(int))) {
+			if (is_use_tsif_export_ioctl()== 1) {
+				memcpy((void *)arg, (void *)&uiSTC, sizeof(int));
+			} else {
+				ret = copy_to_user((void *)arg, (void *)&uiSTC, sizeof(int));
+			}
+			if (ret) {
                 printk("cannot copy to user tcc_tsif_param in IOCTL_TSIF_GET_PCR !!! \n");
                 return -EFAULT;
             }
@@ -518,94 +549,9 @@ static int tcc_export_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned l
 	}
 	else
 	{
-		switch (cmd) {
-		case IOCTL_TSIF_DMA_START:
-			{
-				struct tcc_tsif_param param;
-				memcpy(&param, (void *)arg, sizeof(struct tcc_tsif_param));
-		
-				if (((TSIF_PACKET_SIZE * param.ts_total_packet_cnt) > tsif_handle.dma_total_size)
-					|| (param.ts_total_packet_cnt <= 0)) {
-					printk("so big ts_total_packet_cnt !!! \n");
-					return -EFAULT;
-				}
-		
-				tsif_handle.dma_stop(&tsif_handle);
-		
-				tca_spi_setCPHA(tsif_handle.regs, param.mode & SPI_CPHA);
-				tca_spi_setCPOL(tsif_handle.regs, param.mode & SPI_CPOL);
-				tca_spi_setCS_HIGH(tsif_handle.regs, param.mode & SPI_CS_HIGH);
-				tca_spi_setLSB_FIRST(tsif_handle.regs, param.mode & SPI_LSB_FIRST);
-		
-				tsif_handle.dma_mode = param.dma_mode;
-				if (tsif_handle.dma_mode == 0) {
-					tsif_handle.set_mpegts_pidmode(&tsif_handle, 0);
-				}
-		
-				tsif_handle.dma_total_packet_cnt = param.ts_total_packet_cnt;
-				tsif_handle.dma_intr_packet_cnt = param.ts_intr_packet_cnt;
-		
-		#ifdef		SUPORT_USE_SRAM
-				tsif_handle.dma_total_packet_cnt = SRAM_TOT_PACKET;
-				tsif_handle.dma_intr_packet_cnt = SRAM_INT_PACKET;
-		#endif
-				tsif_handle.clear_fifo_packet(&tsif_handle);
-				tsif_handle.q_pos = tsif_handle.cur_q_pos = 0;
-		
-				tsif_handle.set_packet_cnt(&tsif_handle, MPEG_PACKET_SIZE);
-				printk("interrupt packet count [%u]\n", tsif_handle.dma_intr_packet_cnt);
-				tsif_handle.dma_start(&tsif_handle);
-			}
-			break;
-			
-		case IOCTL_TSIF_DMA_STOP:
-				tsif_handle.dma_stop(&tsif_handle);
-			break;
-			
-		case IOCTL_TSIF_GET_MAX_DMA_SIZE:
-			{
-				struct tcc_tsif_param param;
-				param.ts_total_packet_cnt = tsif_handle.dma_total_size / TSIF_PACKET_SIZE;
-				param.ts_intr_packet_cnt = 1;
-		
-				memcpy((void *)arg, (void *)&param, sizeof(struct tcc_tsif_param));
-			}
-			break;
-			
-		case IOCTL_TSIF_SET_PID:
-			{
-				struct tcc_tsif_pid_param param;
-				memcpy(&param, (void *)arg, sizeof(struct tcc_tsif_pid_param));
-				ret = tca_spi_register_pids(&tsif_handle, param.pid_data, param.valid_data_cnt);
-			} 
-			break;
-			
-		case IOCTL_TSIF_DXB_POWER:
-			{
-				// the power control moves to tcc_dxb_control driver.
-			}
-			break;
-		case IOCTL_TSIF_SET_PCRPID: 	
-			memcpy((void *)&tsif_pri.pcr_pid, (const void *)arg, sizeof(int));
-			printk("Set PCR PID[0x%X]\n", tsif_pri.pcr_pid);
-			if( tsif_pri.pcr_pid < 0x1FFF)
-				TSDEMUX_Open();
-			break;
-		case IOCTL_TSIF_GET_STC:	
-			{
-				unsigned int uiSTC;
-				uiSTC = TSDEMUX_GetSTC();
-				//printk("STC %d\n", uiSTC);
-				memcpy((void *)arg, (void *)&uiSTC, sizeof(int));
-			}
-			break;	
-		case IOCTL_TSIF_RESET:
-			break;
-		default:
-			printk("tsif: unrecognized ioctl (0x%X)\n", cmd);
-			ret = -EINVAL;
-			break;
-		}
+		g_use_tsif_export_ioctl = 1;
+		ret = tcc_tsif_ioctl(filp, cmd, arg);
+		g_use_tsif_export_ioctl = 0;
 	}
     return ret;
 }
