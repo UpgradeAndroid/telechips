@@ -141,6 +141,8 @@ static unsigned int gtCamSizeTable[NUM_FREQS] =
 	1280 * 720, //HD720P,
 };
 
+#define CAMERA_LOOP_LIMIT_COUNT 		10 * 1000 * 1000
+int camera_loop_cnt = 0; //20120414 ysseung   modify to camera infinite loop. count limit is CAMERA_LOOP_LIMIT_COUNT.
 extern int camera_no_connect_cnt; //20120404 ysseung   if the camera is not connected, modify to an infinite loop issue of camera stop.
 
 
@@ -810,8 +812,7 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 	if(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_EOFR_MASK)
 	{
 		if(data->cif_cfg.oper_mode == OPER_CAPTURE) {
-			if(skip_frm == 0 && !frame_lock)
-			{
+			if(skip_frm == 0 && !frame_lock) {
 				VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_ALL_MASK, 0x1);
 
 				// Disable WDMA
@@ -821,7 +822,16 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 				// Before camera quit, we have to wait WMDA's SEN signal to LOW.
 				while(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_STSEN_MASK) {
 					for(nCnt=0; nCnt < 10000; nCnt++);
+					//20120414 ysseung   modify to camera infinite loop. count limit is CAMERA_LOOP_LIMIT_COUNT. - start -
+					camera_loop_cnt++;
+					if(camera_loop_cnt > CAMERA_LOOP_LIMIT_COUNT) {
+						printk("1. WDMA is not ready. camera_loop_cnt = %d. \n", camera_loop_cnt);
+						camera_loop_cnt = 0;
+						break;
+					}
+					//20120414 ysseung   modify to camera infinite loop. count limit is CAMERA_LOOP_LIMIT_COUNT. - end -
 				}
+
 				// Disable VIN
 				VIOC_VIN_SetEnable(pVINBase, OFF);
 
@@ -856,13 +866,11 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 			}
 		}
 		
-		if(data->stream_state == STREAM_ON)
-		{
+		if(data->stream_state == STREAM_ON) {
 			TDD_CIF_SetInterrupt(SET_CIF_UPDATE_WITHOUT_VSYNC);	
 			sensor_if_check_control();
 
-			if(skip_frm == 0 && !frame_lock)
-			{
+			if(skip_frm == 0 && !frame_lock) {
 				if(prev_buf != NULL) {
 					list_move_tail(&prev_buf->buf_list, &data->done_list);
 				}
@@ -936,6 +944,14 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 						// Note that do not decrease below Cnt.
 						while(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_STSEN_MASK) {
 							for(nCnt=0; nCnt < 10000; nCnt++);
+							//20120414 ysseung   modify to camera infinite loop. count limit is CAMERA_LOOP_LIMIT_COUNT. - start -
+							camera_loop_cnt++;
+							if(camera_loop_cnt > CAMERA_LOOP_LIMIT_COUNT) {
+								printk("2. WDMA is not ready. camera_loop_cnt = %d. \n", camera_loop_cnt);
+								camera_loop_cnt = 0;
+								break;
+							}
+							//20120414 ysseung   modify to camera infinite loop. count limit is CAMERA_LOOP_LIMIT_COUNT. - end -
 						}
 
 						VIOC_VIN_SetImageSize(pVINBase, data->cif_cfg.main_set.source_x, data->cif_cfg.main_set.source_y);
@@ -954,8 +970,7 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 
 					old_zoom_step = data->cif_cfg.zoom_step;							
 				}
-				else
-				{
+				else {
 					prev_buf = NULL;
 					dprintk("no-buf change... wakeup!! \n");
 					skipped_frm++;
@@ -964,8 +979,7 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 				data->wakeup_int = 1;
 				wake_up_interruptible(&data->frame_wait);					
 			}
-			else
-			{
+			else {
 				if(skip_frm > 0) {
 					skip_frm--;
 					printk("decrease frm!!\n");
@@ -2535,33 +2549,39 @@ int tccxxx_cif_start_stream(void)
 
 			tccxxx_vioc_vin_wdma_set(pWDMABase);
 		#else // CONFIG_VIDEO_ATV_SENSOR_TVP5150
-			// We have to throw out first frame in VIOC, Because of stable operation
-			{
+			{ // We have to throw out first frame in VIOC, Because of stable operation
 				VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_ALL_MASK, 0x1);
-		
+
 				// Disable WDMA
 				BITCSET(pWDMABase->uCTRL.nREG, 1<<28, 0<<28);
-
 				BITCSET(pWDMABase->uCTRL.nREG, 1<<16, 1<<16);
 
 				// Before camera quit, we have to wait WMDA's SEN signal to LOW.
 				while(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_STSEN_MASK) {
 					for(nCnt=0; nCnt < 10000; nCnt++);
+					//20120414 ysseung   if the camera is not connected, modify to an infinite loop issue of camera stop. - start -
+					if(camera_no_connect_cnt > 6) {
+						volatile PVIOC_IREQ_CONFIG pIREQConfig = (volatile PVIOC_IREQ_CONFIG)tcc_p2v((unsigned int)HwVIOC_IREQ);
+						VIOC_WDMA_SetImageEnable(pWDMABase, OFF);
+						VIOC_WDMA_SWReset(pIREQConfig, 0x5/* WDMA05 */);
+						tccxxx_vioc_vin_wdma_set(pWDMABase);
+						printk("not recevied frame = %d. \n", camera_no_connect_cnt);
+						camera_no_connect_cnt = 0;
+						break;
+					}
+					//20120414 ysseung   if the camera is not connected, modify to an infinite loop issue of camera stop. - end -
 				}
 
 				// Disable VIN
 				VIOC_VIN_SetEnable(pVINBase, OFF);
-					
 				data->cif_cfg.cap_status = CAPTURE_NONE;
 			}
-		
+
 			sensor_if_change_mode(OPER_PREVIEW);
 
-		    tccxxx_vioc_scaler_set(pSCBase, pVINBase, pWMIXBase, sc_plug_in0);
-
-		    tccxxx_vioc_vin_main(pVINBase);
-		   
-		    tccxxx_vioc_vin_wdma_set(pWDMABase);
+			tccxxx_vioc_scaler_set(pSCBase, pVINBase, pWMIXBase, sc_plug_in0);
+			tccxxx_vioc_vin_main(pVINBase);
+			tccxxx_vioc_vin_wdma_set(pWDMABase);
 		#endif // CONFIG_VIDEO_ATV_SENSOR_TVP5150
 	#else // CONFIG_ARCH_TCC892X
 		TDD_CIF_ONOFF(OFF);
@@ -2631,7 +2651,6 @@ int tccxxx_cif_stop_stream(void)
 	
 	while(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_STSEN_MASK) {
 		for(nCnt=0; nCnt < 10000; nCnt++);
-
 		//20120404 ysseung   if the camera is not connected, modify to an infinite loop issue of camera stop. - start -
 		if(camera_no_connect_cnt > 3) {
 			volatile PVIOC_IREQ_CONFIG pIREQConfig = (volatile PVIOC_IREQ_CONFIG)tcc_p2v((unsigned int)HwVIOC_IREQ);
@@ -2759,12 +2778,11 @@ int tccxxx_cif_capture(int quality)
 	unsigned int target_width, target_height;
 	unsigned int ens_addr;
 	int skip_frame = 0, nCnt;
-	#if	defined(CONFIG_ARCH_TCC892X)
-		uint    sc_plug_in0;
-	#endif
+#if	defined(CONFIG_ARCH_TCC892X)
+	uint sc_plug_in0;
+#endif
 
 	dprintk("%s Start!! \n", __FUNCTION__);
-	
 #if defined(CONFIG_USE_ISP)
 	int mode=0;
 
@@ -2873,17 +2891,23 @@ int tccxxx_cif_capture(int quality)
 
 		// Disable WDMA
 		BITCSET(pWDMABase->uCTRL.nREG, 1<<28, 0<<28);
-
 		BITCSET(pWDMABase->uCTRL.nREG, 1<<16, 1<<16);
 
 		// Before camera quit, we have to wait WMDA's SEN signal to LOW.
 		while(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_STSEN_MASK) {
 			for(nCnt=0; nCnt < 10000; nCnt++);
+			//20120414 ysseung   modify to camera infinite loop. count limit is CAMERA_LOOP_LIMIT_COUNT. - start -
+			camera_loop_cnt++;
+			if(camera_loop_cnt > CAMERA_LOOP_LIMIT_COUNT) {
+				printk("3. WDMA is not ready. camera_loop_cnt = %d. \n", camera_loop_cnt);
+				camera_loop_cnt = 0;
+				break;
+			}
+			//20120414 ysseung   modify to camera infinite loop. count limit is CAMERA_LOOP_LIMIT_COUNT. - end -
 		}
 
 		// Disable VIN
 		VIOC_VIN_SetEnable(pVINBase, OFF);
-			
 		data->cif_cfg.cap_status = CAPTURE_NONE;
 	}
 
@@ -3005,8 +3029,8 @@ int tccxxx_cif_capture(int quality)
 	msleep(100);
 	#endif // CONFIG_ARCH_TCC892X
 #endif // CONFIG_USE_ISP
-
 	dprintk("%s End!! \n", __FUNCTION__);
+
 	return 0;
 }
 		
@@ -3017,17 +3041,16 @@ int tccxxx_cif_set_zoom(unsigned char arg)
 
 	data->cif_cfg.zoom_step = arg;
 
-	#ifdef CONFIG_USE_ISP
-		ISP_SetPreview_Zoom(data->cif_cfg.zoom_step);
-	#else
-	if(data->stream_state != STREAM_OFF)
-	{
+	#if defined(CONFIG_USE_ISP)
+	ISP_SetPreview_Zoom(data->cif_cfg.zoom_step);
+	#else // CONFIG_USE_ISP
+	if(data->stream_state != STREAM_OFF) {
 		dprintk("zoom level = %d. \n", data->cif_cfg.zoom_step);
 		TDD_CIF_ONOFF(OFF);
 		cif_scaler_calc();
 		TDD_CIF_ONOFF(ON);
 	}
-	#endif
+	#endif // CONFIG_USE_ISP
 
 	return 0;
 }
@@ -3055,35 +3078,30 @@ int tccxxx_cif_open(void)
 	int ret;
 	struct TCCxxxCIF *data = (struct TCCxxxCIF *) &hardware_data;
 
-	data->done_list.next	= &data->done_list;
-	data->list.next		= &data->list;
+	data->done_list.next = &data->done_list;
+	data->list.next = &data->list;
 
 #if defined(CONFIG_USE_ISP)
-	if(!cam_irq)
-	{
-		if ((ret = request_irq(IRQ_ISP1, isp_cam_isr1, IRQF_DISABLED, "isp2", NULL)) < 0) 
-		{
+	if(!cam_irq) {
+		if((ret = request_irq(IRQ_ISP1, isp_cam_isr1, IRQF_DISABLED, "isp2", NULL)) < 0) {
 			printk("FAILED to aquire camera-irq\n");
 			return ret;
 		}
-		if ((ret = request_irq(IRQ_ISP2, isp_cam_isr2, IRQF_DISABLED, "isp3", NULL)) < 0) 
-		{
+
+		if((ret = request_irq(IRQ_ISP2, isp_cam_isr2, IRQF_DISABLED, "isp3", NULL)) < 0) {
 			printk("FAILED to aquire camera-irq\n");
 			return ret;
-		}		
+		}
 		cam_irq = 1;
 	}
-
-#else
-	if(!cam_irq)
-	{
+#else // CONFIG_USE_ISP
+	if(!cam_irq) {
 		#if defined(CONFIG_ARCH_TCC88XX)
-			if ((ret = request_irq(IRQ_CIF, cif_cam_isr, IRQF_DISABLED, "camera", NULL)) < 0)
-		#elif	defined(CONFIG_ARCH_TCC892X)
-			//	In case of 892X, we have to add.			
-			if ((ret = request_irq(INT_VIOC_WD5, cif_cam_isr_in8920, IRQF_SHARED, "camera", cif_cam_isr_in8920)) < 0)
+			if((ret = request_irq(IRQ_CIF, cif_cam_isr, IRQF_DISABLED, "camera", NULL)) < 0)
+		#elif defined(CONFIG_ARCH_TCC892X)
+			if((ret = request_irq(INT_VIOC_WD5, cif_cam_isr_in8920, IRQF_DISABLED /*IRQF_SHARED*/, "camera", NULL /*cif_cam_isr_in8920*/)) < 0)
 		#else
-			if ((ret = request_irq(IRQ_CAM, cif_cam_isr, IRQF_DISABLED, "camera", NULL)) < 0) 
+			if((ret = request_irq(IRQ_CAM, cif_cam_isr, IRQF_DISABLED, "camera", NULL)) < 0)
 		#endif
 		{
 			printk("FAILED to aquire camera-irq\n");
@@ -3092,14 +3110,13 @@ int tccxxx_cif_open(void)
 		cam_irq = 1;
 	}
 	
-#if defined(JPEG_ENCODE_WITH_CAPTURE) && !defined(NLY_ENCODE_JPEG_IN_ROLLING_CAPTURE)
+	#if defined(JPEG_ENCODE_WITH_CAPTURE) && !defined(NLY_ENCODE_JPEG_IN_ROLLING_CAPTURE)
 	free_irq(IRQ_JPGE, NULL);
-	if ((ret = request_irq(IRQ_JPE, tccxxx_jpeg_handler, IRQF_DISABLED, "jpeg", NULL)) < 0) 
-	{
+	if((ret = request_irq(IRQ_JPE, tccxxx_jpeg_handler, IRQF_DISABLED, "jpeg", NULL)) < 0) {
 		printk("FAILED to aquire irq\n");
 		return ret;
 	}
-#endif
+	#endif // defined(JPEG_ENCODE_WITH_CAPTURE) && !defined(NLY_ENCODE_JPEG_IN_ROLLING_CAPTURE)
 #endif //CONFIG_USE_ISP
 
 	return 0;
@@ -3110,20 +3127,18 @@ int tccxxx_cif_close(void)
 	struct TCCxxxCIF *data = (struct TCCxxxCIF *) &hardware_data;	
 
 /*
-    int i;
+	int i;
 
 	mutex_lock(&data->lock);	
 
 	INIT_LIST_HEAD(&data->done_list);
 	INIT_LIST_HEAD(&data->list);
-
-	for(i=0; i<data->cif_cfg.pp_num;i++)
-	{
+	for(i=0; i < data->cif_cfg.pp_num; i++) {
 		INIT_LIST_HEAD(&data->buf[i].buf_list);
 		data->buf[i].v4lbuf.flags &= ~V4L2_BUF_FLAG_QUEUED;
 		data->buf[i].v4lbuf.flags &= ~V4L2_BUF_FLAG_DONE;
 	}
-	
+
 	mutex_unlock(&data->lock);	
 */
 
@@ -3133,46 +3148,41 @@ int tccxxx_cif_close(void)
 
 	cif_interrupt_disable();
 	cif_cleanup();
-	//printk("tccxxx_cif_close cam_open = %d, cam_close = %d\n", cam_open, cam_close);
-	//printk("camera close reamp : [0x%x - 0x%x] -> [0x%x] \n",data->cif_buf.addr, data->cif_buf.bytes, (unsigned int)data->cif_buf.area);
-	//dprintk("camera close reamp : [0x%x - 0x%x] -> [0x%x] \n",data->cif_buf.addr, data->cif_buf.bytes, (unsigned int)data->cif_buf.area);
-	if(cam_open == 1 && cam_close == 0)
-	{
-		if(data->cif_buf.area != NULL)
-			iounmap(data->cif_buf.area);
-		reg_buf = NULL;
-		cam_open = 0;
+	dprintk("camera close reamp : [0x%x - 0x%x] -> [0x%x] \n",data->cif_buf.addr, data->cif_buf.bytes, (unsigned int)data->cif_buf.area);
+
+	if((cam_open == 1) && (cam_close == 0)) {
+		if(data->cif_buf.area != NULL) iounmap(data->cif_buf.area);
+		reg_buf   = NULL;
+		cam_open  = 0;
 		cam_close = 1;
 	}
 
-	if(cam_irq)
-	{
-#if defined(CONFIG_USE_ISP)
+	if(cam_irq) {
+	#if defined(CONFIG_USE_ISP)
 		//free_irq(IRQ_ISP0, NULL);
 		free_irq(IRQ_ISP1, NULL);
 		free_irq(IRQ_ISP2, NULL);
 		//free_irq(IRQ_ISP3, NULL);
-#else
+	#else // CONFIG_USE_ISP
 		#if defined(CONFIG_ARCH_TCC88XX)
-			free_irq(IRQ_CIF, NULL);
-		#elif	defined(CONFIG_ARCH_TCC892X)
-			free_irq(INT_VIOC_WD5, cif_cam_isr_in8920);
-			//	In case of 892X, we have to add.
-		
+		free_irq(IRQ_CIF, NULL);
+		#elif defined(CONFIG_ARCH_TCC892X)
+		free_irq(INT_VIOC_WD5, NULL /*cif_cam_isr_in8920*/);
 		#else
-			free_irq(IRQ_CAM, NULL);
+		free_irq(IRQ_CAM, NULL);
 		#endif
-#endif
+	#endif // CONFIG_USE_ISP
 	}
 	cam_irq = 0;
 	
 #ifdef JPEG_ENCODE_WITH_CAPTURE
 	free_irq(IRQ_JPGE, NULL);
 #endif
-	if(register_timer)
-	{
+
+	if(register_timer) {
 		cif_timer_deregister();
 	}
+
 	return 0;
 }
 
@@ -3224,35 +3234,35 @@ int  tccxxx_cif_init(void)
 		return ENODEV;
 	}
 	
-#else
+#else // JPEG_ENCODE_WITH_CAPTURE
 	printk("tccxxx_cif_init cam_open = %d, cam_close = %d\n", cam_open, cam_close);
-	if(cam_open ==1 && cam_close ==0)
-	{
-		if(reg_buf != NULL)
-			iounmap(reg_buf);
-		reg_buf = NULL;
-		cam_open = 0;
+
+	if((cam_open == 1) && (cam_close ==0)) {
+		if(reg_buf != NULL) 	iounmap(reg_buf);
+		reg_buf   = NULL;
+		cam_open  = 0;
 		cam_close = 1;
 	}
-	if(cam_open == 0 && cam_close == 1)
-	{
+
+	if((cam_open == 0) && (cam_close == 1)) {
 		buf->bytes = PAGE_ALIGN(PREVIEW_MEM_SIZE);
 		buf->addr = PA_PREVIEW_BASE_ADDR;
-		buf->area = ioremap_nocache(buf->addr,buf->bytes);
+		buf->area = ioremap_nocache(buf->addr, buf->bytes);
 		reg_buf = buf->area;
+
 		dprintk("reamp : [0x%x - 0x%x] -> [0x%x] \n",buf->addr, buf->bytes, (unsigned int)buf->area);
-		//printk("reamp : [0x%x - 0x%x] -> [0x%x] \n",buf->addr, buf->bytes, (unsigned int)buf->area);
-		if (buf->area == NULL) 
-		{
+
+		if(buf->area == NULL) {
 			printk(KERN_ERR CAM_NAME ": cannot remap buffer\n");
 			return ENODEV;
 		}
-		
-		cam_open = 1;
-		cam_close = 0;		
+
+		cam_open  = 1;
+		cam_close = 0;
 	}
-#endif
-	#if defined(CONFIG_ARCH_TCC892X)
+#endif // JPEG_ENCODE_WITH_CAPTURE
+
+#if defined(CONFIG_ARCH_TCC892X)
 	pVINDemuxBase = (VIOC_VIN_DEMUX*)tcc_p2v(HwVIOC_VINDEMUX);
 	pWMIXBase = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX5);
 	pWDMABase = (VIOC_WDMA *)tcc_p2v(HwVIOC_WDMA05);
@@ -3261,10 +3271,11 @@ int  tccxxx_cif_init(void)
 	pDDIConfig = (DDICONFIG *)tcc_p2v(HwDDI_CONFIG_BASE);
 	pVIOCConfig = (VIOC_IREQ_CONFIG *)tcc_p2v(HwVIOC_IREQ);
 	pVIQEBase = (VIQE *)tcc_p2v(HwVIOC_VIQE0);
-	#endif
+#endif
   
 	/* Init the camera IF */
 	cif_data_init((void*)&hardware_data);
+
 	/* enable it. This is needed for sensor detection */
 	cif_enable((void*)&hardware_data);
 
