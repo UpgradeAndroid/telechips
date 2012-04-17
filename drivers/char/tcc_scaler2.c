@@ -174,7 +174,7 @@ char M2M_Scaler2_Ctrl_Detail(SCALER_TYPE *scale_img)
 	VIOC_RDMA_SetImageEnable(SC2_pRDMABase); // SoC guide info.
 
 	// set to WMIX30  
-	VIOC_CONFIG_WMIXPath(WMIX60, 0 /* by-pass */);
+	VIOC_CONFIG_WMIXPath(WMIX60, 1 /* mixing */);
 	VIOC_WMIX_SetSize(SC2_pWIXBase, scale_img->dest_ImgWidth, scale_img->dest_ImgHeight);
 	VIOC_WMIX_SetUpdate(SC2_pWIXBase);
 
@@ -211,7 +211,7 @@ char M2M_Scaler2_Ctrl_Divide(SCALER_TYPE *scale_img)
 	unsigned int img_wd, img_ht;
 
 	VIOC_SCALER_INFO_Type pScalerInfo;
-	PVIOC_WDMA pWDMABase1 = (PVIOC_WDMA)tcc_p2v(HwVIOC_WDMA07);
+	PVIOC_WDMA pWDMABase1 = (PVIOC_WDMA)tcc_p2v(HwVIOC_WDMA08);
 	PVIOC_WDMA pWDMABase0 = (PVIOC_WDMA)SC2_pWDMABase;
 
 	pSrcBaseY = (unsigned int)scale_img->src_Yaddr;
@@ -275,6 +275,7 @@ char M2M_Scaler2_Ctrl_Divide(SCALER_TYPE *scale_img)
 		pDstBase1 = pDstBase0 + img_wd*img_ht*4;
 	}
 
+	VIOC_CONFIG_WMIXPath(WMIX60, 1 /* mixing */);
 	VIOC_WMIX_SetSize(SC2_pWIXBase, img_wd, img_ht);
 	VIOC_WMIX_SetPosition(SC2_pWIXBase, 0, scale_img->dest_winLeft, scale_img->dest_winTop);
 	VIOC_WMIX_SetPosition(SC2_pWIXBase, 1, scale_img->dest_winLeft, scale_img->dest_winTop);

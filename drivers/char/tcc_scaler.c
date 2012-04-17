@@ -345,7 +345,12 @@ char M2M_Scaler_Ctrl_Detail(SCALER_TYPE *scale_img)
 	VIOC_CONFIG_RDMA12PathCtrl(0 /* RDMA12 */);
 
 	// set to VRDMA
-	VIOC_RDMA_SetImageAlphaEnable(pRDMABase, 1);
+	#if defined(CONFIG_MACH_TCC8920ST)
+		VIOC_RDMA_SetImageAlphaSelect(pRDMABase, 1);
+		VIOC_RDMA_SetImageAlphaEnable(pRDMABase, 1);
+	#else
+		VIOC_RDMA_SetImageAlphaEnable(pRDMABase, 1);
+	#endif
 	VIOC_RDMA_SetImageFormat(pRDMABase, scale_img->src_fmt);
 
 	VIOC_RDMA_SetImageSize(pRDMABase,scale_img->src_winRight- scale_img->src_winLeft, scale_img->src_winBottom - scale_img->src_winTop);
