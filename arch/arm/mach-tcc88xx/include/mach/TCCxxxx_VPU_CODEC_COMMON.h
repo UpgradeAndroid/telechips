@@ -121,6 +121,7 @@ typedef unsigned int codec_addr_t;	//!< address
 #define GET_RING_BUFFER_STATUS		0x13
 #define FILL_RING_BUFFER_AUTO		0x14    //!< Fill the ring buffer
 #define GET_INITIAL_INFO_FOR_STREAMING_MODE_ONLY			0x15    //!< Get initial Info for ring buffer use
+#define VPU_UPDATE_WRITE_BUFFER_PTR    0x16    //!< Fill the ring buffer\r
 #define VPU_DEC_CLOSE				0x20	//!< close
 #define VPU_CODEC_GET_VERSION		0x3000
 
