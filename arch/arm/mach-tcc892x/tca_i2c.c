@@ -110,11 +110,11 @@ void tca_i2c_setgpio(int core, int ch)
 			else
 			{
 				#if defined(CONFIG_M805S_8923_0XA)
-				////I2C[21] - GPIOF[27][28]
-				////i2c_portcfg->PCFG0.bREG.MASTER1 = 21;
-				//BITCSET(((PI2CPORTCFG)io_p2v(HwI2C_PORTCFG_BASE))->PCFG0.nREG, 0x0000FF00, 21<<8);
-				//tcc_gpio_config(TCC_GPF(27), GPIO_FN10|GPIO_OUTPUT|GPIO_LOW);
-				//tcc_gpio_config(TCC_GPF(28), GPIO_FN10|GPIO_OUTPUT|GPIO_LOW);
+				//I2C[21] - GPIOF[27][28]
+				//i2c_portcfg->PCFG0.bREG.MASTER1 = 21;
+				BITCSET(((PI2CPORTCFG)io_p2v(HwI2C_PORTCFG_BASE))->PCFG0.nREG, 0x0000FF00, 21<<8);
+				tcc_gpio_config(TCC_GPF(27), GPIO_FN10|GPIO_OUTPUT|GPIO_LOW);
+				tcc_gpio_config(TCC_GPF(28), GPIO_FN10|GPIO_OUTPUT|GPIO_LOW);
 				#else
 				//I2C[24] - GPIOG[10][11]
 				//i2c_portcfg->PCFG0.bREG.MASTER1 = 24;
