@@ -141,7 +141,7 @@ static unsigned int gtCamSizeTable[NUM_FREQS] =
 	1280 * 720, //HD720P,
 };
 
-#define CAMERA_LOOP_LIMIT_COUNT 		20 * 1000 * 1000
+#define CAMERA_LOOP_LIMIT_COUNT 		100 * 1000 * 1000
 int camera_loop_cnt = 0; //20120414 ysseung   modify to camera infinite loop. count limit is CAMERA_LOOP_LIMIT_COUNT.
 extern int camera_no_connect_cnt; //20120404 ysseung   if the camera is not connected, modify to an infinite loop issue of camera stop.
 
