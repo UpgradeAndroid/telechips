@@ -105,9 +105,9 @@ static struct cs4954_i2c_platform_data  ths8200_i2c_data = {
 };
 #endif
 
-#if defined(CONFIG_TCC_OUTPUT_STARTER)
-/* I2C core0 channel 0 devices */
+#if defined(CONFIG_I2C_TCC_CORE0)
 static struct i2c_board_info __initdata i2c_devices0[] = {
+#if defined(CONFIG_TCC_OUTPUT_STARTER)
     {
 		I2C_BOARD_INFO("tcc-hdmi-edid", HDMI_EDID_I2C_SLAVE_ID),
 		.platform_data = &hdmi_edid_i2c_data,
@@ -116,10 +116,11 @@ static struct i2c_board_info __initdata i2c_devices0[] = {
 		I2C_BOARD_INFO("tcc-hdmi-edid-seg", HDMI_EDID_SEG_I2C_SLAVE_ID),
 		.platform_data = &hdmi_edid_seg_i2c_data,
 	},	
+#endif
 };
 #endif
 
-/* I2C core0 channel 0 devices */
+#if defined(CONFIG_I2C_TCC_CORE1)
 static struct i2c_board_info __initdata i2c_devices1[] = {
 	#if defined(CONFIG_FB_TCC_COMPONENT)
 	{
@@ -132,19 +133,18 @@ static struct i2c_board_info __initdata i2c_devices1[] = {
 	},
 	#endif
 };
+#endif
 
-
+#if defined(CONFIG_I2C_TCC_SMU)
+static struct i2c_board_info __initdata i2c_devices_smu[] = {
 #if defined(CONFIG_TCC_OUTPUT_STARTER)
-/* I2C SMU HDMI PHY devices */
-static struct i2c_board_info __initdata i2c_devices5[] = {
 	{
 		I2C_BOARD_INFO("tcc-hdmi-phy", HDMI_PHY_I2C_SLAVE_ID),
 		.platform_data = &hdmi_phy_i2c_data,
 	},
+#endif
 };
 #endif
-
-
 
 static struct tcc_i2c_platform_data tcc8800st_core0_platform_data = {
     .core_clk_rate      = 4*1000*1000,    /* core clock rate: 4MHz */
@@ -514,16 +514,15 @@ static void __init tcc8800_init_machine(void)
 	//spi_register_board_info(tcc8800_spi1_board_info, ARRAY_SIZE(tcc8800_spi1_board_info)); //jhlim
 #endif
 
-	#if defined(CONFIG_TCC_OUTPUT_STARTER)
+#if defined(CONFIG_I2C_TCC_CORE0)
 	i2c_register_board_info(0, i2c_devices0, ARRAY_SIZE(i2c_devices0));
-	#endif
-
+#endif
+#if defined(CONFIG_I2C_TCC_CORE1)
 	i2c_register_board_info(1, i2c_devices1, ARRAY_SIZE(i2c_devices1));
-
-	#if defined(CONFIG_TCC_OUTPUT_STARTER)
-	i2c_register_board_info(5, i2c_devices5, ARRAY_SIZE(i2c_devices5));
-	#endif
-
+#endif
+#if defined(CONFIG_I2C_TCC_SMU)
+	i2c_register_board_info(2, i2c_devices_smu, ARRAY_SIZE(i2c_devices_smu));
+#endif
 
 #if defined(CONFIG_SERIAL_TCC_DMA) || defined(CONFIG_BT)
 	/* BT: use UART1 and TX DMA */

@@ -41,35 +41,6 @@
 #include "devices.h"
 #include "board-m801_88.h"
 
-#if defined(CONFIG_VIDEO_TCCXX_CAMERA) //20100720 ysseung   add to sensor slave id.
-#include <media/cam_i2c.h>
-#if defined(CONFIG_VIDEO_CAMERA_SENSOR_AIT848_ISP)
-#define SENSOR_I2C_SLAVE_ID 	(0x06>>1)
-#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9P111)
-#define SENSOR_I2C_SLAVE_ID 	(0x78>>1)
-#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_MV9317)
-#define SENSOR_I2C_SLAVE_ID 	(0x50>>1)
-#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9D112)
-#define SENSOR_I2C_SLAVE_ID 	(0x78>>1)
-#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_OV3640)
-#define SENSOR_I2C_SLAVE_ID 	(0x78>>1)
-#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_S5K4BAFB)
-#define SENSOR_I2C_SLAVE_ID 	(0x52>>1)
-#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_ISX006)
-#define SENSOR_I2C_SLAVE_ID 	(0x34>>1)
-#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_OV7690)
-#define SENSOR_I2C_SLAVE_ID 		(0x42>>1)
-#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_SIV100B)
-#define SENSOR_I2C_SLAVE_ID 		(0x66>>1)
-#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_GT2005)
-#define SENSOR_I2C_SLAVE_ID 	(0x78>>1)
-#elif defined(CONFIG_VIDEO_ATV_SENSOR_TVP5150)
-#define SENSOR_I2C_SLAVE_ID 		(0xB8>>1)
-#elif defined(CONFIG_VIDEO_ATV_SENSOR_RDA5888)
-#define SENSOR_I2C_SLAVE_ID 		(0xC4>>1)
-#endif
-#endif // defined(CONFIG_VIDEO_TCCXX_CAMERA)
-
 void __cpu_early_init(void);
 
 extern void __init tcc_init_irq(void);
@@ -152,11 +123,6 @@ static struct platform_device m801_touchscreen_device = {
 };
 #endif
 
-#if defined(CONFIG_VIDEO_TCCXX_CAMERA)
-static struct cam_i2c_platform_data cam_i2c_data1 = {
-};
-#endif
-
 static struct akm8975_platform_data akm8975_data = {
     .gpio_DRDY = 0,
 };
@@ -225,38 +191,32 @@ static struct axp192_platform_data axp192_info = {
 };
 #endif
 
-/* I2C core0 channel 1 devices */
-static struct i2c_board_info __initdata i2c_devices1[] = {
-	#if defined(CONFIG_VIDEO_TCCXX_CAMERA)
-	#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
-	{
-		I2C_BOARD_INFO("tcc-cam-sensor-0", (0x50>>1)), //20100716 ysseung   sign-up to sensor slave-id.
-		.platform_data = &cam_i2c_data1,
-	},
-	{
-		I2C_BOARD_INFO("tcc-cam-sensor-1", (0x7A>>1)), //20100716 ysseung   sign-up to sensor slave-id.
-		.platform_data = &cam_i2c_data1,
-	},
-	#else // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
-	{
-		I2C_BOARD_INFO("tcc-cam-sensor", SENSOR_I2C_SLAVE_ID), //20100716 ysseung   sign-up to sensor slave-id.
-		.platform_data = &cam_i2c_data1,
-	},
-	#endif // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
-	#endif // CONFIG_VIDEO_TCCXX_CAMERA
+#if defined(CONFIG_I2C_TCC_CORE0)
+static struct i2c_board_info __initdata i2c_devices0[] = {
     {
         I2C_BOARD_INFO("akm8975", 0x0F),
         .irq           = COMPASS_IRQ,
         .platform_data = &akm8975_data,
     },
-	#if defined(CONFIG_REGULATOR_AXP192)
+#if defined(CONFIG_REGULATOR_AXP192)
 	{
 		I2C_BOARD_INFO("axp192", 0x34),
 		.irq           = PMIC_IRQ,
 		.platform_data = &axp192_info,
 	},
-	#endif
+#endif
 };
+#endif
+
+#if defined(CONFIG_I2C_TCC_CORE1)
+static struct i2c_board_info __initdata i2c_devices1[] = {
+};
+#endif
+
+#if defined(CONFIG_I2C_TCC_SMU)
+static struct i2c_board_info __initdata i2c_devices_smu[] = {
+};
+#endif
 
 #if defined(CONFIG_I2C_TCC)
 static struct tcc_i2c_platform_data m801_88_core0_platform_data = {
@@ -282,6 +242,7 @@ static struct tcc_i2c_platform_data m801_88_smu_platform_data = {
 #endif
 
 extern void __init m801_88_init_gpio(void);
+extern void __init m801_88_init_camera(void);
 
 static void __init tcc8800_init_irq(void)
 {
@@ -578,13 +539,22 @@ static void __init tcc8800_init_machine(void)
 	__cpu_early_init();
 
 	m801_88_init_gpio();
+	m801_88_init_camera();
 
 #if defined(CONFIG_SPI_TCCXXXX_MASTER)
 	spi_register_board_info(m801_88_spi0_board_info, ARRAY_SIZE(m801_88_spi0_board_info));
 	//spi_register_board_info(tcc8800_spi1_board_info, ARRAY_SIZE(tcc8800_spi1_board_info)); //jhlim
 #endif
 
-	i2c_register_board_info(0, i2c_devices1, ARRAY_SIZE(i2c_devices1));
+#if defined(CONFIG_I2C_TCC_CORE0)
+	i2c_register_board_info(0, i2c_devices0, ARRAY_SIZE(i2c_devices0));
+#endif
+#if defined(CONFIG_I2C_TCC_CORE1)
+	i2c_register_board_info(1, i2c_devices1, ARRAY_SIZE(i2c_devices1));
+#endif
+#if defined(CONFIG_I2C_TCC_SMU)
+	i2c_register_board_info(2, i2c_devices_smu, ARRAY_SIZE(i2c_devices_smu));
+#endif
 
 #if defined(CONFIG_SERIAL_TCC_DMA) && defined(CONFIG_TCC_BT_DEV)
 	/* BT: use UART1 and TX DMA */

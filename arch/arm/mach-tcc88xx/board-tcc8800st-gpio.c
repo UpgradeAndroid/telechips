@@ -21,20 +21,14 @@
 #include "board-tcc8800st.h"
 #include <asm/mach-types.h>
 
-struct board_gpio_irq_config tcc8800st_gpio_irqs[] = {
+static struct board_gpio_irq_config tcc8800st_gpio_irqs[] = {
 	{ -1, -1 },
-};
-
-/* I2C core0 channel0 devices */
-static struct i2c_board_info __initdata i2c_devices0[] = {
 };
 
 void __init tcc8800st_init_gpio(void)
 {
 	if (!machine_is_tcc8800st())
 		return;
-
-	i2c_register_board_info(0, i2c_devices0, ARRAY_SIZE(i2c_devices0));
 
 	board_gpio_irqs = tcc8800st_gpio_irqs;
 	printk(KERN_INFO "TCC8800ST GPIO initialized\n");
