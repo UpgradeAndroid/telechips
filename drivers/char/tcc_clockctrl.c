@@ -168,7 +168,7 @@ static ssize_t tcc_clockctrl_write(struct file *filp, const char __user * user, 
 	}
 
 	android_system_booting_finished = 1;
-	return 0;
+	return size;
 }
 
 static int tcc_clockctrl_release(struct inode *inode, struct file *filp)
