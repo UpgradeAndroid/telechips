@@ -195,8 +195,11 @@ int rn5t614_charge_status(void)
 	unsigned char temp;
 	temp = i2c_smbus_read_byte_data(rn5t614_i2c_client, RN5T614_CHGSTATE_REG);
 	//TODO: 
-	
-	return 0;
+
+	if((temp & 0xf) == 0x05)
+	    return 0x02;
+	else 	
+	    return 0;
 }
 
 EXPORT_SYMBOL(rn5t614_battery_voltage);

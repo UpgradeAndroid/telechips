@@ -93,8 +93,11 @@ struct axp192_data {
 #define AXP192_ADC_VBUS_VOL_L_REG       0x5B
 #define AXP192_ADC_BATT_VOL_H_REG       0x78
 #define AXP192_ADC_BATT_VOL_L_REG       0x79
-#define AXP192_ADC_BATT_CUR_H_REG       0x7A
-#define AXP192_ADC_BATT_CUR_L_REG       0x7B
+/* BAT Charge */
+#define AXP192_BATT_CHARGE_CURRENT_H_REG 0x7A
+#define AXP192_BATT_CHARGE_CURRENT_L_REG 0x7B
+#define AXP192_BATT_DISCHARGE_CURRENT_H_REG 0x7C
+#define AXP192_BATT_DISCHARGE_CURRENT_L_REG 0x7D
 
 #define AXP192_LDO4_FUNC_SET_REG        0x90
 #define AXP192_LDO4_VOLTAGE_REG         0x91
@@ -380,11 +383,39 @@ int axp192_charge_status(void)
 	return axp192_charge_sts;
 }
 
+int axp192_get_batt_discharge_current(void)
+{
+	signed long dischg[2];
+	int discharge_cur = 0;
+	if (axp192_i2c_client) {
+		dischg[0] = i2c_smbus_read_byte_data(axp192_i2c_client, AXP192_BATT_DISCHARGE_CURRENT_H_REG);
+		dischg[1] = i2c_smbus_read_byte_data(axp192_i2c_client, AXP192_BATT_DISCHARGE_CURRENT_L_REG);
+		discharge_cur = ((dischg[0] << 5) | (dischg[1] & 0x1f))*5/10;
+		dbg("BATT Discharge Current %d\n", discharge_cur);
+	}
+	return discharge_cur;	
+
+}
+
+int axp192_get_batt_charge_current(void)
+{
+	signed long chg[2];
+	int charge_cur = 0;
+	if (axp192_i2c_client) {
+		chg[0] = i2c_smbus_read_byte_data(axp192_i2c_client, AXP192_BATT_CHARGE_CURRENT_H_REG);
+		chg[1] = i2c_smbus_read_byte_data(axp192_i2c_client, AXP192_BATT_CHARGE_CURRENT_L_REG);
+		charge_cur = ((chg[0] << 5) | (chg[1] & 0x0f))*5/10;
+		dbg("BATT Charge Current %d\n", charge_cur);
+	}
+	return charge_cur;	
+}
 EXPORT_SYMBOL(axp192_battery_voltage);
 EXPORT_SYMBOL(axp192_acin_detect);
 EXPORT_SYMBOL(axp192_power_off);
 EXPORT_SYMBOL(axp192_charge_current);
 EXPORT_SYMBOL(axp192_charge_status);
+EXPORT_SYMBOL(axp192_get_batt_discharge_current);
+EXPORT_SYMBOL(axp192_get_batt_charge_current);
 
 /*******************************************
 	Functions (Internal)

@@ -121,6 +121,11 @@ struct axp202_data {
 #define AXP202_ADC_BATT_VOL_H_REG       0x78
 #define AXP202_ADC_BATT_VOL_L_REG       0x79
 
+/* BAT Charge */
+#define AXP202_BATT_CHARGE_CURRENT_H_REG 0x7A
+#define AXP202_BATT_CHARGE_CURRENT_L_REG 0x7B
+#define AXP202_BATT_DISCHARGE_CURRENT_H_REG 0x7C
+#define AXP202_BATT_DISCHARGE_CURRENT_L_REG 0x7D
 
 /* ADC enable values */
 #define AXP202_ADC_1_BATT_VOL           0x80
@@ -285,6 +290,7 @@ static struct axp202_voltage_t ldo4_voltages[] = {
 };
 #define NUM_LDO4	ARRAY_SIZE(ldo4_voltages)
 
+#define NUM_LDO5	ARRAY_SIZE(ldo2_voltages)
 /********************************************************************
 	Variables
 ********************************************************************/
@@ -346,8 +352,10 @@ void axp202_charge_current(unsigned char curr)
 
 	dbg("AXP202 charge current: %dmA\n", curr*100+300);
 
-	value = AXP202_CHG_EN|AXP202_CHG_VOL_4_20V|AXP202_CHG_OFF_CUR_10PER|(curr&0x0f);
-	i2c_smbus_write_byte_data(axp202_i2c_client, AXP202_CHARGING_CTRL1_REG, value);
+	if (axp202_i2c_client) {
+		value = AXP202_CHG_EN|AXP202_CHG_VOL_4_20V|AXP202_CHG_OFF_CUR_10PER|(curr&0x0f);
+		i2c_smbus_write_byte_data(axp202_i2c_client, AXP202_CHARGING_CTRL1_REG, value);
+	}
 }
 
 int axp202_charge_status(void)
@@ -355,11 +363,39 @@ int axp202_charge_status(void)
 	return axp202_charge_sts;
 }
 
+int axp202_get_batt_discharge_current(void)
+{
+	signed long dischg[2];
+	int discharge_cur = 0;
+	if (axp202_i2c_client) {
+		dischg[0] = i2c_smbus_read_byte_data(axp202_i2c_client, AXP202_BATT_DISCHARGE_CURRENT_H_REG);
+		dischg[1] = i2c_smbus_read_byte_data(axp202_i2c_client, AXP202_BATT_DISCHARGE_CURRENT_L_REG);
+		discharge_cur = ((dischg[0] << 5) | (dischg[1] & 0x1f))*5/10;
+//		dbg("BATT Discharge Current %d\n", discharge_cur);
+	}
+	return discharge_cur;	
+
+}
+
+int axp202_get_batt_charge_current(void)
+{
+	signed long chg[2];
+	int charge_cur = 0;
+	if (axp202_i2c_client) {
+		chg[0] = i2c_smbus_read_byte_data(axp202_i2c_client, AXP202_BATT_CHARGE_CURRENT_H_REG);
+		chg[1] = i2c_smbus_read_byte_data(axp202_i2c_client, AXP202_BATT_CHARGE_CURRENT_L_REG);
+		charge_cur = ((chg[0] << 4) | (chg[1] & 0x0f))*5/10;
+//		dbg("BATT Charge Current %d\n", charge_cur);
+	}
+	return charge_cur;	
+}
 EXPORT_SYMBOL(axp202_battery_voltage);
 EXPORT_SYMBOL(axp202_acin_detect);
 EXPORT_SYMBOL(axp202_power_off);
 EXPORT_SYMBOL(axp202_charge_current);
 EXPORT_SYMBOL(axp202_charge_status);
+EXPORT_SYMBOL(axp202_get_batt_discharge_current);
+EXPORT_SYMBOL(axp202_get_batt_charge_current);
 
 /*******************************************
 	Functions (Internal)
@@ -680,6 +716,20 @@ static int axp202_ldo_set_voltage(struct regulator_dev *rdev, int min_uV, int ma
 			value = (old_value&(0xFF&(~(0xF)))) | value;
 			dbg("%s: reg:0x%x value: %dmV\n", __func__, reg, ldo4_voltages[i].uV/1000);
 			break;
+		case AXP202_ID_LDO5:
+			reg = AXP202_LDO5_REG;
+			old_value = (u8)i2c_smbus_read_byte_data(axp202->client, reg);
+			for (i = 0; i < NUM_LDO5; i++) {
+				if (ldo2_voltages[i].uV >= min_uV) {
+					value = ldo2_voltages[i].val;
+					break;
+				}
+			}
+			if (i == NUM_LDO5)
+				return -EINVAL;
+			value = (old_value&(0xFF&(~(0xF<<4)))) | (value<<4);
+			dbg("%s: reg:0x%x value: %dmV\n", __func__, reg, ldo2_voltages[i].uV/1000);
+			break;
 		default:
 			return -EINVAL;
 	}
@@ -742,6 +792,21 @@ static int axp202_ldo_get_voltage(struct regulator_dev *rdev)
 			if (i == NUM_LDO4)
 				return -EINVAL;
 			break;
+		case AXP202_ID_LDO5:
+			reg = AXP202_LDO5_REG;
+			ret = i2c_smbus_read_byte_data(axp202->client, reg);
+			if (ret < 0)
+				return -EINVAL;
+			ret &= (ret>>4)&0xF;
+			for (i = 0; i < NUM_LDO5; i++) {
+				if (ldo2_voltages[i].val == ret) {
+					voltage = ldo2_voltages[i].uV;
+					break;
+				}
+			}
+			if (i == NUM_LDO5)
+				return -EINVAL;
+			break;
 		default:
 			return -EINVAL;
 	}
@@ -772,6 +837,12 @@ static int axp202_ldo_enable(struct regulator_dev *rdev)
 			value = (u8)i2c_smbus_read_byte_data(axp202->client, reg);
 			value |= 0x08;
 			break;
+		case AXP202_ID_LDO5:
+			reg = AXP202_LDO5_FUNC_SET_REG;
+			value = (u8)i2c_smbus_read_byte_data(axp202->client, reg);
+			value &= ~0x07;
+			value |= 0x03;
+			break;
 		default:
 			return -EINVAL;
 	}
@@ -801,6 +872,11 @@ static int axp202_ldo_disable(struct regulator_dev *rdev)
 			reg = AXP202_POWER_OUT_CTRL_REG;
 			value = (u8)i2c_smbus_read_byte_data(axp202->client, reg);
 			value &= ~0x08;
+			break;
+		case AXP202_ID_LDO5:
+			reg = AXP202_LDO5_FUNC_SET_REG;
+			value = (u8)i2c_smbus_read_byte_data(axp202->client, reg);
+			value &= ~0x07;
 			break;
 		default:
 			return -EINVAL;
@@ -862,6 +938,14 @@ static struct regulator_desc axp202_reg[] = {
 		.ops = &axp202_ldo_ops,
 		.type = REGULATOR_VOLTAGE,
 		.n_voltages = NUM_LDO4 + 1,
+		.owner = THIS_MODULE,
+	},
+	{
+		.name = "ldo5",
+		.id = AXP202_ID_LDO5,
+		.ops = &axp202_ldo_ops,
+		.type = REGULATOR_VOLTAGE,
+		.n_voltages = NUM_LDO5 + 1,
 		.owner = THIS_MODULE,
 	},
 };
@@ -926,9 +1010,9 @@ static int axp202_pmic_probe(struct i2c_client *client, const struct i2c_device_
 	i2c_smbus_write_byte_data(client, AXP202_ADC_ENABLE2_REG, AXP202_ADC2);
 	i2c_smbus_write_byte_data(client, AXP202_ADC_TSPIN_REG, 0x36);
 
-	/* GPIO0 set to Low output for using LDO4 */
-//	i2c_smbus_write_byte_data(client, AXP202_LDO5_FUNC_SET_REG, 0x05);	// Low output
-//	i2c_smbus_write_byte_data(client, AXP202_LDO5_REG, 0xF0);	// 3.3V
+	/* GPIO0 set to Low output for using LDO5 */
+	i2c_smbus_write_byte_data(client, AXP202_LDO5_FUNC_SET_REG, 0x00);	// Low output
+	i2c_smbus_write_byte_data(client, AXP202_LDO5_REG, 0xD5);			// 3.3V
 
 	/* long time key press time set to 1S, auto power off function disable */
 	i2c_smbus_write_byte_data(client, AXP202_PEK_REG, 0xC5);	// start-up:2s, long-press:1s, autooff:disable
