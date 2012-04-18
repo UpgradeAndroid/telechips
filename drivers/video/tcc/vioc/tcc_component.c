@@ -594,12 +594,12 @@ void tcc_component_get_spec(COMPONENT_MODE_TYPE mode, COMPONENT_SPEC_TYPE *spec)
 				
 			spec->component_FPW1 = 3 - 1;					// TFT/TV : Frame pulse width is the pulse width of frmae clock
 			spec->component_FLC1 = 720 - 1;					// frmae line count is the number of lines in each frmae on the screen
-			spec->component_FSWC1 = 29 - 1;					// frmae start wait cycle is the number of lines to insert at the end each frame
-			spec->component_FEWC1 = 4 - 1;					// frame start wait cycle is the number of lines to insert at the begining each frame
+			spec->component_FSWC1 = 26 - 1;					// frmae start wait cycle is the number of lines to insert at the end each frame
+			spec->component_FEWC1 = 1 - 1;					// frame start wait cycle is the number of lines to insert at the begining each frame
 			spec->component_FPW2 = 3 - 1;					// TFT/TV : Frame pulse width is the pulse width of frmae clock
 			spec->component_FLC2 = 720 - 1;					// frmae line count is the number of lines in each frmae on the screen
-			spec->component_FSWC2 = 29 - 1;					// frmae start wait cycle is the number of lines to insert at the end each frame
-			spec->component_FEWC2 = 4 - 1; 					// frame start wait cycle is the number of lines to insert at the begining each frame
+			spec->component_FSWC2 = 26 - 1;					// frmae start wait cycle is the number of lines to insert at the end each frame
+			spec->component_FEWC2 = 1 - 1; 					// frame start wait cycle is the number of lines to insert at the begining each frame
 			#else
 			spec->component_LPW = 24 - 1; 					// line pulse width
 			spec->component_LPC = 1280 - 1; 				// line pulse count (active horizontal pixel - 1)
@@ -797,7 +797,7 @@ void tcc_component_set_lcd2tv(COMPONENT_MODE_TYPE mode)
 		VIOC_DISP_SetSize(pComponent_DISP, output_width, output_height);
 		VIOC_DISP_SetBGColor(pComponent_DISP, 0, 0 , 0);
 
-		VIOC_WMIX_SetOverlayPriority(pComponent_WMIX, 1);
+		VIOC_WMIX_SetOverlayPriority(pComponent_WMIX, 0);
 		VIOC_WMIX_SetBGColor(pComponent_WMIX, 0x00, 0x00, 0x00, 0xff);
 		VIOC_WMIX_SetSize(pComponent_WMIX, output_width, output_height);
 		VIOC_WMIX_SetPosition(pComponent_WMIX, 0, 0, 0);

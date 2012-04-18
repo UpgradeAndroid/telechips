@@ -598,7 +598,7 @@ void tcc_composite_set_lcd2tv(COMPOSITE_MODE_TYPE type)
 
 	//VIOC_DISP_TurnOn(pDISPBase);
 
-	VIOC_WMIX_SetOverlayPriority(pWIXBase, 1);
+	VIOC_WMIX_SetOverlayPriority(pWIXBase, 0);
 	VIOC_WMIX_SetBGColor(pWIXBase, 0x00, 0x00, 0x00, 0xff);
 	VIOC_WMIX_SetSize(pWIXBase, width, height);
 	VIOC_WMIX_SetPosition(pWIXBase, 0, 0, 0);
