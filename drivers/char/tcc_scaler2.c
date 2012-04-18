@@ -147,10 +147,15 @@ char M2M_Scaler2_Ctrl_Detail(SCALER_TYPE *scale_img)
 
 
 	// set to VRDMA
-	#if defined(CONFIG_MACH_TCC8920ST)
+	if((scale_img->src_fmt == SC_IMG_FMT_ARGB6666) || (scale_img->src_fmt == SC_IMG_FMT_ARGB8888))	{
 		VIOC_RDMA_SetImageAlphaSelect(SC2_pRDMABase, 1);
 		VIOC_RDMA_SetImageAlphaEnable(SC2_pRDMABase, 1);
-	#endif
+	}
+	else	{
+		VIOC_RDMA_SetImageAlphaSelect(SC2_pRDMABase, 0);
+		VIOC_RDMA_SetImageAlphaEnable(SC2_pRDMABase, 0);
+	}
+	
 	VIOC_RDMA_SetImageFormat(SC2_pRDMABase, scale_img->src_fmt);
 	VIOC_RDMA_SetImageSize(SC2_pRDMABase, scale_img->src_ImgWidth, scale_img->src_ImgHeight);
 	VIOC_RDMA_SetImageOffset(SC2_pRDMABase, scale_img->src_fmt, scale_img->src_ImgWidth);
@@ -161,12 +166,13 @@ char M2M_Scaler2_Ctrl_Detail(SCALER_TYPE *scale_img)
 	pScalerInfo.BYPASS 			= FALSE /* 0 */;
 	pScalerInfo.SRC_WIDTH 		= scale_img->src_ImgWidth;
 	pScalerInfo.SRC_HEIGHT 		= scale_img->src_ImgHeight;
-	pScalerInfo.DST_WIDTH 		= scale_img->dest_ImgWidth;
-	pScalerInfo.DST_HEIGHT 		= scale_img->dest_ImgHeight;
-	pScalerInfo.OUTPUT_POS_X 	= scale_img->dest_winLeft;
-	pScalerInfo.OUTPUT_POS_Y 	= scale_img->dest_winTop;
-	pScalerInfo.OUTPUT_WIDTH 	= (scale_img->dest_ImgWidth - scale_img->dest_winLeft);
-	pScalerInfo.OUTPUT_HEIGHT 	= (scale_img->dest_ImgHeight - scale_img->dest_winTop);
+	pScalerInfo.DST_WIDTH 		= scale_img->dest_winRight- scale_img->dest_winLeft;
+	pScalerInfo.DST_HEIGHT 		= scale_img->dest_winBottom - scale_img->dest_winTop;
+
+	pScalerInfo.OUTPUT_POS_X 	= 0;
+	pScalerInfo.OUTPUT_POS_Y 	= 0;
+	pScalerInfo.OUTPUT_WIDTH 	= scale_img->dest_winRight- scale_img->dest_winLeft;
+	pScalerInfo.OUTPUT_HEIGHT 	= scale_img->dest_winBottom - scale_img->dest_winTop;
 
 	VIOC_API_SCALER_SetConfig(VIOC_SC0, &pScalerInfo);
 	VIOC_API_SCALER_SetPlugIn(VIOC_SC0, VIOC_SC_RDMA_17);
@@ -174,13 +180,14 @@ char M2M_Scaler2_Ctrl_Detail(SCALER_TYPE *scale_img)
 	VIOC_RDMA_SetImageEnable(SC2_pRDMABase); // SoC guide info.
 
 	// set to WMIX30  
-	VIOC_CONFIG_WMIXPath(WMIX60, 1 /* mixing */);
-	VIOC_WMIX_SetSize(SC2_pWIXBase, scale_img->dest_ImgWidth, scale_img->dest_ImgHeight);
+	VIOC_CONFIG_WMIXPath(WMIX60, 1 /* by-pass */);
+//	VIOC_WMIX_SetSize(SC2_pWIXBase,  scale_img->dest_winRight- scale_img->dest_winLeft, scale_img->dest_winBottom - scale_img->dest_winTop);
+	
 	VIOC_WMIX_SetUpdate(SC2_pWIXBase);
 
 	// set to VWRMA
 	VIOC_WDMA_SetImageFormat(SC2_pWDMABase, scale_img->dest_fmt);
-	VIOC_WDMA_SetImageSize(SC2_pWDMABase, scale_img->dest_ImgWidth, scale_img->dest_ImgHeight);
+	VIOC_WDMA_SetImageSize(SC2_pWDMABase, scale_img->dest_winRight- scale_img->dest_winLeft,scale_img->dest_winBottom - scale_img->dest_winTop);
 	VIOC_WDMA_SetImageOffset(SC2_pWDMABase, scale_img->dest_fmt, scale_img->dest_ImgWidth);
 	VIOC_WDMA_SetImageBase(SC2_pWDMABase, pDstBase0, pDstBase1, pDstBase2);
 	VIOC_WDMA_SetImageEnable(SC2_pWDMABase, 0 /* OFF */);
