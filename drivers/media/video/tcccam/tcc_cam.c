@@ -946,7 +946,7 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 						// Note that do not decrease below Cnt.
 						while(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_STSEN_MASK) {
 							for(nCnt=0; nCnt < 10000; nCnt++);
-							//20120414 ysseung   modify to camera infinite loop. count limit is CAMERA_LOOP_LIMIT_COUNT. - start -
+							#if 0 //20120414 ysseung   modify to camera infinite loop. count limit is CAMERA_LOOP_LIMIT_COUNT. - start -
 							camera_loop_cnt++;
 							if(camera_loop_cnt > CAMERA_LOOP_LIMIT_COUNT) {
 								volatile PVIOC_IREQ_CONFIG pIREQConfig = (volatile PVIOC_IREQ_CONFIG)tcc_p2v((unsigned int)HwVIOC_IREQ);
@@ -955,7 +955,7 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 								camera_loop_cnt = 0;
 								break;
 							}
-							//20120414 ysseung   modify to camera infinite loop. count limit is CAMERA_LOOP_LIMIT_COUNT. - end -
+							#endif //20120414 ysseung   modify to camera infinite loop. count limit is CAMERA_LOOP_LIMIT_COUNT. - end -
 						}
 
 						VIOC_VIN_SetImageSize(pVINBase, data->cif_cfg.main_set.source_x, data->cif_cfg.main_set.source_y);
