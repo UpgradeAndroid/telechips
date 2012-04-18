@@ -141,7 +141,7 @@ static unsigned int gtCamSizeTable[NUM_FREQS] =
 	1280 * 720, //HD720P,
 };
 
-#define CAMERA_LOOP_LIMIT_COUNT 		10 * 1000 * 1000
+#define CAMERA_LOOP_LIMIT_COUNT 		20 * 1000 * 1000
 int camera_loop_cnt = 0; //20120414 ysseung   modify to camera infinite loop. count limit is CAMERA_LOOP_LIMIT_COUNT.
 extern int camera_no_connect_cnt; //20120404 ysseung   if the camera is not connected, modify to an infinite loop issue of camera stop.
 
@@ -825,6 +825,8 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 					//20120414 ysseung   modify to camera infinite loop. count limit is CAMERA_LOOP_LIMIT_COUNT. - start -
 					camera_loop_cnt++;
 					if(camera_loop_cnt > CAMERA_LOOP_LIMIT_COUNT) {
+						volatile PVIOC_IREQ_CONFIG pIREQConfig = (volatile PVIOC_IREQ_CONFIG)tcc_p2v((unsigned int)HwVIOC_IREQ);
+						VIOC_WDMA_SWReset(pIREQConfig, 0x5/* WDMA05 */);
 						printk("1. WDMA is not ready. camera_loop_cnt = %d. \n", camera_loop_cnt);
 						camera_loop_cnt = 0;
 						break;
@@ -947,6 +949,8 @@ static irqreturn_t cif_cam_isr_in8920(int irq, void *client_data/*, struct pt_re
 							//20120414 ysseung   modify to camera infinite loop. count limit is CAMERA_LOOP_LIMIT_COUNT. - start -
 							camera_loop_cnt++;
 							if(camera_loop_cnt > CAMERA_LOOP_LIMIT_COUNT) {
+								volatile PVIOC_IREQ_CONFIG pIREQConfig = (volatile PVIOC_IREQ_CONFIG)tcc_p2v((unsigned int)HwVIOC_IREQ);
+								VIOC_WDMA_SWReset(pIREQConfig, 0x5/* WDMA05 */);
 								printk("2. WDMA is not ready. camera_loop_cnt = %d. \n", camera_loop_cnt);
 								camera_loop_cnt = 0;
 								break;
@@ -2899,6 +2903,8 @@ int tccxxx_cif_capture(int quality)
 			//20120414 ysseung   modify to camera infinite loop. count limit is CAMERA_LOOP_LIMIT_COUNT. - start -
 			camera_loop_cnt++;
 			if(camera_loop_cnt > CAMERA_LOOP_LIMIT_COUNT) {
+				volatile PVIOC_IREQ_CONFIG pIREQConfig = (volatile PVIOC_IREQ_CONFIG)tcc_p2v((unsigned int)HwVIOC_IREQ);
+				VIOC_WDMA_SWReset(pIREQConfig, 0x5/* WDMA05 */);
 				printk("3. WDMA is not ready. camera_loop_cnt = %d. \n", camera_loop_cnt);
 				camera_loop_cnt = 0;
 				break;
