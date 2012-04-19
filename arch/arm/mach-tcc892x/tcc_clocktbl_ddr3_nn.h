@@ -37,8 +37,8 @@ static struct tcc_freq_table_t gtClockLimitTable[] = {
 	{ 468750,      0, 380710,      0, 140000,      0,      0, 100000,      0 }, // Core 1.10V
 	{ 546875,      0, 456860,      0, 168000,      0,      0, 100000,      0 }, // Core 1.15V
 	{ 625000,      0, 533000,      0, 196000,      0,      0, 100000,      0 }, // Core 1.20V
-	{ 716500,      0, 563450,      0, 219520,      0,      0, 100000,      0 }, // Core 1.25V
 	#if !defined(CONFIG_STB_BOARD_DONGLE)
+	{ 716500,      0, 563450,      0, 219520,      0,      0, 100000,      0 }, // Core 1.25V
 	{ 808000,      0, 600000,      0, 243040,      0,      0, 100000,      0 }, // Core 1.30V
 	#if !defined(CONFIG_STB_BOARD_HDB892S) && !defined(CONFIG_STB_BOARD_HDB892F)
 	{ 996800,      0, 600000,      0, 243040,      0,      0, 100000,      0 }, // Core 1.425V
@@ -85,7 +85,11 @@ const struct tcc_freq_table_t gtVpuNormalClockLimitTable[] =
 #else
 	{ 343750, 189010, 322885,      0, 118735, 167800, 167800,      0,      0 },	// Core 1.05V  (166/166)
 	{ 401250, 222860, 380710,      0, 140000, 197860, 197860,      0,      0 },	// Core 1.10V  (182/182)
+	#if defined(CONFIG_STB_BOARD_DONGLE)
+	{ 401250, 312000, 533000,      0, 196000, 277000, 277000,      0,      0 },	// Core 1.20V  (336/336)
+	#else
 	{ 401250, 386880, 600000,      0, 243040, 343480, 343480,      0,      0 },	// Core 1.30V  (336/336)
+	#endif
 #endif
 };
 
@@ -116,8 +120,12 @@ const struct tcc_freq_table_t gtVpu_720p_ClockLimitTable[] =
 #else
 	{ 401250,      0,      0,      0, 168000,      0,      0,      0,      0 }, //  ~ 10Mbps,  Core 1.15V
 	{ 468750,      0,      0,      0, 168000,      0,      0,      0,      0 }, // *10~20Mbps, Core 1.15V
+	#if defined(CONFIG_STB_BOARD_DONGLE)
+	{ 625000,      0,      0,      0, 196000, 237425, 237425,      0,      0 }, //  20~30Mbps, Core 1.20V
+	#else
 	{ 625000,      0,      0,      0, 219520, 237425, 237425,      0,      0 }, //  20~30Mbps, Core 1.20V
 	{ 808000, 386880, 533000,      0, 243040, 343480, 343480,      0,      0 },	//  30Mbps ~,  Core 1.30V
+	#endif
 #endif
 };
 
@@ -130,10 +138,14 @@ const struct tcc_freq_table_t gtVpu_1080p_ClockLimitTable[] =
 	{ 468750, 312000,      0,      0, 196000, 277000, 277000,      0,      0 }, //   20~30Mbps, Core 1.20V (250/250)
 	{ 625000, 386880, 600000,      0, 243040, 343480, 343480,      0,      0 }, //   30Mbps ~,  Core 1.30V (343/343)
 #else
+	#if defined(CONFIG_STB_BOARD_DONGLE)
+	{ 625000,      0,      0, 370000,      0,      0,      0,      0,      0 }, // * 10~20Mbps, Core 1.20V
+	#else
 	{ 468750,      0,      0, 414400,      0,      0,      0,      0,      0 }, // 	~ 10Mbps,  Core 1.30V
 	{ 625000,      0,      0, 414400,      0,      0,      0,      0,      0 }, // * 10~20Mbps, Core 1.30V
 	{ 716500,      0,      0, 458800,      0,      0,      0,      0,      0 }, //   20~30Mbps, Core 1.30V
 	{ 808000,      0,      0, 458800,      0,      0,      0,      0,      0 }, //   30Mbps ~,  Core 1.30V
+	#endif
 #endif
 };
 
@@ -144,18 +156,30 @@ const struct tcc_freq_table_t gtJpegClockLimitTable[]= {
 };
 
 const struct tcc_freq_table_t gtJpegMaxClockLimitTable = {
+	#if defined(CONFIG_STB_BOARD_DONGLE)
+	       0,      0, 533000,      0, 196000, 277000, 277000,      0,      0	// Core 1.20V
+	#else
 	       0,      0, 600000,      0, 243040, 343480, 343480,      0,      0	// Core 1.30V
+	#endif
 };
 
 const struct tcc_freq_table_t gtMultiVpuClockLimitTable = {
+	#if defined(CONFIG_STB_BOARD_DONGLE)
+	       0,      0, 533000,      0, 196000, 277000, 277000,      0,      0	// Core 1.20V
+	#else
 	       0,      0, 600000,      0, 243040, 296000, 296000,      0,      0	// Core 1.30V
+	#endif
 };
 
 const struct tcc_freq_table_t gtHdmiClockLimitTable = {
 #ifdef VIDEO_USING_WVGA_LCD
 	  625000, 386880, 600000,      0, 243040, 296000, 296000,      0,      0	// Core 1.30V
 #else
+	#if defined(CONFIG_STB_BOARD_DONGLE)
+	  625000, 312000, 533000,      0, 196000,      0,      0,      0,      0	// Core 1.20V
+	#else
 	  625000, 386880, 600000,      0, 243040,      0,      0,      0,      0	// Core 1.30V
+	#endif
 #endif
 };
 
@@ -176,7 +200,11 @@ const struct tcc_freq_table_t gtTvClockLimitTable = {
 };
 
 const struct tcc_freq_table_t gtBtClockLimitTable = {
+	#if defined(CONFIG_STB_BOARD_DONGLE)
+	       0,      0, 533000,      0, 196000,      0,      0,      0,      0	// Core 1.20V
+	#else
 	       0,      0, 600000,      0, 196000,      0,      0,      0,      0	// Core 1.20V
+	#endif
 };
 
 const struct tcc_freq_table_t gtUSBClockLimitTable[] = {
@@ -185,7 +213,11 @@ const struct tcc_freq_table_t gtUSBClockLimitTable[] = {
 };
 
 const struct tcc_freq_table_t gtAppClockLimitTable = {
+	#if defined(CONFIG_STB_BOARD_DONGLE)
+	  625000,      0, 533000,      0,      0,      0,      0,      0,      0	// Core 1.20V
+	#else
 	  808000,      0, 533000,      0,      0,      0,      0,      0,      0	// Core 1.30V
+	#endif
 };
 
 const struct tcc_freq_table_t gtRemoconClockLimitTable = {
@@ -202,7 +234,9 @@ const struct tcc_freq_table_t gtHSIONormalClockLimitTable = {
 
 const struct tcc_freq_table_t gtVoipClockLimitTable[] = {
 	{ 625000,      0, 533000,      0, 196000,      0,      0, 100000,      0 },	// Core 1.20V
+	#if !defined(CONFIG_STB_BOARD_DONGLE)
 	{ 808000,      0, 600000,      0, 243040,      0,      0, 100000,      0 },	// Core 1.30V
+	#endif
 };
 
 EXPORT_SYMBOL(gtCameraClockLimitTable);
