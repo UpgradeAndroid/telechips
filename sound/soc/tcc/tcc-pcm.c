@@ -824,9 +824,58 @@ static int tcc_pcm_open(struct snd_pcm_substream *substream)
     struct tcc_runtime_data *prtd;
     int ret;
 
+// Planet 20120424 pcm_close source add - Start
+#if defined(CONFIG_ARCH_TCC892X)
+    volatile PADMADAI pDAI = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI0);
+    volatile PADMASPDIFTX pADMASPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX1);
+#else
+    volatile PADMADAI pDAI = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI);
+    volatile PADMASPDIFTX pADMASPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX);
+#endif
+
     alsa_dbg("[%s] open %s device, %s\n", __func__, 
 										substream->pcm->device == __SPDIF_DEV_NUM__ ? "spdif":"pcm", 
 										substream->stream == SNDRV_PCM_STREAM_PLAYBACK ? "output" : "input");
+
+	//alsa_dbg("~~~~~~~!!!!!!!!! tcc_pcm_open Info_flag:%d !!!!!!!!!!~~~~~~~~~~~\n",tcc_alsa_info.flag);
+
+	if(tcc_alsa_info.flag & TCC_INTERRUPT_REQUESTED)
+	{
+		mutex_lock(&(tcc_alsa_info.mutex));
+	    //if (substream->pcm->device == __SPDIF_DEV_NUM__) {
+		if (tcc_alsa_info.flag & TCC_RUNNING_SPDIF) {
+	        tcc_alsa_info.flag &= ~TCC_RUNNING_SPDIF;
+	        //tca_i2s_stop(pDAI, pADMASPDIFTX, 0);
+	        pADMASPDIFTX->TxConfig &= ~Hw0;
+	        alsa_dbg("[%s] close spdif device\n", __func__);
+	    } else {
+	        //if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
+			if (tcc_alsa_info.flag & TCC_RUNNING_PLAY) {
+	            tcc_alsa_info.flag &= ~TCC_RUNNING_PLAY;
+	            //tca_i2s_stop(pDAI, pADMASPDIFTX, 0);
+	            pDAI->DAMR &= ~Hw14;
+	        } else {
+	            tcc_alsa_info.flag &= ~TCC_RUNNING_CAPTURE;
+	            //tca_i2s_stop(pDAI, pADMASPDIFTX, 1);
+	            pDAI->DAMR &= ~Hw13;
+	        }
+	    }
+	    // dma_free_writecombine(substream->pcm->card->dev, PAGE_SIZE,); 
+
+	    if (prtd) {
+	        kfree(prtd);
+	    }
+
+	    if (tcc_alsa_info.flag & TCC_INTERRUPT_REQUESTED) {
+	        if (!(tcc_alsa_info.flag & (TCC_RUNNING_SPDIF | TCC_RUNNING_PLAY | TCC_RUNNING_CAPTURE))) {
+	            free_irq(alsa_get_intr_num(substream), &tcc_alsa_info);
+	            tcc_alsa_info.flag &= ~TCC_INTERRUPT_REQUESTED;
+	        }
+	    }
+	    mutex_unlock(&(tcc_alsa_info.mutex));
+	}
+
+// Planet 20120424 pcm_close source add - End
 
     mutex_lock(&(tcc_alsa_info.mutex));
     if (substream->pcm->device == __SPDIF_DEV_NUM__) {
