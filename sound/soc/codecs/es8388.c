@@ -610,10 +610,10 @@ static int es8388_set_bias_level(struct snd_soc_codec *codec,
     int i;
 	u16 *cache = codec->reg_cache;
 
-    alsa_dbg("%s----%d, %s\n",__FUNCTION__,__LINE__,
-        level == 0 ? "BIAS_ON" :
-        level == 1 ? "BIAS_PREPARE" :
-        level == 2 ? "BIAS_STANDBY" : "BIAS_OFF");
+    alsa_dbg("%s----%d, %s : %d\n",__FUNCTION__,__LINE__,
+        level == 0 ? "BIAS_OFF" :
+        level == 1 ? "BIAS_STANDBY" :
+        level == 2 ? "PREPARE" : "BIAS_ON", level);
 
     switch(level)
     {
@@ -717,6 +717,12 @@ static int es8388_set_bias_level(struct snd_soc_codec *codec,
             tcc_hp_hw_mute(true);
             tcc_spk_hw_mute(true);
 #if ES8388_USED_POWER_CONTROL
+            snd_soc_write(codec, ES8388_DACCONTROL7, 0x06);
+            snd_soc_write(codec, ES8388_DACCONTROL3, 0x36);
+            // Power Down ADC / Analog Input / Micbias for Record
+            snd_soc_write(codec, ES8388_ADCPOWER, 0xFC);
+            // Power down DAC and disable LOUT/ROUT
+            snd_soc_write(codec, ES8388_DACPOWER, 0xC0);
             // Power down ADC and DAC DLL
             snd_soc_write(codec, ES8388_CHIPPOWER, 0xFF);
 #else
@@ -855,6 +861,8 @@ static int es8388_register_init(struct snd_soc_codec *codec)
     snd_soc_write(codec, ES8388_ROUT1_VOL, 0x1e);   // 
     snd_soc_write(codec, ES8388_LOUT2_VOL, 0x1e);   // Enable LOUT2
     snd_soc_write(codec, ES8388_ROUT2_VOL, 0x1e);   // Enable ROUT2
+
+    codec->dapm.bias_level = SND_SOC_BIAS_STANDBY;
 
 	return 0;
 }
