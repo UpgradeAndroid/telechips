@@ -1628,6 +1628,18 @@ int clk_set_rate(struct clk *clk, unsigned long rate)
 }
 EXPORT_SYMBOL(clk_set_rate);
 
+int clk_forced_set_rate(struct clk *clk, unsigned long rate)
+{
+    int ret = 0;
+    spin_lock(&clock_lock); 
+    ret = _clk_set_rate(clk, rate);
+    spin_unlock(&clock_lock); 
+    if (ret == 0)
+        clk->rate = rate;
+    return ret;
+}
+EXPORT_SYMBOL(clk_forced_set_rate);
+
 /*
  * Adjust a rate to the exact rate a clock can provide
  */

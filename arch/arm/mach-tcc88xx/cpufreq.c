@@ -123,6 +123,7 @@ static struct regulator *vdd_coreB;
 static int curr_coreA_voltage = 0;
 static int curr_coreB_voltage = 0;
 
+extern int clk_forced_set_rate(struct clk *clk, unsigned long rate);
 extern int cpufreq_is_performace_governor(void);
 
 #if defined(CONFIG_CPU_HIGHSPEED)
@@ -709,6 +710,7 @@ static int tcc_cpufreq_target(struct cpufreq_policy *policy,
 		freqs.new, target_freq, freqs.old, tcc_freq_curr_limit_table.mem_freq, limit_tbl_flag);
 
 	ret = tcc_cpufreq_set_clock_table(&tcc_freq_curr_limit_table);
+	freqs.new = tcc_freq_curr_limit_table.cpu_freq;
 	mutex_unlock(&tcc_freq_mutex);
 
 	startup_cpufreq = 1;
@@ -726,69 +728,29 @@ static int tcc_cpufreq_verify(struct cpufreq_policy *policy)
 	return cpufreq_frequency_table_verify(policy, tcc_cpufreq_table);
 }
 
-static int tcc_cpufreq_suspend(struct cpufreq_policy *policy, pm_message_t pmsg)
+static int tcc_cpufreq_suspend(struct cpufreq_policy *policy)
 {
-	struct tcc_freq_table_t *freqs;
-
-	freqs = &gtClockLimitTable[0];
-
-#if defined(CONFIG_CPU_HIGHSPEED)
-	//del_timer(&timer_highspeed);
-	highspeed_reset_setting_values();
-#endif
-
-	clk_set_rate(mem_clk, freqs->mem_freq * 1000);
-	/* Sets minimum CPU frequency and voltage when suspend */
-	clk_set_rate(cpu_clk, freqs->cpu_freq * 1000);
-	clk_set_rate(io_clk, freqs->io_freq * 1000);
-	clk_set_rate(smu_clk, freqs->smu_freq * 1000);
-	clk_set_rate(ddi_clk, freqs->ddi_freq * 1000);
-	clk_set_rate(gpu_clk, freqs->gpu_freq * 1000);
-	clk_set_rate(hsio_clk, freqs->hsio_freq * 1000);
-	clk_set_rate(cam_clk, freqs->cam_freq * 1000);
-
 	return 0;
 }
 
 static int tcc_cpufreq_resume(struct cpufreq_policy *policy)
 {
 #if !defined(CONFIG_REGULATOR)
-	int ret;
-#endif
-	struct tcc_freq_table_t freqs;
-	memcpy(&freqs, &gtClockLimitTable[NUM_FREQS - 1], sizeof(struct tcc_freq_table_t));
-
-#if defined(CONFIG_CPU_HIGHSPEED)
-	//timer_highspeed.expires = jiffies + msecs_to_jiffies(HIGHSPEED_TIMER_TICK);	// 100 milisec.
-	//add_timer(&timer_highspeed);
-
-	if (freqs.cpu_freq > TCC_CPU_FREQ_NORMAL_SPEED)
-		freqs.cpu_freq = TCC_CPU_FREQ_NORMAL_SPEED;
+	tcc_cpufreq_set_voltage(TCC_CORE_A, tcc_cpufreq_get_voltage_table(TCC_CORE_A, &tcc_freq_old_table));
+	tcc_cpufreq_set_voltage(TCC_CORE_B, tcc_cpufreq_get_voltage_table(TCC_CORE_B, &tcc_freq_old_table));
 #endif
 
-#if !defined(CONFIG_REGULATOR)
-	ret = tcc_cpufreq_set_voltage(TCC_CORE_A, tcc_cpufreq_get_voltage_table(TCC_CORE_A, &freqs));
-	if (ret != 0) {
-		pr_err("cpufreq: regulator_set_voltage failed\n");
-		return -1;
-	}
-	ret = tcc_cpufreq_set_voltage(TCC_CORE_B, tcc_cpufreq_get_voltage_table(TCC_CORE_B, &freqs));
-	if (ret != 0) {
-		pr_err("cpufreq: regulator_set_voltage failed\n");
-		return -1;
-	}
-#endif
+	clk_forced_set_rate(cpu_clk, tcc_freq_old_table.cpu_freq * 1000);
+	clk_forced_set_rate(mem_clk, tcc_freq_old_table.mem_freq * 1000);
+	clk_forced_set_rate(io_clk, tcc_freq_old_table.io_freq * 1000);
+	clk_forced_set_rate(smu_clk, tcc_freq_old_table.smu_freq * 1000);
+	clk_forced_set_rate(ddi_clk, tcc_freq_old_table.ddi_freq * 1000);
+	clk_forced_set_rate(gpu_clk, tcc_freq_old_table.gpu_freq * 1000);
+	clk_forced_set_rate(vcod_clk, tcc_freq_old_table.vcod_freq * 1000);
+	clk_forced_set_rate(vbus_clk, tcc_freq_old_table.vbus_freq * 1000);
+	clk_forced_set_rate(hsio_clk, tcc_freq_old_table.hsio_freq * 1000);
+	clk_forced_set_rate(cam_clk, tcc_freq_old_table.cam_freq * 1000);
 
-	clk_set_rate(mem_clk, freqs.mem_freq * 1000);
-	clk_set_rate(cpu_clk, freqs.cpu_freq * 1000);
-	clk_set_rate(io_clk, freqs.io_freq * 1000);
-	clk_set_rate(smu_clk, freqs.smu_freq * 1000);
-	clk_set_rate(ddi_clk, freqs.ddi_freq * 1000);
-	clk_set_rate(gpu_clk, freqs.gpu_freq * 1000);
-	clk_set_rate(hsio_clk, freqs.hsio_freq * 1000);
-	clk_set_rate(cam_clk, freqs.cam_freq * 1000);
-
-	memcpy(&tcc_freq_old_table, &freqs, sizeof(struct tcc_freq_table_t));
 	return 0;
 }
 
