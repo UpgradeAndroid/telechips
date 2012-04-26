@@ -158,7 +158,7 @@ int tcc_hp_is_valid(void)
 	if(machine_is_m805_892x())
 	{
 		// gpio_get_value is ==> 0: disconnect, 1: connect
-		if(system_rev == 0x2002)
+		if(system_rev == 0x2002 || system_rev == 0x2003)
 			return gpio_get_value(TCC_GPE(16));
 		else
 			return gpio_get_value(TCC_GPE(5));
@@ -554,7 +554,7 @@ static int __init tcc_init_es8388(void)
 	/* h/w mute control */
 	if(machine_is_m805_892x())
 	{
-		if(system_rev == 0x2002) {
+		if(system_rev == 0x2002 || system_rev == 0x2003) {
 			tcc_gpio_config(TCC_GPE(18), GPIO_FN(0));
 			gpio_request(TCC_GPE(18), "SPK_MUTE_CTL");
 			gpio_direction_output(TCC_GPE(18), 0);	 // Speaker mute
