@@ -208,6 +208,10 @@ config DDR3_H5TQ2G83BFR_H9C
 
 config DDR3_H5TQ2G83BFR_PBC
   bool "Hynix DDR3_H5TQ2G83BFR_PBC"
+
+config DDR3_IN5CB256M8BN_CG
+  bool "Innoways IN5CB256M8BN_CG"
+
 endchoice
 
 choice

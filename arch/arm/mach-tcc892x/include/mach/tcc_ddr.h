@@ -1328,6 +1328,76 @@ enum
 #define DDR3_tZQINIT_ck                512
 #define DDR3_tZQOPER_ck                256
 
+#elif defined(CONFIG_DDR3_IN5CB256M8BN_CG) /*================================*/
+
+/*---------------------------------------------------------------------------
+ DDR3 Configuation
+---------------------------------------------------------------------------*/
+#if defined(CONFIG_DRAM_16BIT_USED) && defined(CONFIG_TCC_MEM_1024MB)
+#define DDR3_PINMAP_TYPE                 1
+#define DDR3_LOGICAL_CHIP_NUM            2
+#else
+#define DDR3_PINMAP_TYPE                 0
+#define DDR3_LOGICAL_CHIP_NUM            1
+#endif
+#define DDR3_MAX_SPEED           DDR3_1333
+#define DDR3_CL                          9
+#define DDR3_AL                AL_DISABLED
+#define DDR3_BURST_LEN                BL_8
+#define DDR3_READ_BURST_TYPE RBT_SEQUENTIAL
+#define DDR3_EA_BIT_SIZE        SIZE_2GBIT
+#define DDR3_TOTAL_MB_SIZE            1024
+#define DDR3_ROWBITS                    15
+#define DDR3_COLBITS                    10
+#define DDR3_BANK_NUM                    8
+#define DDR3_APBIT                      10
+
+/*---------------------------------------------------------------------------
+ DDR3 Access Timing Parameters
+---------------------------------------------------------------------------*/
+#define DDR3_tRFC_ps                160000
+#define DDR3_tREFI_ps              7800000
+#define DDR3_tRCD_ps                 13125
+#define DDR3_tRCD_ck                     1
+#define DDR3_tRP_ps                  13125
+#define DDR3_tRP_ck                      1
+#define DDR3_tRC_ps                  49125
+#define DDR3_tRC_ck                      1
+#define DDR3_tRAS_ps                 36000
+#define DDR3_tRAS_ck                     1
+#define DDR3_tRTP_ps                  7500
+#define DDR3_tRTP_ck                     4
+#define DDR3_tWTR_ps                  7500
+#define DDR3_tWTR_ck                     4
+#define DDR3_tWR_ps                  15000
+#define DDR3_tWR_ck                      1
+#define DDR3_tRRD_ps                  6000
+#define DDR3_tRRD_ck                     4
+#define DDR3_tFAW_ps                 30000
+#define DDR3_tFAW_ck                    20
+#define DDR3_tXS_ps    (DDR3_tRFC_ps+10000)
+#define DDR3_tXS_ck                      5
+#define DDR3_tXP_ps                   6000
+#define DDR3_tXP_ck                      3
+#define DDR3_tCKE_ps                  5625
+#define DDR3_tCKE_ck                     3
+#define DDR3_tMRD_ck                     4
+#define DDR3_tCCD_ck                     4
+#define DDR3_tRAS_MAX_ps  (DDR3_tREFI_ps*9)
+#define DDR3_tMOD_ps                 15000
+#define DDR3_tMOD_ck                    12
+#define DDR3_tDLLK_ck                  512
+#define DDR3_tXPDLL_ps               24000
+#define DDR3_tXPDLL_ck                  10
+#define DDR3_tXSDLL_ck       DDR3_tDLLK_ck
+#define DDR3_tCKSRX_ps               10000
+#define DDR3_tCKSRX_ck                   5
+#define DDR3_tCKSRE_ps               10000
+#define DDR3_tCKSRE_ck                   5
+#define DDR3_tZQCS_ck                   64
+#define DDR3_tZQINIT_ck                512
+#define DDR3_tZQOPER_ck                256
+
 #else
 /*-------------------------------------------------------------------------*/
 #error "not selected"
