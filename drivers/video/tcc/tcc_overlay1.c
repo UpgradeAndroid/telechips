@@ -486,6 +486,9 @@ static int tccxxx_overlay1_set_pos(overlay_config_t * arg )
 		#if !defined(CONFIG_ARCH_TCC92XX)
 		BITCSET (pLCDC1->LI1C, HwLCT_RU, HwLCT_RU); //Image update
 		#endif
+	#else
+		VIOC_WMIX_SetUpdate(pWMIXBase1);
+		VIOC_RDMA_SetImageUpdate(pRDMABase5);
 	#endif//
 	
 	return 0;
