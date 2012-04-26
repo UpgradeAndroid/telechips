@@ -50,7 +50,7 @@ static int wifi_pwr_open (struct inode *inode, struct file *filp)
 
 static int wifi_pwr_release (struct inode *inode, struct file *filp)  
 {  
-	if(system_rev == 0x2002)
+	if(system_rev == 0x2002 || system_rev == 0x2003)
 	    vdd_wifi = NULL;
     printk("%s\n", __func__); 
     return 0;  
@@ -63,7 +63,7 @@ int wifi_pwr_ioctl_hw( unsigned int cmd)
     {  
         case 1 : // WIFI_On
 #ifdef CONFIG_REGULATOR
-			if(system_rev == 0x2002) {
+			if(system_rev == 0x2002 || system_rev == 0x2003) {
 		        if (vdd_wifi)			
 		            regulator_enable(vdd_wifi);
 			}else
@@ -72,7 +72,7 @@ int wifi_pwr_ioctl_hw( unsigned int cmd)
             break;   
         case 0 : // WIFI_Off
 #ifdef CONFIG_REGULATOR	
-			if(system_rev == 0x2002) {
+			if(system_rev == 0x2002 || system_rev == 0x2003) {
 	        	if (vdd_wifi)
             		regulator_disable(vdd_wifi);
 			}else
@@ -152,7 +152,7 @@ static int __init wifi_pwr_init(void)
                   WIFI_GPIO_DEV_NAME);
 
 #if defined(CONFIG_REGULATOR)
-    if(system_rev == 0x2002) {
+    if(system_rev == 0x2002 || system_rev == 0x2003) {
         vdd_wifi =  regulator_get(NULL, "vdd_wifi30");
         if( IS_ERR(vdd_wifi))
         {
@@ -188,7 +188,7 @@ static void __exit wifi_pwr_exit(void)
     unregister_chrdev_region(dev, 1);
 
 #ifdef CONFIG_REGULATOR
-	if(system_rev == 0x2002) {
+	if(system_rev == 0x2002 || system_rev == 0x2003) {
 		if (vdd_wifi)
 			regulator_disable(vdd_wifi);
 		vdd_wifi = NULL;

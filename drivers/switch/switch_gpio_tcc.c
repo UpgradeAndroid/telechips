@@ -112,7 +112,7 @@ static int tcc_gpio_thread(void* _switch_data)
     }
 #elif defined(CONFIG_ARCH_TCC892X)
 	if(machine_is_m805_892x()) {
-		if (system_rev == 0x2002) {
+		if (system_rev == 0x2002 || system_rev == 0x2003) {
 			tcc_gpio_config(TCC_GPE(16), GPIO_FN(0));
 			gpio_request(TCC_GPE(16), "HP_DETECTION");
 			gpio_direction_input(TCC_GPE(16));
@@ -138,7 +138,7 @@ static int tcc_gpio_thread(void* _switch_data)
 #elif defined(CONFIG_ARCH_TCC892X)
 		if(machine_is_m805_892x())
 		{
-			if (system_rev == 0x2002)
+			if (system_rev == 0x2002 || system_rev == 0x2003)
 				state = gpio_get_value(TCC_GPE(16));
 			else
 				state = gpio_get_value(TCC_GPE(5));

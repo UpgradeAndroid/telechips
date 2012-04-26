@@ -150,7 +150,7 @@ static int n101l6_set_backlight_level(struct lcd_panel *panel, int level)
 		if(panel->state)
 		{
 			#if defined(CONFIG_ARCH_TCC892X)
-			if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002)
+			if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002 || system_rev == 0x2003)
 				tca_tco_pwm_ctrl(0, pdata->display_on, ((MAX_BACKLIGTH<< 2) | 0x3), (MAX_BL_LEVEL - ((MAX_BL_LEVEL - level)) <<2) | (0x3 << 2 ));
 			else
 				tca_tco_pwm_ctrl(1, pdata->display_on, ((MAX_BACKLIGTH<< 2) | 0x3), (MAX_BL_LEVEL - ((MAX_BL_LEVEL - level)) <<2) | (0x3 << 2 ));

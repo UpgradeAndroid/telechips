@@ -918,7 +918,7 @@ static irqreturn_t tcc_vsync_timer_handler(int irq, void *dev_id)
 	PTIMER pTIMER_reg = (volatile PTIMER)tcc_p2v(HwTMR_BASE);
 
 	#if defined(CONFIG_ARCH_TCC892X)
-		if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002)
+		if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002 || system_rev == 0x2003)
 		{
 				pTIMER_reg->TIREQ.nREG = 0x00000202;
 		}
@@ -949,7 +949,7 @@ void tccfb_vsync_timer_onoff(int onOff)
 		BITCSET(pCKC->PCLKCTRL01.nREG, 0xFFFFFFFF, 0x24000000);
 
 		#if defined(CONFIG_ARCH_TCC892X)
-			if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002)
+			if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002 || system_rev == 0x2003)
 			{
 				pTIMER_reg->TCFG1.bREG.EN = 1;
 				pTIMER_reg->TCFG1.bREG.IEN = 1;
@@ -982,7 +982,7 @@ void tccfb_vsync_timer_onoff(int onOff)
 		{
 
 		#if defined(CONFIG_ARCH_TCC892X)
-			if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002)
+			if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002 || system_rev == 0x2003)
 			{
 				request_irq(INT_TC_TI1, tcc_vsync_timer_handler,	IRQF_SHARED,
 						"TCC_TC1",	tcc_vsync_timer_handler);
@@ -1000,7 +1000,7 @@ void tccfb_vsync_timer_onoff(int onOff)
 	else	{
 
 		#if defined(CONFIG_ARCH_TCC892X)
-			if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002)
+			if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002 || system_rev == 0x2003)
 			{
 				pTIMER_reg->TCFG1.bREG.EN = 0;
 				pTIMER_reg->TCFG1.bREG.IEN = 0;
@@ -1031,7 +1031,7 @@ void tccfb_vsync_timer_onoff(int onOff)
 		if(timer_interrupt_onoff == 1)
 		{
 			#if defined(CONFIG_ARCH_TCC892X)
-				if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002)
+				if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002 || system_rev == 0x2003)
 				{
 						free_irq(INT_TC_TI1, tcc_vsync_timer_handler);			
 				}
@@ -1056,7 +1056,7 @@ unsigned int tcc_vsync_get_timer_clock(void)
 
 
 	#if defined(CONFIG_ARCH_TCC892X)
-		if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002)
+		if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002 || system_rev == 0x2003)
 		{
 				timer_tick = pTIMER_reg->TCNT1.bREG.TCNT;
 		}

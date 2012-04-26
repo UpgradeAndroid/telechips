@@ -273,7 +273,7 @@ static int gpio_event_resume(struct platform_device *pdev)
 
 	// WKUP from PowerKey & PowerKey is not pressed.
 #if defined(CONFIG_MACH_M805_892X)
-	if (system_rev == 0x2002)
+	if (system_rev == 0x2002 || system_rev == 0x2003)
 	{
 		if((pPMU->PMU_WKSTS1.bREG.GPIO_E15)&&(gpio_get_value(TCC_GPE(15))))
 			is_wakeup_by_powerkey = 1;

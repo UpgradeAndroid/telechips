@@ -267,7 +267,7 @@ static int ehci_hcd_tcc_drv_suspend(struct device *dev)
 	tcc_ehci_vbus_exit();
 
 #if defined(CONFIG_MACH_M805_892X) && defined(CONFIG_WIFI_PWR_CTL)
-	if(system_rev == 0x2002) {
+	if(system_rev == 0x2002 || system_rev == 0x2003) {
 		if(wifi_stat == 1) {
 			#if defined(CONFIG_REGULATOR)
 			struct regulator *vdd_wifi = NULL;
@@ -296,7 +296,7 @@ static int ehci_hcd_tcc_drv_resume(struct device *dev)
 
 #if defined(CONFIG_MACH_M805_892X) && defined(CONFIG_WIFI_PWR_CTL)
 	if(wifi_stat==1) {
-		if(system_rev == 0x2002) {
+		if(system_rev == 0x2002 || system_rev == 0x2003) {
 			#if defined(CONFIG_REGULATOR)
 			struct regulator *vdd_wifi = NULL;
 			vdd_wifi = regulator_get(NULL, "vdd_wifi30");

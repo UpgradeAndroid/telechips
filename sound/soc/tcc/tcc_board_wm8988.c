@@ -80,7 +80,7 @@ static void spk_mute(void)
 #elif defined(CONFIG_ARCH_TCC892X)
 	if(machine_is_m805_892x())
 	{
-		if(system_rev == 0x2002) {
+		if(system_rev == 0x2002 || system_rev == 0x2003) {
 			gpio_set_value(TCC_GPE(18), 0);
 		} else {	
 			#if defined(CONFIG_M805S_8923_0XA)
@@ -102,7 +102,7 @@ static void spk_un_mute(void)
 #elif defined(CONFIG_ARCH_TCC892X)
 	if(machine_is_m805_892x())
 	{
-		if(system_rev == 0x2002) {
+		if(system_rev == 0x2002 || system_rev == 0x2003) {
 			gpio_set_value(TCC_GPE(18), 1);
 		} else {
 			#if defined(CONFIG_M805S_8923_0XA)
@@ -123,7 +123,7 @@ static void hp_mute(void)
 #elif defined(CONFIG_ARCH_TCC892X)
 	if(machine_is_m805_892x())
 	{
-		if(system_rev == 0x2002)
+		if(system_rev == 0x2002 || system_rev == 0x2003)
 			gpio_set_value(TCC_GPE(17), 0);
 		else
 			gpio_set_value(TCC_GPG(5), 0);
@@ -139,7 +139,7 @@ static void hp_un_mute(void)
 #elif defined(CONFIG_ARCH_TCC892X)
 	if(machine_is_m805_892x())
 	{
-		if(system_rev == 0x2002)
+		if(system_rev == 0x2002 || system_rev == 0x2003)
 			gpio_set_value(TCC_GPE(17), 1);
 		else
 			gpio_set_value(TCC_GPG(5), 1);
@@ -158,7 +158,7 @@ int tcc_hp_is_valid(void)
 	if(machine_is_m805_892x())
 	{
 		// gpio_get_value is ==> 0: disconnect, 1: connect
-		if(system_rev == 0x2002)
+		if(system_rev == 0x2002 || system_rev == 0x2003)
 			return gpio_get_value(TCC_GPE(16));
 		else
 			return gpio_get_value(TCC_GPE(5));
@@ -536,7 +536,7 @@ static int __init tcc_init_wm8988(void)
 	/* h/w mute control */
 	if(machine_is_m805_892x())
 	{
-		if(system_rev == 0x2002) {
+		if(system_rev == 0x2002 || system_rev == 0x2003) {
 			tcc_gpio_config(TCC_GPE(18), GPIO_FN(0));
 			gpio_request(TCC_GPE(18), "SPK_MUTE_CTL");
 			gpio_direction_output(TCC_GPE(18), 0);	 // Speaker mute

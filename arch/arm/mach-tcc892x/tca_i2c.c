@@ -46,7 +46,7 @@ void tca_i2c_setgpio(int core, int ch)
 				tcc_gpio_config(TCC_GPG(19), GPIO_FN4|GPIO_OUTPUT|GPIO_LOW);
 				#endif
 			#elif defined(CONFIG_MACH_M805_892X)
-				if (system_rev == 0x2002)
+				if (system_rev == 0x2002 || system_rev == 0x2003)
 				{
 					//I2C[12] - GPIOC[2][3]
 					//i2c_portcfg->PCFG0.bREG.MASTER0 = 12;
@@ -99,7 +99,7 @@ void tca_i2c_setgpio(int core, int ch)
 			break;
 		case 1:
 			#if defined(CONFIG_MACH_M805_892X)
-			if (system_rev == 0x2002)
+			if (system_rev == 0x2002 || system_rev == 0x2003)
 			{
 				//I2C[25] - GPIOG[12][13]
 				//i2c_portcfg->PCFG0.bREG.MASTER1 = 25;
@@ -160,7 +160,7 @@ void tca_i2c_setgpio(int core, int ch)
 			break;
 		case 2:
 			#if defined(CONFIG_MACH_M805_892X)
-			if (system_rev == 0x2002)
+			if (system_rev == 0x2002 || system_rev == 0x2003)
 			{
 				//I2C[18] - GPIOF[13][14]
 				//i2c_portcfg->PCFG0.bREG.MASTER1 = 18;

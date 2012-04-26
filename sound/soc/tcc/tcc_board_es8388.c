@@ -80,7 +80,7 @@ static void spk_mute(void)
 #elif defined(CONFIG_ARCH_TCC892X)
 	if(machine_is_m805_892x())
 	{
-		if(system_rev == 0x2002) {
+		if(system_rev == 0x2002 || system_rev == 0x2003) {
 			gpio_set_value(TCC_GPE(18), 0);
 		} else {	
 			#if defined(CONFIG_M805S_8923_0XA)
@@ -102,7 +102,7 @@ static void spk_un_mute(void)
 #elif defined(CONFIG_ARCH_TCC892X)
 	if(machine_is_m805_892x())
 	{
-		if(system_rev == 0x2002) {
+		if(system_rev == 0x2002 || system_rev == 0x2003) {
 			gpio_set_value(TCC_GPE(18), 1);
 		} else {
 			#if defined(CONFIG_M805S_8923_0XA)
@@ -123,7 +123,7 @@ static void hp_mute(void)
 #elif defined(CONFIG_ARCH_TCC892X)
 	if(machine_is_m805_892x())
 	{
-		if(system_rev == 0x2002)
+		if(system_rev == 0x2002 || system_rev == 0x2003)
 			gpio_set_value(TCC_GPE(17), 0);
 		else
 			gpio_set_value(TCC_GPG(5), 0);
@@ -139,7 +139,7 @@ static void hp_un_mute(void)
 #elif defined(CONFIG_ARCH_TCC892X)
 	if(machine_is_m805_892x())
 	{
-		if(system_rev == 0x2002)
+		if(system_rev == 0x2002 || system_rev == 0x2003)
 			gpio_set_value(TCC_GPE(17), 1);
 		else
 			gpio_set_value(TCC_GPG(5), 1);

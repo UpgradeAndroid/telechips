@@ -762,7 +762,7 @@ static int rn5t614_pmic_probe(struct i2c_client *client, const struct i2c_device
 
 	// init settings...
 	// TODO:
-	if(system_rev == 0x2002)	//for Current Optimizing - 120308, hjbae
+	if(system_rev == 0x2002 || system_rev == 0x2003)	//for Current Optimizing - 120308, hjbae
 	{
 		u8 new_value, old_value;
 

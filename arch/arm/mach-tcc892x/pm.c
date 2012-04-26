@@ -2587,7 +2587,7 @@ static void tcc_pm_power_off(void)
 	}
 	else if(machine_is_m805_892x())
 	{
-		if (system_rev == 0x2002) {
+		if (system_rev == 0x2002 || system_rev == 0x2003) {
 			gpio_set_value(TCC_GPC(0), 0); // LCD_BLCTL
 			gpio_set_value(TCC_GPE(24), 0); // LCD_PWREN
 			//gpio_set_value(TCC_GPE(7), 0);  // SHDN
