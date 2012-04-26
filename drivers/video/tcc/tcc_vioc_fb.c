@@ -72,7 +72,7 @@
 #include <mach/tca_lcdc.h>
 #include <mach/globals.h>
 #include <linux/console.h>
-
+#include <mach/vioc_rdma.h>
 #include <mach/vioc_disp.h>
 #ifdef TCC_VIDEO_DISPLAY_DEINTERLACE_MODE
 #include "tcc_vioc_viqe_interface.h"
@@ -812,11 +812,39 @@ static void DisplayUpdateWithDeinterlace(void)
 }
 #endif // TCC_VIDEO_DISPLAY_DEINTERLACE_MODE
 
+void tca_video_vsync_interrupt_onoff(int onoff, int lcdc_num)
+{
+	VIOC_RDMA *pRDMABase;
+	
+	if(lcdc_num)
+		pRDMABase = (volatile VIOC_RDMA*)tcc_p2v(HwVIOC_RDMA04);
+	else
+		pRDMABase = (volatile VIOC_RDMA*)tcc_p2v(HwVIOC_RDMA00);
+
+	VIOC_RDMA_SetIreqMask(pRDMABase, VIOC_RDMA_IREQ_ALL_MASK, 1);
+
+	if(onoff)
+		VIOC_RDMA_SetIreqMask(pRDMABase, VIOC_RDMA_IREQ_IEOFF_MASK, 0);
+	else
+		VIOC_RDMA_SetIreqMask(pRDMABase, VIOC_RDMA_IREQ_IEOFF_MASK, 0);
+}
+
+void tca_video_vsync_interrupt_maskset(int lcdc_num)
+{
+	VIOC_RDMA *pRDMABase;
+	
+	if(lcdc_num)
+		pRDMABase = (volatile VIOC_RDMA*)tcc_p2v(HwVIOC_RDMA04);
+	else
+		pRDMABase = (volatile VIOC_RDMA*)tcc_p2v(HwVIOC_RDMA00);
+
+	VIOC_RDMA_SetStatus(pRDMABase, VIOC_RDMA_STAT_IEOFF);
+}
 
 static irqreturn_t tcc_lcd_handler0_for_video(int irq, void *dev_id)
 {
-///wz// tccvid_vsync 
-	tca_lcdc_interrupt_onoff(1, 0);
+	tca_video_vsync_interrupt_maskset(0);
+	tca_video_vsync_interrupt_onoff(1, 0);
 
 	#ifdef USE_SOFT_IRQ_FOR_VSYNC
 		if (schedule_work(&vsync_work_q) == 0 ) {
@@ -850,8 +878,8 @@ static irqreturn_t tcc_lcd_handler0_for_video(int irq, void *dev_id)
 
 static irqreturn_t tcc_lcd_handler1_for_video(int irq, void *dev_id)
 {
-	tca_lcdc_interrupt_onoff(1, 1);
-	
+	tca_video_vsync_interrupt_maskset(1);
+	tca_video_vsync_interrupt_onoff(1, 1);
 #ifdef USE_SOFT_IRQ_FOR_VSYNC
 		if (schedule_work(&vsync_work_q) == 0 ) {
             printk("vsync error:cannot schedule work !!!\n");
@@ -1085,19 +1113,24 @@ void tca_vsync_video_display_enable(void)
 {
 	int ret;
 	char hdmi_lcdc = EX_OUT_LCDC;
+
+
+
 	
 	if(lcdc_interrupt_onoff == 0)
 	{
 		if(hdmi_lcdc){
-			tca_lcdc_interrupt_onoff(1, 1);
-			ret = request_irq(INT_VIOC_DEV1, tcc_lcd_handler1_for_video,	IRQF_SHARED,
-					"TCC_VIOC_DEV1",	tcc_lcd_handler1_for_video);
+			tca_video_vsync_interrupt_onoff(1, 1);
+
+			ret = request_irq(INT_VIOC_RD4, tcc_lcd_handler1_for_video,	IRQF_SHARED,
+					"INT_VIOC_RD4",	tcc_lcd_handler1_for_video);
 			printk("tca_vsync_video_display_enable : request_irq 1 ret %d\n",ret);
 		}
 		else{
-			tca_lcdc_interrupt_onoff(1, 0);
-			ret= request_irq(INT_VIOC_DEV0, tcc_lcd_handler0_for_video,	IRQF_SHARED,
-					"TCC_VIOC_DEV0",	tcc_lcd_handler0_for_video);
+			tca_video_vsync_interrupt_onoff(1, 0);
+				
+			ret= request_irq(INT_VIOC_RD0, tcc_lcd_handler0_for_video,	IRQF_SHARED,
+					"INT_VIOC_RD0",	tcc_lcd_handler0_for_video);
 			
 			printk("tca_vsync_video_display_enable : request_irq 0 ret %d\n",ret);
 		}
@@ -1119,12 +1152,12 @@ void tca_vsync_video_display_disable(void)
 	if(lcdc_interrupt_onoff == 1)
 	{
 		if(hdmi_lcdc){
-			tca_lcdc_interrupt_onoff(0, 1);
-			free_irq(INT_VIOC_DEV1, tcc_lcd_handler1_for_video);
+			tca_video_vsync_interrupt_onoff(0, 1);
+			free_irq(INT_VIOC_RD4, tcc_lcd_handler1_for_video);
 		}
 		else {
-			tca_lcdc_interrupt_onoff(0, 0);
-			free_irq(INT_VIOC_DEV0, tcc_lcd_handler0_for_video);
+			tca_video_vsync_interrupt_onoff(0, 0);
+			free_irq(INT_VIOC_RD0, tcc_lcd_handler0_for_video);
 		}
 		lcdc_interrupt_onoff = 0;
 	}
