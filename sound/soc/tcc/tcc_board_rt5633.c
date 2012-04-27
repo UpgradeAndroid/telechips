@@ -70,8 +70,6 @@
 static int tcc_jack_func = TCC_SPK;
 static int tcc_spk_func;
 
-
-
 static void spk_mute()
 {
 #if defined(CONFIG_ARCH_TCC92XX)
@@ -128,7 +126,10 @@ static void hp_mute()
 #if defined(CONFIG_MACH_M805_892X)
 	if(machine_is_m805_892x())
 	{
-		gpio_set_value(TCC_GPG(5), 0);
+		if (system_rev == 0x2002 || system_rev == 0x2003)
+			gpio_set_value(TCC_GPE(17), 0);
+		else
+			gpio_set_value(TCC_GPG(5), 0);
         printk("@@@@@@@@@@@@@@@@@ %s() \n", __func__);
 	}
 #endif
@@ -152,7 +153,10 @@ static void hp_un_mute()
 #if defined(CONFIG_MACH_M805_892X)
 	if(machine_is_m805_892x())
 	{
-		gpio_set_value(TCC_GPG(5), 1);
+		if (system_rev == 0x2002 || system_rev == 0x2003)
+			gpio_set_value(TCC_GPE(17), 1);
+		else
+			gpio_set_value(TCC_GPG(5), 1);
         printk("@@@@@@@@@@@@@@@@@ %s() \n", __func__);
 	}
 #endif
@@ -447,7 +451,7 @@ static int tcc_rt5633_init(struct snd_soc_pcm_runtime *rtd)
 	struct snd_soc_dapm_context *dapm = &codec->dapm;
 
     alsa_dbg("%s() in...\n", __func__);
-	gpio_set_value(TCC_GPE(2), 1);
+//	gpio_set_value(TCC_GPE(2), 1);
 	
 #if 1
     snd_soc_dapm_enable_pin(dapm, "MICIN");
@@ -564,10 +568,16 @@ static int __init tcc_init_rt5633(void)
 
     /* h/w mute control */
     if(machine_is_m805_892x()) {
-        tcc_gpio_config(TCC_GPG(5), GPIO_FN(0));
-        gpio_request(TCC_GPG(5), "HP_MUTE_CTL");
-        
-        gpio_direction_output(TCC_GPG(5), 0);   // HeadPhone mute
+		if (system_rev == 0x2002 || system_rev == 0x2003) {
+			tcc_gpio_config(TCC_GPE(17), GPIO_FN(0));
+			gpio_request(TCC_GPE(17), "HP_MUTE_CTL");
+			gpio_direction_output(TCC_GPE(17), 0);   // HeadPhone mute
+		}
+		else {
+			tcc_gpio_config(TCC_GPG(5), GPIO_FN(0));
+			gpio_request(TCC_GPG(5), "HP_MUTE_CTL");
+			gpio_direction_output(TCC_GPG(5), 0);   // HeadPhone mute
+		}
         tcc_hp_hw_mute(false);
         tcc_spk_hw_mute(false);
     }
