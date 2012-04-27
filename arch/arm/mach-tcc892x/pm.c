@@ -847,7 +847,7 @@ static void set_core_voltage(unsigned int state)
 		BITCSET(*(volatile unsigned long *)(0x742001B8), 0x0000FF00, 0x00004400);
 		BITCSET(*(volatile unsigned long *)(0x76360000), 0x000000FF, 0x0000001A);
 #elif defined(CONFIG_MACH_M805_892X)
-		if (PMIC_PARAM(SYSTEM_REV) == 0x2002) {
+		if (PMIC_PARAM(SYSTEM_REV) == 0x2002 || PMIC_PARAM(SYSTEM_REV) == 0x2003) {
 			//I2C[12] - GPIOC[2][3]
 			//i2c_portcfg->PCFG0.bREG.MASTER0 = 12;
 			BITCSET(*(volatile unsigned long *)(0x742000B0), 0x0000FF00, 0x00007700);
@@ -889,7 +889,7 @@ static void set_core_voltage(unsigned int state)
 	}
 	else if (PMIC_PARAM(DEV_CH) == 1) {
 #if defined(CONFIG_MACH_M805_892X)
-		if (PMIC_PARAM(SYSTEM_REV) == 0x2002) {
+		if (PMIC_PARAM(SYSTEM_REV) == 0x2002 || PMIC_PARAM(SYSTEM_REV) == 0x2003) {
 			//I2C[25] - GPIOG[12][13]
 			//i2c_portcfg->PCFG0.bREG.MASTER1 = 25;
 			BITCSET(*(volatile unsigned long *)(0x742001B4), 0x00FF0000, 0x00440000);
@@ -937,7 +937,7 @@ static void set_core_voltage(unsigned int state)
 	}
 	else if (PMIC_PARAM(DEV_CH) == 2) {
 #if defined(CONFIG_MACH_M805_892X)
-		if (PMIC_PARAM(SYSTEM_REV) == 0x2002) {
+		if (PMIC_PARAM(SYSTEM_REV) == 0x2002 || PMIC_PARAM(SYSTEM_REV) == 0x2003) {
 			//I2C[18] - GPIOF[13][14]
 			//i2c_portcfg->PCFG0.bREG.MASTER1 = 18;
 			BITCSET(*(volatile unsigned long *)(0x74200178), 0x0FF00000, 0x0AA00000);
@@ -1243,7 +1243,7 @@ static void shutdown(void)
 
 #if defined(TCC_PM_MEMQ_PWR_CTRL)
 	#if defined(CONFIG_MACH_M805_892X)
-	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
+	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002 || *(volatile unsigned long *)SRAM_STACK_ADDR == 0x2003)
 		BITCLR(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<6); //GPIO D 6
 	else
 		BITCLR(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
@@ -1340,7 +1340,7 @@ static void shutdown(void)
 
 	/* Power Key */
 #if defined(CONFIG_MACH_M805_892X)
-	if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
+	if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002 || *(volatile unsigned long *)SRAM_STACK_ADDR == 0x2003)
 	{
 		//set wake-up polarity
 		((PPMU)HwPMU_BASE)->PMU_WKPOL1.bREG.GPIO_E15 = 1; //power key - Active Low
@@ -1497,7 +1497,7 @@ static void wakeup(void)
 
 #if defined(TCC_PM_MEMQ_PWR_CTRL)
 	#if defined(CONFIG_MACH_M805_892X)
-	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
+	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002 || *(volatile unsigned long *)SRAM_STACK_ADDR == 0x2003)
 		BITSET(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<6); //GPIO D 6
 	else
 		BITSET(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
@@ -1943,7 +1943,7 @@ static void sleep(void)
 
 #if defined(TCC_PM_MEMQ_PWR_CTRL)
 	#if defined(CONFIG_MACH_M805_892X)
-	if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
+	if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002 || *(volatile unsigned long *)SRAM_STACK_ADDR == 0x2003)
 		BITCLR(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<6); //GPIO D 6
 	else
 		BITCLR(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
@@ -2033,7 +2033,7 @@ static void sleep(void)
 
 	/* Power Key */
 #if defined(CONFIG_MACH_M805_892X)
-	if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
+	if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002 || *(volatile unsigned long *)SRAM_STACK_ADDR == 0x2003)
 	{
 		//set wake-up polarity
 		((PPMU)HwPMU_BASE)->PMU_WKPOL1.bREG.GPIO_E27 = 1; //power key - Active Low
@@ -2169,7 +2169,7 @@ static void sleep(void)
 
 #if defined(TCC_PM_MEMQ_PWR_CTRL)
 	#if defined(CONFIG_MACH_M805_892X)
-	if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
+	if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002 || *(volatile unsigned long *)SRAM_STACK_ADDR == 0x2003)
 		BITSET(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<6); //GPIO D 6
 	else
 		BITSET(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
