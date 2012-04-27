@@ -732,9 +732,14 @@ static struct resource tsif_resources[] = {
 #if   defined(CONFIG_MACH_TCC8920ST)		        
    		.start	= 4,/* Port4 GPIO_D[17:20] */
 		.end	= 4,
-#elif   defined(CONFIG_MACH_M805_892X)		
+#elif defined(CONFIG_MACH_M805_892X)
+#if defined(CONFIG_M805S_8925_0XX)
+   		.start	= 17,/* Port17 GPIO_G[00:03] */
+		.end	= 17,
+#else
    		.start	= 10,/* Port10 GPIO_C[10:13] */
 		.end	= 10,
+#endif
 #else
    		.start	= 6,/* Port6 GPIO_B[11:14] */
 		.end	= 6,
