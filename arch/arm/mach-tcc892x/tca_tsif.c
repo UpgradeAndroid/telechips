@@ -1036,6 +1036,10 @@ EXPORT_SYMBOL(tca_tsif_register_pids);
 
 int tca_tsif_can_support(void)
 {
+#if     defined(CONFIG_M805S_8925_0XX)
+    return 1;
+#else    
+
    	if(machine_is_tcc8920())
     {
         //0x1006:8925, 0x1008:8923, 0x1005,0x1007:8920
@@ -1046,13 +1050,13 @@ int tca_tsif_can_support(void)
         }
     }
 
-#ifdef  SUPPORT_STB_TSIF_INTERFACE
+    #ifdef  SUPPORT_STB_TSIF_INTERFACE
 	if(machine_is_tcc8920st())
     {
         return 1;
     }
+    #endif
 #endif
-
     return 0;
 }
 

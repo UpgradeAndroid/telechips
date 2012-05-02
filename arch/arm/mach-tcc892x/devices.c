@@ -632,9 +632,14 @@ static struct resource spi0_resources[] = {
 #if   defined(CONFIG_MACH_TCC8920ST)		        
    		.start	= 6,/* Port6 GPIO_B[11:14] */
 		.end	= 6,		
-#elif   defined(CONFIG_MACH_M805_892X)	
+#elif   defined(CONFIG_MACH_M805_892X)
+    #if defined(CONFIG_M805S_8925_0XX)
+   		.start	= 17,/* Port17 GPIO_G[00:03] */
+		.end	= 17,
+    #else
   		.start	= 13,/* Port13 GPIO_E[28:31] */
 		.end	= 13,
+    #endif
 #else
 		.start	= 4,/* Port4 GPIO_D[17:20] */
 		.end	= 4,
@@ -733,13 +738,8 @@ static struct resource tsif_resources[] = {
    		.start	= 4,/* Port4 GPIO_D[17:20] */
 		.end	= 4,
 #elif defined(CONFIG_MACH_M805_892X)
-#if defined(CONFIG_M805S_8925_0XX)
-   		.start	= 17,/* Port17 GPIO_G[00:03] */
-		.end	= 17,
-#else
    		.start	= 10,/* Port10 GPIO_C[10:13] */
 		.end	= 10,
-#endif
 #else
    		.start	= 6,/* Port6 GPIO_B[11:14] */
 		.end	= 6,
@@ -772,10 +772,10 @@ static struct resource tsif_ex_resources[] = {
 	},
 	[2] = {
         .name   = "tsif0",
-#if   defined(CONFIG_MACH_TCC8920ST)		        
+#if   defined(CONFIG_MACH_TCC8920ST) || defined(CONFIG_M805S_8925_0XX)
    		.start	= 0,/* Port0 GPIO_D[7:10] */
 		.end	= 0,
-#else        	  
+#else
    		.start	= 1,/* Port1 GPIO_B[0:3] */
 		.end	= 1,
 #endif		
