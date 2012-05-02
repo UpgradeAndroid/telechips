@@ -28,12 +28,24 @@
 #include <mach/tcc_dxb_ctrl.h>
 #include "board-m805_892x.h"
 
+#include <linux/err.h>
+#include <linux/regulator/machine.h>
+#include <linux/regulator/consumer.h>
+
+#if defined(CONFIG_REGULATOR)
+static struct regulator *vdd_dxb = NULL;
+#endif
+static int g_power_status = 0; //0:pwer off state, 1:power on status
 static unsigned int guiBoardType = BOARD_TDMB_TCC3150;
 
 static void tcc_dxb_ctrl_power_off(int deviceIdx)
 {
 	if(machine_is_m805_892x())
 	{
+        if(g_power_status == 0) //already power off
+            return;
+
+        g_power_status = 0; //power off status
 		switch(deviceIdx)
 		{
 		case 0:
@@ -48,6 +60,15 @@ static void tcc_dxb_ctrl_power_off(int deviceIdx)
 		tcc_gpio_config(GPIO_DXB_PWREN, GPIO_FN(0));     //DXB_PWREN
 		gpio_request(GPIO_DXB_PWREN, NULL);
 		gpio_direction_output(GPIO_DXB_PWREN, 0);
+
+		#if defined(CONFIG_REGULATOR) && defined(CONFIG_M805S_8925_0XX)
+		if (vdd_dxb)
+        {
+            printk("regulator_disable !!!\n");
+			msleep(20);
+			regulator_disable(vdd_dxb);
+        }
+		#endif
 	}
 }
 
@@ -55,6 +76,19 @@ static void tcc_dxb_ctrl_power_on(int deviceIdx)
 {
 	if(machine_is_m805_892x())
 	{
+        if(g_power_status == 1) //already power on
+            return;
+
+        g_power_status = 1; //power on status
+		#if defined(CONFIG_REGULATOR) && defined(CONFIG_M805S_8925_0XX)
+		if (vdd_dxb)
+        {
+            printk("regulator_enable !!!\n");
+			regulator_enable(vdd_dxb);
+			msleep(20);
+        }
+		#endif
+
 		/* GPIO_EXPAND DXB_ON Power-on */
 		tcc_gpio_config(GPIO_DXB_PWREN,  GPIO_FN(0));
 		gpio_request(GPIO_DXB_PWREN, NULL);
@@ -227,6 +261,17 @@ static void tcc_dxb_init(void)
 		tcc_gpio_config(GPIO_RFSW_CTL3, GPIO_FN(0)|GPIO_PULL_DISABLE);
 		gpio_request(GPIO_RFSW_CTL3, NULL);
 		gpio_direction_output(GPIO_RFSW_CTL3, 0);
+		
+		#if defined(CONFIG_REGULATOR) && defined(CONFIG_M805S_8925_0XX)
+		if (vdd_dxb == NULL)
+		{
+			vdd_dxb = regulator_get(NULL, "vdd_dxb");
+			if (IS_ERR(vdd_dxb)) {
+				printk("Failed to obtain vdd_dxb\n");
+				vdd_dxb = NULL;
+			}
+		}
+		#endif
 	}
 }
 

@@ -228,12 +228,12 @@ static struct regulator_init_data rn5t614_ldo5_info = {
 };
 
 static struct regulator_consumer_supply rn5t614_consumer_hdmi_osc = {
-	.supply = "vdd_sata33",
+	.supply = "vdd_dxb",
 };
 
 static struct regulator_init_data rn5t614_ldo7_info = {
 	.constraints = {
-		.name = "vdd_sata33",
+		.name = "vdd_dxb",
 		.min_uV = 3300000,
 		.max_uV = 3300000,
 		.valid_ops_mask = REGULATOR_CHANGE_STATUS,
@@ -254,7 +254,7 @@ static struct rn5t614_subdev_data rn5t614_subdev[] = {
 		.platform_data = &rn5t614_ldo5_info,
 	},
 	{
-		.name = "vdd_sata33",
+		.name = "vdd_dxb",
 		.id   = RN5T614_ID_LDO7,
 		.platform_data = &rn5t614_ldo7_info,
 	}
@@ -283,7 +283,7 @@ static int rn5t614_port_init(int irq_num)
 }
 
 static struct rn5t614_platform_data rn5t614_info = {
-	.num_subdevs = 2,
+	.num_subdevs = 3,
 	.subdevs     = rn5t614_subdev,
 	.init_port   = rn5t614_port_init,
 };
