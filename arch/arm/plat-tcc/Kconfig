@@ -212,6 +212,9 @@ config DDR3_H5TQ2G83BFR_PBC
 config DDR3_IN5CB256M8BN_CG
   bool "Innoways IN5CB256M8BN_CG"
 
+config DDR3_NT5CB256M8GN_CG
+  bool "Nanya NT5CB256M8GN_CG"
+
 endchoice
 
 choice
