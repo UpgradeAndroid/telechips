@@ -641,6 +641,7 @@ static int tcc_tsif_dmastart(struct tcc_tsif_handle *h)
         BITCSET(dma_regs->DMACTR.nREG, Hw5|Hw4, Hw4);	//00:normal mode, 01:MPEG2_TS mode
 #endif        
 #if defined(SUPPORT_PIDFILTER_INTERNAL)
+        BITCSET(h->regs->TSPID[0], (Hw16-Hw0), Hw13);    //to prevent disabling pid filter        
       	BITSET(h->regs->TSRXCR, Hw17);      	
 #endif
     }
@@ -991,7 +992,7 @@ int tca_tsif_register_pids(struct tcc_tsif_handle *h, unsigned int *pids, unsign
         } 
 #endif
 #if defined(SUPPORT_PIDFILTER_INTERNAL)
-        BITCSET(h->regs->TSPID[i], (Hw16-Hw0), Hw13);    //to prevent disabling pid filter        
+        BITCSET(h->regs->TSPID[0], (Hw16-Hw0), Hw13);    //to prevent disabling pid filter        
     #if defined(UPDATE_ONLY_CHANGED_PID)
         tca_tsif_update_changed_pids(h, pids, count);
     #else
