@@ -242,8 +242,15 @@ static int tsif_resync(struct tcc_tsif_handle *H)
     //msleep(1);
     H->hw_init(H);
     H->tsif_set(H);
+    printk("%s, pids[%d]\n",__func__, H->match_pids_count);
     if(H->match_pids_count)
-        tca_tsif_register_pids(H, H->match_pids, H->match_pids_count);
+    {
+        unsigned int i, pids[32] = {0, };
+        for(i = 0; i< H->match_pids_count; i++)
+            pids[i] = H->match_pids[i];
+
+        tca_tsif_register_pids(H, pids, H->match_pids_count);
+    }
     H->q_pos = H->cur_q_pos = 0;
     H->dma_start(H);   
     return 0;
