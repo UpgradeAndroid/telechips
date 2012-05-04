@@ -419,14 +419,15 @@ void TCC_VIQE_DI_Run60Hz(int useSCALER, unsigned int addr0, unsigned int addr1, 
 	cropWidth = crop_right - crop_left;
 	cropHeight = crop_bottom - crop_top;
 	{
-		unsigned int deintl_dma_base0, deintl_dma_base1, deintl_dma_base2, deintl_dma_base3;
-		int imgSize;
-		int top_size_dont_use = OFF;		//If this value is OFF, The size information is get from VIOC modules.
 		int addr_Y = (unsigned int)addr0;
 		int addr_U = (unsigned int)addr1;
 		int addr_V = (unsigned int)addr2;
+#ifndef USE_DEINTERLACE_S
 		if((gpreCrop_left != crop_left) || (gpreCrop_right !=crop_right) || (gpreCrop_top != crop_top) || (gpreCrop_bottom !=crop_bottom))
 		{
+			unsigned int deintl_dma_base0, deintl_dma_base1, deintl_dma_base2, deintl_dma_base3;
+			int imgSize;
+			int top_size_dont_use = OFF;		//If this value is OFF, The size information is get from VIOC modules.
 			VIOC_RDMA_SetImageDisable(pRDMABase);	
 			VIOC_CONFIG_PlugOut(VIOC_VIQE);
 
@@ -445,8 +446,8 @@ void TCC_VIQE_DI_Run60Hz(int useSCALER, unsigned int addr0, unsigned int addr1, 
 			VIOC_VIQE_SetImageY2REnable(pVIQE, TRUE);
 			VIOC_VIQE_SetImageY2RMode(pVIQE, 0x02);
 			VIOC_CONFIG_PlugIn(VIOC_VIQE, gVIQE_RDMA_num);
-			
 		}
+#endif			
 
 		tccxxx_GetAddress(gImg_fmt, (unsigned int)addr0, srcWidth, srcHeight, crop_left, crop_top, &addr_Y, &addr_U, &addr_V);
 		
