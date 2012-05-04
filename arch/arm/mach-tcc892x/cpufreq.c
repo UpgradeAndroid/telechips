@@ -709,6 +709,18 @@ static int tcc_cpufreq_verify(struct cpufreq_policy *policy)
 
 static int tcc_cpufreq_suspend(struct cpufreq_policy *policy)
 {
+	struct tcc_freq_table_t *freqs;
+	freqs = &gtClockLimitTable[0];
+
+#if defined(CONFIG_CPU_HIGHSPEED)
+	highspeed_reset_setting_values();
+#endif
+
+	clk_set_rate(cpu_clk, freqs->cpu_freq * 1000);
+	clk_set_rate(mem_clk, freqs->mem_freq * 1000);
+	clk_set_rate(io_clk, freqs->io_freq * 1000);
+	clk_set_rate(smu_clk, freqs->smu_freq * 1000);
+
 	return 0;
 }
 
@@ -722,11 +734,6 @@ static int tcc_cpufreq_resume(struct cpufreq_policy *policy)
 	clk_forced_set_rate(mem_clk, tcc_freq_old_table.mem_freq * 1000);
 	clk_forced_set_rate(io_clk, tcc_freq_old_table.io_freq * 1000);
 	clk_forced_set_rate(smu_clk, tcc_freq_old_table.smu_freq * 1000);
-	clk_forced_set_rate(ddi_clk, tcc_freq_old_table.ddi_freq * 1000);
-	clk_forced_set_rate(gpu_clk, tcc_freq_old_table.gpu_freq * 1000);
-	clk_forced_set_rate(vcod_clk, tcc_freq_old_table.vcod_freq * 1000);
-	clk_forced_set_rate(vbus_clk, tcc_freq_old_table.vbus_freq * 1000);
-	clk_forced_set_rate(hsio_clk, tcc_freq_old_table.hsio_freq * 1000);
 
 	return 0;
 }
