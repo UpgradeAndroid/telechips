@@ -337,6 +337,8 @@ static int tccxxx_ccfb_disp_update(ccfb_dev_config_t *dev, unsigned int* arg)
 	VIOC_RDMA_SetImageEnable(dev->pCurLcdc);
 #endif /* 0 */
 
+	VIOC_WMIX_SetUpdate(dev->pCurWMix);
+
 	VIOC_RDMA_SetImageBase(dev->pCurLcdc, cur_addr, 0, 0);
 	VIOC_RDMA_SetImageEnable(dev->pCurLcdc);
 	
