@@ -1727,9 +1727,6 @@ static void shutdown_mode(void)
 	__asm__ __volatile__ ("nop\n");
 
 
-	*(volatile unsigned long *)0xF52000C0 |= 0x00380000;	// GPIO_D21, D20, D19
-
-
 	/* all peri io bus on */
 	((PIOBUSCFG)tcc_p2v(HwIOBUSCFG_BASE))->HCLKEN0.nREG = 0xFFFFFFFF;
 	((PIOBUSCFG)tcc_p2v(HwIOBUSCFG_BASE))->HCLKEN1.nREG = 0xFFFFFFFF;
