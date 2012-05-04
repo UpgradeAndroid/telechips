@@ -53,8 +53,14 @@ static int gSCALER_num = 0;
 static int gusingScale = 0;
 static int gLcdc_layer = -1;
 static int gImg_fmt = -1;
+static VIOC_VIQE_FMT_TYPE gViqe_fmt;
 static unsigned int gPMEM_VIQE_BASE;
 static unsigned int gPMEM_VIQE_SIZE;
+static int gpreCrop_left = 0;
+static int gpreCrop_right = 0;
+static int gpreCrop_top = 0;
+static int gpreCrop_bottom = 0;
+
 
 #if 0
 #define dprintk(msg...)	 { printk( "tca_hdmi: " msg); }
@@ -233,6 +239,9 @@ void TCC_VIQE_DI_Run(unsigned int srcWidth, unsigned int srcHeight,
 #else
 	VIOC_RDMA_SetImageBfield(pRDMABase, OddFirst);				// change the top to bottom field
 #endif
+#else
+	VIOC_RDMA_SetImageY2REnable(pRDMABase, FALSE);
+	VIOC_RDMA_SetImageY2RMode(pRDMABase, 0x02); /* Y2RMode Default 0 (Studio Color) */
 #endif
 	gFrmCnt++;	
 }
@@ -257,7 +266,6 @@ void TCC_VIQE_DI_DeInit(void)
 //////////////////////////////////////////////////////////////////////////////////////////
 void TCC_VIQE_DI_Init60Hz(int lcdCtrlNum, int Lcdc_layer, int useSCALER, unsigned int img_fmt, 
 						unsigned int srcWidth, unsigned int srcHeight,
-						int crop_top, int crop_bottom, int crop_left, int crop_right, 
 						unsigned int destWidth, unsigned int destHeight,
 						unsigned int offset_x, unsigned int offset_y, int OddFirst)
 {
@@ -265,18 +273,16 @@ void TCC_VIQE_DI_Init60Hz(int lcdCtrlNum, int Lcdc_layer, int useSCALER, unsigne
 	unsigned int framebufWidth, framebufHeight;
 	unsigned int lcd_width = 0, lcd_height = 0, scale_x = 0, scale_y = 0;
 	int imgSize;
-	VIOC_VIQE_FMT_TYPE viqe_fmt;
+	int top_size_dont_use = OFF;		//If this value is OFF, The size information is get from VIOC modules.
 
 	gLcdc_layer = Lcdc_layer;
 	
 	if(img_fmt == 24)
-		viqe_fmt = VIOC_VIQE_FMT_YUV420;
+		gViqe_fmt = VIOC_VIQE_FMT_YUV420;
 	else
-		viqe_fmt = VIOC_VIQE_FMT_YUV420;
+		gViqe_fmt = VIOC_VIQE_FMT_YUV420;
 	gImg_fmt = img_fmt;
 		
-	int top_size_dont_use = OFF;		//If this value is OFF, The size information is get from VIOC modules.
-
 	pmap_get_info("viqe", &pmap_viqe);
 	gPMEM_VIQE_BASE = PA_VIQE_BASE_ADDR;
 	gPMEM_VIQE_SIZE = PA_VIQE_BASE_SIZE;
@@ -311,7 +317,7 @@ void TCC_VIQE_DI_Init60Hz(int lcdCtrlNum, int Lcdc_layer, int useSCALER, unsigne
 
 	framebufWidth = ((srcWidth) >> 3) << 3;			// 8bit align
 	framebufHeight = ((srcHeight) >> 1) << 1;		// 2bit align
-	printk("TCC_VIQE_DI_Init60Hz, W:%d, H:%d, DW:%d, DH:%d, FMT:%d, VFMT:%s, OddFirst:%d, RDMA:%d\n", framebufWidth, framebufHeight, destWidth, destHeight, img_fmt, (viqe_fmt?"YUV422":"YUV420"), OddFirst, ((gRDMA_reg-HwVIOC_RDMA00)/256));
+	printk("TCC_VIQE_DI_Init60Hz, W:%d, H:%d, DW:%d, DH:%d, FMT:%d, VFMT:%s, OddFirst:%d, RDMA:%d\n", framebufWidth, framebufHeight, destWidth, destHeight, img_fmt, (gViqe_fmt?"YUV422":"YUV420"), OddFirst, ((gRDMA_reg-HwVIOC_RDMA00)/256));
 
 	VIOC_DISP_GetSize(pDISPBase, &lcd_width, &lcd_height);
 	if((!lcd_width) || (!lcd_height))
@@ -320,19 +326,7 @@ void TCC_VIQE_DI_Init60Hz(int lcdCtrlNum, int Lcdc_layer, int useSCALER, unsigne
 		return;
 	}
 
-	if(useSCALER)
-	{
-		VIOC_CONFIG_PlugIn (gSCALER_num, gSC_RDMA_num);			
-		VIOC_SC_SetBypass (pSCALERBase, OFF);
-		
-		VIOC_SC_SetDstSize (pSCALERBase, destWidth, destHeight);			// set destination size in scaler
-		VIOC_SC_SetOutSize (pSCALERBase, destWidth, destHeight);			// set output size in scaer
-		VIOC_SC_SetUpdate (pSCALERBase);
-		gusingScale = 1;
-	}
-
-	dprintk("%s lcdc:%d, pRDMA:0x%08x, pWMIX:0x%08x, pDISP:0x%08x, addr0:0x%08x\n", __func__, hdmi_lcdc, pRDMABase, pWMIXBase, pDISPBase, ImageInfo->addr0);
-		
+	//RDMA SETTING
 #ifdef USE_DEINTERLACE_S
 	VIOC_RDMA_SetImageY2REnable(pRDMABase, TRUE);
 	VIOC_RDMA_SetImageY2RMode(pRDMABase, 0x02); /* Y2RMode Default 0 (Studio Color) */
@@ -356,8 +350,6 @@ void TCC_VIQE_DI_Init60Hz(int lcdCtrlNum, int Lcdc_layer, int useSCALER, unsigne
 	VIOC_RDMA_SetImageSize(pRDMABase, framebufWidth, framebufHeight);
 	VIOC_RDMA_SetImageIntl(pRDMABase, 1);
 	VIOC_RDMA_SetImageBfield(pRDMABase, OddFirst);
-	VIOC_WMIX_SetPosition(pWMIXBase, Lcdc_layer,  offset_x, offset_y);
-	VIOC_WMIX_SetUpdate(pWMIXBase);
 
 
 #ifdef USE_DEINTERLACE_S
@@ -376,15 +368,9 @@ void TCC_VIQE_DI_Init60Hz(int lcdCtrlNum, int Lcdc_layer, int useSCALER, unsigne
 	deintl_dma_base2	= deintl_dma_base1 + imgSize;
 	deintl_dma_base3	= deintl_dma_base2 + imgSize;	
 
-	if (top_size_dont_use == OFF)
-	{
-		framebufWidth  = 0;
-		framebufHeight = 0;
-	}
-
-	VIOC_VIQE_SetControlRegister(pVIQE, framebufWidth, framebufHeight, viqe_fmt);
-	VIOC_VIQE_SetDeintlRegister(pVIQE, viqe_fmt, top_size_dont_use, framebufWidth, framebufHeight, gDI_mode, deintl_dma_base0, deintl_dma_base1, deintl_dma_base2, deintl_dma_base3);
-	VIOC_VIQE_SetDenoise(pVIQE, viqe_fmt, framebufWidth, framebufHeight, 1, 0, deintl_dma_base0, deintl_dma_base1); 	//for bypass path on progressive frame
+	VIOC_VIQE_SetControlRegister(pVIQE, framebufWidth, framebufHeight, gViqe_fmt);
+	VIOC_VIQE_SetDeintlRegister(pVIQE, gViqe_fmt, top_size_dont_use, framebufWidth, framebufHeight, gDI_mode, deintl_dma_base0, deintl_dma_base1, deintl_dma_base2, deintl_dma_base3);
+	VIOC_VIQE_SetDenoise(pVIQE, gViqe_fmt, framebufWidth, framebufHeight, 1, 0, deintl_dma_base0, deintl_dma_base1); 	//for bypass path on progressive frame
 	VIOC_VIQE_SetControlEnable(pVIQE, OFF, OFF, OFF, OFF, ON);
 //		if(gDI_mode != VIOC_VIQE_DEINTL_MODE_BYPASS)
 	{
@@ -393,6 +379,21 @@ void TCC_VIQE_DI_Init60Hz(int lcdCtrlNum, int Lcdc_layer, int useSCALER, unsigne
 	}
 	VIOC_CONFIG_PlugIn(VIOC_VIQE, gVIQE_RDMA_num);
 #endif		
+
+	//SCALER SETTING
+	if(useSCALER)
+	{
+		VIOC_CONFIG_PlugIn (gSCALER_num, gSC_RDMA_num);			
+		VIOC_SC_SetBypass (pSCALERBase, OFF);
+		
+		VIOC_SC_SetDstSize (pSCALERBase, destWidth, destHeight);			// set destination size in scaler
+		VIOC_SC_SetOutSize (pSCALERBase, destWidth, destHeight);			// set output size in scaer
+		VIOC_SC_SetUpdate (pSCALERBase);
+		gusingScale = 1;
+	}
+	
+	VIOC_WMIX_SetPosition(pWMIXBase, Lcdc_layer,  offset_x, offset_y);
+	VIOC_WMIX_SetUpdate(pWMIXBase);
 
 	gFrmCnt= 0;		
 }
@@ -415,47 +416,53 @@ void TCC_VIQE_DI_Run60Hz(int useSCALER, unsigned int addr0, unsigned int addr1, 
 	}
 	dprintk("%s lcd_width:%d, lcd_height:%d\n", __func__, lcd_width, lcd_height);
 
-	
-	if(useSCALER)
-	{
-		if(!gusingScale) {
-			gusingScale = 1;
-			VIOC_CONFIG_PlugIn (gSCALER_num, gSC_RDMA_num);			
-			VIOC_SC_SetBypass (pSCALERBase, OFF);
-		}
-		
-		VIOC_SC_SetDstSize (pSCALERBase, destWidth, destHeight);			// set destination size in scaler
-		VIOC_SC_SetOutSize (pSCALERBase, destWidth, destHeight);			// set output size in scaer
-		VIOC_SC_SetUpdate (pSCALERBase);
-	}
-	else
-	{
-		if(gusingScale == 1)	{
-			VIOC_RDMA_SetImageDisable(pRDMABase);
-			VIOC_CONFIG_PlugOut(VIOC_SC1);
-			gusingScale = 0;
-		}
-	}
-
-	// position
-	VIOC_WMIX_SetPosition(pWMIXBase, gLcdc_layer,  offset_x, offset_y);
-	VIOC_WMIX_SetUpdate(pWMIXBase);
-
-	dprintk(" Image Crop left=[%d], right=[%d], top=[%d], bottom=[%d], W:%d, H:%d odd:%d\n", crop_left, crop_right, crop_top, crop_bottom, srcWidth, srcHeight, OddFirst);	
 	cropWidth = crop_right - crop_left;
 	cropHeight = crop_bottom - crop_top;
-#ifdef USE_DEINTERLACE_S
-//	if( !( ((crop_left == 0) && (crop_right == srcWidth)) &&  ((crop_top == 0) && (crop_bottom == srcHeight)))  )
 	{
+		unsigned int deintl_dma_base0, deintl_dma_base1, deintl_dma_base2, deintl_dma_base3;
+		int imgSize;
+		int top_size_dont_use = OFF;		//If this value is OFF, The size information is get from VIOC modules.
 		int addr_Y = (unsigned int)addr0;
 		int addr_U = (unsigned int)addr1;
 		int addr_V = (unsigned int)addr2;
+		if((gpreCrop_left != crop_left) || (gpreCrop_right !=crop_right) || (gpreCrop_top != crop_top) || (gpreCrop_bottom !=crop_bottom))
+		{
+			VIOC_RDMA_SetImageDisable(pRDMABase);	
+			VIOC_CONFIG_PlugOut(VIOC_VIQE);
+
+			BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<16), (0x01<<16)); // VIQE reset
+			BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<16), (0x00<<16)); // VIQE reset
+
+			imgSize = (srcWidth * srcHeight * 2);
+			deintl_dma_base0	= gPMEM_VIQE_BASE;
+			deintl_dma_base1	= deintl_dma_base0 + imgSize;
+			deintl_dma_base2	= deintl_dma_base1 + imgSize;
+			deintl_dma_base3	= deintl_dma_base2 + imgSize;	
+
+			VIOC_VIQE_SetControlRegister(pVIQE, srcWidth, srcHeight, gViqe_fmt);
+			VIOC_VIQE_SetDeintlRegister(pVIQE, gViqe_fmt, top_size_dont_use, srcWidth, srcHeight, gDI_mode, deintl_dma_base0, deintl_dma_base1, deintl_dma_base2, deintl_dma_base3);
+			VIOC_VIQE_SetDenoise(pVIQE, gViqe_fmt, srcWidth, srcHeight, 1, 0, deintl_dma_base0, deintl_dma_base1); 	//for bypass path on progressive frame
+			VIOC_VIQE_SetImageY2REnable(pVIQE, TRUE);
+			VIOC_VIQE_SetImageY2RMode(pVIQE, 0x02);
+			VIOC_CONFIG_PlugIn(VIOC_VIQE, gVIQE_RDMA_num);
+			
+		}
+
 		tccxxx_GetAddress(gImg_fmt, (unsigned int)addr0, srcWidth, srcHeight, crop_left, crop_top, &addr_Y, &addr_U, &addr_V);
 		
 		VIOC_RDMA_SetImageSize(pRDMABase, cropWidth, cropHeight);
 		VIOC_RDMA_SetImageBase(pRDMABase, addr_Y, addr_U, addr_V);
+		gpreCrop_left = crop_left;
+		gpreCrop_right = crop_right;
+		gpreCrop_top = crop_top;
+		gpreCrop_bottom = crop_bottom;
 	}
+	VIOC_RDMA_SetImageBfield(pRDMABase, OddFirst);
+	VIOC_RDMA_SetImageEnable(pRDMABase);
+	dprintk(" Image Crop left=[%d], right=[%d], top=[%d], bottom=[%d], W:%d, H:%d odd:%d\n", crop_left, crop_right, crop_top, crop_bottom, cropWidth, cropHeight, OddFirst);
 
+
+#ifdef USE_DEINTERLACE_S
 	if(FrameInfo_Interlace)
 	{
 		VIOC_RDMA_SetImageIntl(pRDMABase, 1);
@@ -464,21 +471,17 @@ void TCC_VIQE_DI_Run60Hz(int useSCALER, unsigned int addr0, unsigned int addr1, 
 			VIOC_CONFIG_PlugIn(VIOC_DEINTLS, gVIQE_RDMA_num);
 			gusingDI_S = 1;
 		}
-
 	}
 	else
 	{
 		VIOC_RDMA_SetImageIntl(pRDMABase, 0);
 		if(gusingDI_S)
 		{
-//			VIOC_RDMA_SetImageDisable(pRDMABase);
 			VIOC_CONFIG_PlugOut(VIOC_DEINTLS);
 			gusingDI_S = 0;
 		}
 	}
 #else
-	VIOC_RDMA_SetImageSize(pRDMABase, srcWidth, srcHeight);
-	VIOC_RDMA_SetImageBase(pRDMABase, addr0, addr1, addr2);
 	if(FrameInfo_Interlace)
 	{
 		if(gFrmCnt >= 3)
@@ -502,8 +505,31 @@ void TCC_VIQE_DI_Run60Hz(int useSCALER, unsigned int addr0, unsigned int addr1, 
 	}	
 #endif
 
-	VIOC_RDMA_SetImageBfield(pRDMABase, OddFirst);
-	VIOC_RDMA_SetImageEnable(pRDMABase);
+
+	if(useSCALER)
+	{
+		if(!gusingScale) {
+			gusingScale = 1;
+			VIOC_CONFIG_PlugIn (gSCALER_num, gSC_RDMA_num);			
+			VIOC_SC_SetBypass (pSCALERBase, OFF);
+		}
+		
+		VIOC_SC_SetDstSize (pSCALERBase, destWidth, destHeight);			// set destination size in scaler
+		VIOC_SC_SetOutSize (pSCALERBase, destWidth, destHeight);			// set output size in scaer
+		VIOC_SC_SetUpdate (pSCALERBase);
+	}
+	else
+	{
+		if(gusingScale == 1)	{
+			VIOC_RDMA_SetImageDisable(pRDMABase);
+			VIOC_CONFIG_PlugOut(gSCALER_num);
+			gusingScale = 0;
+		}
+	}
+
+	// position
+	VIOC_WMIX_SetPosition(pWMIXBase, gLcdc_layer,  offset_x, offset_y);
+	VIOC_WMIX_SetUpdate(pWMIXBase);
 
 	gFrmCnt++;	
 }
@@ -512,7 +538,6 @@ void TCC_VIQE_DI_DeInit60Hz(void)
 {
 	printk("TCC_VIQE_DI_DeInit60Hz\n");
 	VIOC_RDMA_SetImageDisable(pRDMABase);	
-//	VIOC_RDMA_SetIreqMask(pRDMABase, VIOC_RDMA_IREQ_IEOFF_MASK, VIOC_RDMA_IREQ_IEOFF_MASK);
 	VIOC_RDMA_SetImageY2REnable(pRDMABase, TRUE);
 	VIOC_RDMA_SetImageY2RMode(pRDMABase, 0x02); /* Y2RMode Default 0 (Studio Color) */
 	VIOC_CONFIG_PlugOut(gSCALER_num);
