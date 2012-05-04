@@ -56,7 +56,6 @@ extern void __cpu_early_init(void);
 extern unsigned int IO_ARM_ChangeStackSRAM(void);
 extern void IO_ARM_RestoreStackSRAM(unsigned int);
 
-
 /*===========================================================================
 
                   DEFINITIONS AND DECLARATIONS FOR MODULE
@@ -1697,8 +1696,7 @@ static void shutdown_mode(void)
 	/*--------------------------------------------------------------
 	 NFC suspend 
 	--------------------------------------------------------------*/
-	NFC *nfc = (NFC*)tcc_p2v(HwNFC_BASE);
-	tcc_nfc_suspend(&RegRepo.nfc, nfc);
+	tcc_nfc_suspend(&RegRepo.nfc, (PNFC)tcc_p2v(HwNFC_BASE));
 
 #ifdef CONFIG_CACHE_L2X0
 	/*--------------------------------------------------------------
@@ -1727,6 +1725,10 @@ static void shutdown_mode(void)
 	/////////////////////////////////////////////////////////////////
 
 	__asm__ __volatile__ ("nop\n");
+
+
+	*(volatile unsigned long *)0xF52000C0 |= 0x00380000;	// GPIO_D21, D20, D19
+
 
 	/* all peri io bus on */
 	((PIOBUSCFG)tcc_p2v(HwIOBUSCFG_BASE))->HCLKEN0.nREG = 0xFFFFFFFF;
@@ -1761,7 +1763,6 @@ static void shutdown_mode(void)
 		((PCKC)tcc_p2v(HwCKC_BASE))->CLKCTRL6.nREG = RegRepo.ckc.CLKCTRL6.nREG;
 		((PCKC)tcc_p2v(HwCKC_BASE))->CLKCTRL7.nREG = RegRepo.ckc.CLKCTRL7.nREG;
 		((PCKC)tcc_p2v(HwCKC_BASE))->CLKCTRL8.nREG = RegRepo.ckc.CLKCTRL8.nREG;
-
 		((PCKC)tcc_p2v(HwCKC_BASE))->SWRESET.nREG = ~(RegRepo.ckc.SWRESET.nREG);
 
 		//Peripheral clock
@@ -1816,15 +1817,15 @@ static void shutdown_mode(void)
 	memcpy((PSMUCONFIG)tcc_p2v(HwSMUCONFIG_BASE), &RegRepo.smuconfig, sizeof(SMUCONFIG));
 
 	/*--------------------------------------------------------------
-	 NFC
-	--------------------------------------------------------------*/
-	tcc_nfc_resume(nfc, &RegRepo.nfc);
-
-	/*--------------------------------------------------------------
 	 BUS Config
 	--------------------------------------------------------------*/
 	memcpy((PIOBUSCFG)tcc_p2v(HwIOBUSCFG_BASE), &RegRepo.iobuscfg, sizeof(IOBUSCFG));
 	memcpy((PMEMBUSCFG)tcc_p2v(HwMBUSCFG_BASE), &RegRepo.membuscfg, sizeof(MEMBUSCFG));
+
+	/*--------------------------------------------------------------
+	 NFC
+	--------------------------------------------------------------*/
+	tcc_nfc_resume((PNFC)tcc_p2v(HwNFC_BASE), &RegRepo.nfc);
 
 #ifdef CONFIG_PM_CONSOLE_NOT_SUSPEND
 	/*--------------------------------------------------------------
@@ -2425,7 +2426,6 @@ static void sleep_mode(void)
 		((PCKC)tcc_p2v(HwCKC_BASE))->CLKCTRL6.nREG = RegRepo.ckc.CLKCTRL6.nREG;
 		((PCKC)tcc_p2v(HwCKC_BASE))->CLKCTRL7.nREG = RegRepo.ckc.CLKCTRL7.nREG;
 		((PCKC)tcc_p2v(HwCKC_BASE))->CLKCTRL8.nREG = RegRepo.ckc.CLKCTRL8.nREG;
-
 		((PCKC)tcc_p2v(HwCKC_BASE))->SWRESET.nREG = ~(RegRepo.ckc.SWRESET.nREG);
 
 		//Peripheral clock
