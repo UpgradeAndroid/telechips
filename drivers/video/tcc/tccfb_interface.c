@@ -85,26 +85,7 @@ extern unsigned int tcc_output_fb_get_disable(void);
 extern void TCC_LCDC_Change_CtrlReg(PLCDC SrcLCDC, PLCDC DestLCDC);
 extern void TCC_LCDC_Change_ChannelReg(PLCDC_CHANNEL SrcLCDC_CH, PLCDC_CHANNEL DestLCDC_CH);
 
-#ifdef CONFIG_FB_M2M_COPY
-extern unsigned char tccxxx_overlay_use(void);
-extern char M2M_Scaler0_Ctrl_External(SCALER_TYPE *scale_img);
-
-dma_addr_t		Gmap_dma;	/* physical */
-u_char *		Gmap_cpu;	/* virtual */
-
-typedef struct{
-	unsigned int update;
-	unsigned int left;
-	unsigned int top; 
-	unsigned int eright;
-	unsigned int ebottom;
-	unsigned int fb_addr;
-	struct tccfb_info fbi;
-}tcc_patial_info;
-tcc_patial_info tccfb_parial;
-
-#endif//
-
+ 
 struct lcd_struct {
 	spinlock_t lock;
 	wait_queue_head_t waitq;
@@ -124,10 +105,7 @@ static struct clk *ddi_cache;
 #ifdef CONFIG_LCD_CPU_INTERFACE
 static struct clk *lcd_si;
 #endif//CONFIG_LCD_CPU_INTERFACE
-#ifdef CONFIG_FB_M2M_COPY
-static struct clk *scaler0_clk;		// fb image scale
-#endif// CONFIG_FB_M2M_COPY
-
+ 
 void tca92xxfb_clock_init(void)
 {
 	lcdc0_clk = clk_get(0, "lcdc0");
@@ -145,11 +123,7 @@ void tca92xxfb_clock_init(void)
 	#ifdef CONFIG_LCD_CPU_INTERFACE
 	BUG_ON(IS_ERR(lcd_si));
 	#endif//
-	#ifdef CONFIG_FB_M2M_COPY
-	scaler0_clk = clk_get(0, "m2m0");
-	BUG_ON(IS_ERR(scaler0_clk));
-	#endif//
-}
+ }
 
 void tca92xxfb_clock_delete(void)
 {
@@ -159,10 +133,6 @@ void tca92xxfb_clock_delete(void)
 
 	#ifdef CONFIG_LCD_CPU_INTERFACE
 	clk_put(lcd_si);
-	#endif//
-
-	#ifdef CONFIG_FB_M2M_COPY
-	clk_put(scaler0_clk);
 	#endif//
 }
 
@@ -183,11 +153,7 @@ static int  tca92xxfb_clock_set(int cmd)
 
 			#ifdef CONFIG_LCD_CPU_INTERFACE
 			clk_disable(lcd_si);
-			#endif//
-
-			#ifdef CONFIG_FB_M2M_COPY
-			clk_disable(scaler0_clk);
-			#endif//
+			#endif// 
 			break;
 			
 	    case PWR_CMD_ON:
@@ -197,10 +163,6 @@ static int  tca92xxfb_clock_set(int cmd)
 
 			#ifdef CONFIG_LCD_CPU_INTERFACE
 			clk_enable(lcd_si);
-			#endif//
-
-			#ifdef CONFIG_FB_M2M_COPY
-			clk_enable(scaler0_clk);
 			#endif//
 
 			#if CONFIG_CPU_FREQ
@@ -218,49 +180,6 @@ static int  tca92xxfb_clock_set(int cmd)
 	
 }
 
-#ifdef CONFIG_FB_M2M_COPY
-void tcc_scaler_copy(unsigned int left, unsigned int top, unsigned int eright, unsigned int ebottom, unsigned int src_addr)
-{
-	SCALER_TYPE fbscaler;
-	unsigned int offset, dest_addr;
-
-	
-	sprintk("%s left:%d  top:%d right:%d ebottom:%d addr:0x%x addr:0x%x \n", __func__, left, top, eright, ebottom, Gmap_dma, src_addr);
-
-
-	src_addr = src_addr + offset;
-	dest_addr = Gmap_dma + offset;
-	
-	fbscaler.responsetype = SCALER_NOWAIT;
-
-	fbscaler.src_Yaddr = (char *)src_addr;
-	fbscaler.src_Uaddr = 0;
-	fbscaler.src_Vaddr = 0;
-	fbscaler.src_fmt = SCALER_YUV422_sq0;
-	fbscaler.src_ImgWidth = (eright - left)* 2;
-	fbscaler.src_ImgHeight = (ebottom - top);
-
-	fbscaler.src_winLeft = 0;
-	fbscaler.src_winTop = 0;
-	fbscaler.src_winRight = (eright - left)* 2;
-	fbscaler.src_winBottom = (ebottom - top);
-
-	fbscaler.dest_Yaddr = (char *)dest_addr;	// destination image address
-	fbscaler.dest_Uaddr = 0;	// destination image address
-	fbscaler.dest_Vaddr = 0;	// destination image address
-	fbscaler.dest_fmt = SCALER_YUV422_sq0;		// destination image format
-	fbscaler.dest_ImgWidth = (eright - left)* 2;	// destination image width
-	fbscaler.dest_ImgHeight = (ebottom - top); // destination image height
-
-	fbscaler.dest_winLeft = 0;
-	fbscaler.dest_winTop = 0;
-	fbscaler.dest_winRight = (eright - left)* 2;
-	fbscaler.dest_winBottom = (ebottom - top);
-
-	M2M_Scaler0_Ctrl_External(&fbscaler);
-
-}
-#endif//
 
 
 char TCC_FB_LCDC_NumSet(char NumLcdc, char OnOff)
@@ -440,41 +359,7 @@ void tca_fb_vsync_activate(struct fb_var_screeninfo *var, struct tccfb_info *fbi
 	#ifdef CONFIG_FB_TCC_USE_VSYNC_INTERRUPT
 	{
 		int ret;
-		#ifdef CONFIG_FB_M2M_COPY
-			if(tccfb_parial.update == 1)	{
-
-				lcdc_struct.state = 0;
-				ret = wait_event_interruptible_timeout(lcdc_struct.waitq, lcdc_struct.state == 1, msecs_to_jiffies(50));
-				if(!ret)	{
-					tca_default_fb_info_set(&tccfb_parial.fbi);
-				 	printk("  [%d]: tcc_setup_interrupt timed_out!! \n", ret);
-					tccfb_parial.update = 0;
-				}
-			}
-
-
-			if((fbi->fb->var.reserved[0] == 0x54445055) && (fbi->fb->var.reserved[2] != 0))	{
-				
-				tccfb_parial.fbi = *fbi;
-				tccfb_parial.update = 1;
-				tccfb_parial.left = fbi->fb->var.reserved[1] & 0xffff;
-				tccfb_parial.top = fbi->fb->var.reserved[1] >> 16;
-				tccfb_parial.eright= fbi->fb->var.reserved[2] & 0xffff;
-				tccfb_parial.ebottom= fbi->fb->var.reserved[2] >> 16;
-			}
-			else {
-				tccfb_parial.fbi = *fbi;
-				tccfb_parial.update = 1;
-				tccfb_parial.left = 0;
-				tccfb_parial.top = 0;
-				tccfb_parial.eright= fbi->fb->var.xres;
-				tccfb_parial.ebottom= fbi->fb->var.yres;
-			}
-			
-			tccfb_parial.fb_addr = base_addr;
-			pLCDC->LSTATUS = 0xFFFFFFFF; 
-			tca_lcdc_interrupt_onoff(TRUE, Fb_Lcdc_num);
-		#else
+ 
 			pLCDC->LSTATUS = 0xFFFFFFFF; 
 			tca_lcdc_interrupt_onoff(TRUE, Fb_Lcdc_num);
 			lcdc_struct.state = 0;
@@ -498,8 +383,7 @@ void tca_fb_vsync_activate(struct fb_var_screeninfo *var, struct tccfb_info *fbi
 				}
 			}
 			#endif//
-		#endif//CONFIG_FB_M2M_COPY		
-	}
+ 	}
 	#endif //CONFIG_FB_TCC_USE_VSYNC_INTERRUPT
 
 }
@@ -597,16 +481,8 @@ void tca_fb_activate_var(struct tccfb_info *fbi,  struct fb_var_screeninfo *var)
 			pLCDC_FB_CH->LIO = fbi->fb->var.xres * (fbi->fb->var.bits_per_pixel/8);
 			pLCDC_FB_CH->LIS	= (img_height<< 16) | (img_width); //Size
 			pLCDC_FB_CH->LIP	= 0; // position
-			#ifdef CONFIG_FB_M2M_COPY
-			if(!tccxxx_overlay_use()) {
-				pLCDC_FB_CH->LIBA0	= Gmap_dma;
-			}
-			else
-			#endif//CONFIG_FB_M2M_COPY
-			{
-				pLCDC_FB_CH->LIBA0	= base_addr;				
-			}
-
+	 		pLCDC_FB_CH->LIBA0	= base_addr;				
+	 
 
 			// overlay ¼Ó¼º
 			BITCSET (pLCDC->LI2C,	0x1<< 30,  (alpha_blending_en)	<< 30); // alpha enable
@@ -701,10 +577,7 @@ void tca_fb_early_suspend(struct early_suspend *h)
 	tca_lcdc_interrupt_onoff(FALSE, Fb_Lcdc_num);
 	#endif
 	
-	#ifdef CONFIG_FB_M2M_COPY
-	DEV_M2M_Wait_signal_disable(0);
-	#endif//	
-	tcc_LCDC_Wait_signal_disable(0);
+ 	tcc_LCDC_Wait_signal_disable(0);
 
 	tcc_LCDC_Wait_signal_disable(1);
 
@@ -776,20 +649,6 @@ static irqreturn_t tcc_lcd_handler(int irq, void *dev_id)
 
 //	if(LCDCstatus & HwLSTATUS_VSF)
 	{
-		#ifdef CONFIG_FB_M2M_COPY
-		if(tccfb_parial.update)		{
-			// check scaler using 
-			if(!tccxxx_overlay_use())	{
-				tcc_scaler_copy(tccfb_parial.left, tccfb_parial.top, tccfb_parial.eright, tccfb_parial.ebottom, tccfb_parial.fb_addr);
-				pLCDC_FB_CH->LIBA0	= Gmap_dma;
-			}
-			else {
-				pLCDC_FB_CH->LIBA0	= tccfb_parial.fb_addr;
-			}
-			tccfb_parial.update = 0;
-		}
-		#endif//
-		
 		#ifndef CONFIG_USE_EXT_INTERRUPT		
 		pLCDC->LSTATUS = 0xFFFFFFFF;
 		#endif//
@@ -920,22 +779,6 @@ int tca_fb_init(void)
 
 	init_waitqueue_head(&lcdc_struct.waitq);
 	lcdc_struct.state = 1;
-
-	#ifdef CONFIG_FB_M2M_COPY
-	lcd_info = tccfb_get_panel();
-
-	if(pmap_fb_video.size == 0)
-	{
-		Gmap_cpu  = dma_alloc_writecombine(0, lcd_info->xres * lcd_info->yres * 4 , &Gmap_dma, GFP_KERNEL);
-	}
-	else
-	{
-		unsigned int fb_size = lcd_info->xres * lcd_info->yres * 4;
-		Gmap_dma =  pmap_fb_video.base + (fb_size * 2);
-		Gmap_dma = PAGE_ALIGN(Gmap_dma);
-		Gmap_cpu = ioremap_nocache(Gmap_dma, fb_size);
-	}
-	#endif//
 
 	printk(" %s LCDC:%d  end \n", __func__, Fb_Lcdc_num);
 

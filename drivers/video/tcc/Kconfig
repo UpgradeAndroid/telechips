@@ -36,11 +36,6 @@ config FB_TCC_USE_VSYNC_INTERRUPT
 	bool "Use VSYNC interrupt"
 	depends on FB_TCC && FB_TCC
 
-config FB_M2M_COPY
-	bool "Use framebuffer copy using m2m-scaler"
-	depends on FB_TCC_USE_VSYNC_INTERRUPT
-	default n 
-
 config USE_EXT_INTERRUPT
 	bool "Use external-vsync-interrupt"
 	depends on FB_TCC_USE_VSYNC_INTERRUPT && ARCH_TCC92XX
