@@ -53,6 +53,8 @@
 #include <mach/vioc_plugin_tcc892x.h>
 #include <mach/vioc_scaler.h>
 #include <mach/vioc_api.h>
+#include <mach/tccfb_address.h>
+
 #endif // CONFIG_ARCH_TCC892X
 
 #include <linux/poll.h>
@@ -127,124 +129,10 @@ static int tccxxx_scaler1_mmap(struct file *file, struct vm_area_struct *vma)
 }
 
 
-extern unsigned int scaler1_ended;
-static unsigned int check_status_intr;
-#if defined(CONFIG_ARCH_TCC93XX)
-char M2M_Scaler1_Ctrl_Detail_With_Alpha(SCALER_TYPE *scale_img)
-{
-	unsigned int pSrcBase0 = 0, pSrcBase1 = 0, pSrcBase2 = 0;
-	unsigned int pDstBase0 = 0, pDstBase1 = 0, pDstBase2 = 0;
-	unsigned int SrcHsize, SrcVsize;
-	unsigned int DstHsize, DstVsize;
-	unsigned int SrcImgType, DstImgType;
-	unsigned int ScaleRatV, ScaleRatH;
-	unsigned int SrcOff_Hsize, DstOff_Hsize;
-	int src_bpp, dst_bpp;
-	int ret = 0;
-	unsigned char interleaved_mode = 0; //0:Cr/Cb, 1:Cb/Cr
-	unsigned char interleaved_src = 0;
-	unsigned char interleaved_dst = 0;
-	unsigned int crop_width;
-	int alpha_img_formt;
-
-	PM2MSCALER pM2MScaler = (volatile PM2MSCALER)tcc_p2v(HwM2MSCALER1_BASE);
-
-	//실제 사용할때 reset 하도록 수정  ..pjj
-	M2M_Scaler_SW_Reset(M2M_SCALER1);
-
-	dprintk(" M2M_Scaler_Ctrl_Detail response[%d] \n", scale_img->responsetype);
-
-	pSrcBase0 = (unsigned int)scale_img->src_Yaddr;
-	pSrcBase1 = (unsigned int)scale_img->src_Uaddr;
-	pSrcBase2 = (unsigned int)scale_img->src_Vaddr;
-
-	pDstBase0 = (unsigned int)scale_img->dest_Yaddr;
-	pDstBase1 = (unsigned int)scale_img->dest_Uaddr;
-	pDstBase2 = (unsigned int)scale_img->dest_Vaddr;
-
-	SrcImgType = DstImgType = HwMSC_SRC_CFG_YUV422_SEQ0;
-
-	// m2m scaler setting
-	SrcOff_Hsize = scale_img->src_ImgWidth;
-	DstOff_Hsize = scale_img->dest_ImgWidth;
-	
-	SrcHsize = scale_img->src_winRight - scale_img->src_winLeft;
-	SrcVsize = scale_img->src_winBottom - scale_img->src_winTop;
-	DstHsize = scale_img->dest_winRight - scale_img->dest_winLeft;
-	DstVsize = scale_img->dest_winBottom - scale_img->dest_winTop;
-
-	ScaleRatH = (SrcHsize * 256) / DstHsize;
-	ScaleRatV = (SrcVsize * 256) / DstVsize;
-
-	dprintk("src fmt[%x] width[%d] height[%d] \n", SrcImgType, SrcHsize, SrcVsize);
-	dprintk("src Address [0x%x] [0x%x] [0x%x] \n", pSrcBase0, pSrcBase1, pSrcBase2);
-
-	dprintk("dest fmt[%x] width[%d] height[%d] \n", DstImgType, DstHsize, DstVsize);
-	dprintk("dest Address [0x%x] [0x%x] [0x%x] \n", pDstBase0, pDstBase1, pDstBase2);
-
-	MEM_SCALER1_SRC_ADDR(pSrcBase0, pSrcBase1, pSrcBase2);
-	MEM_SCALER1_SRC_SIZE(SrcHsize, SrcVsize);
-	MEM_SCALER1_SRC_CONFIG(MSC_CFG_ALL, interleaved_mode, interleaved_src, SrcImgType);
-
-	if (scale_img->src_fmt == SCALER_ARGB4444)
-	{
-		MEM_SCALER1_SRC_CONFIG1(MSC_CFG_ALL_ALPHA, 1, 0, 0, 0);
-	}
-	else if (scale_img->src_fmt == SCALER_RGBA4444)
-	{
-		MEM_SCALER1_SRC_CONFIG1(MSC_CFG_ALL_ALPHA, 1, 1, 1, 0);
-	}
-	else
-	{
-		MEM_SCALER1_SRC_CONFIG1(MSC_CFG_ALL_ALPHA, 0, 0, 0, 0);
-	}
-
-	if (DstImgType >= HwMSC_SRC_CFG_RGB565)
-		pDstBase1 = pDstBase2 = 0;
-
-	MEM_SCALER1_DST_ADDR(pDstBase0, pDstBase1, pDstBase2);
-	MEM_SCALER1_RATIO(ScaleRatH, ScaleRatV);
-	MEM_SCALER1_DST_SIZE(DstHsize, DstVsize);
-
-	MEM_SCALER1_DST_CONFIG(MSC_CFG_ALL, 0, 1, 1, 0, 0, 0, DstImgType);
-
-//	scaler1_ended = check_status_intr = 0;
-	BITCSET(pM2MScaler->MSCCTR, 0xffffffff, 0x80000000);
-	BITCSET(pM2MScaler->MSCCTR, 0xffffffff, 0x00000000);
-//	BITCSET(pM2MScaler->MSCCTR, 0xffffffff, 0x00000003);
-
-	if (scale_img->viqe_onthefly)	{
-		BITCSET(pM2MScaler->MSCCTR, 0xffffffff, 0x01000003);
-	}
-	else 	{
-		BITCSET(pM2MScaler->MSCCTR, 0xffffffff, 0x00000003);
-	}
-
-
-	if(scale_img->responsetype  == SCALER_POLLING)	{
-		ret = wait_event_interruptible_timeout(sc1_data.poll_wq,  sc1_data.block_operating == 0, msecs_to_jiffies(500));
-		if(ret <= 0) {
-			 sc1_data.block_operating = 0;
-			printk("Scaler  time out :%d Line :%d \n", __LINE__, ret);
-		}		
-	}
-	else if(scale_img->responsetype  == SCALER_NOWAIT)	{
-
-		if(scale_img->viqe_onthefly & 0x2)
-			 sc1_data.block_operating = 0;
-
-	}
-	return ret;
-}
-#endif
-
+ #ifndef CONFIG_ARCH_TCC892X
 char M2M_Scaler1_Ctrl_Detail_Without_Alpha(SCALER_TYPE *scale_img)
 {
 	int ret = 0;
-
-	#if defined(CONFIG_ARCH_TCC892X)
-	printk("TCC892X VIOC Scaler1: M2M_Scaler1_Ctrl_Detail_Without_Alpha() \n");
-	#else // CONFIG_ARCH_TCC892X
 	unsigned int pSrcBase0 = 0, pSrcBase1 = 0, pSrcBase2 = 0;
 	unsigned int pDstBase0 = 0, pDstBase1 = 0, pDstBase2 = 0;
 	unsigned int SrcHsize, SrcVsize;
@@ -402,8 +290,6 @@ char M2M_Scaler1_Ctrl_Detail_Without_Alpha(SCALER_TYPE *scale_img)
 		}
 	}
 
-//	scaler1_ended = check_status_intr = 0;
-	
 	
 	if(scale_img->viqe_onthefly& 0x01)
 	{
@@ -437,21 +323,50 @@ char M2M_Scaler1_Ctrl_Detail_Without_Alpha(SCALER_TYPE *scale_img)
 			 sc1_data.block_operating = 0;
 		
 	}
-	#endif // CONFIG_ARCH_TCC892X
-	
+
 	return ret;
 }
-
+#endif//
 
 char M2M_Scaler1_Ctrl_Detail(SCALER_TYPE *scale_img)
 {
 	char ret = 0;
 
 	#if defined(CONFIG_ARCH_TCC892X)
+	unsigned int pSrcBase0 = 0, pSrcBase1 = 0, pSrcBase2 = 0;	
+	unsigned int pDstBase0 = 0, pDstBase1 = 0, pDstBase2 = 0;	
+	unsigned int crop_width;
+
 	VIOC_SCALER_INFO_Type pScalerInfo;
 
 	dprintk("TCC892X VIOC Scaler1: M2M_Scaler_Ctrl_Detail(). \n");
+	
+	pSrcBase0 = (unsigned int)scale_img->src_Yaddr;
+	pSrcBase1 = (unsigned int)scale_img->src_Uaddr;
+	pSrcBase2 = (unsigned int)scale_img->src_Vaddr;
 
+	// address limitation!!
+	crop_width 				= scale_img->src_winRight - scale_img->src_winLeft;
+	scale_img->src_winLeft 	= (scale_img->src_winLeft>>3)<<3; 
+	scale_img->src_winRight = scale_img->src_winLeft + crop_width;
+	tccxxx_GetAddress(scale_img->src_fmt, (unsigned int)scale_img->src_Yaddr,
+								scale_img->src_ImgWidth, scale_img->src_ImgHeight,
+								scale_img->src_winLeft, scale_img->src_winTop,
+								&pSrcBase0, &pSrcBase1, &pSrcBase2);
+
+	pDstBase0 = (unsigned int)scale_img->dest_Yaddr;
+	pDstBase1 = (unsigned int)scale_img->dest_Uaddr;
+	pDstBase2 = (unsigned int)scale_img->dest_Vaddr;
+
+	// address limitation!!
+	crop_width 				 = scale_img->dest_winRight - scale_img->dest_winLeft;
+	scale_img->dest_winLeft  = (scale_img->dest_winLeft>>3)<<3; 
+	scale_img->dest_winRight = scale_img->dest_winLeft + crop_width;
+	tccxxx_GetAddress(scale_img->dest_fmt, (unsigned int)scale_img->dest_Yaddr, 
+								scale_img->dest_ImgWidth, scale_img->dest_ImgHeight, 
+								scale_img->dest_winLeft, scale_img->dest_winTop,
+								&pDstBase0, &pDstBase1, &pDstBase2);
+	
 	spin_lock_irq(&(sc1_data.cmd_lock));
 
 	// set to VRDMA switch path
@@ -464,38 +379,39 @@ char M2M_Scaler1_Ctrl_Detail(SCALER_TYPE *scale_img)
 	#else
 		VIOC_RDMA_SetImageAlphaEnable(pRDMABase1, 1);
 	#endif
+
 	VIOC_RDMA_SetImageFormat(pRDMABase1, scale_img->src_fmt);
-	VIOC_RDMA_SetImageSize(pRDMABase1, scale_img->src_ImgWidth, scale_img->src_ImgHeight);
+	VIOC_RDMA_SetImageSize(pRDMABase1,scale_img->src_winRight- scale_img->src_winLeft, scale_img->src_winBottom - scale_img->src_winTop);
 	VIOC_RDMA_SetImageOffset(pRDMABase1, scale_img->src_fmt, scale_img->src_ImgWidth);
-	VIOC_RDMA_SetImageBase(pRDMABase1, (unsigned int)scale_img->src_Yaddr, (unsigned int)scale_img->src_Uaddr, (unsigned int)scale_img->src_Vaddr);
-	//VIOC_RDMA_SetImageEnable(pRDMABase1);
+	VIOC_RDMA_SetImageBase(pRDMABase1, pSrcBase0, pSrcBase1, pSrcBase2);
 
 	// set to VIOC Scaler2
 	pScalerInfo.BYPASS 			= FALSE /* 0 */;
-	pScalerInfo.SRC_WIDTH		= scale_img->src_ImgWidth;
-	pScalerInfo.SRC_HEIGHT 		= scale_img->src_ImgHeight;
-	pScalerInfo.DST_WIDTH		= scale_img->dest_ImgWidth;
-	pScalerInfo.DST_HEIGHT 		= scale_img->dest_ImgHeight;
-	pScalerInfo.OUTPUT_POS_X	= scale_img->dest_winLeft;
-	pScalerInfo.OUTPUT_POS_Y	= scale_img->dest_winTop;
-	pScalerInfo.OUTPUT_WIDTH	= (scale_img->dest_ImgWidth - scale_img->dest_winLeft);
-	pScalerInfo.OUTPUT_HEIGHT	= (scale_img->dest_ImgHeight - scale_img->dest_winTop);
+	pScalerInfo.DST_WIDTH 		= (scale_img->dest_winRight - scale_img->dest_winLeft);
+	pScalerInfo.DST_HEIGHT 		= (scale_img->dest_winBottom - scale_img->dest_winTop);
+	pScalerInfo.OUTPUT_POS_X 	= 0;
+	pScalerInfo.OUTPUT_POS_Y 	= 0;
+	pScalerInfo.OUTPUT_WIDTH 	= pScalerInfo.DST_WIDTH;
+	pScalerInfo.OUTPUT_HEIGHT 	= pScalerInfo.DST_HEIGHT;
+	
+
 	VIOC_API_SCALER_SetConfig(VIOC_SC2, &pScalerInfo);
 	VIOC_API_SCALER_SetPlugIn(VIOC_SC2, VIOC_SC_RDMA_14);
 	VIOC_API_SCALER_SetUpdate(VIOC_SC2);
 	VIOC_RDMA_SetImageEnable(pRDMABase1); // SoC guide info.
 
 	// set to WMIX40  
-	//VIOC_CONFIG_WMIXPath(WMIX40, 0 /* by-pass */);
-	VIOC_WMIX_SetSize(pWIXBase1, scale_img->dest_ImgWidth, scale_img->dest_ImgHeight);
+	VIOC_CONFIG_WMIXPath(WMIX40, 1 /* Mixing */);
+	VIOC_WMIX_SetSize(pWIXBase1, pScalerInfo.DST_WIDTH, pScalerInfo.DST_HEIGHT);
 	VIOC_WMIX_SetUpdate(pWIXBase1);
 
 	// set to VWRMA
-	VIOC_WDMA_SetImageFormat(pWDMABase1, scale_img->dest_fmt);
-	VIOC_WDMA_SetImageSize(pWDMABase1, scale_img->dest_ImgWidth, scale_img->dest_ImgHeight);
+	 VIOC_WDMA_SetImageFormat(pWDMABase1, scale_img->dest_fmt);
+	VIOC_WDMA_SetImageSize(pWDMABase1, pScalerInfo.DST_WIDTH, pScalerInfo.DST_HEIGHT);
 	VIOC_WDMA_SetImageOffset(pWDMABase1, scale_img->dest_fmt, scale_img->dest_ImgWidth);
-	VIOC_WDMA_SetImageBase(pWDMABase1, (unsigned int)scale_img->dest_Yaddr, (unsigned int)scale_img->dest_Uaddr, (unsigned int)scale_img->dest_Vaddr);
+	VIOC_WDMA_SetImageBase(pWDMABase1, pDstBase0, pDstBase1, pDstBase2);
 	VIOC_WDMA_SetImageEnable(pWDMABase1, 0 /* OFF */);
+ 
 	pWDMABase1->uIRQSTS.nREG = 0xFFFFFFFF; // wdma status register all clear.
 
 	spin_unlock_irq(&(sc1_data.cmd_lock));
@@ -509,7 +425,9 @@ char M2M_Scaler1_Ctrl_Detail(SCALER_TYPE *scale_img)
 	} else if(scale_img->responsetype == SCALER_NOWAIT) {
 		if(scale_img->viqe_onthefly & 0x2) sc1_data.block_operating = 0;
 	}
+
 	#else // CONFIG_ARCH_TCC892X
+	
 	if((scale_img->src_ImgWidth == 0) || (scale_img->src_ImgHeight == 0) ||
 		(scale_img->dest_ImgWidth == 0) || (scale_img->dest_ImgHeight == 0))
 	{
@@ -517,17 +435,8 @@ char M2M_Scaler1_Ctrl_Detail(SCALER_TYPE *scale_img)
 		return -1;
 	}
 	
-	#if defined(CONFIG_ARCH_TCC93XX)	
-	if ((scale_img->src_fmt == SCALER_ARGB4444) || (scale_img->src_fmt == SCALER_RGBA4444))
-	{
-		ret = M2M_Scaler1_Ctrl_Detail_With_Alpha(scale_img);
-	}
-	else
-	#endif
-	{
-		ret = M2M_Scaler1_Ctrl_Detail_Without_Alpha(scale_img);
-	}
-	#endif // CONFIG_ARCH_TCC892X
+ 		ret = M2M_Scaler1_Ctrl_Detail_Without_Alpha(scale_img);
+ 	#endif // CONFIG_ARCH_TCC892X
 	
 	return ret;
 }
@@ -569,18 +478,14 @@ static irqreturn_t tccxxx_scaler1_handler(int irq, void *client_data)
 	#else // CONFIG_ARCH_TCC892X	
 	IFlag = pM2MSCALER1->MSCSTR;
 
-	if (IFlag & HwMSC_STATUS_IRDY)
-	{
-		scaler1_ended  = 1;
+	if (IFlag & HwMSC_STATUS_IRDY)	{
+ 
 	}
-	else if (IFlag & HwMSC_STATUS_IBUSY)
-	{
-		scaler1_ended  = 2;
+	else if (IFlag & HwMSC_STATUS_IBUSY)	{
 		printk("interrupt:: scaler busy!!!\n");
 	}
-	else
+	else 
 	{
-		scaler1_ended  = 3;	
 		printk("unknown interrupt:: 0x%x!!!\n", IFlag);
 	}
 
@@ -591,7 +496,9 @@ static irqreturn_t tccxxx_scaler1_handler(int irq, void *client_data)
 	dprintk("tccxxx_scaler_handler :0  block_operating(%d) - block_waiting(%d) - cmd_count(%d) - poll_count(%d)!!!\n",\
 			msc_data->block_operating, msc_data->block_waiting, msc_data->cmd_count, msc_data->poll_count);
 	
-	if(msc_data->block_operating >= 1) msc_data->block_operating = 0;
+	if(msc_data->block_operating >= 1)
+		msc_data->block_operating = 0;
+
 	wake_up_interruptible(&(msc_data->poll_wq));
 
 	if(msc_data->block_waiting)
