@@ -131,6 +131,12 @@ static struct tcc_voltage_table_t tcc_voltage_table[] = {
 };
 #endif
 
+//#define TCC_CPUFREQ_HIGHER_CLOCK_LIMIT_USE
+#if defined(TCC_CPUFREQ_HIGHER_CLOCK_LIMIT_USE)
+#define TCC_CPUFREQ_HIGHER_CLOCK_VOLTAGE_VALUE 1200000
+//#define TCC_CPUFREQ_HIGHER_CLOCK_VOLTAGE_VALUE 1300000
+#endif
+
 static struct tcc_freq_table_t tcc_freq_old_table = {
 	       0,      0,      0,      0,      0,      0,      0,      0,      0
 };
@@ -174,11 +180,11 @@ extern int cpufreq_is_performace_governor(void);
 
 #if defined(CONFIG_CPU_HIGHSPEED)
 
-#define DEBUG_HIGHSPEED 0
+#define DEBUG_HIGHSPEED 1
 #define dbg_highspeed(msg...)	if (DEBUG_HIGHSPEED) { printk( "TCC_HIGHSPEED: " msg); }
 
-#define TCC_CPU_FREQ_HIGH_SPEED         996000
-#define TCC_CPU_FREQ_NORMAL_SPEED       812500
+#define TCC_CPU_FREQ_HIGH_SPEED         812500
+#define TCC_CPU_FREQ_NORMAL_SPEED       716500
 
 enum cpu_highspeed_status_t {
 	CPU_FREQ_PROCESSING_NORMAL = 0,
@@ -210,12 +216,16 @@ extern int android_system_booting_finished;
 static int tcc_cpufreq_is_limit_highspeed_status(void)
 {
 	if ( 0
+#if !defined(CONFIG_STB_BOARD_DONGLE)
 	  || tcc_battery_get_charging_status() == POWER_SUPPLY_STATUS_CHARGING 	/* check charging status */
 	  || tcc_battery_get_charging_status() == POWER_SUPPLY_STATUS_FULL		/* check charging status */
+#endif /* CONFIG_STB_BOARD_DONGLE */
 	  || tcc_freq_limit_table[TCC_FREQ_LIMIT_OVERCLOCK].usecount	/* check 3d gallery (from app.) */
 	  || tcc_freq_limit_table[TCC_FREQ_LIMIT_VPU].usecount		/* check video encoding status */
 	  || tcc_freq_limit_table[TCC_FREQ_LIMIT_CAMERA].usecount		/* check camera active status */
+#if !defined(CONFIG_STB_BOARD_DONGLE)
 	  || tcc_battery_percentage() < 50			/* check battery level */
+#endif /* CONFIG_STB_BOARD_DONGLE */
 //	  || android_system_booting_finished == 0	/* check boot complete */
 	  || cpu_highspeed_status == CPU_FREQ_PROCESSING_LIMIT_HIGHSPEED
 //	  || tcc_freq_limit_table[TCC_FREQ_LIMIT_FB].usecount == 0		/* lcd off status */
@@ -414,6 +424,36 @@ static int tcc_cpufreq_set_clock_table(struct tcc_freq_table_t *curr_clk_tbl)
 {
 	int new_core_voltage;
 	int ret = 0;
+
+#if defined(TCC_CPUFREQ_HIGHER_CLOCK_LIMIT_USE)
+	int i;
+
+	// limit maximum frequency for dongle platform.
+	if (tcc_freq_limit_table[TCC_FREQ_LIMIT_VPU].usecount) {
+		for ( i = NUM_VOLTAGES-1 ; i > 0 ; i--) {
+			if (tcc_voltage_table[i].voltage <= (TCC_CPUFREQ_HIGHER_CLOCK_VOLTAGE_VALUE + CORE_VOLTAGE_OFFSET))
+				break;
+		}
+		if (curr_clk_tbl->cpu_freq > tcc_voltage_table[i].cpu_freq)
+			curr_clk_tbl->cpu_freq = tcc_voltage_table[i].cpu_freq;
+		if (curr_clk_tbl->ddi_freq > tcc_voltage_table[i].ddi_freq)
+			curr_clk_tbl->ddi_freq = tcc_voltage_table[i].ddi_freq;
+		if (curr_clk_tbl->mem_freq > tcc_voltage_table[i].mem_freq)
+			curr_clk_tbl->mem_freq = tcc_voltage_table[i].mem_freq;
+		if (curr_clk_tbl->gpu_freq > tcc_voltage_table[i].gpu_freq)
+			curr_clk_tbl->gpu_freq = tcc_voltage_table[i].gpu_freq;
+		if (curr_clk_tbl->io_freq > tcc_voltage_table[i].io_freq)
+			curr_clk_tbl->io_freq = tcc_voltage_table[i].io_freq;
+		if (curr_clk_tbl->vbus_freq > tcc_voltage_table[i].vbus_freq)
+			curr_clk_tbl->vbus_freq = tcc_voltage_table[i].vbus_freq;
+		if (curr_clk_tbl->vcod_freq > tcc_voltage_table[i].vcod_freq)
+			curr_clk_tbl->vcod_freq = tcc_voltage_table[i].vcod_freq;
+		if (curr_clk_tbl->smu_freq > tcc_voltage_table[i].smu_freq)
+			curr_clk_tbl->smu_freq = tcc_voltage_table[i].smu_freq;
+		if (curr_clk_tbl->hsio_freq > tcc_voltage_table[i].hsio_freq)
+			curr_clk_tbl->hsio_freq = tcc_voltage_table[i].hsio_freq;
+	}
+#endif
 
 	new_core_voltage = tcc_cpufreq_get_voltage_table(curr_clk_tbl);
 
