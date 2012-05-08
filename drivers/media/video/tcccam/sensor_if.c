@@ -373,9 +373,19 @@ int sensor_if_set_control(struct v4l2_control *vc, unsigned char init)
 	lvc = &control[i];
 	if(lvc->qc.maximum < val) 			return val;
 	if(lvc->current_value != val || init) {
+		#if defined(CONFIG_ARCH_TCC892X)
+			if(lvc->qc.id == V4L2_CID_ZOOM) {
+				tccxxx_cif_set_zoom(val);
+			} else {
+				lvc->current_value = val;
+				lvc->need_set = 1;
+				need_new_set = 1;
+			}
+		#else
 		lvc->current_value = val;
 		lvc->need_set = 1;
 		need_new_set = 1;
+		#endif
 	}
 
 	return 0;
