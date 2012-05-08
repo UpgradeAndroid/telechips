@@ -36,8 +36,16 @@ typedef enum
 	CCFB_LCDC_MAX
 }ccfb_lcdc_type;
 
+typedef enum
+{
+	CCFB_IMG_FMT_RGB565,
+	CCFB_IMG_FMT_ARGB888,
+	CCFB_IMG_FMT_MAX
+}ccfb_img_fmt;
+
 typedef struct
 {
+	uint32_t disp_fmt;
 	uint32_t disp_x;
 	uint32_t disp_y;
 	uint32_t disp_w;
@@ -46,6 +54,12 @@ typedef struct
 
 	uint32_t mem_w;
 	uint32_t mem_h;
+
+	uint32_t chroma_en;
+	uint32_t chroma_R;
+	uint32_t chroma_G;
+	uint32_t chroma_B;
+
 }ccfb_res_config_t;
 
 typedef struct
