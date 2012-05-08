@@ -1586,7 +1586,7 @@ int tccxxx_vioc_vin_main(VIOC_VIN *pVIN)
 	data->cif_cfg.main_set.win_ver_ofst = offs_height * data->cif_cfg.zoom_step;
 	data->cif_cfg.main_set.source_x 	= width  - (offs_width  * data->cif_cfg.zoom_step) * 2;
 	data->cif_cfg.main_set.source_y 	= height - (offs_height * data->cif_cfg.zoom_step) * 2;
-	dprintk("%s():  width=%d, height=%d, offset_x=%d, offset_y=%d. \n", data->cif_cfg.main_set.source_x, \
+	dprintk("%s():  width=%d, height=%d, offset_x=%d, offset_y=%d. \n", __FUNCTION__, data->cif_cfg.main_set.source_x, \
 			data->cif_cfg.main_set.source_y, data->cif_cfg.main_set.win_hor_ofst, data->cif_cfg.main_set.win_ver_ofst);
 
 	if((uint)pVIN == (uint)tcc_p2v(HwVIOC_VIN00)) { 	// VIN00 means VIN0 component
@@ -1662,7 +1662,7 @@ int tccxxx_vioc_vin_wdma_set(VIOC_WDMA *pDMA_CH)
 	else
 		cif_dma_hw_reg(0);
 
-	dprintk("VIOC WDMA size[%dx%d] \n", dw, dh);
+	dprintk("%s():  WDMA size[%dx%d], format[%d]. \n", __FUNCTION__, dw, dh, fmt);
 	
 	VIOC_WDMA_SetImageFormat(pDMA_CH, fmt);
 	VIOC_WDMA_SetImageSize(pDMA_CH, dw, dh);
@@ -1673,8 +1673,7 @@ int tccxxx_vioc_vin_wdma_set(VIOC_WDMA *pDMA_CH)
 		VIOC_WDMA_SetImageEnable(pDMA_CH, OFF);	// operating start in 1 frame
 		BITCSET(pWDMABase->uIRQSTS.nREG, 1<<5, 1<<5); // clear EORF bit
 		VIOC_WDMA_SetIreqMask(pWDMABase, VIOC_WDMA_IREQ_EOFR_MASK, 0x0);
-	}
-	else{
+	} else {
 		printk("While preview, continuous mode. \n");
 		VIOC_WDMA_SetImageEnable(pDMA_CH, ON);	// operating start in 1 frame
 		BITCSET(pWDMABase->uIRQSTS.nREG, 1<<6, 1<<6); // clear EOFF bit
@@ -1775,11 +1774,21 @@ int tccxxx_vioc_scaler_set(VIOC_SC *pSC, VIOC_VIN *pVIN, VIOC_WMIX *pWMIX, uint 
 		return 0;
 	}
 
-	dprintk("%s():  channel=%d, Dst[%dx%d], WMIX[%dx%d]. \n", channel, dw, dh, mw, mh);
+#if defined(CONFIG_VIDEO_ATV_SENSOR_TVP5150) // 4:3 ratio.
+	mw = dw + 16;
+	mh = dh + 12;
+#endif
+
+	dprintk("%s():  channel=%d, Dst[%dx%d], WMIX[%dx%d]. \n", __FUNCTION__, channel, dw, dh, mw, mh);
 	VIOC_CONFIG_PlugIn(channel, plug_in); 	// PlugIn position in SCALER
 	VIOC_SC_SetBypass(pSC, OFF);
+#if defined(CONFIG_VIDEO_ATV_SENSOR_TVP5150)
+	VIOC_SC_SetDstSize(pSC, mw, mh);		// set destination size in scaler
+	VIOC_SC_SetOutPosition(pSC, (mw-dw)/2, (mh-dh)/2);
+#else
 	VIOC_SC_SetDstSize(pSC, dw, dh); 		// set destination size in scaler
-	VIOC_SC_SetOutSize(pSC, dw, dh); 		// set output size in scaer
+#endif
+	VIOC_SC_SetOutSize(pSC, dw, dh); 		// set output size in scaler
 	VIOC_SC_SetUpdate(pSC); 				// Scaler update
 
 	return 0;
@@ -1877,7 +1886,7 @@ int tccxxx_vioc_viqe_wmix_set(VIOC_WMIX *pWMIX, uint plug_in, unchar bUseSimpleD
 	if(!bUseSimpleDeIntl) 	channel = VIOC_VIQE;
 	else 					channel = VIOC_DEINTLS;
 
-	dprintk("%s() :  width=%d, height=%d, channel=%d. \n", __FUNCTION__, mw, mh, channel);
+	dprintk("%s():  width=%d, height=%d, channel=%d. \n", __FUNCTION__, mw, mh, channel);
 	VIOC_CONFIG_PlugIn(channel, plug_in);
 
 	return 0;
