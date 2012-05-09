@@ -236,6 +236,7 @@ extern "C" {
 
 #define HwNFC_BASE                              (0x76600000)
 #define HwECC_BASE                              (0x76600200)
+#define HwECCBASE                               (0x76600208)
 
 #define HwSMC0_BASE                             (0x76700000)
 #define HwSMC1_BASE                             (0x76700400)
