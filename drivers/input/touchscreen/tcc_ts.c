@@ -77,9 +77,20 @@
 #define ADCTSC_AUTO_ADC4        AUTO_PST_EN
 #define ADCTSC_AUTO_ADC5        AUTO_PST_DIS
 
-#define TOUCH_COLLECT_NR        8  // (TOUCH_COLLECT_NR-TOUCH_VALID_VALUE) must be even
-#define TOUCH_VALID_VALUE       2  // among COLLECT_NR samples, OK should be over
+#define TOUCH_COLLECT_NR        16  // (TOUCH_COLLECT_NR-TOUCH_VALID_VALUE) must be even
+#define TOUCH_VALID_VALUE       4  // among COLLECT_NR samples, OK should be over
 #define TOUCH_TIMER_DELAY       10 // ms
+#define TOUCH_RELEASE_TIME      1500 // ms
+#if defined(CONFIG_ARCH_TCC92XX)
+#define TOUCH_MAX_CONTACT       3000
+#elif defined(CONFIG_ARCH_TCC88XX)
+#define TOUCH_MAX_CONTACT       15000
+#elif defined(CONFIG_ARCH_TCC892X)	
+#define TOUCH_MAX_CONTACT       10000	
+#else
+#define TOUCH_MAX_CONTACT       15000
+#endif      
+#define TOUCH_MAX_PRESSURE      255
 
 #define PEN_DOWN    1
 #define PEN_RELEASE 0
@@ -115,6 +126,7 @@ struct tcc_ts {
 	struct input_dev *dev;
 	long x;
 	long y;
+	unsigned int pressure;
 	char phys[32];
 	int pen_status, opened, running, valid;
 	struct mutex mutex;
@@ -131,6 +143,8 @@ struct tcc_ts {
 
 static void __iomem *ts_base;
 static int early_check = 0;
+static unsigned int tcc_ts_release_time_cnt = 0;
+static unsigned long extIntSEL;
 
 extern  struct tcc_adc_client *tcc_adc_register(struct platform_device *pdev,
                                          void (*select)(unsigned int selected),
@@ -161,19 +175,19 @@ void tca_touchbubblesort(unsigned int Number[],unsigned int num)
 }
 
 
-int tca_getrawdata(int * x, int * y, struct tcc_ts *ts_data)
+static int tca_getrawdata(int * x, int * y, unsigned int * contact, struct tcc_ts *ts_data)
 {
 	unsigned int  i;
-	unsigned int r_x[TOUCH_COLLECT_NR], r_y[TOUCH_COLLECT_NR];
-	unsigned long  x_tol, y_tol;
-	unsigned int m_pos_x, m_pos_y;
+	unsigned int r_x[TOUCH_COLLECT_NR], r_y[TOUCH_COLLECT_NR], r_contact[TOUCH_COLLECT_NR];
+	unsigned long  x_tol, y_tol, contact_tol;
+	unsigned int m_pos_x, m_pos_y, m_contact;
 	unsigned int validcnt=0;
 	unsigned int index;
 
 	memset(r_x, 0x00, sizeof(int) * TOUCH_COLLECT_NR);
 	memset(r_y, 0x00, sizeof(int) * TOUCH_COLLECT_NR);
 
-	m_pos_x = m_pos_y = 0;
+	m_pos_x = m_pos_y = m_contact = 0;
 
 	for(i = 0; i < TOUCH_COLLECT_NR; i ++) {
 		int xp, yp, xm, ym;
@@ -186,30 +200,14 @@ int tca_getrawdata(int * x, int * y, struct tcc_ts *ts_data)
 		//tca_adc_tsautoread(&xp, &yp, &xm, &ym);
 
 		        tca_adc_tsread(&xp, &yp, &xm, &ym);
-
+		r_contact[validcnt] = (xp*ym/(xm+1)-xp);
 
 		dbg("x = %d , y = %d , r = %d\n", xp, yp, (xp*ym/(xm+1)-xp));
 
 		preempt_enable();
 
 #if defined(CONFIG_ARCH_TCC92XX)
-		if ((yp*ym/(xm+1)-yp) < 3000) {
-			r_x[validcnt]=xp;
-			r_y[validcnt]=yp;
-			validcnt++;
-		}
-#elif defined(CONFIG_ARCH_TCC88XX)
-		if ((xp < ts_data->pdata->max_x && xp > ts_data->pdata->min_x) &&
-		    (yp < ts_data->pdata->max_y && yp > ts_data->pdata->min_y) &&
-		    (xp*ym/(xm+1)-xp) < 15000) {
-			r_x[validcnt]=xp;
-			r_y[validcnt]=yp;
-			validcnt++;
-		}
-#elif defined(CONFIG_ARCH_TCC892X)
-		if ((xp < ts_data->pdata->max_x && xp > ts_data->pdata->min_x) &&
-		    (yp < ts_data->pdata->max_y && yp > ts_data->pdata->min_y) &&
-		    (xp*ym/(xm+1)-xp) < 35000) {
+		if (r_contact[validcnt] < TOUCH_MAX_CONTACT) {
 			r_x[validcnt]=xp;
 			r_y[validcnt]=yp;
 			validcnt++;
@@ -217,7 +215,7 @@ int tca_getrawdata(int * x, int * y, struct tcc_ts *ts_data)
 #else
 		if ((xp < ts_data->pdata->max_x && xp > ts_data->pdata->min_x) &&
 		    (yp < ts_data->pdata->max_y && yp > ts_data->pdata->min_y) &&
-		    (xp*ym/(xm+1)-xp) < 15000) {
+		    r_contact[validcnt] < TOUCH_MAX_CONTACT) {
 			r_x[validcnt]=xp;
 			r_y[validcnt]=yp;
 			validcnt++;
@@ -231,7 +229,8 @@ int tca_getrawdata(int * x, int * y, struct tcc_ts *ts_data)
 	//printk("%s : %d\n", __func__, __LINE__);
 	tca_touchbubblesort(r_x,validcnt);
 	tca_touchbubblesort(r_y,validcnt);
-	x_tol = y_tol = 0; //sum the coordinate values
+	tca_touchbubblesort(r_contact, validcnt);
+	x_tol = y_tol = contact_tol = 0; //sum the coordinate values
 	index = (validcnt-TOUCH_VALID_VALUE)>>1;
 
 	if(validcnt < (TOUCH_VALID_VALUE*2)) return -1;
@@ -239,6 +238,7 @@ int tca_getrawdata(int * x, int * y, struct tcc_ts *ts_data)
 	for(i=index;i<(index+TOUCH_VALID_VALUE);++i) {
 		x_tol += r_x[i];
 		y_tol += r_y[i];
+		contact_tol += r_contact[i];
 	}
 
 	if (ts_data->pdata->swap_xy_pos) {
@@ -248,6 +248,7 @@ int tca_getrawdata(int * x, int * y, struct tcc_ts *ts_data)
 		m_pos_x = x_tol/(TOUCH_VALID_VALUE);
 		m_pos_y = y_tol/(TOUCH_VALID_VALUE);
 	}
+	m_contact = contact_tol/(TOUCH_VALID_VALUE);
 	if (ts_data->pdata->reverse_x_pos) {
 		*x = ts_data->pdata->max_x - (m_pos_x - ts_data->pdata->min_x);
 	} else {
@@ -258,6 +259,7 @@ int tca_getrawdata(int * x, int * y, struct tcc_ts *ts_data)
 	} else {
 		*y = m_pos_y;
 	}
+	*contact = (TOUCH_MAX_CONTACT - m_contact)/((TOUCH_MAX_CONTACT + TOUCH_MAX_PRESSURE - 1)/TOUCH_MAX_PRESSURE);
 
 	dbg("m_pos_x=%d, m_pos_y=%d\n", *x, *y);
 
@@ -286,7 +288,7 @@ int tcc_adc_touch_status(void)
 }
 EXPORT_SYMBOL(tcc_adc_touch_status);
 
-static inline void tcc_pen_release(struct tcc_ts* ts_data, struct input_dev *dev)
+static inline void tcc_pen_release(struct tcc_ts* ts_data)
 {
 	if (pen_cnt == 0) return;
 	if (ts_data->pen_status != PEN_RELEASE) {
@@ -295,9 +297,9 @@ static inline void tcc_pen_release(struct tcc_ts* ts_data, struct input_dev *dev
 		tcc_adc_touch_status_f = 0;
 
 		preempt_disable();
-		input_report_key(dev, BTN_TOUCH, PEN_RELEASE);
-		input_report_abs(dev, ABS_PRESSURE, 0);
-		input_sync(dev);
+		input_report_key(ts_data->dev, BTN_TOUCH, PEN_RELEASE);
+		input_report_abs(ts_data->dev, ABS_PRESSURE, 0);
+		input_sync(ts_data->dev);
 		preempt_enable();
 		/* wake_up_interruptible(&ts->wait_q); */
 	}
@@ -306,7 +308,7 @@ static inline void tcc_pen_release(struct tcc_ts* ts_data, struct input_dev *dev
 	t_jiffies = 0;
 }
 
-static inline void tcc_pen_pressure(struct tcc_ts* ts_data, struct input_dev *dev)
+static inline void tcc_pen_pressure(struct tcc_ts* ts_data)
 {
 	if (pen_cnt == 0) t_jiffies = jiffies;
 	pen_cnt ++;
@@ -316,11 +318,11 @@ static inline void tcc_pen_pressure(struct tcc_ts* ts_data, struct input_dev *de
 
 
 	preempt_disable();
-	input_report_key(dev, BTN_TOUCH, PEN_DOWN);
-	input_report_abs(dev, ABS_X, ts_data->x);
-	input_report_abs(dev, ABS_Y, ts_data->y);
-	input_report_abs(dev, ABS_PRESSURE, 1);
-	input_sync(dev);
+	input_report_key(ts_data->dev, BTN_TOUCH, PEN_DOWN);
+	input_report_abs(ts_data->dev, ABS_X, ts_data->x);
+	input_report_abs(ts_data->dev, ABS_Y, ts_data->y);
+	input_report_abs(ts_data->dev, ABS_PRESSURE, ts_data->pressure);
+	input_sync(ts_data->dev);
 	preempt_enable();
 
 	dbg("PEN DOWN (%ld : %ld)\n", ts_data->x, ts_data->y);
@@ -331,7 +333,6 @@ static inline void tcc_pen_pressure(struct tcc_ts* ts_data, struct input_dev *de
 static void ts_fetch_thread(struct work_struct *work)
 {
 	struct tcc_ts* ts_data = container_of(work, struct tcc_ts, work_q);
-	struct input_dev *dev = ts_data->dev;
 	int flag, valid;
 	int updown;
 	unsigned long data0;
@@ -349,13 +350,13 @@ static void ts_fetch_thread(struct work_struct *work)
 	updown = (!(data0 & Hw15)) && (!(data1 & Hw15));
 
 	if (!updown) {
-		tcc_pen_release(ts_data, dev);
+		tcc_pen_release(ts_data);
 		ts_data->running = 0;
 		dbg("(work_q_1)enable_irq\n");
 		enable_irq(IRQ_NO);
 	} else {
-		flag = tca_getrawdata((int *)&(ts_data->x), (int *)&(ts_data->y), ts_data);
-		dbg(" (%d, %d)\n", ts_data->x, ts_data->y);
+		flag = tca_getrawdata((int *)&(ts_data->x), (int *)&(ts_data->y), (unsigned int *)&(ts_data->pressure), ts_data);
+		dbg(" (%d, %d), %d\n", ts_data->x, ts_data->y, ts_data->pressure);
 		tca_tch_poweroff();
 
 		ndelay(1);
@@ -363,15 +364,23 @@ static void ts_fetch_thread(struct work_struct *work)
 		valid = ts_data->x | ts_data->y;
 
 		if ((flag == 0) && valid && (!early_check)) {
-			tcc_pen_pressure(ts_data, dev);
+			tcc_pen_pressure(ts_data);
 			ts_data->ts_timer.expires = jiffies + msecs_to_jiffies(TOUCH_TIMER_DELAY);
 			add_timer(&ts_data->ts_timer);
+			tcc_ts_release_time_cnt = 0;
 		} else {
-			ts_data->running = 0;
-			tcc_pen_release(ts_data, dev);
-			if(!early_check){
-			    enable_irq(IRQ_NO);
+			if (tcc_ts_release_time_cnt >= TOUCH_RELEASE_TIME) {
+				ts_data->running = 0;
+				tcc_pen_release(ts_data);
+				if(!early_check){
+				    enable_irq(IRQ_NO);
+				}
 			}
+			else {
+				ts_data->ts_timer.expires = jiffies + msecs_to_jiffies(TOUCH_TIMER_DELAY);
+				add_timer(&ts_data->ts_timer);
+			}
+			tcc_ts_release_time_cnt += TOUCH_TIMER_DELAY;
 		}
 	}
 }
@@ -506,13 +515,13 @@ static int __devinit tcc_ts_probe(struct platform_device *pdev)
 
 	//tcc_adc_start(client, TOUCH_CH, 0);
 
-	ts->dev->evbit[0] = BIT(EV_SYN) | BIT(EV_KEY) | BIT(EV_ABS);
-	//ts->dev->evbit[0] = BIT_MASK(EV_KEY) | BIT_MASK(EV_ABS);
+	ts->dev->evbit[0] = BIT_MASK(EV_SYN) | BIT_MASK(EV_KEY) | BIT_MASK(EV_ABS) ;
 	ts->dev->keybit[BIT_WORD(BTN_TOUCH)] = BIT_MASK(BTN_TOUCH);
+	ts->dev->absbit[0] = BIT(ABS_X) | BIT(ABS_Y) | BIT(ABS_PRESSURE); 						// absolute coor (x,y)
 
 	input_set_abs_params(ts->dev, ABS_X, pdata->min_x, pdata->max_x, 0, 0);
 	input_set_abs_params(ts->dev, ABS_Y, pdata->min_y, pdata->max_y, 0, 0);
-	input_set_abs_params(ts->dev, ABS_PRESSURE, 0, 1, 0, 0);
+	input_set_abs_params(ts->dev, ABS_PRESSURE, 0, TOUCH_MAX_PRESSURE, 0, 0);
 
 	INIT_WORK(&(ts->work_q), ts_fetch_thread);
 	mutex_init(&(ts->mutex));
@@ -581,6 +590,9 @@ static int tcc_ts_remove(struct platform_device *pdev)
 static int tcc_ts_suspend(struct platform_device *pdev, pm_message_t state)
 {
 	struct tcc_ts *ts_data = platform_get_drvdata(pdev);
+#if defined(CONFIG_ARCH_TCC892X) 
+    	extIntSEL = *(volatile unsigned long *)tcc_p2v(0x74200240);
+#endif
 	if (ts_data) {
 		del_timer_sync(&ts_data->ts_timer);
 	   	tcc_adc_release(ts_data->client);
@@ -592,6 +604,10 @@ static int tcc_ts_suspend(struct platform_device *pdev, pm_message_t state)
 static int tcc_ts_resume(struct platform_device *pdev)
 {
 	struct tcc_ts *ts_data = platform_get_drvdata(pdev);
+#if defined(CONFIG_ARCH_TCC892X) 
+    	*(volatile unsigned long *)tcc_p2v(0x74200240) &= 0xff00ffff;
+    	*(volatile unsigned long *)tcc_p2v(0x74200240) |= (extIntSEL & 0x00ff0000);
+#endif
 	early_check = 0;
 	ts_data->running = 0;
 	tcc_adc_touch_status_f = 0;

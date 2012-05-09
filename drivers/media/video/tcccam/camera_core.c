@@ -119,8 +119,7 @@ static int capture_mem = 1280*960*2*2;
 
 #define NUM_FREQS 3
 static unsigned int out_width, out_height;
-int camera_no_connect_cnt = 0; //20120404 ysseung   if the camera is not connected, modify to an infinite loop issue of camera stop.
-
+extern int cam_no_connect_cnt; //20120404 ysseung   if the camera is not connected, modify to an infinite loop issue of camera stop.
 
 static unsigned int gtCamSizeTable[NUM_FREQS] = {
 	 720 *  480, // D1
@@ -461,7 +460,7 @@ int tcc_videobuf_dqbuf(struct v4l2_buffer *buf, struct file *file )
 			
 		data->wakeup_int = 0;
 		if(wait_event_interruptible_timeout(data->frame_wait, data->wakeup_int == 1, msecs_to_jiffies(500)) <= 0) {
-			camera_no_connect_cnt++;
+			cam_no_connect_cnt++;
 			printk("wait_event_interruptible_timeout 500ms!!\n");
 			return -EFAULT;
 		}
@@ -648,7 +647,7 @@ int tcc_videobuf_user_get_capture_info(TCCXXX_JPEG_ENC_DATA * Jpeg_data )
 int tcc_videobuf_get_zoom_support(int cameraIndex)
 {
 	// cameraIndex는 나중에 사용할 수 있음.
-	#if defined(CONFIG_DRAM_16BIT_USED)
+	#if (defined(CONFIG_DRAM_16BIT_USED)&&(defined(CONFIG_ARCH_TCC88XX)||defined(CONFIG_ARCH_TCC93XX)||defined(CONFIG_ARCH_TCC89XX)))
 	printk("Camera zoom not supported. \n");
 	return 0;
 	#else

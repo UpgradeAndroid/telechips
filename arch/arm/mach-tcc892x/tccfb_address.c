@@ -56,11 +56,11 @@ void tccxxx_GetAddress(unsigned char format, unsigned int base_Yaddr, unsigned i
 		Vaddr = *V;
 	}
 
-	if((format == TCC_LCDC_IMG_FMT_YUV420SP) || (format == TCC_LCDC_IMG_FMT_YUV420ITL1)) {
-		if(format == TCC_LCDC_IMG_FMT_YUV420ITL1)
-			UVoffset = ((src_imgx * start_yPos)/2 + start_x);
-		else
+	if((format == TCC_LCDC_IMG_FMT_YUV420SP) || (format == TCC_LCDC_IMG_FMT_YUV420ITL0) || (format == TCC_LCDC_IMG_FMT_YUV420ITL1)) {
+		if(format == TCC_LCDC_IMG_FMT_YUV420SP)
 			UVoffset = ((src_imgx * start_yPos)/4 + start_x/2);
+		else
+			UVoffset = ((src_imgx * start_yPos)/2 + start_x);
 	} else {
 		if(format == TCC_LCDC_IMG_FMT_YUV422ITL1)
 			UVoffset = ((src_imgx * start_yPos) + start_x);

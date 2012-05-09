@@ -186,7 +186,6 @@ typedef struct{
 
 typedef struct {
 	tcc_vsync_buffer_t vsync_buffer;
-
 	// for time sync
 	unsigned int unVsyncCnt ;
 	int baseTime;
@@ -235,6 +234,8 @@ DECLARE_WAIT_QUEUE_HEAD( wq_consume1 ) ;
 #ifdef USE_SOFT_IRQ_FOR_VSYNC
 static struct work_struct vsync_work_q;
 #endif
+
+static int vsync_started = 0;
 
 /* Debugging stuff */
 static int debug_v = 0;
@@ -2093,6 +2094,8 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 				tca_vsync_video_display_enable();
 
 				tcc_vsync_set_max_buffer(&tccvid_vsync.vsync_buffer, arg);
+
+				vsync_started = 1;
 			}
 			break ;
 
@@ -2118,7 +2121,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 					memset(&ImageInfo, 0x00, sizeof(struct tcc_lcdc_image_update));
  					TCC_HDMI_DISPLAY_UPDATE(LCD_OUT_LCDC, &ImageInfo);
 				}
-
+				vsync_started = 0;
 			}
 			break ;
 
@@ -2637,9 +2640,10 @@ TCC_VSYNC_PUSH_ERROR:
 		case TCC_LCDC_VIDEO_GET_DISPLAYED :
 			if(tccvid_vsync.outputMode == Output_SelectMode)
 			{
-				if(tccvid_vsync.skipFrameStatus)
+				if(tccvid_vsync.skipFrameStatus || !vsync_started)
 				{
-					vprintk("frame skip mode return\n");
+					if(tccvid_vsync.skipFrameStatus)
+						vprintk("frame skip mode return\n");
 					return -1;
 				}
 					

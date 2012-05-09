@@ -23,6 +23,23 @@
 
 #include <mach/reg_physical.h>
 
+#define VIOC_RDMA_STAT_ICFG		0x00000001UL
+#define VIOC_RDMA_STAT_IEOFR		0x00000002UL
+#define VIOC_RDMA_STAT_IEOFF 		0x00000004UL
+#define VIOC_RDMA_STAT_IUPDD 		0x00000008UL
+#define VIOC_RDMA_STAT_IEOFFW		0x00000010UL
+#define VIOC_RDMA_STAT_ITOPR 		0x00000020UL
+#define VIOC_RDMA_STAT_IBOTR 		0x00000040UL
+#define VIOC_RDMA_STAT_ALL 		0x0000007FUL
+
+#define VIOC_RDMA_IREQ_ICFG_MASK		0x00000001UL
+#define VIOC_RDMA_IREQ_IEOFR_MASK		0x00000002UL
+#define VIOC_RDMA_IREQ_IEOFF_MASK 	0x00000004UL
+#define VIOC_RDMA_IREQ_IUPDD_MASK 	0x00000008UL
+#define VIOC_RDMA_IREQ_IEOFFW_MASK 	0x00000010UL
+#define VIOC_RDMA_IREQ_ITOPR_MASK 	0x00000020UL
+#define VIOC_RDMA_IREQ_IBOTR_MASK 	0x00000040UL
+#define VIOC_RDMA_IREQ_ALL_MASK		0x0000007FUL
 
 /* Interface APIs */
 
@@ -50,6 +67,7 @@ extern void VIOC_RDMA_SetImageBfield(VIOC_RDMA * pRDMA, unsigned int bfield);
 extern void VIOC_RDMA_SetImageIntl (VIOC_RDMA * pRDMA, unsigned int intl_en);
 extern void VIOC_RDMA_SetY2RConvertEnable(VIOC_RDMA * pRDMA, unsigned int enable);
 extern void VIOC_RDMA_SetY2RConvertMode(VIOC_RDMA * pRDMA, unsigned int mode);
+extern void VIOC_RDMA_SetStatus(VIOC_RDMA * pRDMA, unsigned int mask);
 extern void VIOC_RDMA_SetIreqMask(VIOC_RDMA * pRDMA, unsigned int mask, unsigned int set);
 extern void VIOC_RDMA_IreqHandler( unsigned int vectorID );
 #endif

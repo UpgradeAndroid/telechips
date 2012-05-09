@@ -110,7 +110,7 @@ extern int TCC_OUTPUT_FB_Set3DMode(char enable, char mode);
 extern int TCC_OUTPUT_FB_Get3DMode(char *mode);
 
 extern void TCC_OUTPUT_FB_AttachOutput(char src_lcdc_num, char output_type);
-extern void TCC_OUTPUT_FB_DetachOutput(void);
+extern void TCC_OUTPUT_FB_DetachOutput(char disable_all);
 extern void TCC_OUTPUT_FB_AttachUpdate(char src_lcdc_num);
 
 #ifdef __cplusplus

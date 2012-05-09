@@ -265,20 +265,27 @@ static int tccxxx_ccfb_set_config(ccfb_dev_config_t *dev, ccfb_config_t *arg)
 
 		// scale
 		VIOC_RDMA_SetImageScale(dev->pCurLcdc, cfg.res.disp_m, cfg.res.disp_m);
-	
-		// ARGB 32bit format		
-		VIOC_RDMA_SetImageFormat(dev->pCurLcdc, VIOC_IMG_FMT_ARGB8888);
-		VIOC_RDMA_SetImageOffset(dev->pCurLcdc, VIOC_IMG_FMT_ARGB8888, cfg.res.mem_w);
 
-		// Y2R disable
-		VIOC_RDMA_SetImageY2REnable(dev->pCurLcdc, 0);
+		if(cfg.res.disp_fmt == CCFB_IMG_FMT_RGB565)	{
+			VIOC_RDMA_SetImageFormat(dev->pCurLcdc, VIOC_IMG_FMT_RGB565);
+			VIOC_RDMA_SetImageOffset(dev->pCurLcdc, VIOC_IMG_FMT_RGB565, cfg.res.mem_w);
 
-		// Chroma-keying disable
-		//BITCSET (dev->pCurLcdc->LIC, 0x1<< 29, 0 << 29);
+			// Chroma-keying set
+			if(cfg.res.chroma_en) {
+				VIOC_WMIX_SetChromaKey(dev->pCurWMix, 1, cfg.res.chroma_en, cfg.res.chroma_R, cfg.res.chroma_G, cfg.res.chroma_B, 0xF8, 0xFC, 0xF8);
+			}
+		} else {
+			// ARGB 32bit format		
+			VIOC_RDMA_SetImageFormat(dev->pCurLcdc, VIOC_IMG_FMT_ARGB8888);
+			VIOC_RDMA_SetImageOffset(dev->pCurLcdc, VIOC_IMG_FMT_ARGB8888, cfg.res.mem_w);
 
-		// Alpha enable
-		VIOC_RDMA_SetImageAlphaSelect(dev->pCurLcdc, 1);	// ASEL set
-		VIOC_RDMA_SetImageAlphaEnable(dev->pCurLcdc, 1);	// AEN set
+			// Y2R disable
+			VIOC_RDMA_SetImageY2REnable(dev->pCurLcdc, 0);
+
+			// Alpha enable
+			VIOC_RDMA_SetImageAlphaSelect(dev->pCurLcdc, 1);	// ASEL set
+			VIOC_RDMA_SetImageAlphaEnable(dev->pCurLcdc, 1);	// AEN set
+		}
 
 		// Ch disable
 		VIOC_RDMA_SetImageDisable	(dev->pCurLcdc);
@@ -336,6 +343,8 @@ static int tccxxx_ccfb_disp_update(ccfb_dev_config_t *dev, unsigned int* arg)
 	// Ch disable
 	VIOC_RDMA_SetImageEnable(dev->pCurLcdc);
 #endif /* 0 */
+
+	VIOC_WMIX_SetUpdate(dev->pCurWMix);
 
 	VIOC_RDMA_SetImageBase(dev->pCurLcdc, cur_addr, 0, 0);
 	VIOC_RDMA_SetImageEnable(dev->pCurLcdc);

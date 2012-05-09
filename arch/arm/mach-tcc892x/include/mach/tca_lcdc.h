@@ -80,6 +80,7 @@ extern unsigned int tcc_LCDC_set_bgcolor(unsigned lcdc, unsigned red, unsigned g
 
 extern  void tca_lcdc_interrupt_onoff(char onoff, char lcdc);
 extern unsigned int DEV_LCDC_Wait_signal(char lcdc);
+extern unsigned int DEV_LCDC_Wait_signal_Ext(void);
 extern unsigned int DEV_LCDC_Status(char lcdc);
 extern void tcc_LCDC_onoff_ctrl(unsigned int lcdc, unsigned int onoff);
 extern unsigned int DEV_RDMA_Status(char lcdc);

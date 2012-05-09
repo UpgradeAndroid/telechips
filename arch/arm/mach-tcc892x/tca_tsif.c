@@ -641,6 +641,7 @@ static int tcc_tsif_dmastart(struct tcc_tsif_handle *h)
         BITCSET(dma_regs->DMACTR.nREG, Hw5|Hw4, Hw4);	//00:normal mode, 01:MPEG2_TS mode
 #endif        
 #if defined(SUPPORT_PIDFILTER_INTERNAL)
+        BITCSET(h->regs->TSPID[0], (Hw16-Hw0), Hw13);    //to prevent disabling pid filter        
       	BITSET(h->regs->TSRXCR, Hw17);      	
 #endif
     }
@@ -991,7 +992,7 @@ int tca_tsif_register_pids(struct tcc_tsif_handle *h, unsigned int *pids, unsign
         } 
 #endif
 #if defined(SUPPORT_PIDFILTER_INTERNAL)
-        BITCSET(h->regs->TSPID[i], (Hw32-Hw0), Hw13);    //to prevent disabling pid filter        
+        BITCSET(h->regs->TSPID[0], (Hw16-Hw0), Hw13);    //to prevent disabling pid filter        
     #if defined(UPDATE_ONLY_CHANGED_PID)
         tca_tsif_update_changed_pids(h, pids, count);
     #else
@@ -1036,6 +1037,10 @@ EXPORT_SYMBOL(tca_tsif_register_pids);
 
 int tca_tsif_can_support(void)
 {
+#if     defined(CONFIG_M805S_8925_0XX)
+    return 1;
+#else    
+
    	if(machine_is_tcc8920())
     {
         //0x1006:8925, 0x1008:8923, 0x1005,0x1007:8920
@@ -1046,13 +1051,13 @@ int tca_tsif_can_support(void)
         }
     }
 
-#ifdef  SUPPORT_STB_TSIF_INTERFACE
+    #ifdef  SUPPORT_STB_TSIF_INTERFACE
 	if(machine_is_tcc8920st())
     {
         return 1;
     }
+    #endif
 #endif
-
     return 0;
 }
 

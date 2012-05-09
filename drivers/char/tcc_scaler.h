@@ -13,3 +13,8 @@ int tccxxx_scaler_release(struct inode *inode, struct file *filp);
 int tccxxx_scaler_open(struct inode *inode, struct file *filp);
 extern void test_scaler_init(void);
 
+#if defined(TEST_FEATURE)
+extern void test_scaler_init(void);
+#endif
+
+

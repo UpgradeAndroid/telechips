@@ -243,7 +243,7 @@ int __init m805_892x_init_panel(void)
 		return 0;
 
 	lcd_pdata.lcdc_num	= 1;	
-	if(system_rev == 0x2002){
+	if(system_rev == 0x2002 || system_rev == 0x2003){
 		lcd_pdata.bl_on 		= TCC_GPC(0);
 		lcd_pdata.lcdc_num	= 0;	
 	}

@@ -56,7 +56,6 @@ extern void __cpu_early_init(void);
 extern unsigned int IO_ARM_ChangeStackSRAM(void);
 extern void IO_ARM_RestoreStackSRAM(unsigned int);
 
-
 /*===========================================================================
 
                   DEFINITIONS AND DECLARATIONS FOR MODULE
@@ -107,7 +106,7 @@ typedef void (*CoreFuncPtr)(unsigned int goto_state);
 FUNCTION
 ===========================================================================*/
 #if defined(CONFIG_MACH_TCC8920ST)
-static void tcc_stb_suspend(void)
+static inline void tcc_stb_suspend(void)
 {
 #if defined(TCC_PM_MEMQ_PWR_CTRL)
 #if defined(CONFIG_STB_BOARD_HDB892F)
@@ -125,7 +124,7 @@ static void tcc_stb_suspend(void)
 	BITCLR(((PGPIO)HwGPIO_BASE)->GPBDAT.nREG, 1<<21); //CORE2_ON : low
 }
 
-static void tcc_stb_resume(void)
+static inline void tcc_stb_resume(void)
 {
 #if defined(TCC_PM_MEMQ_PWR_CTRL)
 #if defined(CONFIG_STB_BOARD_HDB892F)
@@ -847,7 +846,7 @@ static void set_core_voltage(unsigned int state)
 		BITCSET(*(volatile unsigned long *)(0x742001B8), 0x0000FF00, 0x00004400);
 		BITCSET(*(volatile unsigned long *)(0x76360000), 0x000000FF, 0x0000001A);
 #elif defined(CONFIG_MACH_M805_892X)
-		if (PMIC_PARAM(SYSTEM_REV) == 0x2002) {
+		if (PMIC_PARAM(SYSTEM_REV) == 0x2002 || PMIC_PARAM(SYSTEM_REV) == 0x2003) {
 			//I2C[12] - GPIOC[2][3]
 			//i2c_portcfg->PCFG0.bREG.MASTER0 = 12;
 			BITCSET(*(volatile unsigned long *)(0x742000B0), 0x0000FF00, 0x00007700);
@@ -889,7 +888,7 @@ static void set_core_voltage(unsigned int state)
 	}
 	else if (PMIC_PARAM(DEV_CH) == 1) {
 #if defined(CONFIG_MACH_M805_892X)
-		if (PMIC_PARAM(SYSTEM_REV) == 0x2002) {
+		if (PMIC_PARAM(SYSTEM_REV) == 0x2002 || PMIC_PARAM(SYSTEM_REV) == 0x2003) {
 			//I2C[25] - GPIOG[12][13]
 			//i2c_portcfg->PCFG0.bREG.MASTER1 = 25;
 			BITCSET(*(volatile unsigned long *)(0x742001B4), 0x00FF0000, 0x00440000);
@@ -937,7 +936,7 @@ static void set_core_voltage(unsigned int state)
 	}
 	else if (PMIC_PARAM(DEV_CH) == 2) {
 #if defined(CONFIG_MACH_M805_892X)
-		if (PMIC_PARAM(SYSTEM_REV) == 0x2002) {
+		if (PMIC_PARAM(SYSTEM_REV) == 0x2002 || PMIC_PARAM(SYSTEM_REV) == 0x2003) {
 			//I2C[18] - GPIOF[13][14]
 			//i2c_portcfg->PCFG0.bREG.MASTER1 = 18;
 			BITCSET(*(volatile unsigned long *)(0x74200178), 0x0FF00000, 0x0AA00000);
@@ -1243,7 +1242,7 @@ static void shutdown(void)
 
 #if defined(TCC_PM_MEMQ_PWR_CTRL)
 	#if defined(CONFIG_MACH_M805_892X)
-	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
+	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002 || *(volatile unsigned long *)SRAM_STACK_ADDR == 0x2003)
 		BITCLR(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<6); //GPIO D 6
 	else
 		BITCLR(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
@@ -1340,7 +1339,7 @@ static void shutdown(void)
 
 	/* Power Key */
 #if defined(CONFIG_MACH_M805_892X)
-	if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
+	if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002 || *(volatile unsigned long *)SRAM_STACK_ADDR == 0x2003)
 	{
 		//set wake-up polarity
 		((PPMU)HwPMU_BASE)->PMU_WKPOL1.bREG.GPIO_E15 = 1; //power key - Active Low
@@ -1497,7 +1496,7 @@ static void wakeup(void)
 
 #if defined(TCC_PM_MEMQ_PWR_CTRL)
 	#if defined(CONFIG_MACH_M805_892X)
-	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
+	if(*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002 || *(volatile unsigned long *)SRAM_STACK_ADDR == 0x2003)
 		BITSET(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<6); //GPIO D 6
 	else
 		BITSET(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
@@ -1697,8 +1696,7 @@ static void shutdown_mode(void)
 	/*--------------------------------------------------------------
 	 NFC suspend 
 	--------------------------------------------------------------*/
-	NFC *nfc = (NFC*)tcc_p2v(HwNFC_BASE);
-	tcc_nfc_suspend(&RegRepo.nfc, nfc);
+	tcc_nfc_suspend(&RegRepo.nfc, (PNFC)tcc_p2v(HwNFC_BASE));
 
 #ifdef CONFIG_CACHE_L2X0
 	/*--------------------------------------------------------------
@@ -1727,6 +1725,7 @@ static void shutdown_mode(void)
 	/////////////////////////////////////////////////////////////////
 
 	__asm__ __volatile__ ("nop\n");
+
 
 	/* all peri io bus on */
 	((PIOBUSCFG)tcc_p2v(HwIOBUSCFG_BASE))->HCLKEN0.nREG = 0xFFFFFFFF;
@@ -1761,7 +1760,6 @@ static void shutdown_mode(void)
 		((PCKC)tcc_p2v(HwCKC_BASE))->CLKCTRL6.nREG = RegRepo.ckc.CLKCTRL6.nREG;
 		((PCKC)tcc_p2v(HwCKC_BASE))->CLKCTRL7.nREG = RegRepo.ckc.CLKCTRL7.nREG;
 		((PCKC)tcc_p2v(HwCKC_BASE))->CLKCTRL8.nREG = RegRepo.ckc.CLKCTRL8.nREG;
-
 		((PCKC)tcc_p2v(HwCKC_BASE))->SWRESET.nREG = ~(RegRepo.ckc.SWRESET.nREG);
 
 		//Peripheral clock
@@ -1816,15 +1814,15 @@ static void shutdown_mode(void)
 	memcpy((PSMUCONFIG)tcc_p2v(HwSMUCONFIG_BASE), &RegRepo.smuconfig, sizeof(SMUCONFIG));
 
 	/*--------------------------------------------------------------
-	 NFC
-	--------------------------------------------------------------*/
-	tcc_nfc_resume(nfc, &RegRepo.nfc);
-
-	/*--------------------------------------------------------------
 	 BUS Config
 	--------------------------------------------------------------*/
 	memcpy((PIOBUSCFG)tcc_p2v(HwIOBUSCFG_BASE), &RegRepo.iobuscfg, sizeof(IOBUSCFG));
 	memcpy((PMEMBUSCFG)tcc_p2v(HwMBUSCFG_BASE), &RegRepo.membuscfg, sizeof(MEMBUSCFG));
+
+	/*--------------------------------------------------------------
+	 NFC
+	--------------------------------------------------------------*/
+	tcc_nfc_resume((PNFC)tcc_p2v(HwNFC_BASE), &RegRepo.nfc);
 
 #ifdef CONFIG_PM_CONSOLE_NOT_SUSPEND
 	/*--------------------------------------------------------------
@@ -1943,7 +1941,7 @@ static void sleep(void)
 
 #if defined(TCC_PM_MEMQ_PWR_CTRL)
 	#if defined(CONFIG_MACH_M805_892X)
-	if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
+	if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002 || *(volatile unsigned long *)SRAM_STACK_ADDR == 0x2003)
 		BITCLR(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<6); //GPIO D 6
 	else
 		BITCLR(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
@@ -2033,7 +2031,7 @@ static void sleep(void)
 
 	/* Power Key */
 #if defined(CONFIG_MACH_M805_892X)
-	if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
+	if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002 || *(volatile unsigned long *)SRAM_STACK_ADDR == 0x2003)
 	{
 		//set wake-up polarity
 		((PPMU)HwPMU_BASE)->PMU_WKPOL1.bREG.GPIO_E27 = 1; //power key - Active Low
@@ -2169,7 +2167,7 @@ static void sleep(void)
 
 #if defined(TCC_PM_MEMQ_PWR_CTRL)
 	#if defined(CONFIG_MACH_M805_892X)
-	if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002)
+	if (*(volatile unsigned long *)SRAM_STACK_ADDR == 0x2002 || *(volatile unsigned long *)SRAM_STACK_ADDR == 0x2003)
 		BITSET(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<6); //GPIO D 6
 	else
 		BITSET(((PGPIO)HwGPIO_BASE)->GPDDAT.nREG, 1<<15); //GPIO D 15
@@ -2425,7 +2423,6 @@ static void sleep_mode(void)
 		((PCKC)tcc_p2v(HwCKC_BASE))->CLKCTRL6.nREG = RegRepo.ckc.CLKCTRL6.nREG;
 		((PCKC)tcc_p2v(HwCKC_BASE))->CLKCTRL7.nREG = RegRepo.ckc.CLKCTRL7.nREG;
 		((PCKC)tcc_p2v(HwCKC_BASE))->CLKCTRL8.nREG = RegRepo.ckc.CLKCTRL8.nREG;
-
 		((PCKC)tcc_p2v(HwCKC_BASE))->SWRESET.nREG = ~(RegRepo.ckc.SWRESET.nREG);
 
 		//Peripheral clock
@@ -2513,13 +2510,14 @@ FUNCTION
 static int tcc_pm_enter(suspend_state_t state)
 {
 	unsigned long flags;
+
 #if defined(TCC_PM_SLEEP_WFI_USED)
 	#if LOG_NDEBUG
-	volatile PPIC pPIC = (volatile PPIC)tcc_p2v(HwPIC_BASE);
-	unsigned reg_backup[20];
+		volatile PPIC pPIC = (volatile PPIC)tcc_p2v(HwPIC_BASE);
+		unsigned reg_backup[20];
 
-	reg_backup[0] = pPIC->STS0.nREG;
-	reg_backup[1] = pPIC->STS1.nREG;
+		reg_backup[0] = pPIC->STS0.nREG;
+		reg_backup[1] = pPIC->STS1.nREG;
 	#endif
 #endif
 
@@ -2550,11 +2548,8 @@ static int tcc_pm_enter(suspend_state_t state)
 
 #if defined(TCC_PM_SLEEP_WFI_USED)
 	#if LOG_NDEBUG
-	reg_backup[2] = pPIC->STS0.nREG;
-	reg_backup[3] = pPIC->STS1.nREG;
-
-	printk("WOW %08X %08X\n", reg_backup[0], reg_backup[1]);
-	printk("WOW %08X %08X\n", reg_backup[2], reg_backup[3]);
+		reg_backup[2] = pPIC->STS0.nREG;
+		reg_backup[3] = pPIC->STS1.nREG;
 	#endif
 #endif
 
@@ -2589,7 +2584,7 @@ static void tcc_pm_power_off(void)
 	}
 	else if(machine_is_m805_892x())
 	{
-		if (system_rev == 0x2002) {
+		if (system_rev == 0x2002 || system_rev == 0x2003) {
 			gpio_set_value(TCC_GPC(0), 0); // LCD_BLCTL
 			gpio_set_value(TCC_GPE(24), 0); // LCD_PWREN
 			//gpio_set_value(TCC_GPE(7), 0);  // SHDN

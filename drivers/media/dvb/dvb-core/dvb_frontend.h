@@ -293,10 +293,6 @@ struct dvb_frontend_ops {
 	int (*i2c_gate_ctrl)(struct dvb_frontend* fe, int enable);
 	int (*ts_bus_ctrl)(struct dvb_frontend* fe, int acquire);
 
-	int (*tsif_open)(struct inode *inode, struct file *filp);
-	int (*tsif_close)(struct inode *inode, struct file *filp);
-	int (*tsif_ioctl)(struct file *filp, unsigned int cmd, unsigned long arg);
-
 	/* These callbacks are for devices that implement their own
 	 * tuning algorithms, rather than a simple swzigzag
 	 */

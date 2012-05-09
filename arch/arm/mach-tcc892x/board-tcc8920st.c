@@ -51,41 +51,6 @@
 #include <linux/i2c/cs4954.h>
 #endif
 
-#if defined(CONFIG_VIDEO_TCCXX_CAMERA) //20100720 ysseung   add to sensor slave id.
-#include <media/cam_i2c.h>
-#if defined(CONFIG_VIDEO_CAMERA_SENSOR_AIT848_ISP)
-#define SENSOR_I2C_SLAVE_ID 		(0x06>>1)
-#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9P111)
-#define SENSOR_I2C_SLAVE_ID 		(0x7A>>1)
-#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9T111)
-#define SENSOR_I2C_SLAVE_ID 		(0x7A>>1)
-#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9T113)
-#define SENSOR_I2C_SLAVE_ID 		(0x7A>>1)
-#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_MV9317)
-#define SENSOR_I2C_SLAVE_ID 		(0x50>>1)
-#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9D112)
-#define SENSOR_I2C_SLAVE_ID 		(0x7A>>1)
-#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_OV3640)
-#define SENSOR_I2C_SLAVE_ID 		(0x78>>1)
-#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_S5K4BAFB)
-#define SENSOR_I2C_SLAVE_ID 		(0x52>>1)
-#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_ISX006)
-#define SENSOR_I2C_SLAVE_ID 		(0x34>>1)
-#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_OV7690)
-#define SENSOR_I2C_SLAVE_ID 		(0x42>>1)
-#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_SIV100B)
-#define SENSOR_I2C_SLAVE_ID 		(0x66>>1)
-#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9M113)
-#define SENSOR_I2C_SLAVE_ID 		(0x78>>1)
-#elif defined(CONFIG_VIDEO_ATV_SENSOR_TVP5150)
-#define SENSOR_I2C_SLAVE_ID 		(0xB8>>1)
-#elif defined(CONFIG_VIDEO_ATV_SENSOR_RDA5888)
-#define SENSOR_I2C_SLAVE_ID 		(0xC4>>1)
-#elif defined(CONFIG_VIDEO_CAMERA_NEXTCHIP_TEST)
-#define SENSOR_I2C_SLAVE_ID 		(0x50>>1)
-#endif
-#endif // defined(CONFIG_VIDEO_TCCXX_CAMERA)
-
 #if defined(CONFIG_TCC_OUTPUT_STARTER)
 #define HDMI_PHY_I2C_SLAVE_ID 		(0x70>>1)
 #define HDMI_EDID_I2C_SLAVE_ID 		(0xA0>>1)
@@ -138,7 +103,7 @@ static struct tcc_hdmi_phy_i2c_platform_data  hdmi_edid_seg_i2c_data = {
 
 #if defined(CONFIG_TCC_OUTPUT_STARTER)
 /* I2C core0 channel 0 devices */
-static struct i2c_board_info __initdata i2c_devices0[] = {
+static struct i2c_board_info __initdata i2c_devices_output_starter[] = {
     {
 		I2C_BOARD_INFO("tcc-hdmi-edid", HDMI_EDID_I2C_SLAVE_ID),
 		.platform_data = &hdmi_edid_i2c_data,
@@ -147,11 +112,6 @@ static struct i2c_board_info __initdata i2c_devices0[] = {
 		I2C_BOARD_INFO("tcc-hdmi-edid-seg", HDMI_EDID_SEG_I2C_SLAVE_ID),
 		.platform_data = &hdmi_edid_seg_i2c_data,
 	},	
-};
-#endif
-
-#if defined(CONFIG_VIDEO_TCCXX_CAMERA)
-static struct cam_i2c_platform_data cam_i2c_data1 = {
 };
 #endif
 
@@ -308,32 +268,8 @@ static struct cs4954_i2c_platform_data  ths8200_i2c_data = {
 };
 #endif
 
-
-/* I2C core0 channel 0 devices */
-static struct i2c_board_info __initdata i2c_devices1[] = {
-#if 0
-	#if defined(CONFIG_VIDEO_TCCXX_CAMERA)
-	#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
-	{
-		#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9P111) || defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9T111)
-			I2C_BOARD_INFO("tcc-cam-sensor-0", (0x7A>>1)), //20100716 ysseung   sign-up to sensor slave-id.
-		#endif
-		.platform_data = &cam_i2c_data1,
-	},
-	{
-		#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9M113)
-			I2C_BOARD_INFO("tcc-cam-sensor-1", (0x78>>1)), //20100716 ysseung   sign-up to sensor slave-id.
-		#endif
-		.platform_data = &cam_i2c_data1,
-	},
-	#else // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
-	{
-		I2C_BOARD_INFO("tcc-cam-sensor", SENSOR_I2C_SLAVE_ID), //20100716 ysseung   sign-up to sensor slave-id.
-		.platform_data = &cam_i2c_data1,
-	},
-	#endif // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
-	#endif // CONFIG_VIDEO_TCCXX_CAMERA
-#endif
+#if defined(CONFIG_I2C_TCC_CORE0)
+static struct i2c_board_info __initdata i2c_devices0[] = {
 	#if defined(CONFIG_RADIO_RDA5870)
 	{
 		I2C_BOARD_INFO("RDA5870E-FM", RADIO_I2C_SLAVE_ID),
@@ -373,56 +309,43 @@ static struct i2c_board_info __initdata i2c_devices1[] = {
 	}, //CONFIG_FB_TCC_COMPONENT
 	#endif
 };
+#endif
 
+#if defined(CONFIG_I2C_TCC_CORE1)
+static struct i2c_board_info __initdata i2c_devices1[] = {
 #if defined(CONFIG_TOUCHSCREEN_TCC_AK4183)
-static struct i2c_board_info __initdata i2c_devices2[] = {
 	{
 		I2C_BOARD_INFO("tcc-ts-ak4183", 0x48),
 		.platform_data = NULL,
 	},
-};	
 #endif
-
 #if defined(CONFIG_TOUCHSCREEN_TCC_SITRONIX)
-static struct i2c_board_info __initdata i2c_devices2[] = {
 	{
 		I2C_BOARD_INFO("tcc-ts-sitronix", 0x55),
 		.platform_data = NULL,
 	},
+#endif
 };
 #endif
 
-static struct i2c_board_info __initdata i2c_devices3[] = {
-	#if defined(CONFIG_VIDEO_TCCXX_CAMERA)
-	#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
-	{
-		#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9P111) || defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9T111)
-			I2C_BOARD_INFO("tcc-cam-sensor-0", (0x7A>>1)), //20100716 ysseung   sign-up to sensor slave-id.
-		#endif
-		.platform_data = &cam_i2c_data1,
-	},
-	{
-		#if defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9M113)
-			I2C_BOARD_INFO("tcc-cam-sensor-1", (0x78>>1)), //20100716 ysseung   sign-up to sensor slave-id.
-		#endif
-		.platform_data = &cam_i2c_data1,
-	},
-	#else // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
-	{
-		I2C_BOARD_INFO("tcc-cam-sensor", SENSOR_I2C_SLAVE_ID), //20100716 ysseung   sign-up to sensor slave-id.
-		.platform_data = &cam_i2c_data1,
-	},
-	#endif // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
-	#endif // CONFIG_VIDEO_TCCXX_CAMERA
+#if defined(CONFIG_I2C_TCC_CORE2)
+static struct i2c_board_info __initdata i2c_devices2[] = {
 };
+#endif
 
+#if defined(CONFIG_I2C_TCC_CORE3)
+static struct i2c_board_info __initdata i2c_devices3[] = {
+};
+#endif
+
+#if defined(CONFIG_I2C_TCC_SMU)
+static struct i2c_board_info __initdata i2c_devices_smu[] = {
 #if defined(CONFIG_TCC_OUTPUT_STARTER)
-/* I2C SMU HDMI PHY devices */
-static struct i2c_board_info __initdata i2c_devices4[] = {
-	{
+	{	/* I2C SMU HDMI PHY devices */
 		I2C_BOARD_INFO("tcc-hdmi-phy", HDMI_PHY_I2C_SLAVE_ID),
 		.platform_data = &hdmi_phy_i2c_data,
 	},
+#endif
 };
 #endif
 
@@ -465,7 +388,8 @@ static struct tcc_i2c_platform_data tcc8920_smu_platform_data = {
 };
 #endif
 
-extern void __init tcc8920_init_gpio(void);
+extern void __init tcc8920st_init_gpio(void);
+extern void __init tcc8920st_init_camera(void);
 
 static void __init tcc8920_init_irq(void)
 {
@@ -758,7 +682,8 @@ __setup("androidboot.btaddr=", board_btaddr_setup);
 
 static void __init tcc8920_init_machine(void)
 {
-	tcc8920_init_gpio();
+	tcc8920st_init_gpio();
+	tcc8920st_init_camera();
 
 #if defined(CONFIG_SPI_TCCXXXX_MASTER)
 	spi_register_board_info(tcc8920_spi0_board_info, ARRAY_SIZE(tcc8920_spi0_board_info));
@@ -772,14 +697,21 @@ static void __init tcc8920_init_machine(void)
     tcc_gpio_config_ext_intr(INT_EI1, EXTINT_GPIOE_29);
 #endif
 
-	i2c_register_board_info(0, i2c_devices1, ARRAY_SIZE(i2c_devices1));
-#if defined(CONFIG_TOUCHSCREEN_TCC_AK4183) || defined(CONFIG_TOUCHSCREEN_TCC_SITRONIX)
-	i2c_register_board_info(1, i2c_devices2, ARRAY_SIZE(i2c_devices2));
+#if defined(CONFIG_I2C_TCC_CORE0)
+	i2c_register_board_info(0, i2c_devices0, ARRAY_SIZE(i2c_devices0));
 #endif
-#if defined(CONFIG_TCC_OUTPUT_STARTER)
-	i2c_register_board_info(4, i2c_devices4, ARRAY_SIZE(i2c_devices4));
+#if defined(CONFIG_I2C_TCC_CORE1)
+	i2c_register_board_info(1, i2c_devices1, ARRAY_SIZE(i2c_devices1));
 #endif
-
+#if defined(CONFIG_I2C_TCC_CORE2)
+	i2c_register_board_info(2, i2c_devices2, ARRAY_SIZE(i2c_devices2));
+#endif
+#if defined(CONFIG_I2C_TCC_CORE3)
+	i2c_register_board_info(3, i2c_devices3, ARRAY_SIZE(i2c_devices3));
+#endif
+#if defined(CONFIG_I2C_TCC_SMU)
+	i2c_register_board_info(4, i2c_devices_smu, ARRAY_SIZE(i2c_devices_smu));
+#endif
 
 #if defined(CONFIG_TCC_BT_DEV)
 	/* BT: use UART1 and TX DMA */

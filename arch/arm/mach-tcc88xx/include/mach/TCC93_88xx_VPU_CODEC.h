@@ -154,7 +154,7 @@ typedef struct dec_init_t
 #define M4V_GMC_FILE_SKIP		(0<<1)	// (default) seq.init failure
 #define M4V_GMC_FRAME_SKIP		(1<<1)	// frame skip without decoding
 
-#define SEC_AXI_BUS_DISABLE			(0<<21)	//don't use sec. AXI bus.
+#define SEC_AXI_BUS_DISABLE		(0<<21)	//don't use sec. AXI bus.
 #define SEC_AXI_BUS_ENABLE_TCC93XX	(1<<21)	//Use SRAM for sec. AXI bus on TCC93XX(gets about 5% improvement of performance)
 #define SEC_AXI_BUS_ENABLE_TCC88XX	(2<<21)	//Use SRAM for sec. AXI bus on TCC88XX(gets about 5% improvement of performance)
 
@@ -242,9 +242,7 @@ typedef struct dec_ring_buffer_setting_in_t
 
 typedef struct dec_ring_buffer_status_out_t
 {
-	unsigned long m_ulAvailableSpaceInRingBuffer;
-	codec_addr_t m_ptrReadAddr_PA;
-	codec_addr_t m_ptrWriteAddr_PA;
+	unsigned int m_iAvailableSpaceInRingBuffer;
 } dec_ring_buffer_status_out_t;
 
 
@@ -329,10 +327,40 @@ typedef struct dec_output_t
 codec_result_t
 TCC_VPU_DEC( int Op, codec_handle_t* pHandle, void* pParam1, void* pParam2 );
 
-
 //------------------------------------------------------------------------------
 // encode struct and definition : from "VpuApi.h"
 //------------------------------------------------------------------------------
+
+typedef struct enc_rc_init_t 
+{
+	////////AVC Deblocking Filter Related/////////
+	int m_iDeblkDisable;//!< 0 : Enable, 1 : Disable, 2 Disable at slice boundary
+	int m_iDeblkAlpha;//!< deblk_filter_offset_alpha (-6 ~ 6)
+	int m_iDeblkBeta;//!< deblk_filter_offset_beta (-6 ~ 6)
+	int m_iDeblkChQpOffset;//!< chroma_qp_offset (-12 ~ 12)
+
+	////////AVC Performance Related/////////
+	int m_iAvcFastEncoding;//!< 0 : Normal, 1 : 16x16 block only
+	int m_iConstrainedIntra;//!< constained_intra_pred_flag
+
+	////////////Common RC Related////////////
+	int m_iPicQpY;//!< intra_pic_qp_y (0 ~ 51)
+	int m_iVbvBufferSize;//!< Reference decoder buffer size in bits(0 : ignore)
+	int m_iSearchRange;//!< 0 : 128x64, 1 : 64x32, 2 : 32x16, 3 : 16x16(Always 0 for H263)
+	int m_iPVMDisable;//!< 0 : Enable PMV, 1 : Disable PMV
+	int m_iWeightIntraCost;//!< Intra Weight when decide INTRA/Inter
+	int m_iRCIntervalMode;//!< 0 : Normal, 1 : Frame Mode, 2 : Slice Mode, 3 : MB-Num Mode
+	int m_iRCIntervalMBNum;//!< This field is used when m_iRCIntervalMode is 3
+
+	///////////Error Resilience Related//////////
+	int m_iIntraMBRefresh;//!< 0 : none, 1~ : MBNum - 1
+
+	///////////Slice Mode Related//////////////
+	int m_iSliceMode;//!< 0 : frame mode, 1 : Slice mode
+	int m_iSliceSizeMode;//!< 0 : the number of bit, 1 : the number of MB
+	int m_iSliceSize;//!< the number of bit or MB in one Slice
+}enc_rc_init_t;
+
 typedef struct enc_init_t 
 {
 	codec_addr_t m_BitWorkAddr[2];		//!< physical[0] and virtual[1] address of a working space of the decoder. This working buffer space consists of work buffer, code buffer, and parameter buffer.
@@ -346,14 +374,9 @@ typedef struct enc_init_t
 	int m_iTargetKbps;					//!< Target bit rate in Kbps. if 0, there will be no rate control, 
 										//!< and pictures will be encoded with a quantization parameter equal to quantParam
 	int m_iKeyInterval;					//!< max 32767
-	int m_iIFrameQp;	
-	int m_iAvcFastEncoding;				//!< fast encoding for AVC( 0: default, 1: encode intra 16x16 only )
 
-	//! Options
-	int m_iSliceMode;
-	int m_iSliceSizeMode;
-	int m_iSliceSize;
-	int m_iIntraMBNumInPFrame;
+	int m_iUseSpecificRcOption;		//!< 0 : Use default setting, 1 : Use parameters in m_stRcInit
+	enc_rc_init_t m_stRcInit;
 
 	//! VPU Control 
 	unsigned int m_bEnableVideoCache;
@@ -363,11 +386,8 @@ typedef struct enc_init_t
 	codec_addr_t m_BitstreamBufferAddr; //!< physical address : multiple of 4
 	codec_addr_t m_BitstreamBufferAddr_VA; //!< virtual address : multiple of 4
 	int m_iBitstreamBufferSize;			//!< multiple of 1024
-	
-	codec_addr_t m_MeSearchRamAddr;		//!< physical address : multiple of 4
-	int m_iMeSearchRamSize;				//!< ( ( m_iPicWidth + 15 ) & ~15 ) * 36 + 2048; multiple of 16
 
-#define SEC_AXI_BUS_DISABLE			(0<<21)
+#define SEC_AXI_BUS_DISABLE		(0<<21)
 #define SEC_AXI_BUS_ENABLE_TCC93XX	(1<<21)
 #define SEC_AXI_BUS_ENABLE_TCC88XX	(2<<21)
 
@@ -411,6 +431,9 @@ typedef struct enc_input_t
 	
 	int m_iReportSliceInfoEnable;		//!< Report slice information mode (0: disable, 1: enable)
 	codec_addr_t m_SliceInfoAddr[2];	//!< Slice information buffer(last MB number and slice size in bits)
+
+	int m_iReportMVInfoEnable;		//!< Report MV information mode (0: disable, 1: enable)
+	codec_addr_t m_MVInfoAddr[2];	//!< MV information buffer(group of word which is formed as X and Y value of MV)
 } enc_input_t;
 
 typedef struct enc_buffer_t
@@ -427,6 +450,9 @@ typedef struct enc_output_t
 	int m_iSliceInfoNum;			//!< Number of encoded slices
 	int m_iSliceInfoSize;			//!< Size in bytes of the encoded slices information(end position)
 	codec_addr_t m_SliceInfoAddr;	//!< Address of slices information(last MB number and slice size in bits)
+
+	int m_iMVInfoSize;			//!< Size in bytes of the encoded MV information
+	codec_addr_t m_MVInfoAddr;	//!< Address of slices information
 	
 	int m_Reserved;
 } enc_output_t;

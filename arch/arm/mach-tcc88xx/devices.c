@@ -17,7 +17,6 @@
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/platform_device.h>
-#include <linux/android_pmem.h>
 
 #include <asm/setup.h>
 #include <asm/io.h>
@@ -603,47 +602,6 @@ struct display_platform_data tcc_display_data = {
 	.component_resolution = 0,
 };
 
-static struct android_pmem_platform_data pmem_pdata = {
-	.name = "pmem",
-	.no_allocator = 1,
-	.cached = 1,
-};
-
-static struct android_pmem_platform_data pmem_adsp_pdata = {
-	.name = "pmem_adsp",
-	.no_allocator = 0,
-	.cached = 0,
-};
-
-static struct platform_device pmem_device = {
-	.name = "android_pmem",
-	.id = 0,
-	.dev = { .platform_data = &pmem_pdata },
-};
-
-static struct platform_device pmem_adsp_device = {
-	.name = "android_pmem",
-	.id = 1,
-	.dev = { .platform_data = &pmem_adsp_pdata },
-};
-
-static void tcc_add_pmem_devices(void)
-{
-	pmap_t pmem;
-	pmap_t pmem_cam;
-
-	pmap_get_info("pmem", &pmem);
-	pmap_get_info("ump_reserved", &pmem_cam);
-
-	pmem_pdata.start = pmem.base;
-	pmem_pdata.size = pmem.size;
-	platform_device_register(&pmem_device);
-
-	pmem_adsp_pdata.start = pmem_cam.base;
-	pmem_adsp_pdata.size = pmem_cam.size;
-	platform_device_register(&pmem_adsp_device);
-}
-
 //#if(1) // defined(CONFIG_TCC_ADC) || defined(CONFIG_TCC_ADC_MODULE)
 /*----------------------------------------------------------------------
  * Device	  : ADC resource
@@ -876,7 +834,6 @@ static void tcc_init_audio(void){;}
 
 static int __init tcc88xx_init_devices(void)
 {
-	tcc_add_pmem_devices();
     tcc_init_audio();
 	return 0;
 }

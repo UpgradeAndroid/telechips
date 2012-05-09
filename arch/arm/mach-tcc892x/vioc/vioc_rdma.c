@@ -23,13 +23,7 @@
 
 #define VIOC_RDMA_IREQ_SRC_MAX	7 
 
-#define VIOC_RDMA_IREQ_ICFG_MASK		0x00000001UL
-#define VIOC_RDMA_IREQ_IEOFR_MASK	0x00000002UL
-#define VIOC_RDMA_IREQ_IEOFF_MASK 	0x00000004UL
-#define VIOC_RDMA_IREQ_IUPDD_MASK 	0x00000008UL
-#define VIOC_RDMA_IREQ_IEOFFW_MASK 	0x00000010UL
-#define VIOC_RDMA_IREQ_ITOPR_MASK 	0x00000020UL
-#define VIOC_RDMA_IREQ_IBOTR_MASK 	0x00000040UL
+
 
 #define NOP __asm("NOP")
 
@@ -358,14 +352,21 @@ void VIOC_RDMA_SetIreqMask(VIOC_RDMA * pRDMA, unsigned int mask, unsigned int se
 	if( set == 0 ) /* Interrupt Enable*/
 	{
 		//pRDMA->uIRQMSK.nREG &= ~mask;
-		BITCSET(pRDMA->uIRQMSK.nREG, 0x0000001F, ~mask);
+		BITCSET(pRDMA->uIRQMSK.nREG, 0x0000007F, ~mask);
 	}
 	else/* Interrupt Diable*/
 	{
 		//pRDMA->uIRQMSK.nREG |= mask;
-		BITCSET(pRDMA->uIRQMSK.nREG, 0x0000001F, mask);
+		BITCSET(pRDMA->uIRQMSK.nREG, 0x0000007F, mask);
 	}
 }
+
+/* STAT set : to clear status*/
+void VIOC_RDMA_SetStatus(VIOC_RDMA * pRDMA, unsigned int mask)
+{
+	BITCSET(pRDMA->uSTATUS.nREG, 0x0000007F, mask);
+}
+
 
 void VIOC_RDMA_IreqHandler( unsigned int vectorID )
 {

@@ -22,7 +22,7 @@
 #include "board-tcc8800.h"
 #include <asm/mach-types.h>
 
-struct board_gpio_irq_config tcc8800_gpio_irqs[] = {
+static struct board_gpio_irq_config tcc8800_gpio_irqs[] = {
 	{ -1, -1 },
 };
 
@@ -48,7 +48,7 @@ static struct pca953x_platform_data pca9539_data5 = {
 
 
 /* I2C core0 channel0 devices */
-static struct i2c_board_info __initdata i2c_devices0[] = {
+static struct i2c_board_info __initdata i2c_devices_expender[] = {
 	{
 		I2C_BOARD_INFO("pca9539", 0x74),
 		.platform_data = &pca9539_data1,
@@ -76,7 +76,7 @@ void __init tcc8800_init_gpio(void)
 	if (!machine_is_tcc8800())
 		return;
 
-	i2c_register_board_info(0, i2c_devices0, ARRAY_SIZE(i2c_devices0));
+	i2c_register_board_info(0, i2c_devices_expender, ARRAY_SIZE(i2c_devices_expender));
 
 	board_gpio_irqs = tcc8800_gpio_irqs;
 	printk(KERN_INFO "TCC8800 GPIO initialized\n");

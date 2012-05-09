@@ -30,17 +30,17 @@ static const struct gpio_event_direct_entry m805_892x_gpio_keymap[] = {
 	{ TCC_GPE(15),	KEY_POWER },
 #endif
 #if (CONFIG_M805S_8925_0XX)
-	{ TCC_GPE(19),	KEY_MENU },       // menu
-	{ TCC_GPE(20),	KEY_BACK },       // back
 	{ TCC_GPE(21),	KEY_VOLUMEUP },   // volume +
 	{ TCC_GPE(22),	KEY_VOLUMEDOWN }, // volume -
 	{ TCC_GPE(23),	KEY_HOMEPAGE },   // home
+	{ TCC_GPE(19),	KEY_MENU },       // menu		// not used system_rev 0x2003
+	{ TCC_GPE(20),	KEY_BACK },       // back		// not used system_rev 0x2003
 #else
+	{ TCC_GPE(12),	KEY_VOLUMEUP },   // volume +
+	{ TCC_GPE(26),	KEY_VOLUMEDOWN }, // volume -
+	{ TCC_GPE(27),	KEY_HOMEPAGE },   // home
 	{ TCC_GPD(12),	KEY_MENU },       // menu
 	{ TCC_GPD(13),	KEY_BACK },       // back
-	{ TCC_GPE(27),	KEY_HOMEPAGE },   // home
-	{ TCC_GPE(26),	KEY_VOLUMEDOWN }, // volume -
-	{ TCC_GPE(12),	KEY_VOLUMEUP },   // volume +
 #endif
 };
 
@@ -76,6 +76,10 @@ static int __init m805_892x_keypad_init(void)
 {
 	if (!machine_is_m805_892x())
 		return 0;
+
+	if (system_rev == 0x2003) {
+		m805_892x_gpio_key_input_info.keymap_size = ARRAY_SIZE(m805_892x_gpio_keymap) - 2;
+	}
 
 	platform_device_register(&m805_892x_gpio_key_device);
 

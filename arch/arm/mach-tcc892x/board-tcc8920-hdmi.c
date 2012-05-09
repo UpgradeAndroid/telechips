@@ -23,7 +23,7 @@
 
 tcc_hdmi_power_s hdmipwr;
 
-#if defined(CONFIG_REGULATOR_RN5T614)
+#if defined(CONFIG_REGULATOR)
 static struct regulator *vdd_hdmi_osc = NULL;
 static struct regulator *vdd_hdmi_pll = NULL;
 #endif
@@ -48,55 +48,50 @@ int tcc_hdmi_power(struct device *dev, tcc_hdmi_power_s pwr)
 //				gpio_request(hdmi_5p, "hdmi_lvds_on");
 //				gpio_direction_output(hdmi_5p, 1);
 
-#if defined(CONFIG_REGULATOR_RN5T614)
-				vdd_hdmi_osc = regulator_get(NULL, "vdd_hdmi_osc");
-				if (IS_ERR(vdd_hdmi_osc)) {
-					printk("Failed to obtain vdd_hdmi_osc\n");
-					vdd_hdmi_osc = NULL;
-				}				
-
-				vdd_hdmi_pll = regulator_get(NULL, "vdd_hdmi_pll");
-				if (IS_ERR(vdd_hdmi_pll)) {
-					printk("Failed to obtain vdd_hdmi_osc\n");
-					vdd_hdmi_pll = NULL;
-				}			
-#endif
-
-
 				gpio_request(hdmi_en, "hdmi_on");
 				gpio_direction_output(hdmi_en, 1);
+
+#if defined(CONFIG_REGULATOR)
+				if (vdd_hdmi_osc == NULL) {
+					vdd_hdmi_osc = regulator_get(NULL, "vdd_hdmi_osc");
+					if (IS_ERR(vdd_hdmi_osc)) {
+						printk("Failed to obtain vdd_hdmi_osc\n");
+						vdd_hdmi_osc = NULL;
+					}
+				}
+				if (vdd_hdmi_pll == NULL) {
+					vdd_hdmi_pll = regulator_get(NULL, "vdd_hdmi_pll");
+					if (IS_ERR(vdd_hdmi_pll)) {
+						printk("Failed to obtain vdd_hdmi_osc\n");
+						vdd_hdmi_pll = NULL;
+					}
+				}
+#endif
 				break;
 
-			case TCC_HDMI_PWR_ON:		
+			case TCC_HDMI_PWR_ON:
 				tcc_power_control(TCC_V5P_POWER, TCC_POWER_ON);
+//				gpio_set_value(hdmi_5p, 1);
+				gpio_set_value(hdmi_en, 1);
 
-#if defined(CONFIG_REGULATOR_RN5T614)
+#if defined(CONFIG_REGULATOR)
 				if (vdd_hdmi_pll)
  					regulator_enable(vdd_hdmi_pll);
-				
 				if (vdd_hdmi_osc)
  					regulator_enable(vdd_hdmi_osc);
-
 #endif
-				
-//				gpio_set_value(hdmi_5p, 1);	
-				gpio_set_value(hdmi_en, 1);
 				break;
 
 			case TCC_HDMI_PWR_OFF:
-				tcc_power_control(TCC_V5P_POWER, TCC_POWER_OFF);
-
-#if defined(CONFIG_REGULATOR_RN5T614)
-				if (vdd_hdmi_pll)
-					regulator_disable(vdd_hdmi_pll);
-
+#if defined(CONFIG_REGULATOR)
 				if (vdd_hdmi_osc)
 					regulator_disable(vdd_hdmi_osc);
-				
+				if (vdd_hdmi_pll)
+					regulator_disable(vdd_hdmi_pll);
 #endif
-				
+				tcc_power_control(TCC_V5P_POWER, TCC_POWER_OFF);
 //				gpio_set_value(hdmi_5p, 0);
-				gpio_set_value(hdmi_en, 0);	
+				gpio_set_value(hdmi_en, 0);
 				break;
 
 		}		

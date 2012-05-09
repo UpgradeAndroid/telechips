@@ -490,16 +490,20 @@ static void tcc_gmac_set_clk_rate(struct tcc_gmac_priv *priv, unsigned int clk_r
 #if defined(PHY_INFSEL_ONLY_MODE) //PHY_INFSEL Only Mode
 	switch(clk_rate) {
 		case 1250000:
-			priv->hw->clk_rate = GMII_CLK_RANGE_100_150M;
+			//priv->hw->clk_rate = GMII_CLK_RANGE_100_150M;
+			priv->hw->clk_rate = GMII_CLK_RANGE_35_60M;
 			break;
 		case 250000:
-			priv->hw->clk_rate = GMII_CLK_RANGE_20_35M;
+			//priv->hw->clk_rate = GMII_CLK_RANGE_20_35M;
+			priv->hw->clk_rate = GMII_CLK_RANGE_35_60M;
 			break;
 		case 25000:
-			priv->hw->clk_rate = GMII_CLK_RANGE_20_35M;
+			//priv->hw->clk_rate = GMII_CLK_RANGE_20_35M;
+			priv->hw->clk_rate = GMII_CLK_RANGE_35_60M;
 			break;
 		default:
-			priv->hw->clk_rate = GMII_CLK_RANGE_100_150M;
+			//priv->hw->clk_rate = GMII_CLK_RANGE_100_150M;
+			priv->hw->clk_rate = GMII_CLK_RANGE_35_60M;
 			break;
 	}
 #else
@@ -511,22 +515,26 @@ static void tcc_gmac_set_clk_rate(struct tcc_gmac_priv *priv, unsigned int clk_r
 	    	pHSIOCFG->ETHER_CFG1.bREG.CE = 0; //Clock Disable
 			pHSIOCFG->ETHER_CFG0.bREG.TXDIV = 0;
 	    	pHSIOCFG->ETHER_CFG1.bREG.CE = 1; //Clock Enable
-			priv->hw->clk_rate = GMII_CLK_RANGE_100_150M;
+			//priv->hw->clk_rate = GMII_CLK_RANGE_100_150M;
+			priv->hw->clk_rate = GMII_CLK_RANGE_35_60M;
 			break;
 		case 250000:
 	    	pHSIOCFG->ETHER_CFG1.bREG.CE = 0; //Clock Disable
 			pHSIOCFG->ETHER_CFG0.bREG.TXDIV = 4;
 	    	pHSIOCFG->ETHER_CFG1.bREG.CE = 1; //Clock Enable
-			priv->hw->clk_rate = GMII_CLK_RANGE_20_35M;
+			//priv->hw->clk_rate = GMII_CLK_RANGE_20_35M;
+			priv->hw->clk_rate = GMII_CLK_RANGE_35_60M;
 			break;
 		case 25000:
 	    	pHSIOCFG->ETHER_CFG1.bREG.CE = 0; //Clock Disable
 			pHSIOCFG->ETHER_CFG0.bREG.TXDIV = 49;
 	    	pHSIOCFG->ETHER_CFG1.bREG.CE = 1; //Clock Enable
-			priv->hw->clk_rate = GMII_CLK_RANGE_20_35M;
+			//priv->hw->clk_rate = GMII_CLK_RANGE_20_35M;
+			priv->hw->clk_rate = GMII_CLK_RANGE_35_60M;
 			break;
 		default:
-			priv->hw->clk_rate = GMII_CLK_RANGE_100_150M;
+			//priv->hw->clk_rate = GMII_CLK_RANGE_100_150M;
+			priv->hw->clk_rate = GMII_CLK_RANGE_35_60M;
 			break;
 	}
 	#endif

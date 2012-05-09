@@ -1488,7 +1488,15 @@ int __init tcc_sensor_init(void)
             gpio_request(TCC_GPB(28), NULL);
             tcc_gpio_config(TCC_GPB(28), GPIO_FN(0));
             gpio_direction_input(TCC_GPB(28));
-        }else {
+        }
+		else if(machine_is_m805_892x()) {
+			if (system_rev == 0x2002 || system_rev == 0x2003) {
+				gpio_request(TCC_GPC(1), NULL);
+				tcc_gpio_config(TCC_GPC(1), GPIO_FN(0));
+				gpio_direction_input(TCC_GPC(1));
+			}
+        }
+		else {
             sensor_dbg("%s : machine is demo board \n", __FUNCTION__);
         #if defined(CONFIG_ARCH_TCC88XX)
             // 88통합 보드 88_D2_6.0 version GPIOF(25)

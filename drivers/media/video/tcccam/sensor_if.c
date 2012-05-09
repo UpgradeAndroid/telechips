@@ -373,9 +373,19 @@ int sensor_if_set_control(struct v4l2_control *vc, unsigned char init)
 	lvc = &control[i];
 	if(lvc->qc.maximum < val) 			return val;
 	if(lvc->current_value != val || init) {
+		#if defined(CONFIG_ARCH_TCC892X)
+			if(lvc->qc.id == V4L2_CID_ZOOM) {
+				tccxxx_cif_set_zoom(val);
+			} else {
+				lvc->current_value = val;
+				lvc->need_set = 1;
+				need_new_set = 1;
+			}
+		#else
 		lvc->current_value = val;
 		lvc->need_set = 1;
 		need_new_set = 1;
+		#endif
 	}
 
 	return 0;
@@ -975,7 +985,7 @@ int sensor_if_init(struct v4l2_pix_format *pix)
 				gpio_direction_output(TCC_GPF(15), 0);
 
 			#else
-				if(system_rev == 0x2002) {
+				if(system_rev == 0x2002 || system_rev == 0x2003) {
 					// Powerdown
 					gpio_request(TCC_GPD(1), NULL);
 					gpio_direction_output(TCC_GPD(1), 1);
@@ -2090,7 +2100,7 @@ void sensor_powerdown_enable(void)
 			#if defined(CONFIG_M805S_8925_0XX)
 				gpio_set_value(TCC_GPD(1), 1); 
 			#else
-				if(system_rev == 0x2002)
+				if(system_rev == 0x2002 || system_rev == 0x2003)
 					gpio_set_value(TCC_GPD(1), 1); 
 				else
 					dprintk("M805S PWDN Enable!!\n");
@@ -2323,7 +2333,7 @@ void sensor_powerdown_disable(void)
 			#if defined(CONFIG_M805S_8925_0XX)
 				gpio_set_value(TCC_GPD(1), 0); 
 			#else
-				if(system_rev == 0x2002)
+				if(system_rev == 0x2002 || system_rev == 0x2003)
 					gpio_set_value(TCC_GPD(1), 0);
 				else
 					dprintk("M805S PWDN Disable!!\n");
@@ -2553,7 +2563,7 @@ void sensor_reset_high(void)
 			#if defined(CONFIG_M805S_8925_0XX)
 				gpio_set_value(TCC_GPF(15), 1);
 			#else
-				if(system_rev == 0x2002)
+				if(system_rev == 0x2002 || system_rev == 0x2003)
 					gpio_set_value(TCC_GPF(15), 1);
 				else
 					dprintk("M805S Reset High!!\n");
@@ -2746,7 +2756,7 @@ void sensor_reset_low(void)
 			#if defined(CONFIG_M805S_8925_0XX)
 				gpio_set_value(TCC_GPF(15), 0);
 			#else
-				if(system_rev == 0x2002)
+				if(system_rev == 0x2002 || system_rev == 0x2003)
 					gpio_set_value(TCC_GPF(15), 0);
 				else
 					dprintk("M805S Reset Low!!\n");

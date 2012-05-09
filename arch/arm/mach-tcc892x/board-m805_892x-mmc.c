@@ -51,6 +51,9 @@ typedef enum {
 
 
 typedef enum {
+	#if defined(CONFIG_MMC_TCC_SUPPORT_EMMC)
+	TCC_MMC_TYPE_EMMC,
+	#endif
 	TCC_MMC_TYPE_SD,
 //	TCC_MMC_TYPE_WIFI,
 	TCC_MMC_TYPE_MAX
@@ -58,6 +61,25 @@ typedef enum {
 
 #if defined(CONFIG_M805S_8925_0XX)
 static struct mmc_port_config mmc_ports[] = {
+	#if defined(CONFIG_MMC_TCC_SUPPORT_EMMC)
+	[TCC_MMC_TYPE_EMMC] = {
+		.data0	= TCC_GPD(18),
+		.data1	= TCC_GPD(17),
+		.data2	= TCC_GPD(16),
+		.data3	= TCC_GPD(15),
+		.data4	= TCC_MMC_PORT_NULL,
+		.data5	= TCC_MMC_PORT_NULL,
+		.data6	= TCC_MMC_PORT_NULL,
+		.data7	= TCC_MMC_PORT_NULL,
+		.cmd	= TCC_GPD(19),
+		.clk	= TCC_GPD(20),
+		.func	= GPIO_FN(2),
+		.width	= TCC_MMC_BUS_WIDTH_4,
+
+		.cd		= TCC_MMC_PORT_NULL,
+		.pwr	= TCC_MMC_PORT_NULL,
+	},
+	#endif
 	[TCC_MMC_TYPE_SD] = {
 		.data0	= TCC_GPF(26),
 		.data1	= TCC_GPF(25),
@@ -98,27 +120,30 @@ static struct mmc_port_config mmc_ports[] = {
 };
 #endif
 
+static int tccUsedSDportNum = TCC_MMC_TYPE_MAX;
+static int TCC_SDMMC_DRIVE_STRENGTH = GPIO_CD(1);
+
 int m805_892x_mmc_init(struct device *dev, int id)
 {
-	BUG_ON(id >= TCC_MMC_TYPE_MAX);
+	BUG_ON(id >= tccUsedSDportNum);
 
 	if(mmc_ports[id].pwr != TCC_MMC_PORT_NULL)
 		gpio_request(mmc_ports[id].pwr, "sd_power");
 
-	tcc_gpio_config(mmc_ports[id].data0, mmc_ports[id].func | GPIO_CD(1));
-	tcc_gpio_config(mmc_ports[id].data1, mmc_ports[id].func | GPIO_CD(1));
-	tcc_gpio_config(mmc_ports[id].data2, mmc_ports[id].func | GPIO_CD(1));
-	tcc_gpio_config(mmc_ports[id].data3, mmc_ports[id].func | GPIO_CD(1));
+	tcc_gpio_config(mmc_ports[id].data0, mmc_ports[id].func | TCC_SDMMC_DRIVE_STRENGTH);
+	tcc_gpio_config(mmc_ports[id].data1, mmc_ports[id].func | TCC_SDMMC_DRIVE_STRENGTH);
+	tcc_gpio_config(mmc_ports[id].data2, mmc_ports[id].func | TCC_SDMMC_DRIVE_STRENGTH);
+	tcc_gpio_config(mmc_ports[id].data3, mmc_ports[id].func | TCC_SDMMC_DRIVE_STRENGTH);
 
 	if(mmc_ports[id].width == TCC_MMC_BUS_WIDTH_8)
 	{
-		tcc_gpio_config(mmc_ports[id].data4, mmc_ports[id].func | GPIO_CD(1));
-		tcc_gpio_config(mmc_ports[id].data5, mmc_ports[id].func | GPIO_CD(1));
-		tcc_gpio_config(mmc_ports[id].data6, mmc_ports[id].func | GPIO_CD(1));
-		tcc_gpio_config(mmc_ports[id].data7, mmc_ports[id].func | GPIO_CD(1));
+		tcc_gpio_config(mmc_ports[id].data4, mmc_ports[id].func | TCC_SDMMC_DRIVE_STRENGTH);
+		tcc_gpio_config(mmc_ports[id].data5, mmc_ports[id].func | TCC_SDMMC_DRIVE_STRENGTH);
+		tcc_gpio_config(mmc_ports[id].data6, mmc_ports[id].func | TCC_SDMMC_DRIVE_STRENGTH);
+		tcc_gpio_config(mmc_ports[id].data7, mmc_ports[id].func | TCC_SDMMC_DRIVE_STRENGTH);
 	}
 
-	tcc_gpio_config(mmc_ports[id].cmd, mmc_ports[id].func | GPIO_CD(1));
+	tcc_gpio_config(mmc_ports[id].cmd, mmc_ports[id].func | TCC_SDMMC_DRIVE_STRENGTH);
 	tcc_gpio_config(mmc_ports[id].clk, mmc_ports[id].func | GPIO_CD(3));
 
 	if(mmc_ports[id].cd != TCC_MMC_PORT_NULL)
@@ -198,6 +223,31 @@ int tcc892x_sd_card_detect(void)
 
 struct tcc_mmc_platform_data tcc8920_mmc_platform_data[] = {
 #if defined(CONFIG_M805S_8925_0XX)
+	#if defined(CONFIG_MMC_TCC_SUPPORT_EMMC)		// [0]:eMMC,   [1]:SD,   [2]:WiFi
+	[TCC_MMC_TYPE_EMMC] = {
+		.slot	= 4,
+		.caps	= MMC_CAP_SDIO_IRQ | MMC_CAP_4_BIT_DATA
+			/*| MMC_CAP_8_BIT_DATA*/
+			/*| MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED*/,		// SD0 Slot
+		.f_min	= 100000,
+		.f_max	= 48000000,	/* support highspeed mode */
+		.ocr_mask = MMC_VDD_32_33 | MMC_VDD_33_34,
+		.init	= m805_892x_mmc_init,
+		.card_detect = m805_892x_mmc_card_detect,
+		.cd_int_config = m805_892x_mmc_cd_int_config,
+		.suspend = m805_892x_mmc_suspend,
+		.resume = m805_892x_mmc_resume,
+		.set_power = m805_892x_mmc_set_power,
+		.set_bus_width = m805_892x_mmc_set_bus_width,
+
+		.cd_int_num = -1,
+		//.cd_irq_num = INT_EI5,
+		.cd_ext_irq = -1,
+		.peri_name = PERI_SDMMC0,
+		.io_name = RB_SDMMC0CONTROLLER,
+		.pic = HwINT1_SD0,
+	},
+	#endif
 	[TCC_MMC_TYPE_SD] = {
 		.slot	= 6,
 		.caps	= MMC_CAP_SDIO_IRQ | MMC_CAP_4_BIT_DATA
@@ -253,14 +303,40 @@ static int __init m805_892x_init_mmc(void)
 	if (!machine_is_m805_892x())
 		return 0;
 
-	printk("%s\n",__func__);
+	tccUsedSDportNum = TCC_MMC_TYPE_MAX;
 
 	tcc_init_sdhc_devices();
 
+	printk("%s(%d)\n",__func__, tccUsedSDportNum);
+
 #if defined(CONFIG_MMC_TCC_SDHC)
 #if defined(CONFIG_MMC_TCC_SDHC0)
-	tcc_sdhc0_device.dev.platform_data = &tcc8920_mmc_platform_data[0];
-	platform_device_register(&tcc_sdhc0_device);
+	if (tccUsedSDportNum > 0)
+	{
+		tcc_sdhc0_device.dev.platform_data = &tcc8920_mmc_platform_data[0];
+		platform_device_register(&tcc_sdhc0_device);
+	}
+#endif
+#if defined(CONFIG_MMC_TCC_SDHC1)
+	if (tccUsedSDportNum > 1)
+	{
+		tcc_sdhc1_device.dev.platform_data = &tcc8920_mmc_platform_data[1];
+		platform_device_register(&tcc_sdhc1_device);
+	}
+#endif
+#if defined(CONFIG_MMC_TCC_SDHC2)
+	if (tccUsedSDportNum > 2)
+	{
+		tcc_sdhc2_device.dev.platform_data = &tcc8920_mmc_platform_data[2];
+		platform_device_register(&tcc_sdhc2_device);
+	}
+#endif
+#if defined(CONFIG_MMC_TCC_SDHC3)
+	if (tccUsedSDportNum > 3)
+	{
+		tcc_sdhc3_device.dev.platform_data = &tcc8920_mmc_platform_data[3];
+		platform_device_register(&tcc_sdhc3_device);
+	}
 #endif
 #endif
 

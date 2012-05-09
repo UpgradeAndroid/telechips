@@ -96,6 +96,10 @@ const struct tcc_freq_table_t gtJpegMaxClockLimitTable = {
 	       0,      0, 300000,      0, 243040, 297000, 297000,      0,      0	// Core 1.30V
 };
 
+const struct tcc_freq_table_t gtMultiVpuClockLimitTable = {
+	       0,      0, 300000,      0, 243040, 296000, 296000,      0,      0	// Core 1.30V
+};
+
 const struct tcc_freq_table_t gtHdmiClockLimitTable = {
 	       0, 386880, 300000,      0, 243040,      0,      0,      0,      0	// Core 1.30V
 };
@@ -154,6 +158,7 @@ EXPORT_SYMBOL(gtVpu_720p_ClockLimitTable);
 EXPORT_SYMBOL(gtVpu_1080p_ClockLimitTable);
 EXPORT_SYMBOL(gtJpegClockLimitTable);
 EXPORT_SYMBOL(gtJpegMaxClockLimitTable);
+EXPORT_SYMBOL(gtMultiVpuClockLimitTable);
 EXPORT_SYMBOL(gtHdmiClockLimitTable);
 EXPORT_SYMBOL(gtMaliClockLimitTable);
 EXPORT_SYMBOL(stFBClockLimitTable);

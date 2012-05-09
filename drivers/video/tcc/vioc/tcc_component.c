@@ -72,6 +72,10 @@
 #include <mach/vioc_scaler.h>
 #endif
 
+extern void tccxxx_GetAddress(unsigned char format, unsigned int base_Yaddr, unsigned int src_imgx, unsigned int  src_imgy,
+									unsigned int start_x, unsigned int start_y, unsigned int* Y, unsigned int* U,unsigned int* V);
+
+
 /*****************************************************************************
 
  VARIABLES
@@ -594,12 +598,12 @@ void tcc_component_get_spec(COMPONENT_MODE_TYPE mode, COMPONENT_SPEC_TYPE *spec)
 				
 			spec->component_FPW1 = 3 - 1;					// TFT/TV : Frame pulse width is the pulse width of frmae clock
 			spec->component_FLC1 = 720 - 1;					// frmae line count is the number of lines in each frmae on the screen
-			spec->component_FSWC1 = 29 - 1;					// frmae start wait cycle is the number of lines to insert at the end each frame
-			spec->component_FEWC1 = 4 - 1;					// frame start wait cycle is the number of lines to insert at the begining each frame
+			spec->component_FSWC1 = 26 - 1;					// frmae start wait cycle is the number of lines to insert at the end each frame
+			spec->component_FEWC1 = 1 - 1;					// frame start wait cycle is the number of lines to insert at the begining each frame
 			spec->component_FPW2 = 3 - 1;					// TFT/TV : Frame pulse width is the pulse width of frmae clock
 			spec->component_FLC2 = 720 - 1;					// frmae line count is the number of lines in each frmae on the screen
-			spec->component_FSWC2 = 29 - 1;					// frmae start wait cycle is the number of lines to insert at the end each frame
-			spec->component_FEWC2 = 4 - 1; 					// frame start wait cycle is the number of lines to insert at the begining each frame
+			spec->component_FSWC2 = 26 - 1;					// frmae start wait cycle is the number of lines to insert at the end each frame
+			spec->component_FEWC2 = 1 - 1; 					// frame start wait cycle is the number of lines to insert at the begining each frame
 			#else
 			spec->component_LPW = 24 - 1; 					// line pulse width
 			spec->component_LPC = 1280 - 1; 				// line pulse count (active horizontal pixel - 1)
@@ -797,7 +801,7 @@ void tcc_component_set_lcd2tv(COMPONENT_MODE_TYPE mode)
 		VIOC_DISP_SetSize(pComponent_DISP, output_width, output_height);
 		VIOC_DISP_SetBGColor(pComponent_DISP, 0, 0 , 0);
 
-		VIOC_WMIX_SetOverlayPriority(pComponent_WMIX, 1);
+		VIOC_WMIX_SetOverlayPriority(pComponent_WMIX, 0);
 		VIOC_WMIX_SetBGColor(pComponent_WMIX, 0x00, 0x00, 0x00, 0xff);
 		VIOC_WMIX_SetSize(pComponent_WMIX, output_width, output_height);
 		VIOC_WMIX_SetPosition(pComponent_WMIX, 0, 0, 0);
@@ -1332,256 +1336,194 @@ static int onthefly_using;
 /*****************************************************************************
  Function Name : tcc_component_update()
 ******************************************************************************/
-void tcc_component_update(struct tcc_lcdc_image_update *update)
+void tcc_component_update(struct tcc_lcdc_image_update *ImageInfo)
 {
-	COMPONENT_LCDC_IMG_CTRL_TYPE ImgCtrl;
-	unsigned int Y_offset, UV_offset;
-	unsigned int img_width = 0, img_height = 0, win_offset_x = 0, win_offset_y = 0;
-	unsigned int lcd_w = 0, lcd_h =0;
-	unsigned int lcd_width = 0, lcd_height = 0;
-	unsigned int lcd_ctrl_flag;
-	
 	VIOC_DISP * pDISPBase;
 	VIOC_WMIX * pWMIXBase;
 	VIOC_RDMA * pRDMABase;
+	unsigned int lcd_width = 0, lcd_height = 0, lcd_h_pos = 0, lcd_w_pos = 0, scale_x = 0, scale_y = 0;
 
 	VIOC_SC *pSC;
 	pSC = (VIOC_SC *)tcc_p2v(HwVIOC_SC1);
 
-	dprintk("%s  \n", __func__);
+	
+	dprintk("%s enable:%d, layer:%d, fmt:%d, Fw:%d, Fh:%d, Iw:%d, Ih:%d, fmt:%d onthefly:%d\n", __func__, ImageInfo->enable, ImageInfo->Lcdc_layer,
+			ImageInfo->fmt,ImageInfo->Frame_width, ImageInfo->Frame_height, ImageInfo->Image_width, ImageInfo->Image_height, ImageInfo->fmt, ImageInfo->on_the_fly);
+	
+	if((ImageInfo->Lcdc_layer >= 3) || (ImageInfo->fmt >TCC_LCDC_IMG_FMT_MAX))
+		return;
 
-	tcc_component_get_lcdsize(&lcd_w, &lcd_h);
+	if(Component_LCDC_Num)
+	{
+		pDISPBase = (VIOC_DISP*)tcc_p2v(HwVIOC_DISP1);
+		pWMIXBase = (VIOC_WMIX*)tcc_p2v(HwVIOC_WMIX1);		
 
-	//printk("lcd_w : %d, lcd_h %d \n", lcd_w, lcd_h);
-	//printk("update->addr0 : %x, update->addr1 : %x, update->addr2  : %x \n",update->addr0, update->addr1, update->addr2 );
-
-	#if defined(CONFIG_ARCH_TCC892X)
-		if(Component_LCDC_Num)
-		{
-			pDISPBase = (VIOC_DISP*)tcc_p2v(HwVIOC_DISP1);
-			pWMIXBase = (VIOC_WMIX*)tcc_p2v(HwVIOC_WMIX1);		
-
-			switch(update->Lcdc_layer)
-			{			
-				case 0:
-					pRDMABase = (VIOC_RDMA*)tcc_p2v(HwVIOC_RDMA04);
-					break;
-				case 1:
-					pRDMABase = (VIOC_RDMA*)tcc_p2v(HwVIOC_RDMA05);
-					break;
-				case 2:
-					pRDMABase = (VIOC_RDMA*)tcc_p2v(HwVIOC_RDMA06);
-					break;
-			}
+		switch(ImageInfo->Lcdc_layer)
+		{			
+			case 0:
+				pRDMABase = (VIOC_RDMA*)tcc_p2v(HwVIOC_RDMA04);
+				break;
+			case 1:
+				pRDMABase = (VIOC_RDMA*)tcc_p2v(HwVIOC_RDMA05);
+				break;
+			case 2:
+				pRDMABase = (VIOC_RDMA*)tcc_p2v(HwVIOC_RDMA06);
+				break;
 		}
-		else
-		{
-			pDISPBase = (VIOC_DISP*)tcc_p2v(HwVIOC_DISP0);
-			pWMIXBase = (VIOC_WMIX*)tcc_p2v(HwVIOC_WMIX0);
-			
-			switch(update->Lcdc_layer)
-			{			
-				case 0:
-					pRDMABase = (VIOC_RDMA*)tcc_p2v(HwVIOC_RDMA00);
-					break;
-				case 1:
-					pRDMABase = (VIOC_RDMA*)tcc_p2v(HwVIOC_RDMA01);
-					break;
-				case 2:
-					pRDMABase = (VIOC_RDMA*)tcc_p2v(HwVIOC_RDMA02);
-					break;
-			}		
-		}
-
-		VIOC_DISP_GetSize(pDISPBase, &lcd_width, &lcd_height);
+	}
+	else
+	{
+		pDISPBase = (VIOC_DISP*)tcc_p2v(HwVIOC_DISP0);
+		pWMIXBase = (VIOC_WMIX*)tcc_p2v(HwVIOC_WMIX0);
 		
-		if((!lcd_width) || (!lcd_height))
-			return;
-		
-		if(!update->enable)	{
-			VIOC_RDMA_SetImageDisable(pRDMABase);
+		switch(ImageInfo->Lcdc_layer)
+		{			
+			case 0:
+				pRDMABase = (VIOC_RDMA*)tcc_p2v(HwVIOC_RDMA00);
+				break;
+			case 1:
+				pRDMABase = (VIOC_RDMA*)tcc_p2v(HwVIOC_RDMA01);
+				break;
+			case 2:
+				pRDMABase = (VIOC_RDMA*)tcc_p2v(HwVIOC_RDMA02);
+				break;
+		}		
+	}
 
-			if(onthefly_using == 1)	{
-				VIOC_CONFIG_PlugOut(VIOC_SC1);
-				onthefly_using = 0;
-			}		
-			return;
-		}	
+	VIOC_DISP_GetSize(pDISPBase, &lcd_width, &lcd_height);
+	
+	if((!lcd_width) || (!lcd_height))
+		return;
+	
+	if(!ImageInfo->enable)	{
+		VIOC_RDMA_SetImageDisable(pRDMABase);		
 
-		if(update->on_the_fly)
-		{
-			unsigned int RDMA_NUM;
-			RDMA_NUM = Component_LCDC_Num ? (update->Lcdc_layer + VIOC_SC_RDMA_04) : update->Lcdc_layer;
-
-			if(!onthefly_using) {
-				dprintk(" %s  scaler 1 is plug in RDMA %d \n",__func__, RDMA_NUM);
-				onthefly_using = 1;
-				VIOC_CONFIG_PlugIn (VIOC_SC1, RDMA_NUM);			
-				VIOC_SC_SetBypass (pSC, OFF);
-			}
-			
-			VIOC_SC_SetSrcSize(pSC, update->Frame_width, update->Frame_height);
-			VIOC_SC_SetDstSize (pSC, update->Image_width, update->Image_height);			// set destination size in scaler
-			VIOC_SC_SetOutSize (pSC, update->Image_width, update->Image_height);			// set output size in scaer
-		}
-		else
-		{
-			if(onthefly_using == 1)	{
-				dprintk(" %s  scaler 1 is plug  \n",__func__);
-				VIOC_RDMA_SetImageDisable(pRDMABase);
-				VIOC_CONFIG_PlugOut(VIOC_SC1);
-				onthefly_using = 0;
-			}
-		}
-
-		dprintk("%s lcdc:%d, pRDMA:0x%08x, pWMIX:0x%08x, pDISP:0x%08x, addr0:0x%08x\n", __func__, Component_LCDC_Num, pRDMABase, pWMIXBase, pDISPBase, update->addr0);
-
-		VIOC_RDMA_SetImageFormat(pComponent_RDMA_VIDEO, update->fmt);
-		
-		if(update->fmt >= TCC_LCDC_IMG_FMT_YUV420SP)
-		{
-			VIOC_RDMA_SetImageY2REnable(pComponent_RDMA_VIDEO, TRUE);
-			VIOC_RDMA_SetImageY2RMode(pComponent_RDMA_VIDEO, 0); /* Y2RMode Default 0 (Studio Color) */
-		}
-		
-		// image address
-		VIOC_RDMA_SetImageBase(pComponent_RDMA_VIDEO, (unsigned int)update->addr0, (unsigned int)update->addr1, (unsigned int)update->addr2);
-		// image offset
-		VIOC_RDMA_SetImageOffset(pComponent_RDMA_VIDEO, update->fmt, update->Frame_width);
-	#else
-		// Set LCD Image channel 0 
-		memset((void*)&ImgCtrl, NULL, sizeof(COMPONENT_LCDC_IMG_CTRL_TYPE));
-
-		if(Component_Mode == COMPONENT_MODE_720P)
-	 		ImgCtrl.INTL = FALSE;
-		else
-		{
-		#if defined(CONFIG_TCC_EXCLUSIVE_UI_LAYER)
-	 		if(component_exclusive_ui_param.interlace && !TCC_OUTPUT_EXCLUSIVE_UI_GetBypass())
-				ImgCtrl.INTL = FALSE;
-			else
-				ImgCtrl.INTL = TRUE;
-		#else
-			ImgCtrl.INTL = TRUE;
-		#endif
-		}
-
-		ImgCtrl.IEN = update->enable;
-		ImgCtrl.FMT = update->fmt;
-
-		if(ImgCtrl.FMT >= TCC_LCDC_IMG_FMT_YUV420SP)
-			ImgCtrl.Y2R = TRUE;
-		else
-			ImgCtrl.Y2R = FALSE;
-
-		ImgCtrl.UPD = TRUE;
-		
-		#if defined(CONFIG_TCC_EXCLUSIVE_UI_LAYER)
-			/* Get the parameters for exclusive ui */
-			TCC_OUTPUT_EXCLUSIVE_UI_GetParam(&component_exclusive_ui_param);
-
-			if(component_exclusive_ui_param.enable && component_exclusive_ui_onthefly)
+		if(ISSET(onthefly_using, 1<<ImageInfo->Lcdc_layer))
 			{
-				ImgCtrl.SRC = TRUE;
-			}
-			else
-			{
-				ImgCtrl.SRC = FALSE;
-				tcc_component_set_imagebase(IMG_CH0, (unsigned int)update->addr0, (unsigned int)update->addr1, (unsigned int)update->addr2);
-			}
-			tcc_component_get_offset(ImgCtrl.FMT, update->Frame_width, &Y_offset, &UV_offset);
-			component_exclusive_ui_onthefly = FALSE;
-		#else
-			tcc_component_set_imagebase(IMG_CH0, (unsigned int)update->addr0, (unsigned int)update->addr1, (unsigned int)update->addr2);
-			tcc_component_get_offset(ImgCtrl.FMT, update->Frame_width, &Y_offset, &UV_offset);
-		#endif
-	#endif
-	
-	if(update->Image_width > lcd_w)
-	{
-		win_offset_x = 0;
-		img_width = lcd_w;
-	}
-	else
-	{
-		img_width = update->Image_width;
-		win_offset_x = (lcd_w - img_width)/2;
-	}
+			VIOC_CONFIG_PlugOut(VIOC_SC1);
+			BITCLR(onthefly_using, 1 << ImageInfo->Lcdc_layer);
+		}		
+		return;
+	}	
 
-	if(update->Image_height > lcd_h)
+	if(ImageInfo->on_the_fly)
 	{
-		win_offset_y = 0;
-		img_height = lcd_h;
-	}
-	else
-	{
-		img_height = update->Image_height;
-		win_offset_y = (lcd_h - img_height)/2; 
-	}
-		
-	#if defined(CONFIG_TCC_EXCLUSIVE_UI_LAYER)
-		win_offset_x = update->offset_x;
-		win_offset_y =  update->offset_y; 
-	#else
-		if(update->offset_x)
-			win_offset_x = update->offset_x;
+		unsigned int RDMA_NUM;
+		RDMA_NUM = Component_LCDC_Num ? (ImageInfo->Lcdc_layer + VIOC_SC_RDMA_04) : ImageInfo->Lcdc_layer;
 
-		if(update->offset_y)
-			win_offset_y =  update->offset_y; 
-	#endif
-	
-	#if defined(CONFIG_ARCH_TCC892X)
-	
-	#else
-	if(Component_Mode == COMPONENT_MODE_1080I)
-		win_offset_y = win_offset_y/2;
-	#endif
+#if defined(CONFIG_MACH_TCC8920ST)
+		if(!onthefly_using) {
+			dprintk(" %s  scaler 1 is plug in RDMA %d \n",__func__, RDMA_NUM);
+			BITSET(onthefly_using, 1 << ImageInfo->Lcdc_layer);
+			VIOC_CONFIG_PlugIn (VIOC_SC1, RDMA_NUM);			
+		}
 
-	dprintk("%s, img_widht:%d, img_height:%d, win_offset_x:%d, win_offset_y:%d\n", __func__, img_width, img_height, win_offset_x, win_offset_y);
-	
-	#if defined(CONFIG_ARCH_TCC892X)
-		VIOC_RDMA_SetImageSize(pComponent_RDMA_VIDEO, update->Frame_width, update->Frame_height);
-		
-		// image position
-#if 0//defined(CONFIG_TCC_VIDEO_DISPLAY_BY_VSYNC_INT) || defined(TCC_VIDEO_DISPLAY_BY_VSYNC_INT)
-	if(update->deinterlace_mode == 1 && update->output_toMemory == 0)
-	{
-		VIOC_RDMA_SetImageIntl(pComponent_RDMA_VIDEO, TRUE);
-		VIOC_WMIX_SetPosition(pComponent_WMIX, update->Lcdc_layer, win_offset_x, win_offset_y/2);
-	}
-	else
+		if(ImageInfo->Frame_width==ImageInfo->Image_width || ImageInfo->Frame_height==ImageInfo->Image_height) {
+			VIOC_SC_SetBypass (pSC, ON);
+			dprintk(" %s  scaler 1 is plug in SetBypass ON \n",__func__);
+		}else {
+			VIOC_SC_SetBypass (pSC, OFF);
+			dprintk(" %s  scaler 1 is plug in SetBypass OFF \n",__func__);
+		}
+#else
+		if(!onthefly_using) {
+			dprintk(" %s  scaler 1 is plug in RDMA %d \n",__func__, RDMA_NUM);
+			BITSET(onthefly_using, 1 << ImageInfo->Lcdc_layer);
+			VIOC_CONFIG_PlugIn (VIOC_SC1, RDMA_NUM);
+			VIOC_SC_SetBypass (pSC, OFF);
+		}
 #endif
+		VIOC_SC_SetSrcSize(pSC, ImageInfo->Frame_width, ImageInfo->Frame_height);
+		VIOC_SC_SetDstSize (pSC, ImageInfo->Image_width, ImageInfo->Image_height);			// set destination size in scaler
+		VIOC_SC_SetOutSize (pSC, ImageInfo->Image_width, ImageInfo->Image_height);			// set output size in scaer
+	}
+	else
 	{
-		VIOC_RDMA_SetImageIntl(pComponent_RDMA_VIDEO, FALSE);
-		VIOC_WMIX_SetPosition(pComponent_WMIX, update->Lcdc_layer, win_offset_x, win_offset_y);
-}
+		if(ISSET(onthefly_using, 1<<ImageInfo->Lcdc_layer))
+		{
+			dprintk(" %s  scaler 1 is plug  \n",__func__);
+			VIOC_RDMA_SetImageDisable(pRDMABase);
+			VIOC_CONFIG_PlugOut(VIOC_SC1);
+			BITCLR(onthefly_using, 1 << ImageInfo->Lcdc_layer);
+		}
+	}
 
-		// image enable
-		if(update->enable)
-			VIOC_RDMA_SetImageEnable(pComponent_RDMA_VIDEO);
-		else
-			VIOC_RDMA_SetImageDisable(pComponent_RDMA_VIDEO);
+	dprintk("%s lcdc:%d, pRDMA:0x%08x, pWMIX:0x%08x, pDISP:0x%08x, addr0:0x%08x\n", __func__, Component_LCDC_Num, pRDMABase, pWMIXBase, pDISPBase, ImageInfo->addr0);
+		
+	if(ImageInfo->fmt >= TCC_LCDC_IMG_FMT_UYVY && ImageInfo->fmt <= TCC_LCDC_IMG_FMT_YUV422ITL1)
+	{
+		VIOC_RDMA_SetImageY2REnable(pRDMABase, TRUE);
+		VIOC_RDMA_SetImageY2RMode(pRDMABase, 0); /* Y2RMode Default 0 (Studio Color) */
+	}
 
-		if(onthefly_using)
-			VIOC_SC_SetUpdate (pSC);
+	VIOC_RDMA_SetImageOffset(pRDMABase, ImageInfo->fmt, ImageInfo->Frame_width);
+	VIOC_RDMA_SetImageFormat(pRDMABase, ImageInfo->fmt);
 
-		VIOC_WMIX_SetUpdate(pComponent_WMIX);
-	#else
-		lcd_ctrl_flag = SET_IMAGE_INTL |
-						SET_IMAGE_UPD |
-						SET_IMAGE_IEN |
-						SET_IMAGE_SRC |
-						SET_IMAGE_Y2R |
-						SET_IMAGE_FMT |
-						SET_IMAGE_CEN |
-						SET_IMAGE_AEN |
-						SET_IMAGE_ASEL;
+	scale_x = 0;
+	scale_y = 0;
+	lcd_h_pos = 0;
+	lcd_w_pos = 0;
 
-		tcc_component_set_imageinfo(SET_IMAGE_ALL, IMG_CH0, img_width, img_height, win_offset_x, win_offset_y, Y_offset, UV_offset, 0, 0);
-		tcc_component_set_imagectrl(lcd_ctrl_flag, IMG_CH0, &ImgCtrl);
+	if(lcd_width > ImageInfo->Image_width)
+		lcd_w_pos = (lcd_width - ImageInfo->Image_width)/2;
+	
+	if(lcd_height > ImageInfo->Image_height)
+		lcd_h_pos = (lcd_height - ImageInfo->Image_height)/2;
 
-		BITCSET(pComponent_HwLCDC->LCTRL, HwLCTRL_LEN, HwLCTRL_LEN);
-	#endif
+	dprintk("%s lcd_width:%d, lcd_height:%d, lcd_w_pos:%d, lcd_h_pos:%d\n\n", __func__, lcd_width, lcd_height, lcd_w_pos, lcd_h_pos);
+	
+	// position
+	//pLCDC_channel->LIP = ((lcd_h_pos << 16) | (lcd_w_pos));
+	VIOC_WMIX_SetPosition(pWMIXBase, ImageInfo->Lcdc_layer, lcd_w_pos, lcd_h_pos);
+
+	// scale
+	//pLCDC_channel->LISR =((scale_y<<4) | scale_x);
+	VIOC_RDMA_SetImageScale(pRDMABase, scale_x, scale_y);
+	
+	if( !( ((ImageInfo->crop_left == 0) && (ImageInfo->crop_right == ImageInfo->Frame_width)) &&  ((ImageInfo->crop_top == 0) && (ImageInfo->crop_bottom == ImageInfo->Frame_height)))  )
+	{
+		dprintk(" Image Crop left=[%d], right=[%d], top=[%d], bottom=[%d] \n", ImageInfo->crop_left, ImageInfo->crop_right, ImageInfo->crop_top, ImageInfo->crop_bottom);
+		int addr_Y = (unsigned int)ImageInfo->addr0;
+		int addr_U = (unsigned int)ImageInfo->addr1;
+		int addr_V = (unsigned int)ImageInfo->addr2;
+		
+		tccxxx_GetAddress(ImageInfo->fmt, (unsigned int)ImageInfo->addr0, ImageInfo->Frame_width, ImageInfo->Frame_height, 		
+								ImageInfo->crop_left, ImageInfo->crop_top, &addr_Y, &addr_U, &addr_V);		
+
+		VIOC_RDMA_SetImageSize(pRDMABase, ImageInfo->crop_right - ImageInfo->crop_left, ImageInfo->crop_bottom - ImageInfo->crop_top);
+		VIOC_RDMA_SetImageBase(pRDMABase, addr_Y, addr_U, addr_V);
+	}
+	else
+	{	
+		dprintk(" don't Image Crop left=[%d], right=[%d], top=[%d], bottom=[%d] \n", ImageInfo->crop_left, ImageInfo->crop_right, ImageInfo->crop_top, ImageInfo->crop_bottom);
+		VIOC_RDMA_SetImageSize(pRDMABase, ImageInfo->Frame_width, ImageInfo->Frame_height);
+		VIOC_RDMA_SetImageBase(pRDMABase, ImageInfo->addr0, ImageInfo->addr1, ImageInfo->addr2);		
+	}
+		
+	// position
+	//if(ISZERO(pLCDC->LCTRL, HwLCTRL_NI)) //--
+#if 0//defined(CONFIG_TCC_VIDEO_DISPLAY_BY_VSYNC_INT) || defined(TCC_VIDEO_DISPLAY_BY_VSYNC_INT)
+	if(ImageInfo->deinterlace_mode == 1 && ImageInfo->output_toMemory == 0)
+	{
+		VIOC_RDMA_SetImageY2REnable(pRDMABase, FALSE);
+		VIOC_RDMA_SetImageY2RMode(pRDMABase, 0x02); /* Y2RMode Default 0 (Studio Color) */
+		VIOC_RDMA_SetImageIntl(pRDMABase, 1);
+		VIOC_RDMA_SetImageBfield(pRDMABase, ImageInfo->odd_first_flag);
+		VIOC_WMIX_SetPosition(pWMIXBase, ImageInfo->Lcdc_layer,  ImageInfo->offset_x, (ImageInfo->offset_y/2) );
+	}
+	else
+#endif		
+	{
+		VIOC_RDMA_SetImageIntl(pRDMABase, 0);
+		VIOC_WMIX_SetPosition(pWMIXBase, ImageInfo->Lcdc_layer, ImageInfo->offset_x, ImageInfo->offset_y);
+	}
+
+	VIOC_RDMA_SetImageEnable(pRDMABase);
+
+	if(onthefly_using)
+		VIOC_SC_SetUpdate (pSC);
+
+	VIOC_WMIX_SetUpdate(pWMIXBase);
 }
 
 #if defined(CONFIG_TCC_EXCLUSIVE_UI_LAYER)
@@ -1941,7 +1883,7 @@ static long tcc_component_ioctl(struct file *file, unsigned int cmd, void *arg)
 				}
 			#endif
 			
-			TCC_OUTPUT_FB_DetachOutput();
+			TCC_OUTPUT_FB_DetachOutput(1);
 			
 			TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_COMPONENT, start.lcdc, TRUE);
 			

@@ -118,6 +118,7 @@ typedef struct {
 MEMCLK mem_clk_table[]	=
 {
 #if defined(CONFIG_DRAM_DDR3)
+//	{0x00014D03, 0x00200018, 6660000},
 	{0x00012C03, 0x00200018, 6000000},
 	{0x00011303, 0x00200018, 5500000},
 	{0x00010B03, 0x00200018, 5340000},
@@ -893,8 +894,12 @@ static void copy_change_clock(void)
 //--------------------------------------------------------------
 // disable LCD
 #if 1//defined(CONFIG_DRAM_DDR2)
-	DEV_LCDC_Wait_signal(0);
-	DEV_LCDC_Wait_signal(1);
+	#if defined(CONFIG_MACH_TCC8920ST)
+		DEV_LCDC_Wait_signal_Ext();
+	#else
+		DEV_LCDC_Wait_signal(0);
+		DEV_LCDC_Wait_signal(1);
+	#endif
 #endif
 
 //--------------------------------------------------------------

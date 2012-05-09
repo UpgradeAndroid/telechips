@@ -295,7 +295,7 @@ void tcc_otg_vbus_ctrl(int port_index, int on)
 	} else if (machine_is_m805_892x()) {
 		int gpio_otg0_vbus_en;
 
-		if(system_rev == 0x2002) {
+		if(system_rev == 0x2002 || system_rev == 0x2003) {
 			gpio_otg0_vbus_en = TCC_GPD(3);
 		}
 		else {

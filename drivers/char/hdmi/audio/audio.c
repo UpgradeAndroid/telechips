@@ -852,6 +852,16 @@ void tcc_hdmi_audio_set_clock(unsigned int output, unsigned int clock_rate)
 
         pCKC->PCLKCTRL18.nREG = audio_clock;
     }
+    else if( output == SPDIF_PORT )
+    {
+        PCKC				pCKC ;
+        unsigned long		audio_clock;
+        pCKC = (CKC *)tcc_p2v(HwCKC_BASE);
+
+        audio_clock = pCKC->PCLKCTRL27.nREG;	//SPDIF - 512*fs, HDMIA = 512*fs
+
+        pCKC->PCLKCTRL18.nREG = audio_clock;
+    }
     #endif
 }
 #endif /* CONFIG_ARCH_TCC892X */

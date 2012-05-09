@@ -145,26 +145,32 @@ char M2M_Scaler2_Ctrl_Detail(SCALER_TYPE *scale_img)
 
 	spin_lock_irq(&(SC2_data.cmd_lock));
 
-	// set to VRDMA switch path
-	VIOC_CONFIG_RDMA12PathCtrl(0 /* RDMA12 */);
 
 	// set to VRDMA
+	if((scale_img->src_fmt == SC_IMG_FMT_ARGB6666) || (scale_img->src_fmt == SC_IMG_FMT_ARGB8888))	{
+		VIOC_RDMA_SetImageAlphaSelect(SC2_pRDMABase, 1);
+		VIOC_RDMA_SetImageAlphaEnable(SC2_pRDMABase, 1);
+	}
+	else	{
+		VIOC_RDMA_SetImageAlphaSelect(SC2_pRDMABase, 0);
+		VIOC_RDMA_SetImageAlphaEnable(SC2_pRDMABase, 0);
+	}
+	
+
 	VIOC_RDMA_SetImageFormat(SC2_pRDMABase, scale_img->src_fmt);
-	VIOC_RDMA_SetImageSize(SC2_pRDMABase, scale_img->src_ImgWidth, scale_img->src_ImgHeight);
+	VIOC_RDMA_SetImageSize(SC2_pRDMABase,scale_img->src_winRight- scale_img->src_winLeft, scale_img->src_winBottom - scale_img->src_winTop);
 	VIOC_RDMA_SetImageOffset(SC2_pRDMABase, scale_img->src_fmt, scale_img->src_ImgWidth);
 	VIOC_RDMA_SetImageBase(SC2_pRDMABase, pSrcBase0, pSrcBase1, pSrcBase2);
 	//VIOC_RDMA_SetImageEnable(SC2_pRDMABase);
 
 	// set to VIOC Scaler2
 	pScalerInfo.BYPASS 			= FALSE /* 0 */;
-	pScalerInfo.SRC_WIDTH 		= scale_img->src_ImgWidth;
-	pScalerInfo.SRC_HEIGHT 		= scale_img->src_ImgHeight;
-	pScalerInfo.DST_WIDTH 		= scale_img->dest_ImgWidth;
-	pScalerInfo.DST_HEIGHT 		= scale_img->dest_ImgHeight;
-	pScalerInfo.OUTPUT_POS_X 	= scale_img->dest_winLeft;
-	pScalerInfo.OUTPUT_POS_Y 	= scale_img->dest_winTop;
-	pScalerInfo.OUTPUT_WIDTH 	= (scale_img->dest_ImgWidth - scale_img->dest_winLeft);
-	pScalerInfo.OUTPUT_HEIGHT 	= (scale_img->dest_ImgHeight - scale_img->dest_winTop);
+	pScalerInfo.DST_WIDTH 		= (scale_img->dest_winRight - scale_img->dest_winLeft);
+	pScalerInfo.DST_HEIGHT 		= (scale_img->dest_winBottom - scale_img->dest_winTop);
+	pScalerInfo.OUTPUT_POS_X 	= 0;
+	pScalerInfo.OUTPUT_POS_Y 	= 0;
+	pScalerInfo.OUTPUT_WIDTH 	= pScalerInfo.DST_WIDTH;
+	pScalerInfo.OUTPUT_HEIGHT 	= pScalerInfo.DST_HEIGHT;
 
 	VIOC_API_SCALER_SetConfig(VIOC_SC0, &pScalerInfo);
 	VIOC_API_SCALER_SetPlugIn(VIOC_SC0, VIOC_SC_RDMA_17);
@@ -172,16 +178,16 @@ char M2M_Scaler2_Ctrl_Detail(SCALER_TYPE *scale_img)
 	VIOC_RDMA_SetImageEnable(SC2_pRDMABase); // SoC guide info.
 
 	// set to WMIX30  
-	//VIOC_CONFIG_WMIXPath(WMIX30, 0 /* by-pass */);
-	VIOC_WMIX_SetSize(SC2_pWIXBase, scale_img->dest_ImgWidth, scale_img->dest_ImgHeight);
+	VIOC_CONFIG_WMIXPath(WMIX60, 1 /* mixer  */);
+	VIOC_WMIX_SetSize(SC2_pWIXBase, pScalerInfo.DST_WIDTH, pScalerInfo.DST_HEIGHT);	
 	VIOC_WMIX_SetUpdate(SC2_pWIXBase);
 
 	// set to VWRMA
 	VIOC_WDMA_SetImageFormat(SC2_pWDMABase, scale_img->dest_fmt);
-	VIOC_WDMA_SetImageSize(SC2_pWDMABase, scale_img->dest_ImgWidth, scale_img->dest_ImgHeight);
+	VIOC_WDMA_SetImageSize(SC2_pWDMABase, pScalerInfo.DST_WIDTH, pScalerInfo.DST_HEIGHT);
 	VIOC_WDMA_SetImageOffset(SC2_pWDMABase, scale_img->dest_fmt, scale_img->dest_ImgWidth);
 	VIOC_WDMA_SetImageBase(SC2_pWDMABase, pDstBase0, pDstBase1, pDstBase2);
-	VIOC_WDMA_SetImageEnable(SC2_pWDMABase, 0 /* OFF */);
+	VIOC_WDMA_SetImageEnable(SC2_pWDMABase, 0 /* OFF */);	
 	SC2_pWDMABase->uIRQSTS.nREG = 0xFFFFFFFF; // wdma status register all clear.
 
 	spin_unlock_irq(&(SC2_data.cmd_lock));
@@ -209,7 +215,7 @@ char M2M_Scaler2_Ctrl_Divide(SCALER_TYPE *scale_img)
 	unsigned int img_wd, img_ht;
 
 	VIOC_SCALER_INFO_Type pScalerInfo;
-	PVIOC_WDMA pWDMABase1 = (PVIOC_WDMA)tcc_p2v(HwVIOC_WDMA07);
+	PVIOC_WDMA pWDMABase1 = (PVIOC_WDMA)tcc_p2v(HwVIOC_WDMA08);
 	PVIOC_WDMA pWDMABase0 = (PVIOC_WDMA)SC2_pWDMABase;
 
 	pSrcBaseY = (unsigned int)scale_img->src_Yaddr;
@@ -273,6 +279,7 @@ char M2M_Scaler2_Ctrl_Divide(SCALER_TYPE *scale_img)
 		pDstBase1 = pDstBase0 + img_wd*img_ht*4;
 	}
 
+	VIOC_CONFIG_WMIXPath(WMIX60, 1 /* mixing */);
 	VIOC_WMIX_SetSize(SC2_pWIXBase, img_wd, img_ht);
 	VIOC_WMIX_SetPosition(SC2_pWIXBase, 0, scale_img->dest_winLeft, scale_img->dest_winTop);
 	VIOC_WMIX_SetPosition(SC2_pWIXBase, 1, scale_img->dest_winLeft, scale_img->dest_winTop);
@@ -439,12 +446,12 @@ int tccxxx_scaler2_release(struct inode *inode, struct file *filp)
 		}
 
 		if(SC2_data.irq_reged) {
-			free_irq(INT_VIOC_WD8, &SC2_data);
+			free_irq(INT_VIOC_WD7, &SC2_data);
 			SC2_data.irq_reged = 0;
 		}
 		
 		VIOC_CONFIG_PlugOut(VIOC_SC0);
-		VIOC_SC_SetSWReset(VIOC_SC0, VIOC_SC_RDMA_17, VIOC_SC_WDMA_08);
+		VIOC_SC_SetSWReset(VIOC_SC0, 17/*VIOC_SC_RDMA_17*/, 7/*VIOC_SC_WDMA_07*/);
 
 		SC2_data.block_operating = SC2_data.block_waiting = 0;
 		SC2_data.poll_count = SC2_data.cmd_count = 0;
@@ -472,11 +479,12 @@ int tccxxx_scaler2_open(struct inode *inode, struct file *filp)
 		SC2_pWIXBase = (volatile PVIOC_WMIX)tcc_p2v((unsigned int)HwVIOC_WMIX6);
 
 		// set to VWDMA
-		SC2_pWDMABase = (volatile PVIOC_WDMA)tcc_p2v((unsigned int)HwVIOC_WDMA08);
+		SC2_pWDMABase = (volatile PVIOC_WDMA)tcc_p2v((unsigned int)HwVIOC_WDMA07);
 
-		VIOC_SC_SetSWReset(VIOC_SC0, VIOC_SC_RDMA_17, VIOC_SC_WDMA_08);
+		VIOC_SC_SetSWReset(VIOC_SC0, 17/*VIOC_SC_RDMA_17*/, 7/*VIOC_SC_WDMA_07*/);
+
 		VIOC_WDMA_SetIreqMask(SC2_pWDMABase, VIOC_WDMA_IREQ_EOFR_MASK, 0x0);
-		ret = request_irq(INT_VIOC_WD8, tccxxx_scaler2_handler, IRQF_SHARED, "scaler2", &SC2_data);
+		ret = request_irq(INT_VIOC_WD7, tccxxx_scaler2_handler, IRQF_SHARED, "scaler2", &SC2_data);
 		
 		if(ret) {
 			clk_disable(scaler2_clk);
@@ -513,7 +521,7 @@ tccxxx_scaler2_cleanup(void)
 	return;
 }
 
-static char banner[] __initdata = KERN_INFO "TCC Scaler-0 Driver Initializing. \n";
+static char banner[] __initdata = KERN_INFO "TCC Scaler-2 Driver Initializing. \n";
 static struct class *scaler2_class;
 
 int __init 

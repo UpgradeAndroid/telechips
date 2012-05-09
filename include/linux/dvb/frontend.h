@@ -423,12 +423,4 @@ struct dtv_properties {
 
 #define FE_DISHNETWORK_SEND_LEGACY_CMD _IO('o', 80) /* unsigned int */
 
-#define FE_DXB_POWER_CMD   _IO('o', 90) /* unsigned int */
-#define FE_DXB_CLEAR_TABLE_CMD   _IO('o', 91) /* unsigned int */
-#define FE_DXB_SET_PID_CMD   _IO('o', 92) /* unsigned int */
-#define FE_DXB_REMOVE_PID_CMD   _IO('o', 93) /* unsigned int */
-#define FE_DXB_SET_PCRPID_CMD   _IO('o', 94) /* unsigned int */
-#define FE_DXB_GET_STC_CMD   _IO('o', 95) /* unsigned int */
-
-
 #endif /*_DVBFRONTEND_H_*/

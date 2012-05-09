@@ -49,7 +49,7 @@ int m805_892x_hdmi_power(struct device *dev, tcc_hdmi_power_s pwr)
 					}
 				}
 				#endif
-				if (system_rev == 0x2002) {
+				if (system_rev == 0x2002 || system_rev == 0x2003) {
 					gpio_request(TCC_GPE(26), "hdmi_on");					
 					gpio_direction_output(TCC_GPE(26), 1);
 				} else {
@@ -63,7 +63,7 @@ int m805_892x_hdmi_power(struct device *dev, tcc_hdmi_power_s pwr)
 				if (vdd_hdmi_osc)
 					regulator_enable(vdd_hdmi_osc);
 				#endif
-				if (system_rev == 0x2002)
+				if (system_rev == 0x2002 || system_rev == 0x2003)
 					gpio_set_value(TCC_GPE(26), 1);
 				else
 					gpio_set_value(TCC_GPF(15), 1);
@@ -74,7 +74,7 @@ int m805_892x_hdmi_power(struct device *dev, tcc_hdmi_power_s pwr)
 				if (vdd_hdmi_osc)
 					regulator_disable(vdd_hdmi_osc);
 				#endif
-				if (system_rev == 0x2002)
+				if (system_rev == 0x2002 || system_rev == 0x2003)
 					gpio_set_value(TCC_GPE(26), 0);
 				else
 					gpio_set_value(TCC_GPF(15), 0);

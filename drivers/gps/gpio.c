@@ -70,7 +70,7 @@ static int gps_gpio_open (struct inode *inode, struct file *filp)
 #elif defined(CONFIG_MACH_M805_892X)
     if(machine_is_m805_892x())
     {
-		if (system_rev == 0x2002)
+		if (system_rev == 0x2002 || system_rev == 0x2003)
 			gpio_set_value(TCC_GPE(14), 0);
 		else
         	gpio_set_value(TCC_GPC(6), 0);
@@ -109,7 +109,7 @@ static int gps_gpio_release (struct inode *inode, struct file *filp)
 #elif defined(CONFIG_MACH_M805_892X)
     if(machine_is_m805_892x())
     {
-    	if (system_rev == 0x2002)
+    	if (system_rev == 0x2002 || system_rev == 0x2003)
     		gpio_set_value(TCC_GPC(14), 0);
     	else
         	gpio_set_value(TCC_GPC(6), 0);
@@ -177,7 +177,7 @@ static long gps_gpio_ioctl (struct file *filp, unsigned int cmd, void *arg)
             gps_k_flag = 1;
             if(machine_is_m805_892x())
             {
-            	if (system_rev == 0x2002)
+            	if (system_rev == 0x2002 || system_rev == 0x2003)
                 	gpio_set_value(TCC_GPE(14), 1);
                 else
                 	gpio_set_value(TCC_GPC(6), 1);
@@ -188,7 +188,7 @@ static long gps_gpio_ioctl (struct file *filp, unsigned int cmd, void *arg)
             gps_k_flag = 0;
             if(machine_is_m805_892x())
             {
-				if (system_rev == 0x2002)
+				if (system_rev == 0x2002 || system_rev == 0x2003)
                 	gpio_set_value(TCC_GPE(14), 0);
                 else
                 	gpio_set_value(TCC_GPC(6), 0);
@@ -294,7 +294,7 @@ static int __init gps_gpio_init(void)
     if(machine_is_m805_892x())
     {
         gps_dbg("GPS_PWREN on\n");
-		if (system_rev == 0x2002) {
+		if (system_rev == 0x2002 || system_rev == 0x2003) {
 			tcc_gpio_config(TCC_GPE(14), GPIO_FN(0));
 			gpio_request(TCC_GPE(14), "GPIO_PWREN");
 			gpio_direction_output(TCC_GPE(14), 0);
@@ -350,7 +350,7 @@ static void __exit gps_gpio_exit(void)
     gps_dbg("GPS_PWREN off");
     if(machine_is_m805_892x())
     {
-		if (system_rev == 0x2002)
+		if (system_rev == 0x2002 || system_rev == 0x2003)
 			gpio_set_value(TCC_GPE(14), 0);
 		else
 			gpio_set_value(TCC_GPC(6), 0);

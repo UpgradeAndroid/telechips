@@ -47,11 +47,33 @@ typedef enum {
 #define WIFI_HwINT1_SD		HwINT1_SD0
 
 typedef enum {
+	#if defined(CONFIG_MMC_TCC_SUPPORT_EMMC)
+	TCC_MMC_TYPE_EMMC,
+	#endif
 	TCC_MMC_TYPE_WIFI,
 	TCC_MMC_TYPE_MAX
 } tcc_mmc_type;
 
 static struct mmc_port_config mmc_ports[] = {
+	#if defined(CONFIG_MMC_TCC_SUPPORT_EMMC)
+	[TCC_MMC_TYPE_EMMC] = {
+		.data0	= TCC_GPD(18),
+		.data1	= TCC_GPD(17),
+		.data2	= TCC_GPD(16),
+		.data3	= TCC_GPD(15),
+		.data4	= TCC_MMC_PORT_NULL,
+		.data5	= TCC_MMC_PORT_NULL,
+		.data6	= TCC_MMC_PORT_NULL,
+		.data7	= TCC_MMC_PORT_NULL,
+		.cmd	= TCC_GPD(19),
+		.clk	= TCC_GPD(20),
+		.func	= GPIO_FN(2),
+		.width	= TCC_MMC_BUS_WIDTH_4,
+
+		.cd		= TCC_MMC_PORT_NULL,
+		.pwr	= TCC_MMC_PORT_NULL,
+	},
+	#endif
 	[TCC_MMC_TYPE_WIFI] = {
 		.data0	= TCC_GPD(18),
 		.data1	= TCC_GPD(17),
@@ -379,6 +401,30 @@ int tcc892x_sd_card_detect(void)
 //End
 
 struct tcc_mmc_platform_data tcc8920_mmc_platform_data[] = {
+	#if defined(CONFIG_MMC_TCC_SUPPORT_EMMC)		// [0]:eMMC,   [1]:SD,   [2]:WiFi
+	[TCC_MMC_TYPE_EMMC] = {
+		.slot	= 4,
+		.caps	= MMC_CAP_SDIO_IRQ | MMC_CAP_4_BIT_DATA
+			/*| MMC_CAP_8_BIT_DATA*/
+			/*| MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED*/,		// SD0 Slot
+		.f_min	= 100000,
+		.f_max	= 48000000,	/* support highspeed mode */
+		.ocr_mask = MMC_VDD_32_33 | MMC_VDD_33_34,
+		.init	= tcc8920_mmc_init,
+		.card_detect = tcc8920_mmc_card_detect,
+		.cd_int_config = tcc8920_mmc_cd_int_config,
+		.suspend = tcc8920_mmc_suspend,
+		.resume = tcc8920_mmc_resume,
+		.set_power = tcc8920_mmc_set_power,
+		.set_bus_width = tcc8920_mmc_set_bus_width,
+
+		.cd_int_num = -1,
+		.cd_ext_irq = -1,
+		.peri_name = PERI_SDMMC0,
+		.io_name = RB_SDMMC0CONTROLLER,
+		.pic = HwINT1_SD0,
+	},
+	#endif
 	#if defined(TCC_MMC_SD_CARD_USED)
 	[TCC_MMC_TYPE_SD] = {
 		.slot	= TFCD_SDMMC_PORT,

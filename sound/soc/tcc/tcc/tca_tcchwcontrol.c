@@ -91,7 +91,7 @@ unsigned int tca_tcc_initport(void)
 {
 	if(machine_is_m805_892x())
 	{
-		if(system_rev == 0x2002) {
+		if(system_rev == 0x2002 || system_rev == 0x2003) {
 			tcc_gpio_config(TCC_GPG(6), GPIO_FN1);
 			tcc_gpio_config(TCC_GPG(7), GPIO_FN1);
 			tcc_gpio_config(TCC_GPG(8), GPIO_FN1);

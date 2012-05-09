@@ -183,6 +183,7 @@ static struct clk *lcdc0_output_clk;
 static struct clk *lcdc1_output_clk;
 
 static char output_lcdc[TCC_OUTPUT_MAX];
+static char output_lcdc_onoff = 0;
 static char buf_index = 0;
 static unsigned int FBimg_buf_addr;
 static unsigned int output_layer_ctrl[TCC_OUTPUT_MAX] = {0, 0};
@@ -429,32 +430,42 @@ void TCC_OUTPUT_UPDATE_OnOff(char onoff, char type)
 
 	if(onoff)	
 	{
-		if( vioc_scaler_plug_in )
+		if(output_lcdc_onoff == 0)
 		{
-			if(lcdc_num)
-				VIOC_CONFIG_PlugIn (VIOC_SC2, VIOC_SC_RDMA_04);
+			if( vioc_scaler_plug_in )
+			{
+				if(lcdc_num)
+					VIOC_CONFIG_PlugIn (VIOC_SC2, VIOC_SC_RDMA_04);
+				else
+					VIOC_CONFIG_PlugIn (VIOC_SC2, VIOC_SC_RDMA_00);
+			}
 			else
-				VIOC_CONFIG_PlugIn (VIOC_SC2, VIOC_SC_RDMA_00);
-		}
-		else
-		{
- 			scaler_open((struct inode *)&scaler_inode, (struct file *)&scaler_filp);
-		}
+			{
+	 			scaler_open((struct inode *)&scaler_inode, (struct file *)&scaler_filp);
+			}
 
-		g2d_open((struct inode *)&g2d_inode, (struct file *)&g2d_filp);
+			g2d_open((struct inode *)&g2d_inode, (struct file *)&g2d_filp);
+
+			output_lcdc_onoff = 1;
+		}
 	}
 	else 
 	{
-		if( vioc_scaler_plug_in )
+		if(output_lcdc_onoff == 1)
 		{
-			VIOC_CONFIG_PlugOut (VIOC_SC2);
-		}
-		else
-		{
-			scaler_release((struct inode *)&scaler_inode, (struct file *)&scaler_filp);
-		}
+			if( vioc_scaler_plug_in )
+			{
+				VIOC_CONFIG_PlugOut (VIOC_SC2);
+			}
+			else
+			{
+				scaler_release((struct inode *)&scaler_inode, (struct file *)&scaler_filp);
+			}
 
-		g2d_release((struct inode *)&g2d_inode, (struct file *)&g2d_filp);
+			g2d_release((struct inode *)&g2d_inode, (struct file *)&g2d_filp);
+
+			output_lcdc_onoff = 0;
+		}
 	}
 }
 
@@ -1526,12 +1537,17 @@ void TCC_OUTPUT_FB_AttachOutput(char src_lcdc_num, char dst_output)
 	tcc_output_attach_output = dst_output;
 }
 
-void TCC_OUTPUT_FB_DetachOutput(void)
+void TCC_OUTPUT_FB_DetachOutput(char disable_all)
 {
 	int i = 0;
 	PVIOC_DISP	pDISP;
 	PVIOC_RDMA	pRDMA;
 	PVIOC_WDMA	pWDMA;
+
+	PVIOC_DISP	pDISP_1st;
+	PVIOC_RDMA	pRDMA_1st;
+	PVIOC_DISP	pDISP_2nd;
+	PVIOC_RDMA	pRDMA_2nd;
 
 	printk("%s, src_lcdc_num=%d, dst_output=%d\n", __func__, tcc_output_attach_lcdc, tcc_output_attach_output);
 
@@ -1545,22 +1561,6 @@ void TCC_OUTPUT_FB_DetachOutput(void)
 	/* set the flag */
 	//tcc_output_attach_state = 0;
 	
-	/* set the register */
-	if(tcc_output_attach_lcdc)
-	{
-		pWDMA = (VIOC_WDMA *)tcc_p2v(HwVIOC_WDMA00);
-		pDISP = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP1);
-		pRDMA = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA04);
-	}
-	else
-	{
-		pWDMA = (VIOC_WDMA *)tcc_p2v(HwVIOC_WDMA01);
-		pDISP = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP0);
-		pRDMA = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA00);
-	}
-
-	BITCSET(pDISP->uCTRL.nREG, 0xFFFFFFFF, 0);
-
 	/* clear the flag */
 	tcc_output_attach_state = 0;
 
@@ -1579,14 +1579,36 @@ void TCC_OUTPUT_FB_DetachOutput(void)
 		#endif
 	}
 	
-	VIOC_DISP_TurnOff(pDISP);
-	VIOC_RDMA_SetImageDisable(pRDMA);
+	/* set the register */
+	if(tcc_output_attach_lcdc)
+	{
+		pWDMA = (VIOC_WDMA *)tcc_p2v(HwVIOC_WDMA00);
+		pDISP_1st = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP1);
+		pRDMA_1st = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA04);
+		pDISP_2nd = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP0);
+		pRDMA_2nd = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA00);
+
+	}
+	else
+	{
+		pWDMA = (VIOC_WDMA *)tcc_p2v(HwVIOC_WDMA01);
+		pDISP_1st = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP0);
+		pRDMA_1st = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA00);
+		pDISP_2nd = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP1);
+		pRDMA_2nd = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA04);
+	}
+
+	/* disable the attached output */
+	BITCSET(pDISP_1st->uCTRL.nREG, 0xFFFFFFFF, 0);
+
+	VIOC_DISP_TurnOff(pDISP_1st);
+	VIOC_RDMA_SetImageDisable(pRDMA_1st);
 
 	while(i < 0xF0000)
 	{
 		volatile unsigned int status;
 
-		status = pDISP->uLSTATUS.nREG;
+		status = pDISP_1st->uLSTATUS.nREG;
 		if(status & HwLSTATUS_DD)
 		{
 			dprintk("%s, lcdc disabled!!\n", __func__);
@@ -1595,6 +1617,33 @@ void TCC_OUTPUT_FB_DetachOutput(void)
 
 		i++;
 	}
+
+	/* disable another output */
+	if(disable_all)
+	{
+		BITCSET(pDISP_2nd->uCTRL.nREG, 0xFFFFFFFF, 0);
+		
+		VIOC_DISP_TurnOff(pDISP_2nd);
+		VIOC_RDMA_SetImageDisable(pRDMA_2nd);
+
+		while(i < 0xF0000)
+		{
+			volatile unsigned int status;
+
+			status = pDISP_2nd->uLSTATUS.nREG;
+			if(status & HwLSTATUS_DD)
+			{
+				dprintk("%s, lcdc disabled!!\n", __func__);
+				break;
+			}
+
+			i++;
+		}
+	}
+
+	/* plug-out scaler */
+	if(output_lcdc_onoff)
+		TCC_OUTPUT_UPDATE_OnOff(0, OutputType);
 
 	/* disable WDMA */
 	BITCLR(pWDMA->uCTRL.nREG, (Hw28 | Hw16));
