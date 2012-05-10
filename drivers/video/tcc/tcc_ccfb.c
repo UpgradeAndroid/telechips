@@ -432,6 +432,10 @@ static int tccxxx_ccfb_release(struct inode *inode, struct file *file)
 	}
 
 	if(dev->pCurWMix != NULL){
+		if(g_ccfg_cfg.res.chroma_en) {
+			VIOC_WMIX_SetChromaKey(dev->pCurWMix, 1, 0, 0, 0, 0, 0xF8, 0xFC, 0xF8);
+		}
+
 		VIOC_WMIX_SetOverlayPriority(dev->pCurWMix, g_ovp_value);
 	}
 		
