@@ -251,7 +251,7 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 			VIOC_CONFIG_PlugIn (VIOC_SC1, RDMA_NUM);			
 		}
 
-		if(ImageInfo->Frame_width==ImageInfo->Image_width || ImageInfo->Frame_height==ImageInfo->Image_height) {
+		if(ImageInfo->Frame_width==ImageInfo->Image_width && ImageInfo->Frame_height==ImageInfo->Image_height) {
 			VIOC_SC_SetBypass (pSC, ON);
 			dprintk(" %s  scaler 1 is plug in SetBypass ON \n",__func__);
 		}else {
