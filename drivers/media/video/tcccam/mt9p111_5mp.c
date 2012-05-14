@@ -3812,6 +3812,9 @@ void sensor_info_init_mt9p111(TCC_SENSOR_INFO_TYPE *sensor_info)
 	#endif
 	sensor_info->v_sync_pol 			= ACT_HIGH;
 	sensor_info->h_sync_pol 			= ACT_HIGH;
+	#if defined(CONFIG_ARCH_TCC892X)
+	sensor_info->de_pol                 = ACT_LOW;
+	#endif
 	sensor_info->format 				= M420_ZERO;
 	sensor_info->capture_skip_frame 	= 3;
 	sensor_info->sensor_sizes 			= sensor_sizes_mt9p111;

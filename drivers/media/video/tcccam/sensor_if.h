@@ -83,6 +83,9 @@ typedef struct tcc_sensor_info
 	int p_clock_pol;
 	int v_sync_pol;
 	int h_sync_pol;
+#ifdef CONFIG_ARCH_TCC892X
+	int de_pol;
+#endif
 	int format;
 	int preview_w;
 	int preview_h;

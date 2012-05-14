@@ -1400,6 +1400,9 @@ void sensor_info_init_mt9d112(TCC_SENSOR_INFO_TYPE *sensor_info)
 	sensor_info->p_clock_pol 				= POSITIVE_EDGE;
 	sensor_info->v_sync_pol 				= ACT_HIGH;
 	sensor_info->h_sync_pol                 = ACT_HIGH;
+	#if defined(CONFIG_ARCH_TCC892X)
+	sensor_info->de_pol                 = ACT_LOW;
+	#endif	
 	sensor_info->format 					= M420_ZERO;
 	sensor_info->capture_skip_frame 		= 1;
 	sensor_info->sensor_sizes 			= sensor_sizes_mt9d112;
