@@ -101,6 +101,26 @@ config STB_BOARD_DONGLE
 	  Support for TCC8925 HDMI Dongle Board.
 endchoice
 
+choice
+	prompt "TCC892x HDMI Dongle Clock Mode"
+	default HDMI_DONGLE_CLOCK_NORMAL_SPEED
+	depends on STB_BOARD_DONGLE
+	help
+	  Select the Clock Mode of TCC8925 HDMI Dongle Board.
+
+config HDMI_DONGLE_CLOCK_HIGH_SPEED
+	bool "High Speed Mode"
+	depends on STB_BOARD_DONGLE
+	help
+	  Support High Speed Mode for TCC8925 HDMI Dongle Board.
+
+config HDMI_DONGLE_CLOCK_NORMAL_SPEED
+	bool "Normal Speed Mode"
+	depends on STB_BOARD_DONGLE
+	help
+	  Support Normal Speed Mode for TCC8925 HDMI Dongle Board.
+endchoice
+
 config CPU_HIGHSPEED
     bool "CPU high-speed clock"
     depends on ARCH_TCC892X

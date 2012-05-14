@@ -123,7 +123,12 @@ static struct tcc_voltage_table_t tcc_voltage_table[] = {
 };
 #endif
 
+#if defined(CONFIG_HDMI_DONGLE_CLOCK_HIGH_SPEED)
+#define TCC_CPUFREQ_HIGHER_CLOCK_LIMIT_USE
+#else
 //#define TCC_CPUFREQ_HIGHER_CLOCK_LIMIT_USE
+#endif
+
 #if defined(TCC_CPUFREQ_HIGHER_CLOCK_LIMIT_USE)
 #define TCC_CPUFREQ_HIGHER_CLOCK_VOLTAGE_VALUE 1200000
 //#define TCC_CPUFREQ_HIGHER_CLOCK_VOLTAGE_VALUE 1300000

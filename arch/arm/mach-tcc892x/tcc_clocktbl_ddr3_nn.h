@@ -37,10 +37,10 @@ static struct tcc_freq_table_t gtClockLimitTable[] = {
 	{ 468750,      0, 380710,      0, 140000,      0,      0, 100000,      0 }, // Core 1.10V
 	{ 546875,      0, 456860,      0, 168000,      0,      0, 100000,      0 }, // Core 1.15V
 	{ 625000,      0, 533000,      0, 196000,      0,      0, 100000,      0 }, // Core 1.20V
-	#if !defined(CONFIG_STB_BOARD_DONGLE)
+	#if !defined(CONFIG_HDMI_DONGLE_CLOCK_NORMAL_SPEED)
 	{ 716500,      0, 563450,      0, 219520,      0,      0, 100000,      0 }, // Core 1.25V
 	{ 808000,      0, 600000,      0, 243040,      0,      0, 100000,      0 }, // Core 1.30V
-	#if !defined(CONFIG_STB_BOARD_HDB892S) && !defined(CONFIG_STB_BOARD_HDB892F)
+	#if !defined(CONFIG_STB_BOARD_HDB892S) && !defined(CONFIG_STB_BOARD_HDB892F) && !defined(CONFIG_STB_BOARD_DONGLE)
 	{ 996800,      0, 600000,      0, 243040,      0,      0, 100000,      0 }, // Core 1.425V
 	#endif
 	#endif
