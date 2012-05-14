@@ -161,6 +161,7 @@ static int tcc_rtc_gettime(struct device *dev, struct rtc_time *rtc_tm)
     rtc_tm->tm_min  = pTime.wMinute;
     rtc_tm->tm_hour = pTime.wHour;
     rtc_tm->tm_mday = pTime.wDay;
+    rtc_tm->tm_wday = pTime.wDayOfWeek;
     rtc_tm->tm_mon  = pTime.wMonth - 1;
     rtc_tm->tm_year = pTime.wYear - 1900;
 
@@ -183,6 +184,7 @@ static int tcc_rtc_settime(struct device *dev, struct rtc_time *tm)
     pTime.wMinute       = tm->tm_min;
     pTime.wHour         = tm->tm_hour;
     pTime.wDay          = tm->tm_mday;
+    pTime.wDayOfWeek    = tm->tm_wday;
     pTime.wMonth        = tm->tm_mon + 1;
     pTime.wYear         = tm->tm_year + 1900;
 
