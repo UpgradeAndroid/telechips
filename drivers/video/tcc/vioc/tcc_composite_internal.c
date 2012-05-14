@@ -175,6 +175,12 @@ void internal_tve_set_config(unsigned int type)
 	//Set ECMDA Register
 	internal_tve_set_mode(type);
 
+	//Set ECMDB Register
+	BITSET(pHwTVE->ECMDB.nREG, HwTVECMDB_CBW(2)|HwTVECMDB_YBW(2));
+	
+	//Set SAT Register
+	BITSET(pHwTVE->SAT.nREG, 0x10);
+	
 	//Set DACSEL Register
 	BITSET(pHwTVE->DACSEL.nREG, HwTVEDACSEL_DACSEL_CVBS);
 	//Set DACPD Register
