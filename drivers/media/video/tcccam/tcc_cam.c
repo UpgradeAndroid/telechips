@@ -1615,19 +1615,19 @@ int tccxxx_vioc_vin_main(VIOC_VIN *pVIN)
 				if(system_rev == 0x2002) //M805_8925 board. use DE signal
 				{
 					VIOC_VIN_SetSyncPolarity(pVIN, !(data->cif_cfg.polarity_href), !(data->cif_cfg.polarity_vsync), 
-										OFF, data->cif_cfg.polarity_de, OFF, !(data->cif_cfg.polarity_pclk));	
+											OFF, data->cif_cfg.polarity_de, OFF, !(data->cif_cfg.polarity_pclk));	
 					VIOC_VIN_SetCtrl(pVIN, OFF, OFF, OFF, FMT_YUV422_8BIT, ORDER_RGB);
 				}
 				else // M805_8923 board. not use DE signal.
 				{
 					VIOC_VIN_SetSyncPolarity(pVIN, !(data->cif_cfg.polarity_href), !(data->cif_cfg.polarity_vsync), 
 										OFF, data->cif_cfg.polarity_de, OFF, !(data->cif_cfg.polarity_pclk));
-		VIOC_VIN_SetCtrl(pVIN, OFF, ON, ON, FMT_YUV422_8BIT, ORDER_RGB);
+					VIOC_VIN_SetCtrl(pVIN, OFF, ON, ON, FMT_YUV422_8BIT, ORDER_RGB);
 				}
 	#else
 				VIOC_VIN_SetSyncPolarity(pVIN, !(data->cif_cfg.polarity_href), !(data->cif_cfg.polarity_vsync), 
 								OFF, data->cif_cfg.polarity_de, OFF, !(data->cif_cfg.polarity_pclk));
-		VIOC_VIN_SetCtrl(pVIN, OFF, OFF, OFF, FMT_YUV422_8BIT, ORDER_RGB);
+				VIOC_VIN_SetCtrl(pVIN, OFF, OFF, OFF, FMT_YUV422_8BIT, ORDER_RGB);
 	#endif
 	VIOC_VIN_SetInterlaceMode(pVIN, OFF, OFF);
 #endif
