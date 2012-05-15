@@ -52,7 +52,7 @@ void VIOC_RDMA_GetImageEnable(VIOC_RDMA *pRDMA, unsigned int *enable)
 	pRDMA->uCTRL.bREG.IEN = 1;
 	pRDMA->uCTRL.bREG.UPD = 1;
 	*/
-	enable = ISSET(pRDMA->uCTRL.nREG, 1<<28 );
+	*enable = ISSET(pRDMA->uCTRL.nREG, 1<<28 );
 }
 
 void VIOC_RDMA_SetImageDisable(VIOC_RDMA *pRDMA )

@@ -209,8 +209,8 @@ int __init tcc8920_init_panel(void)
 
 	printk("supported LCD panel type %d\n", tcc_panel_id);
 
-	switch (tcc_panel_id) {
 #if 0
+	switch (tcc_panel_id) {
 #ifdef CONFIG_LCD_LMS350DF01
 	case PANEL_ID_LMS350DF01:
 		platform_device_register(&lms350df01_lcd);
@@ -287,10 +287,10 @@ int __init tcc8920_init_panel(void)
 	default:
 		pr_err("Not supported LCD panel type %d\n", tcc_panel_id);
 		return -EINVAL;
-#else
- 		platform_device_register(&hdmi1280x720_lcd);
-#endif
 	}
+#else
+ 	platform_device_register(&hdmi1280x720_lcd);
+#endif
 
 	ret = platform_device_register(&tcc_lcd_device);
 	if (ret)

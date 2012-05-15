@@ -41,7 +41,11 @@ typedef enum {
 #if defined(CONFIG_STB_BOARD_DONGLE)
 #define TCC_MMC_SDIO_WIFI_USED
 
+#if defined(CONFIG_MMC_TCC_SUPPORT_EMMC)
+#define WIFI_SDMMC_PORT		3
+#else
 #define WIFI_SDMMC_PORT		4
+#endif
 #define WIFI_PERI_SDMMC		PERI_SDMMC0
 #define WIFI_RB_SDMMC		RB_SDMMC0CONTROLLER
 #define WIFI_HwINT1_SD		HwINT1_SD0
@@ -56,41 +60,60 @@ typedef enum {
 
 static struct mmc_port_config mmc_ports[] = {
 	#if defined(CONFIG_MMC_TCC_SUPPORT_EMMC)
-	[TCC_MMC_TYPE_EMMC] = {
-		.data0	= TCC_GPD(18),
-		.data1	= TCC_GPD(17),
-		.data2	= TCC_GPD(16),
-		.data3	= TCC_GPD(15),
-		.data4	= TCC_MMC_PORT_NULL,
-		.data5	= TCC_MMC_PORT_NULL,
-		.data6	= TCC_MMC_PORT_NULL,
-		.data7	= TCC_MMC_PORT_NULL,
-		.cmd	= TCC_GPD(19),
-		.clk	= TCC_GPD(20),
-		.func	= GPIO_FN(2),
-		.width	= TCC_MMC_BUS_WIDTH_4,
+		[TCC_MMC_TYPE_EMMC] = {
+			.data0	= TCC_GPD(18),
+			.data1	= TCC_GPD(17),
+			.data2	= TCC_GPD(16),
+			.data3	= TCC_GPD(15),
+			.data4	= TCC_MMC_PORT_NULL,
+			.data5	= TCC_MMC_PORT_NULL,
+			.data6	= TCC_MMC_PORT_NULL,
+			.data7	= TCC_MMC_PORT_NULL,
+			.cmd	= TCC_GPD(19),
+			.clk	= TCC_GPD(20),
+			.func	= GPIO_FN(2),
+			.width	= TCC_MMC_BUS_WIDTH_4,
 
-		.cd		= TCC_MMC_PORT_NULL,
-		.pwr	= TCC_MMC_PORT_NULL,
-	},
+			.cd		= TCC_MMC_PORT_NULL,
+			.pwr	= TCC_MMC_PORT_NULL,
+		},
+
+		[TCC_MMC_TYPE_WIFI] = {
+			.data0	= TCC_GPB(20),
+			.data1	= TCC_GPB(21),
+			.data2	= TCC_GPB(22),
+			.data3	= TCC_GPB(23),
+			.data4	= TCC_MMC_PORT_NULL,
+			.data5	= TCC_MMC_PORT_NULL,
+			.data6	= TCC_MMC_PORT_NULL,
+			.data7	= TCC_MMC_PORT_NULL,
+			.cmd	= TCC_GPB(19),
+			.clk	= TCC_GPB(28),
+			.func	= GPIO_FN(3),
+			.width	= TCC_MMC_BUS_WIDTH_4,
+
+			.cd	= TCC_MMC_PORT_NULL,
+			.pwr	= TCC_GPD(21),
+		},
+	#else
+		[TCC_MMC_TYPE_WIFI] = {
+			.data0	= TCC_GPD(18),
+			.data1	= TCC_GPD(17),
+			.data2	= TCC_GPD(16),
+			.data3	= TCC_GPD(15),
+			.data4	= TCC_MMC_PORT_NULL,
+			.data5	= TCC_MMC_PORT_NULL,
+			.data6	= TCC_MMC_PORT_NULL,
+			.data7	= TCC_MMC_PORT_NULL,
+			.cmd	= TCC_GPD(19),
+			.clk	= TCC_GPD(20),
+			.func	= GPIO_FN(2),
+			.width	= TCC_MMC_BUS_WIDTH_4,
+
+			.cd	= TCC_MMC_PORT_NULL,
+			.pwr	= TCC_GPD(21),
+		},
 	#endif
-	[TCC_MMC_TYPE_WIFI] = {
-		.data0	= TCC_GPD(18),
-		.data1	= TCC_GPD(17),
-		.data2	= TCC_GPD(16),
-		.data3	= TCC_GPD(15),
-		.data4	= TCC_MMC_PORT_NULL,
-		.data5	= TCC_MMC_PORT_NULL,
-		.data6	= TCC_MMC_PORT_NULL,
-		.data7	= TCC_MMC_PORT_NULL,
-		.cmd	= TCC_GPD(19),
-		.clk	= TCC_GPD(20),
-		.func	= GPIO_FN(2),
-		.width	= TCC_MMC_BUS_WIDTH_4,
-
-		.cd	= TCC_MMC_PORT_NULL,
-		.pwr	= TCC_GPD(21),
-	},
 };
 
 #elif defined(CONFIG_STB_BOARD_HDB892S) || defined(CONFIG_STB_BOARD_HDB892F)

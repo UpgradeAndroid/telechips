@@ -61,17 +61,9 @@ struct tcc_voltage_table_t {
 };
 
 #if defined(CONFIG_TCC_CORE_VOLTAGE_OFFSET) && defined(CONFIG_REGULATOR)
-	#if defined(CONFIG_M805S_8925_0XX)
-	#define CORE_VOLTAGE_OFFSET	((CONFIG_TCC_CORE_VOLTAGE_OFFSET + 25) * 1000)
-	#else
 	#define CORE_VOLTAGE_OFFSET	(CONFIG_TCC_CORE_VOLTAGE_OFFSET * 1000)
-	#endif
 #else
-	#if defined(CONFIG_M805S_8925_0XX)
-	#define CORE_VOLTAGE_OFFSET	(25 * 1000)
-	#else
 	#define CORE_VOLTAGE_OFFSET	(0)
-	#endif
 #endif
 
 #if defined(CONFIG_TCC892X_NN)
@@ -131,7 +123,12 @@ static struct tcc_voltage_table_t tcc_voltage_table[] = {
 };
 #endif
 
+#if defined(CONFIG_HDMI_DONGLE_CLOCK_HIGH_SPEED)
+#define TCC_CPUFREQ_HIGHER_CLOCK_LIMIT_USE
+#else
 //#define TCC_CPUFREQ_HIGHER_CLOCK_LIMIT_USE
+#endif
+
 #if defined(TCC_CPUFREQ_HIGHER_CLOCK_LIMIT_USE)
 #define TCC_CPUFREQ_HIGHER_CLOCK_VOLTAGE_VALUE 1200000
 //#define TCC_CPUFREQ_HIGHER_CLOCK_VOLTAGE_VALUE 1300000

@@ -1926,10 +1926,10 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 		case TCC_LCDC_SET_OUTPUT_RESIZE_MODE:
 			{
 				struct tccfb_info *fbi =(struct tccfb_info *) info->par;
-				int mode;
+				tcc_display_resize mode;
 				printk("%s : TCC_LCDC_SET_OUTPUT_RESIZE_MODE\n", __func__);
 
-				if(copy_from_user((void *)&mode, (const void *)arg, sizeof(int)))
+				if(copy_from_user((void *)&mode, (const void *)arg, sizeof(tcc_display_resize)))
 					return -EFAULT;
 
 				TCC_OUTPUT_SetOutputResizeMode(mode);

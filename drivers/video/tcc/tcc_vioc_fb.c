@@ -1594,9 +1594,9 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 		case TCC_LCDC_SET_OUTPUT_RESIZE_MODE:
 			{
 				struct tccfb_info *fbi =(struct tccfb_info *) info->par;
-				int mode;
+				tcc_display_resize mode;
 
-				if(copy_from_user((void *)&mode, (const void *)arg, sizeof(int)))
+				if(copy_from_user((void *)&mode, (const void *)arg, sizeof(tcc_display_resize)))
 					return -EFAULT;
 
 				//printk("%s : TCC_LCDC_SET_OUTPUT_RESIZE_MODE, mode=%d\n", __func__, mode);
@@ -2215,6 +2215,7 @@ TCC_VSYNC_PUSH_ERROR:
 		break ;
 
 	case TCC_LCDC_VIDEO_SKIP_FRAME_END:
+		if(tccvid_vsync.skipFrameStatus)
 		{
 			vprintk("video fram skip end\n") ;
 			spin_lock_irq(&vsync_lock) ;
