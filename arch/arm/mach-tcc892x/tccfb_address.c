@@ -15,10 +15,11 @@
 void tccxxx_GetAddress(unsigned char format, unsigned int base_Yaddr, unsigned int src_imgx, unsigned int  src_imgy,
 									unsigned int start_x, unsigned int start_y, unsigned int* Y, unsigned int* U,unsigned int* V)
 {
-	unsigned int Uaddr, Vaddr, Yoffset, UVoffset, start_yPos;
+	unsigned int Uaddr, Vaddr, Yoffset, UVoffset, start_yPos, start_xPos;
 	
 	start_yPos = (start_y>>1)<<1;
-	Yoffset = (src_imgx * start_yPos) + start_x;
+	start_xPos = (start_x>>1)<<1;
+	Yoffset = (src_imgx * start_yPos) + start_xPos;
 
 	//RGB format 
 	if((format >= TCC_LCDC_IMG_FMT_RGB332) && (format <= TCC_LCDC_IMG_FMT_ARGB6666_3))
@@ -58,14 +59,14 @@ void tccxxx_GetAddress(unsigned char format, unsigned int base_Yaddr, unsigned i
 
 	if((format == TCC_LCDC_IMG_FMT_YUV420SP) || (format == TCC_LCDC_IMG_FMT_YUV420ITL0) || (format == TCC_LCDC_IMG_FMT_YUV420ITL1)) {
 		if(format == TCC_LCDC_IMG_FMT_YUV420SP)
-			UVoffset = ((src_imgx * start_yPos)/4 + start_x/2);
+			UVoffset = ((src_imgx * start_yPos)/4 + start_xPos/2);
 		else
-			UVoffset = ((src_imgx * start_yPos)/2 + start_x);
+			UVoffset = ((src_imgx * start_yPos)/2 + start_xPos);
 	} else {
 		if(format == TCC_LCDC_IMG_FMT_YUV422ITL1)
-			UVoffset = ((src_imgx * start_yPos) + start_x);
+			UVoffset = ((src_imgx * start_yPos) + start_xPos);
 		else
-			UVoffset = ((src_imgx * start_yPos)/2 + start_x/2);
+			UVoffset = ((src_imgx * start_yPos)/2 + start_xPos/2);
 	}
 	
 	*U = Uaddr + UVoffset;
