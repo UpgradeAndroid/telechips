@@ -167,7 +167,7 @@ static unsigned int output_layer_ctrl[TCC_OUTPUT_MAX] = {0, 0};
 
 static unsigned char OutputType = 0;
 static unsigned char UseVSyncInterrupt = 0;
-static unsigned int uiOutputResizeMode = 0;
+static tcc_display_resize uiOutputResizeMode;
 static lcdc_chroma_params output_chroma;
 static output_video_img_info output_video_img;
 
@@ -806,7 +806,7 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 		
 	if(machine_is_tcc9300st() || machine_is_tcc8800st())
 	{
-		if(uiOutputResizeMode != 0)
+		if(uiOutputResizeMode.resize_x != 0 || uiOutputResizeMode.resize_y != 0)
 			scaler_need = 1;
 	}
 		
@@ -852,7 +852,7 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 	dprintk(" %s width=%d, height=%d, bpp=%d, lcd_width=%d, lcd_height=%d, rotate=%d, format=%d, scale=%d, type=%d\n", 
 			__func__, width, height, bits_per_pixel, lcd_width, lcd_height, g2d_rotate_need, g2d_format_need, scaler_need, type);
 	
-	if(uiOutputResizeMode && TCC_OUTPUT_FB_Get3DMode(&mode_3d) && output_ui_resize_count)
+	if(uiOutputResizeMode.resize_x && uiOutputResizeMode.resize_y && TCC_OUTPUT_FB_Get3DMode(&mode_3d) && output_ui_resize_count)
 	{
 		char *pmap_cpu;
 		unsigned int pmap_size = FB_SCALE_MAX_WIDTH*FB_SCALE_MAX_HEIGHT*2;
@@ -985,8 +985,8 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 			fbscaler.dest_ImgHeight = img_height; 	// destination image height
 			fbscaler.viqe_onthefly = 0;
 
-			x_offset = (uiOutputResizeMode << 4);
-			y_offset = (uiOutputResizeMode << 3);
+			x_offset = (uiOutputResizeMode.resize_x << 4);
+			y_offset = (uiOutputResizeMode.resize_y << 3);
 			img_wd = img_width - x_offset;
 			img_ht = img_height - y_offset;
 
@@ -1049,14 +1049,14 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 		{
 			if(machine_is_tcc9300st() || machine_is_tcc8800st())
 			{
-				img_width -= uiOutputResizeMode << 4;
-				img_height -= uiOutputResizeMode << 3;
+				img_width -= uiOutputResizeMode.resize_x << 4;
+				img_height -= uiOutputResizeMode.resize_y << 3;
 
-	            lcd_w_pos = uiOutputResizeMode << 3;
+	            lcd_w_pos = uiOutputResizeMode.resize_x << 3;
 				if( interlace_output )
-					lcd_h_pos = uiOutputResizeMode << 1;
+					lcd_h_pos = uiOutputResizeMode.resize_y << 1;
 				else
-					lcd_h_pos = uiOutputResizeMode << 2;
+					lcd_h_pos = uiOutputResizeMode.resize_y << 2;
 			}
 
 			ifmt = TCC_LCDC_IMG_FMT_YUV422SQ;
@@ -1316,7 +1316,7 @@ void TCC_OUTPUT_FB_WaitVsyncInterrupt(unsigned int type)
 	}
 }
 
-int TCC_OUTPUT_SetOutputResizeMode(int mode)
+int TCC_OUTPUT_SetOutputResizeMode(tcc_display_resize mode)
 {
 	printk("%s : mode = %d\n", __func__, mode);
 	
