@@ -190,6 +190,12 @@ typedef struct
 
 typedef struct
 {
+        int resize_x;
+        int resize_y;
+}tcc_display_resize;
+
+typedef struct
+{
 	int x;
 	int y;
 }tcc_mouse;

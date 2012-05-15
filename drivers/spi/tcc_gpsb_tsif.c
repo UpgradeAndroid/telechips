@@ -69,6 +69,7 @@ struct tca_spi_pri_handle {
 	u32 bus_num;
 	u32 irq_no;
 	u32 is_suspend;  //0:not in suspend, 1:in suspend
+	u32 packet_read_count;
 	const char *name;
 };
 
@@ -85,6 +86,7 @@ typedef struct
     int (*tsdemux_decoder)(char *p1, int p1_size, char *p2, int p2_size)
 }tsdemux_extern_t;
 static tsdemux_extern_t tsdemux_extern_handle;
+static int tsif_get_readable_cnt(tca_spi_handle_t *H);
 
 static int tcc_tsif_set_external_tsdemux(int (*decoder)(char *p1, int p1_size, char *p2, int p2_size), int max_dec_packet)
 {
@@ -298,24 +300,22 @@ static irqreturn_t tcc_tsif_dma_handler(int irq, void *dev_id)
 
         if (tpri->open_cnt > 0) {
             tspi->cur_q_pos = (int)(tspi->regs->DMASTR >> 17);
-			//Check PCR & Make STC
-			if(tpri->pcr_pid < 0x1FFF )
-			{	
-				int start_pos, search_pos, search_size;
-				start_pos = tspi->cur_q_pos - tspi->dma_intr_packet_cnt;
-				if(start_pos > 0 )
-				{
-					search_pos = start_pos;
-					search_size = tspi->dma_intr_packet_cnt;
-				}	
-				else
-				{
-					search_pos = 0;
-					search_size = tspi->cur_q_pos;
-				}	
-				TSDEMUX_MakeSTC((unsigned char *)tsif_handle.rx_dma.v_addr + search_pos*TSIF_PACKET_SIZE, search_size*TSIF_PACKET_SIZE, tpri->pcr_pid );				
-			}			
-            wake_up(&(tpri->wait_q));
+            //Check PCR & Make STC
+            if(tpri->pcr_pid < 0x1FFF ) {	
+                int start_pos, search_pos, search_size;
+                start_pos = tspi->cur_q_pos - tspi->dma_intr_packet_cnt;
+                if(start_pos > 0 ) {
+                    search_pos = start_pos;
+                    search_size = tspi->dma_intr_packet_cnt;
+                } else {
+                    search_pos = 0;
+                    search_size = tspi->cur_q_pos;
+                }	
+                TSDEMUX_MakeSTC((unsigned char *)tsif_handle.rx_dma.v_addr + search_pos*TSIF_PACKET_SIZE, search_size*TSIF_PACKET_SIZE, tpri->pcr_pid );				
+            }			
+            //check read count & wake_up wait_q
+            if( tsif_get_readable_cnt(tspi) >= tpri->packet_read_count)
+                wake_up(&(tpri->wait_q));
         }
     }
     return IRQ_HANDLED;
@@ -346,6 +346,11 @@ static ssize_t tcc_tsif_read(struct file *filp, char *buf, size_t len, loff_t *p
 
     readable_cnt = tsif_get_readable_cnt(&tsif_handle);
     if (readable_cnt > 0) {
+        
+        if(tsif_pri.packet_read_count != len/TSIF_PACKET_SIZE)
+            printk("set packet_read_count=%d\n", len/TSIF_PACKET_SIZE);
+
+        tsif_pri.packet_read_count = len/TSIF_PACKET_SIZE;
         copy_byte = readable_cnt * TSIF_PACKET_SIZE;
         if (copy_byte > len) {
             copy_byte = len;
@@ -394,12 +399,12 @@ static ssize_t tcc_tsif_write(struct file *filp, const char *buf, size_t len, lo
 
 static unsigned int tcc_tsif_poll(struct file *filp, struct poll_table_struct *wait)
 {
-    if (tsif_get_readable_cnt(&tsif_handle) >= tsif_handle.dma_intr_packet_cnt) {
+    if (tsif_get_readable_cnt(&tsif_handle) >= tsif_pri.packet_read_count) {
 		return  (POLLIN | POLLRDNORM);
     }
 
     poll_wait(filp, &(tsif_pri.wait_q), wait);
-    if (tsif_get_readable_cnt(&tsif_handle) >= tsif_handle.dma_intr_packet_cnt) {
+    if (tsif_get_readable_cnt(&tsif_handle) >= tsif_pri.packet_read_count) {
 		return  (POLLIN | POLLRDNORM);
     }
     return 0;
@@ -461,6 +466,7 @@ static int tcc_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long arg
 
             tsif_handle.dma_total_packet_cnt = param.ts_total_packet_cnt;
             tsif_handle.dma_intr_packet_cnt = param.ts_intr_packet_cnt;
+            tsif_pri.packet_read_count =  tsif_handle.dma_intr_packet_cnt;
 
             #ifdef      SUPORT_USE_SRAM
             tsif_handle.dma_total_packet_cnt = SRAM_TOT_PACKET;

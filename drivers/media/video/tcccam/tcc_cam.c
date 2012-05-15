@@ -122,10 +122,13 @@ void *jpeg_remapped_base_address;
 #endif
 
 static pmap_t pmap_ump_reserved;
+#define PA_PREVIEW_BASE_ADDR 		pmap_ump_reserved.base
+#define PREVIEW_MEM_SIZE 			pmap_ump_reserved.size
 
-#define PA_PREVIEW_BASE_ADDR	pmap_ump_reserved.base
-#define PREVIEW_MEM_SIZE	pmap_ump_reserved.size
-#define PA_TEMP		(PA_PREVIEW_BASE_ADDR + PREVIEW_MEM_SIZE/2)
+static pmap_t pmap_jpeg_raw;
+#define PA_JPEG_RAW_BASE_ADDR 		pmap_jpeg_raw.base
+#define JPEG_RAW_MEM_SIZE 			pmap_jpeg_raw.size
+#define PA_TEMP 					(PA_JPEG_RAW_BASE_ADDR + JPEG_RAW_MEM_SIZE / 2)
 
 u8 current_effect_mode = 0;
 struct TCCxxxCIF hardware_data;
@@ -262,6 +265,9 @@ static void cif_data_init(void *priv)
 	data->cif_cfg.polarity_pclk 	= tcc_sensor_info.p_clock_pol;
 	data->cif_cfg.polarity_vsync 	= tcc_sensor_info.v_sync_pol;
 	data->cif_cfg.polarity_href 	= tcc_sensor_info.h_sync_pol;
+#ifdef CONFIG_ARCH_TCC892X
+	data->cif_cfg.polarity_href 	= tcc_sensor_info.de_pol;
+#endif
 	data->cif_cfg.zoom_step			= 0;
 	data->cif_cfg.base_buf			= hardware_data.cif_buf.addr;
 	data->cif_cfg.pp_num			= 0; // TCC_CAMERA_MAX_BUFNBRS;
@@ -292,7 +298,9 @@ static void cif_data_init(void *priv)
 	data->cif_cfg.polarity_vsync 	= ACT_HIGH;
 #endif
 	data->cif_cfg.polarity_href 	= ACT_HIGH;
-
+#ifdef CONFIG_ARCH_TCC892X
+	data->cif_cfg.polarity_de 		= ACT_LOW;
+#endif
 	data->cif_cfg.oper_mode 		= OPER_PREVIEW;
 	data->cif_cfg.zoom_step			= 0;
 	
@@ -1603,12 +1611,23 @@ int tccxxx_vioc_vin_main(VIOC_VIN *pVIN)
 	VIOC_VIN_SetCtrl(pVIN, ON, OFF, OFF, FMT_YUV422_8BIT, ORDER_RGB);
 	VIOC_VIN_SetInterlaceMode(pVIN, ON, OFF);
 #else
-	VIOC_VIN_SetSyncPolarity(pVIN, !(data->cif_cfg.polarity_href), !(data->cif_cfg.polarity_vsync), 	\
-								OFF, OFF, OFF, !(data->cif_cfg.polarity_pclk));
-	#if defined(CONFIG_MACH_M805_892X) // Because of DE signal, M805S_8923 doesn't have DE signal.
-		VIOC_VIN_SetCtrl(pVIN, OFF, ON, ON, FMT_YUV422_8BIT, ORDER_RGB);
+			#if defined(CONFIG_MACH_M805_892X) // Because of DE signal
+				if(system_rev == 0x2002) //M805_8925 board. use DE signal
+				{
+					VIOC_VIN_SetSyncPolarity(pVIN, !(data->cif_cfg.polarity_href), !(data->cif_cfg.polarity_vsync), 
+											OFF, data->cif_cfg.polarity_de, OFF, !(data->cif_cfg.polarity_pclk));	
+					VIOC_VIN_SetCtrl(pVIN, OFF, OFF, OFF, FMT_YUV422_8BIT, ORDER_RGB);
+				}
+				else // M805_8923 board. not use DE signal.
+				{
+					VIOC_VIN_SetSyncPolarity(pVIN, !(data->cif_cfg.polarity_href), !(data->cif_cfg.polarity_vsync), 
+										OFF, data->cif_cfg.polarity_de, OFF, !(data->cif_cfg.polarity_pclk));
+					VIOC_VIN_SetCtrl(pVIN, OFF, ON, ON, FMT_YUV422_8BIT, ORDER_RGB);
+				}
 	#else
-		VIOC_VIN_SetCtrl(pVIN, OFF, OFF, OFF, FMT_YUV422_8BIT, ORDER_RGB);
+				VIOC_VIN_SetSyncPolarity(pVIN, !(data->cif_cfg.polarity_href), !(data->cif_cfg.polarity_vsync), 
+								OFF, data->cif_cfg.polarity_de, OFF, !(data->cif_cfg.polarity_pclk));
+				VIOC_VIN_SetCtrl(pVIN, OFF, OFF, OFF, FMT_YUV422_8BIT, ORDER_RGB);
 	#endif
 	VIOC_VIN_SetInterlaceMode(pVIN, OFF, OFF);
 #endif
@@ -2439,11 +2458,11 @@ int tccxxx_cif_start_stream(void)
 			sc_plug_in0 = VIOC_SC_VIN_00; 	// VIOC_SC_WDMA_05;
 		    sc_plug_in1 = VIOC_SC_WDMA_05; 	// VIOC_SC_WDMA_07;
 
-			old_zoom_step = 0;
-
 			cif_set_port(4);
 
-			prev_buf = NULL;
+			skipped_frm 	= 0;
+			old_zoom_step 	= 0;
+			prev_buf 		= NULL;
 
 		#if defined(CONFIG_VIDEO_ATV_SENSOR_TVP5150)
 			frm_cnt 	= 0;
@@ -2454,7 +2473,7 @@ int tccxxx_cif_start_stream(void)
 			dprintk("TVP5150 start!!\n");
 			sensor_if_change_mode(OPER_PREVIEW);
 			tccxxx_vioc_vin_main(pVINBase);
-			if(!bUseSimpleDeIntl) tccxxx_vioc_viqe_main(ON);
+			if(!bUseSimpleDeIntl) 	tccxxx_vioc_viqe_main(ON);
 			tccxxx_vioc_viqe_wmix_set(pWMIXBase, VIOC_VIQE_VIN_00, bUseSimpleDeIntl);
 			tccxxx_vioc_scaler_set(pSCBase, pVINBase, pWMIXBase, sc_plug_in1);
 			tccxxx_vioc_vin_wdma_set(pWDMABase);
@@ -2534,8 +2553,7 @@ int tccxxx_cif_stop_stream(void)
 	while(!(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_EOFR_MASK)) {
 		msleep(1);
 		if((cam_loop_lmt_cnt > CAMERA_LOOP_LIMIT_COUNT) || (cam_no_connect_cnt > 3)) {
-			volatile PVIOC_IREQ_CONFIG pIREQConfig = (volatile PVIOC_IREQ_CONFIG)tcc_p2v((unsigned int)HwVIOC_IREQ);
-			VIOC_WDMA_SWReset(pIREQConfig, 0x5/* WDMA05 */);
+			VIOC_WDMA_SWReset(pVIOCConfig, 0x5/* WDMA05 */);
 			printk("cam_loop_lmt_cnt = %d, cam_no_connect_cnt = %d. \n", cam_loop_lmt_cnt, cam_no_connect_cnt);
 			cam_loop_lmt_cnt = cam_no_connect_cnt = 0;
 			break;
@@ -2543,6 +2561,11 @@ int tccxxx_cif_stop_stream(void)
 	}
 
 	VIOC_VIN_SetEnable(pVINBase, OFF); // disable VIN
+
+	#if defined(CONFIG_VIDEO_ATV_SENSOR_TVP5150)
+	VIOC_CONFIG_PlugOut(VIOC_VIQE);
+	//VIOC_CONFIG_PlugOut(VIOC_DEINTLS);
+	#endif
 #else
 	cif_timer_deregister();
 	cif_interrupt_disable();
@@ -3062,6 +3085,7 @@ int  tccxxx_cif_init(void)
 	struct cif_dma_buffer *buf = &hardware_data.cif_buf;    
 
 	pmap_get_info("ump_reserved", &pmap_ump_reserved);
+	pmap_get_info("jpeg_raw", &pmap_jpeg_raw);
 
 	memset(&hardware_data,0x00,sizeof(struct TCCxxxCIF));
 	hardware_data.buf = hardware_data.static_buf;
@@ -3125,6 +3149,18 @@ int  tccxxx_cif_init(void)
 	pDDIConfig = (DDICONFIG *)tcc_p2v(HwDDI_CONFIG_BASE);
 	pVIOCConfig = (VIOC_IREQ_CONFIG *)tcc_p2v(HwVIOC_IREQ);
 	pVIQEBase = (VIQE *)tcc_p2v(HwVIOC_VIQE0);
+
+	BITCSET(pVIOCConfig->uSOFTRESET.nREG[1], (1<<5), (1<<5)); 		// WDMA5 reset
+	BITCSET(pVIOCConfig->uSOFTRESET.nREG[0], (1<<28), (1<<28)); 	// SCALER0 reset
+	BITCSET(pVIOCConfig->uSOFTRESET.nREG[1], (1<<14), (1<<14)); 	// WMIX5 reset
+	BITCSET(pVIOCConfig->uSOFTRESET.nREG[0], (1<<24), (1<<24)); 	// VIN0 reset
+	BITCSET(pVIOCConfig->uSOFTRESET.nREG[1], (1<<16), (1<<16)); 	// VIQE0 reset
+
+	BITCSET(pVIOCConfig->uSOFTRESET.nREG[1], (1<<16), (0<<16)); 	// VIQE0 reset clear
+	BITCSET(pVIOCConfig->uSOFTRESET.nREG[0], (1<<24), (0<<24)); 	// VIN0 reset clear
+	BITCSET(pVIOCConfig->uSOFTRESET.nREG[1], (1<<14), (0<<14)); 	// WMIX5 reset clear
+	BITCSET(pVIOCConfig->uSOFTRESET.nREG[0], (1<<28), (0<<28)); 	// SCALER0 reset clear
+	BITCSET(pVIOCConfig->uSOFTRESET.nREG[1], (1<<5), (0<<5)); 		// WDMA5 reset clear
 #endif
   
 	/* Init the camera IF */

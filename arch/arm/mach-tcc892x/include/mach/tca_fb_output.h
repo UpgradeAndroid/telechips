@@ -96,7 +96,7 @@ extern void TCC_OUTPUT_FB_UpdateSync(unsigned int type);
 extern char TCC_OUTPUT_FB_Update_Video(struct tcc_lcdc_image_update *ImageInfo, unsigned int type);
 
 extern void TCC_OUTPUT_FB_WaitVsyncInterrupt(unsigned int type);
-extern int TCC_OUTPUT_SetOutputResizeMode(int mode);
+extern int TCC_OUTPUT_SetOutputResizeMode(tcc_display_resize mode);
 
 extern int TCC_OUTPUT_FB_BackupVideoImg(char output_type);
 extern int TCC_OUTPUT_FB_RestoreVideoImg(char output_type);

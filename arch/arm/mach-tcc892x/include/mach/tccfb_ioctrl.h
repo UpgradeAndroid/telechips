@@ -192,6 +192,12 @@ typedef struct
 	int frame_hz;
 }tcc_display_size;
 
+typedef struct
+{
+	int resize_x;
+	int resize_y;
+}tcc_display_resize;
+
 typedef struct 
 {
 	int x;

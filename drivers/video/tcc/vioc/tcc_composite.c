@@ -573,7 +573,7 @@ void tcc_composite_set_lcd2tv(COMPOSITE_MODE_TYPE type)
  
 	memset(&LcdCtrlParam, NULL, sizeof(LcdCtrlParam));
 
-	LcdCtrlParam.r2ymd = 3;
+	LcdCtrlParam.r2ymd = 2;
 	LcdCtrlParam.ckg = 1;
 	LcdCtrlParam.id= 0;
 	LcdCtrlParam.iv = 0;
