@@ -190,7 +190,7 @@ static unsigned int output_layer_ctrl[TCC_OUTPUT_MAX] = {0, 0};
 
 static unsigned char OutputType = 0;
 static unsigned char UseVSyncInterrupt = 0;
-static unsigned int uiOutputResizeMode = 0;
+static tcc_display_resize uiOutputResizeMode;
 static lcdc_chroma_params output_chroma;
 static output_video_img_info output_video_img;
 
@@ -766,9 +766,9 @@ char TCC_FB_G2D_FmtConvert(unsigned int width, unsigned int height, unsigned int
 	return 1;
 }
 
-int TCC_OUTPUT_SetOutputResizeMode(int mode)
+int TCC_OUTPUT_SetOutputResizeMode(tcc_display_resize mode)
 {
-	printk("%s : mode = %d\n", __func__, mode);
+	printk("%s : mode_x = %d, mode_y = %d\n", __func__, mode.resize_x, mode.resize_y);
 	
 	uiOutputResizeMode = mode;
 
@@ -840,7 +840,7 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 	g2d_rotate_need = 1;
 	#endif//
 
-	if(lcd_width != width || lcd_height != height || uiOutputResizeMode)
+	if(lcd_width != width || lcd_height != height || uiOutputResizeMode.resize_x || uiOutputResizeMode.resize_y)
 		scaler_need = 1;
 
 	if(bits_per_pixel == 32 )	{
@@ -1011,8 +1011,8 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 				fbscaler.dest_ImgHeight = img_height; 	// destination image height
 				fbscaler.viqe_onthefly = 0;
 
-				x_offset = (uiOutputResizeMode << 4);
-				y_offset = (uiOutputResizeMode << 3);
+				x_offset = (uiOutputResizeMode.resize_x << 4);
+				y_offset = (uiOutputResizeMode.resize_y << 3);
 				img_wd = img_width - x_offset;
 				img_ht = img_height - y_offset;
 
@@ -1047,14 +1047,14 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 			{
 				if(machine_is_tcc8920st())
 				{
-					img_width -= uiOutputResizeMode << 4;
-					img_height -= uiOutputResizeMode << 3;
+					img_width -= uiOutputResizeMode.resize_x << 4;
+					img_height -= uiOutputResizeMode.resize_y << 3;
 
-			        lcd_w_pos = uiOutputResizeMode << 3;
+			        lcd_w_pos = uiOutputResizeMode.resize_x << 3;
 					if( interlace_output )
-						lcd_h_pos = uiOutputResizeMode << 1;
+						lcd_h_pos = uiOutputResizeMode.resize_y << 1;
 					else
-						lcd_h_pos = uiOutputResizeMode << 2;
+						lcd_h_pos = uiOutputResizeMode.resize_y << 2;
 
 					VIOC_WMIX_SetPosition(pDISP_OUTPUT[type].pVIOC_WMIXBase, 0, lcd_w_pos, lcd_h_pos);
 				}
@@ -1082,14 +1082,14 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 	{
 		if(machine_is_tcc8920st())
 		{
-			lcd_width -= uiOutputResizeMode << 4;
-			lcd_height -= uiOutputResizeMode << 3;
+			lcd_width -= uiOutputResizeMode.resize_x << 4;
+			lcd_height -= uiOutputResizeMode.resize_y << 3;
 
-	        lcd_w_pos = uiOutputResizeMode << 3;
+	        lcd_w_pos = uiOutputResizeMode.resize_x << 3;
 			if( interlace_output )
-				lcd_h_pos = uiOutputResizeMode << 1;
+				lcd_h_pos = uiOutputResizeMode.resize_x << 1;
 			else
-				lcd_h_pos = uiOutputResizeMode << 2;
+				lcd_h_pos = uiOutputResizeMode.resize_y << 2;
 
 			VIOC_WMIX_SetPosition(pDISP_OUTPUT[type].pVIOC_WMIXBase, 0, lcd_w_pos, lcd_h_pos);
 		}
@@ -1285,8 +1285,8 @@ int TCC_OUTPUT_FB_MouseMove(unsigned int width, unsigned int height, tcc_mouse *
 	if((!lcd_width) || (!lcd_height))
 		return;
 
-	lcd_width -= uiOutputResizeMode << 4;
-	lcd_height -= uiOutputResizeMode << 3;
+	lcd_width -= uiOutputResizeMode.resize_x << 4;
+	lcd_height -= uiOutputResizeMode.resize_y << 3;
 
 	mouse_x = (unsigned int)(lcd_width * mouse->x / width);
 	mouse_y = (unsigned int)(lcd_height *mouse->y / height);
@@ -1304,11 +1304,11 @@ int TCC_OUTPUT_FB_MouseMove(unsigned int width, unsigned int height, tcc_mouse *
 	VIOC_RDMA_SetImageOffset(pRDMABase, TCC_LCDC_IMG_FMT_RGB888, mouse_cursor_width);
 	VIOC_RDMA_SetImageFormat(pRDMABase, TCC_LCDC_IMG_FMT_RGB888);
 
-	mouse_x += uiOutputResizeMode << 3;
+	mouse_x += uiOutputResizeMode.resize_x << 3;
 	if( interlace_output )
-		mouse_y += uiOutputResizeMode << 1;
+		mouse_y += uiOutputResizeMode.resize_y << 1;
 	else
-		mouse_y += uiOutputResizeMode << 2;
+		mouse_y += uiOutputResizeMode.resize_y << 2;
 
 	lcd_w_pos = mouse_x;
 	lcd_h_pos = mouse_y;

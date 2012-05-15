@@ -977,11 +977,6 @@ static int axp192_pmic_probe(struct i2c_client *client, const struct i2c_device_
 	i2c_smbus_write_byte_data(client, AXP192_ADC_ENABLE2_REG, AXP192_ADC2);
 	i2c_smbus_write_byte_data(client, AXP192_ADC_TSPIN_REG, AXP192_ADC_TS);
 
-	/* GPIO0 set to Low output for using LDO4 */
-	i2c_smbus_write_byte_data(client, AXP192_LDO4_FUNC_SET_REG, 0x05);	// Low output
-	i2c_smbus_write_byte_data(client, AXP192_LDO4_VOLTAGE_REG, 0xF0);	// 3.3V
-
-
 	axp192_charge_current(AXP192_CHG_CURR_780mA);
 
 	if (client->irq) {
@@ -1160,18 +1155,6 @@ static int __init axp192_pmic_init(void)
 	axp192_wq = create_singlethread_workqueue("axp192_wq");
 	if (!axp192_wq)
 		return -ENOMEM;
-
-
-	//kch temp for usb charger using axp192
-	/////////////////////////////////////////////////
-	if(machine_is_m801_88() || machine_is_m803())
-	{
-		gpio_request(TCC_GPG(12), "VBUSSEL");
-		tcc_gpio_config(TCC_GPG(12), GPIO_FN(0));
-		gpio_direction_output(TCC_GPG(12), 0);
-		gpio_set_value(TCC_GPG(12),0);
-	}
-	/////////////////////////////////////////////////
 
 	return i2c_add_driver(&axp192_pmic_driver);
 }

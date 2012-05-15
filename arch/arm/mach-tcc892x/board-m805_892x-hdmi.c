@@ -42,7 +42,7 @@ int m805_892x_hdmi_power(struct device *dev, tcc_hdmi_power_s pwr)
 				#if defined(CONFIG_REGULATOR)
 				if (vdd_hdmi_osc == NULL)
 				{
-					vdd_hdmi_osc = regulator_get(NULL, "vdd_sata33");	//vdd_sata33 == vdd_hdmi_osc
+					vdd_hdmi_osc = regulator_get(NULL, "vdd_hdmi_osc");
 					if (IS_ERR(vdd_hdmi_osc)) {
 						printk("Failed to obtain vdd_hdmi_osc\n");
 						vdd_hdmi_osc = NULL;
