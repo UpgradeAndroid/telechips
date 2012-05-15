@@ -2215,6 +2215,7 @@ TCC_VSYNC_PUSH_ERROR:
 		break ;
 
 	case TCC_LCDC_VIDEO_SKIP_FRAME_END:
+		if(tccvid_vsync.skipFrameStatus)
 		{
 			vprintk("video fram skip end\n") ;
 			spin_lock_irq(&vsync_lock) ;

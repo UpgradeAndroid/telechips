@@ -237,7 +237,9 @@ typedef struct cif_c_t {
 	unsigned char           polarity_pclk;
 	unsigned char           polarity_vsync;
 	unsigned char           polarity_href;
-
+#ifdef CONFIG_ARCH_TCC892X
+	unsigned char           polarity_de;
+#endif
 	enum cifoper_mode		oper_mode;
 	unsigned char 			zoom_step; // for capture!!
 	cif_main_set			main_set;
