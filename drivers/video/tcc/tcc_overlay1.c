@@ -283,6 +283,9 @@ void tccxxx_overlay1_fmt_set(unsigned int fmt)
 int tccxxx_overlay1_q_buffer(unsigned int* arg )
 {
 	unsigned int curY_phyAddr, curU_phyAddr, curV_phyAddr;
+#if  defined (CONFIG_TCC_VIOC_CONTROLLER)
+	unsigned int enable;
+#endif//
 
 	if(copy_from_user(&curY_phyAddr, (unsigned int *)arg, sizeof(unsigned int)))
 		return -EFAULT;
@@ -325,43 +328,49 @@ int tccxxx_overlay1_q_buffer(unsigned int* arg )
 	// image address
 	curU_phyAddr = GET_ADDR_YUV42X_spU(curY_phyAddr, overlay1_cfg.width, overlay1_cfg.height); 
 	curV_phyAddr = GET_ADDR_YUV420_spV(curU_phyAddr, overlay1_cfg.width, overlay1_cfg.height);
-	
-	#if defined(CONFIG_TCC_LCDC_CONTROLLER)
+
+#if defined(CONFIG_TCC_LCDC_CONTROLLER)
 		BITCSET (pLCDC1->LI1BA0, 0xFFFFFFFF,  curY_phyAddr); // address0
 		BITCSET (pLCDC1->LI1BA1, 0xFFFFFFFF,  curU_phyAddr); // address1	
 		BITCSET (pLCDC1->LI1BA2, 0xFFFFFFFF,  curV_phyAddr); // address2
-	#else
+#else
 		VIOC_RDMA_SetImageBase(pRDMABase5, curY_phyAddr, curU_phyAddr,curV_phyAddr );
-	#endif//
-
+#endif//
+	
 	if(!start_en)
 	{
 		tccxxx_overlay_common_enable();
 		tccxxx_overlay1_fmt_set(overlay1_fmt.fmt.pix.pixelformat);
-	#if defined(CONFIG_TCC_LCDC_CONTROLLER)
+		
+#if defined(CONFIG_TCC_LCDC_CONTROLLER)
 		BITCLR (pLCDC1->LI1C, HwLIC_INTL);				 // not interlace format
 		BITSET(pLCDC1->LCTRL, Hw0);	
-	#else
+#else
 		VIOC_RDMA_SetImageIntl(pRDMABase5 , 0);
 		VIOC_RDMA_SetImageEnable(pRDMABase5);
-	#endif//
+#endif//
 		start_en = 1;
 	}
 	
-	#if defined(CONFIG_TCC_LCDC_CONTROLLER)
+#if defined(CONFIG_TCC_LCDC_CONTROLLER)
 		if(!(pLCDC1->LI1C & Hw28))
 			BITCSET (pLCDC1->LI1C, 0x1<<28, 	(1)  << 28); // Enable Image
-	#else
+#else
+	VIOC_RDMA_GetImageEnable(pRDMABase5, &enable);
+	if(!enable)
 		VIOC_RDMA_SetImageEnable(pRDMABase5);
-	#endif//
+#endif//
 
 	tccxxx_overlay_check_priority();
-
-	#if defined(CONFIG_TCC_LCDC_CONTROLLER)
+	
+#if defined(CONFIG_TCC_LCDC_CONTROLLER)
 		#if !defined(CONFIG_ARCH_TCC92XX)
 			BITCSET (pLCDC1->LI1C, HwLCT_RU, HwLCT_RU); //Image update
 		#endif
-	#endif
+#else
+//	VIOC_WMIX_SetUpdate(pWMIXBase1);
+	VIOC_RDMA_SetImageUpdate(pRDMABase5);
+#endif
 
 	return 0;
 }

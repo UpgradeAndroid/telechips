@@ -547,7 +547,7 @@ void tccxxx_overlay_common_disable(int channel)
 				BITCSET (pLCDC1->LI0C, HwLCT_RU, HwLCT_RU); //Image update
 				#endif
 			#else
-				VIOC_RDMA_GetImageEnable(pRDMABase6, &enable);
+				VIOC_RDMA_SetImageDisable(pRDMABase);
 			#endif//
 		}
 		else if(channel == 1)
@@ -558,7 +558,7 @@ void tccxxx_overlay_common_disable(int channel)
 				BITCSET (pLCDC1->LI1C, HwLCT_RU, HwLCT_RU); //Image update
 				#endif
 			#else
-				VIOC_RDMA_GetImageEnable(pRDMABase6, &enable);
+				VIOC_RDMA_SetImageDisable(pRDMABase);
 			#endif//
 		}
 		else
@@ -574,6 +574,9 @@ EXPORT_SYMBOL(tccxxx_overlay_common_disable);
 int tccxxx_overlay_q_buffer(unsigned int* arg )
 {
 	unsigned int curY_phyAddr, curU_phyAddr, curV_phyAddr;
+#if  defined (CONFIG_TCC_VIOC_CONTROLLER)
+	unsigned int enable;
+#endif//
 
 	if(copy_from_user(&curY_phyAddr, (unsigned int *)arg, sizeof(unsigned int)))
 		return -EFAULT;
@@ -616,44 +619,49 @@ int tccxxx_overlay_q_buffer(unsigned int* arg )
 	curU_phyAddr = GET_ADDR_YUV42X_spU(curY_phyAddr, overlay_cfg.width, overlay_cfg.height); 
 	curV_phyAddr = GET_ADDR_YUV420_spV(curU_phyAddr, overlay_cfg.width, overlay_cfg.height);
 
-	#if defined(CONFIG_TCC_LCDC_CONTROLLER)
+#if defined(CONFIG_TCC_LCDC_CONTROLLER)
 		BITCSET (pLCDC1->LI0BA0, 0xFFFFFFFF,  curY_phyAddr); // address0
 		BITCSET (pLCDC1->LI0BA1, 0xFFFFFFFF,  curU_phyAddr); // address1	
 		BITCSET (pLCDC1->LI0BA2, 0xFFFFFFFF,  curV_phyAddr); // address2
-	#else
+#else
 		VIOC_RDMA_SetImageBase(pRDMABase6, curY_phyAddr, curU_phyAddr,curV_phyAddr );
-	#endif//
+#endif//
 	
 	if(!start_en)
 	{
 		tccxxx_overlay_common_enable();
 		tccxxx_overlay_fmt_set(overlay_fmt.fmt.pix.pixelformat);
 		
-	#if defined(CONFIG_TCC_LCDC_CONTROLLER)
+#if defined(CONFIG_TCC_LCDC_CONTROLLER)
 		BITCLR (pLCDC1->LI0C, HwLIC_INTL);				 // not interlace format
 		BITSET(pLCDC1->LCTRL, Hw0);	
-	#else
+#else
 		VIOC_RDMA_SetImageIntl(pRDMABase6 , 0);
 		VIOC_RDMA_SetImageEnable(pRDMABase6 );
-	#endif//
+#endif//
 		start_en = 1;
 	}
 	
-	#if defined(CONFIG_TCC_LCDC_CONTROLLER)
+#if defined(CONFIG_TCC_LCDC_CONTROLLER)
 	if(!(pLCDC1->LI0C & Hw28)){
 		BITCSET (pLCDC1->LI0C, 0x1<<28, 	(1)  << 28); // Enable Image
 	}
-	#else
+#else
+	VIOC_RDMA_GetImageEnable(pRDMABase6, &enable);
+	if(!enable)
 		VIOC_RDMA_SetImageEnable(pRDMABase6);
-	#endif//
+#endif//
 
 	tccxxx_overlay_check_priority();
 	
-	#if defined(CONFIG_TCC_LCDC_CONTROLLER)
-#if !defined(CONFIG_ARCH_TCC92XX)
+#if defined(CONFIG_TCC_LCDC_CONTROLLER)
+	#if !defined(CONFIG_ARCH_TCC92XX)
 	BITCSET (pLCDC1->LI0C, HwLCT_RU, HwLCT_RU); //Image update
-#endif
 	#endif
+#else
+//	VIOC_WMIX_SetUpdate(pWMIXBase1);
+	VIOC_RDMA_SetImageUpdate(pRDMABase6);
+#endif
 	return 0;
 }
 
