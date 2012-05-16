@@ -619,6 +619,10 @@ static struct platform_device *m801_88_devices[] __initdata = {
 #endif
 #if defined(CONFIG_TCC_DWC_OTG) || defined(CONFIG_TCC_DWC_OTG_MODULE)	
 	&tcc8800_dwc_otg_device,	
+#if defined(CONFIG_USB_EHCI_TCC)  || defined(CONFIG_USB_EHCI_HCD_MODULE)
+	&ehci_hs_device,
+	&ehci_fs_device,
+#endif
 #endif
 #if defined(CONFIG_I2C_TCC_SMU)
     &tcc8800_i2c_smu_device,
