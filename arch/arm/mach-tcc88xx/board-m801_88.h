@@ -18,6 +18,9 @@
 
 #define		M805_SUPPORT //This is upgrade version of M801
 
+#define GPIO_NAND_RDY0		TCC_GPB(29)
+#define GPIO_NAND_RDY1		TCC_GPB(28)
+#define GPIO_NAND_WP		TCC_GPB(27)
 
 #define GPIO_PWR_KEY		TCC_GPA(3)
 #define GPIO_LCD_BL			TCC_GPA(4)
