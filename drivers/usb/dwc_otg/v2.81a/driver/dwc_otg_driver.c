@@ -712,7 +712,7 @@ static int IsUSBDET(dwc_otg_core_if_t *_core_if)
 	PPIC pPIC = (PPIC)tcc_p2v(HwPIC_BASE);
 
 #if defined(CONFIG_ARCH_TCC88XX)
-	if (machine_is_tcc8800() || machine_is_tcc8800st())
+	if (machine_is_tcc8800() || machine_is_tcc8800st() || machine_is_m801_88())
 		return (pPIC->STS0 & (1<<INT_EI0));
 #endif
 #if defined(CONFIG_ARCH_TCC93XX)

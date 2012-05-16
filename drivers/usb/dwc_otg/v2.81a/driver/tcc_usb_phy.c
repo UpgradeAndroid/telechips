@@ -278,10 +278,10 @@ void TCC_OTG_PWR_M801(int on)
 {
 	/* bugfixed: for VBUS detect (IsUSBDET())*/
     if (on) {
-	    tca_ckc_setperi(PERI_USB11H, ENABLE, 480000, PCDIRECTPLL1);
+	    tca_ckc_setperi(PERI_USB11H, ENABLE, 480000);
     } else {
 #if !defined(CONFIG_USB_OHCI_HCD) && !defined(CONFIG_USB_OHCI_HCD_MODULE)
-        tca_ckc_setperi(PERI_USB11H, DISABLE, 480000, PCDIRECTPLL1);
+        tca_ckc_setperi(PERI_USB11H, DISABLE, 480000);
 #endif
     }
 }
