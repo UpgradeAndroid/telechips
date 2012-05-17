@@ -370,7 +370,7 @@ int tcc_component_detect(void)
 	int detect = true;
 
 	#if defined (CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST) || defined(CONFIG_MACH_TCC8920ST)
-		#if defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION)
+		#if defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION) && defined(TCC_OUTPUT_AUTO_ALL)
 			if(component_plugout)
 			{
 				if(component_ext_interrupt == 1)
@@ -2028,7 +2028,7 @@ int __init tcc_component_init(void)
 	device_create(tcc_component_class, NULL, MKDEV(MAJOR_ID, MINOR_ID), NULL, DEVICE_NAME);
 	
 	#if defined (CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST)
-		#if defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION)
+		#if defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION) && defined(TCC_OUTPUT_AUTO_ALL)
 			tcc_gpio_config(COMPONENT_DETECT_GPIO, GPIO_FN(0));
 			gpio_request(COMPONENT_DETECT_GPIO, NULL);
 			gpio_direction_input(COMPONENT_DETECT_GPIO);
