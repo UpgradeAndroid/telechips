@@ -102,6 +102,26 @@ config STB_BOARD_DONGLE
 endchoice
 
 choice
+	prompt "TCC892x MiniSTB Clock Mode"
+	default HDB892X_CLOCK_NORMAL_SPEED
+	depends on (STB_BOARD_HDB892S || STB_BOARD_HDB892F)
+	help
+	  Select the Clock Mode of TCC8925 HDMI Dongle Board.
+
+config HDB892X_CLOCK_HIGH_SPEED
+	bool "High Speed Mode"
+	depends on (STB_BOARD_HDB892S || STB_BOARD_HDB892F)
+	help
+	  Support High Speed Mode for TCC892x HDB892x Board.
+
+config HDB892X_CLOCK_NORMAL_SPEED
+	bool "Normal Speed Mode"
+	depends on (STB_BOARD_HDB892S || STB_BOARD_HDB892F)
+	help
+	  Support Normal Speed Mode for TCC8925 HDB892x Board.
+endchoice
+
+choice
 	prompt "TCC892x HDMI Dongle Clock Mode"
 	default HDMI_DONGLE_CLOCK_NORMAL_SPEED
 	depends on STB_BOARD_DONGLE
@@ -119,6 +139,32 @@ config HDMI_DONGLE_CLOCK_NORMAL_SPEED
 	depends on STB_BOARD_DONGLE
 	help
 	  Support Normal Speed Mode for TCC8925 HDMI Dongle Board.
+endchoice
+
+choice
+	prompt "TCC892x HDMI Dongle WiFi Chip"
+	default HDMI_DONGLE_WIFI_ARTHEROS
+	depends on STB_BOARD_DONGLE
+	help
+	  Select WiFi Chip of TCC8925 HDMI Dongle Board.
+
+config HDMI_DONGLE_WIFI_ARTHEROS
+	bool "Artheros AR6102/6103"
+	depends on STB_BOARD_DONGLE
+	help
+	  Support Artheros AR6102/6103 for TCC8925 HDMI Dongle Board.
+
+config HDMI_DONGLE_WIFI_REALTEK
+	bool "Realtek RTL8188/8189"
+	depends on STB_BOARD_DONGLE
+	help
+	  Support Realtek RTL8188/8189 for TCC8925 HDMI Dongle Board.
+
+config HDMI_DONGLE_WIFI_BROADCOM
+	bool "Broadcom BCM4330"
+	depends on STB_BOARD_DONGLE
+	help
+	  Support Broadcom BCM4330 for TCC8925 HDMI Dongle Board.
 endchoice
 
 config CPU_HIGHSPEED

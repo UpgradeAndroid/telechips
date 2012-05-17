@@ -77,7 +77,9 @@ static struct mmc_port_config mmc_ports[] = {
 			.cd		= TCC_MMC_PORT_NULL,
 			.pwr	= TCC_MMC_PORT_NULL,
 		},
-
+	#endif
+	
+	#if defined(CONFIG_HDMI_DONGLE_WIFI_REALTEK)
 		[TCC_MMC_TYPE_WIFI] = {
 			.data0	= TCC_GPB(20),
 			.data1	= TCC_GPB(21),

@@ -1273,7 +1273,9 @@ int TCC_OUTPUT_FB_MouseMove(unsigned int width, unsigned int height, tcc_mouse *
 	unsigned int lcd_width, lcd_height, lcd_w_pos,lcd_h_pos, mouse_x, mouse_y;
 	unsigned int interlace_output, display_width, display_height;
 
-	if(pDISP_OUTPUT[type].pVIOC_DispBase == NULL)
+	if( (pDISP_OUTPUT[type].pVIOC_DispBase == NULL) ||
+		(pDISP_OUTPUT[type].pVIOC_WMIXBase == NULL) ||
+		(pDISP_OUTPUT[type].pVIOC_RDMA_Mouse == NULL) )
 	{
 		dprintk("%s - Err: Output LCDC is not valid, type=%d\n", __func__, type);
 		return 0;
@@ -1587,9 +1589,6 @@ void TCC_OUTPUT_FB_DetachOutput(char disable_all)
 		return;
 	}
 
-	/* set the flag */
-	//tcc_output_attach_state = 0;
-	
 	/* clear the flag */
 	tcc_output_attach_state = 0;
 
