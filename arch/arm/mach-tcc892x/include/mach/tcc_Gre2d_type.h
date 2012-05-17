@@ -14,8 +14,8 @@ typedef enum{
 
 typedef enum{
 	NOOP,
-	FLIP_VER = 0x2,
-	FLIP_HOR = 0x3,
+	FLIP_HOR = 0x2,
+	FLIP_VER = 0x3,
 	FLIP_HV = 0x4,
 	ROTATE_90  = 0x5,
 	ROTATE_180 = 0x6,

@@ -590,11 +590,12 @@ static struct sensor_reg sensor_initialize_mt9m113_max27fps[] = {
 { 0x0990, 0x001E 	}, // MCU_DATA_0
 { 0x098C, 0xA103 	}, // MCU_ADDRESS
 { 0x0990, 0x0005 	}, // MCU_DATA_0
-{ MT9M113_REG_TERM, 0x012C}, // 300ms
+//{ MT9M113_REG_TERM, 0x012C}, // 300ms
+{ MT9M113_REG_TERM, 0x0064}, // 300ms
 { 0x098C, 0xA103 	}, // MCU_ADDRESS
 { 0x0990, 0x0006 	}, // MCU_DATA_0
-{ MT9M113_REG_TERM, 0x012C}, // 300ms
-
+//{ MT9M113_REG_TERM, 0x012C}, // 300ms
+{ MT9M113_REG_TERM, 0x0064}, // 300ms
 	{MT9M113_REG_TERM, MT9M113_VAL_TERM}
 };
 
@@ -1109,10 +1110,11 @@ static struct sensor_reg sensor_initialize_mt9m113[] = {
 { 0x098C, 0xA103 	}, // MCU_ADDRESS
 { 0x0990, 0x0005 	}, // MCU_DATA_0
 { MT9M113_REG_TERM, 0x012C},	//DELAY= 300	}, // 300ms
+//{ MT9M113_REG_TERM, 0x0064}, // 300ms
 { 0x098C, 0xA103 	}, // MCU_ADDRESS
 { 0x0990, 0x0006 	}, // MCU_DATA_0
 { MT9M113_REG_TERM, 0x012C},	//DELAY= 300	}, // 300ms
-
+//{ MT9M113_REG_TERM, 0x0064}, // 300ms
 // Intialize_End
 
     {MT9M113_REG_TERM, MT9M113_VAL_TERM}
