@@ -41,7 +41,7 @@ typedef enum {
 #if defined(CONFIG_STB_BOARD_DONGLE)
 #define TCC_MMC_SDIO_WIFI_USED
 
-#if defined(CONFIG_MMC_TCC_SUPPORT_EMMC)
+#if defined(CONFIG_HDMI_DONGLE_WIFI_REALTEK)
 #define WIFI_SDMMC_PORT		3
 #else
 #define WIFI_SDMMC_PORT		4
