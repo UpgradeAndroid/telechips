@@ -201,7 +201,7 @@ static int pclk_enable(struct clk *clk)
     if (clk->clock)
         clk->clock(clk->clock_idx, 1);
     if (clk->swreset)
-        clk->swreset(clk->swreset_idx, 0);
+        clk->swreset(clk->pwdn_idx, 0);
     local_irq_restore(flags);
     return 0;
 }
@@ -212,7 +212,7 @@ static void pclk_disable(struct clk *clk)
     dbg("%s: clk:%s\n", __func__, clk->name);
     local_irq_save(flags);     
     if (clk->swreset)
-        clk->swreset(clk->swreset_idx, 1);
+        clk->swreset(clk->pwdn_idx, 1);
     if (clk->clock)
         clk->clock(clk->clock_idx, 0);
     if (clk->pwdn)
