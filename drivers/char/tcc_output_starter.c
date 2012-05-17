@@ -1168,7 +1168,7 @@ static int tcc_hdmi_detect_cable(void)
 	int ret = true;
 
 	#if defined(CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST) || defined(CONFIG_MACH_TCC8920ST)
-		#if defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION)
+		#if defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION) || defined(TCC_OUTPUT_STARTER_DUAL_AUTO)
 			tcc_gpio_config(GPIO_OUTPUT_HDMI_DETECT, GPIO_FN(0));
 			gpio_request(GPIO_OUTPUT_HDMI_DETECT, NULL);
 			gpio_direction_input(GPIO_OUTPUT_HDMI_DETECT);
@@ -1256,7 +1256,7 @@ static int tcc_composite_detect_cable(void)
 	int ret = true;
 
 	#if defined(CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST) || defined(CONFIG_MACH_TCC8920ST)
-		#if defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION)
+		#if defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION) && defined(TCC_OUTPUT_AUTO_ALL)
 			tcc_gpio_config(GPIO_OUTPUT_COMPOSITE_DETECT, GPIO_FN(0));
 			gpio_request(GPIO_OUTPUT_COMPOSITE_DETECT, NULL);
 			gpio_direction_input(GPIO_OUTPUT_COMPOSITE_DETECT);
@@ -1272,7 +1272,7 @@ static int tcc_component_detect_cable(void)
 	int ret = true;
 
 	#if defined(CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST) || defined(CONFIG_MACH_TCC8920ST)
-		#if defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION)
+		#if defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION) && defined(TCC_OUTPUT_AUTO_ALL)
 			tcc_gpio_config(GPIO_OUTPUT_COMPONENT_DETECT, GPIO_FN(0));
 			gpio_request(GPIO_OUTPUT_COMPONENT_DETECT, NULL);
 			gpio_direction_input(GPIO_OUTPUT_COMPONENT_DETECT);
@@ -2667,7 +2667,7 @@ int __init tcc_output_starter_init(void)
 				tcc_output_starter_hdmi(lcdc_2nd, tcc_display_data.hdmi_resolution);
 
 				/* 2nd Output Setting */
-				TCC_OUTPUT_FB_AttachOutput(lcdc_2nd, TCC_OUTPUT_COMPONENT);
+				TCC_OUTPUT_FB_AttachOutput(lcdc_2nd, TCC_OUTPUT_COMPONENT, 1);
 			}
 			else
 			{
@@ -2678,7 +2678,7 @@ int __init tcc_output_starter_init(void)
 					tcc_output_starter_hdmi(lcdc_1st, tcc_display_data.hdmi_resolution);
 
 				/* 2nd Output Setting */
-				TCC_OUTPUT_FB_AttachOutput(lcdc_1st, TCC_OUTPUT_COMPOSITE);
+				TCC_OUTPUT_FB_AttachOutput(lcdc_1st, TCC_OUTPUT_COMPOSITE, 1);
 			}
 		#else
 			/* 1st Output Setting */
@@ -2698,19 +2698,19 @@ int __init tcc_output_starter_init(void)
 			if(tcc_display_data.output == STARTER_OUTPUT_COMPONENT)
 			{
 				/* 1st Output Setting */
-				if(tcc_hdmi_detect_cable() == true)
+				//if(tcc_hdmi_detect_cable() == true)
 					tcc_output_starter_hdmi(lcdc_2nd, tcc_display_data.hdmi_resolution);
 
 				/* 2nd Output Setting */
 				if(tcc_component_detect_cable() == true)
-					TCC_OUTPUT_FB_AttachOutput(lcdc_2nd, TCC_OUTPUT_COMPONENT);
+					TCC_OUTPUT_FB_AttachOutput(lcdc_2nd, TCC_OUTPUT_COMPONENT, 1);
 				else if(tcc_composite_detect_cable() == true)
-					TCC_OUTPUT_FB_AttachOutput(lcdc_2nd, TCC_OUTPUT_COMPOSITE);
+					TCC_OUTPUT_FB_AttachOutput(lcdc_2nd, TCC_OUTPUT_COMPOSITE, 1);
 			}
 			else
 			{
 				/* 1st Output Setting */
-				if(tcc_hdmi_detect_cable() == true)
+				//if(tcc_hdmi_detect_cable() == true)
 				{
 					if(tcc_display_data.output >= STARTER_OUTPUT_MAX)
 						tcc_output_starter_hdmi(lcdc_1st, STARTER_HDMI_640x480P);
@@ -2720,9 +2720,9 @@ int __init tcc_output_starter_init(void)
 
 				/* 2nd Output Setting */
 				if(tcc_composite_detect_cable() == true)
-					TCC_OUTPUT_FB_AttachOutput(lcdc_1st, TCC_OUTPUT_COMPOSITE);
+					TCC_OUTPUT_FB_AttachOutput(lcdc_1st, TCC_OUTPUT_COMPOSITE, 1);
 				else if(tcc_component_detect_cable() == true)
-					TCC_OUTPUT_FB_AttachOutput(lcdc_1st, TCC_OUTPUT_COMPONENT);
+					TCC_OUTPUT_FB_AttachOutput(lcdc_1st, TCC_OUTPUT_COMPONENT, 1);
 			}
 		#else
 			/* 1st Output Setting */
@@ -2746,6 +2746,36 @@ int __init tcc_output_starter_init(void)
 				else if(tcc_component_detect_cable() == true)
 					tcc_output_starter_component(lcdc_2nd, STARTER_COMPONENT_720P+tcc_display_data.component_resolution);
 			}
+		#endif
+	#elif defined(TCC_OUTPUT_STARTER_DUAL_AUTO)
+		#if defined(CONFIG_ARCH_TCC892X)
+			/* 1st Output Setting */
+			if(tcc_hdmi_detect_cable() == true)
+			{
+				if(tcc_display_data.output >= STARTER_OUTPUT_MAX)
+					tcc_output_starter_hdmi(lcdc_1st, STARTER_HDMI_640x480P);
+				else
+					tcc_output_starter_hdmi(lcdc_1st, tcc_display_data.hdmi_resolution);
+			}
+			else
+				tcc_output_starter_component(lcdc_1st, STARTER_COMPONENT_720P+tcc_display_data.component_resolution);
+
+			/* 2nd Output Setting */
+			TCC_OUTPUT_FB_AttachOutput(lcdc_1st, TCC_OUTPUT_COMPOSITE, 1);
+		#else
+			/* 1st Output Setting */
+			if(tcc_hdmi_detect_cable() == true)
+			{
+				if(tcc_display_data.output >= STARTER_OUTPUT_MAX)
+					tcc_output_starter_hdmi(lcdc_1st, STARTER_HDMI_640x480P);
+				else
+					tcc_output_starter_hdmi(lcdc_1st, tcc_display_data.hdmi_resolution);
+			}
+			else
+				tcc_output_starter_component(lcdc_1st, STARTER_COMPONENT_720P+tcc_display_data.component_resolution);
+
+			/* 2nd Output Setting */
+			tcc_output_starter_composite(lcdc_2nd, tcc_display_data.composite_resolution);
 		#endif
 	#else
 		switch(tcc_display_data.output)

@@ -49,7 +49,7 @@ config TCC_HDMI_DRIVER
 config TCC_HDMI_VIDEO_UI_DISABLE
 	bool "HDMI UI disable during video play"
 	depends on (ARCH_TCC88XX && !MACH_TCC8800ST)
-	default y
+	default n
 
 choice
 	prompt  "HDMI FB ROTATE DISPLAY"

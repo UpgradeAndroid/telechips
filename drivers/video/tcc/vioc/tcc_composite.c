@@ -354,7 +354,7 @@ int tcc_composite_detect(void)
 	int detect = true;
 
 	#if defined (CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST) || defined(CONFIG_MACH_TCC8920ST)
-		#if defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION)
+		#if defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION) && defined(TCC_OUTPUT_AUTO_ALL)
 			if(composite_plugout)
 			{
 				if(composite_ext_interrupt == 1)
@@ -381,6 +381,18 @@ int tcc_composite_detect(void)
 					dprintk("%s, detect=%d\n", __func__, detect);
 				}
 			}
+		#elif defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION) && defined(TCC_OUTPUT_AUTO_HDMI_CVBS)
+			/* Check the HDMI detection */
+			#if defined(CONFIG_MACH_TCC9300ST)
+				if(gpio_get_value(TCC_GPA(14)))
+			#elif defined(CONFIG_MACH_TCC8800ST)
+				if(gpio_get_value(TCC_GPD(25)))
+			#elif defined(CONFIG_MACH_TCC8920ST)
+				if(gpio_get_value(TCC_GPHDMI(1)))
+			#endif
+				{
+					detect = false;
+				}
  		#endif
 	#endif
 
@@ -1484,7 +1496,7 @@ int __init tcc_composite_init(void)
 	tcc_composite_clock_onoff(0);
 
 	#if defined (CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST)
-		#if defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION)
+		#if defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION) && defined(TCC_OUTPUT_AUTO_ALL)
 			tcc_gpio_config(COMPOSITE_DETECT_GPIO, GPIO_FN(0));
 			gpio_request(COMPOSITE_DETECT_GPIO, NULL);
 			gpio_direction_input(COMPOSITE_DETECT_GPIO);

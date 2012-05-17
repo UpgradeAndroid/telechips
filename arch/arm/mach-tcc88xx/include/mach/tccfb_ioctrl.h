@@ -76,6 +76,7 @@ typedef enum{
 #define	TCC_LCDC_VIDEO_SET_FRAMERATE	0x006B
 #define	TCC_LCDC_VIDEO_SKIP_ONE_FRAME	0x006C
 #define TCC_LCDC_VIDEO_DEINTERLACE_SET	0x006D		// ronald.lee
+#define TCC_LCDC_VIDEO_GET_VALID_COUNT  0x006E
 #endif
 
 #define	TCC_LCDC_EXCLUSIVE_UI_SET_PARAM			0x0070
@@ -187,6 +188,12 @@ typedef struct
 	int height;
 	int frame_hz;
 }tcc_display_size;
+
+typedef struct
+{
+        int resize_x;
+        int resize_y;
+}tcc_display_resize;
 
 typedef struct
 {

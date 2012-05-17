@@ -30,12 +30,22 @@ extern
 	#if defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION)
 	#define TCC_OUTPUT_STARTER_AUTO_DETECT
 	#elif defined(CONFIG_TCC_OUTPUT_ATTACH)
-	#define TCC_OUTPUT_STARTER_DUAL
+	#define TCC_OUTPUT_STARTER_DUAL_AUTO
 	#else
-	//#define TCC_OUTPUT_STARTER_DUAL
 	#define TCC_OUTPUT_STARTER_SINGLE
+	//#define TCC_OUTPUT_STARTER_DUAL
+	//#define TCC_OUTPUT_STARTER_DUAL_AUTO
 	//#define TCC_OUTPUT_STARTER_AUTO_DETECT
 	#endif
+#endif
+
+#if defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION)
+	#define TCC_OUTPUT_AUTO_ALL
+	//#define TCC_OUTPUT_AUTO_HDMI_CVBS
+#endif
+	
+#if defined(CONFIG_TCC_OUTPUT_ATTACH)
+	//#define TCC_OUTPUT_ATTACH_DUAL_AUTO
 #endif
 
 /*****************************************************************************
@@ -109,7 +119,7 @@ extern int TCC_OUTPUT_FB_MouseSetIcon(tcc_mouse_icon *mouse_icon);
 extern int TCC_OUTPUT_FB_Set3DMode(char enable, char mode);
 extern int TCC_OUTPUT_FB_Get3DMode(char *mode);
 
-extern void TCC_OUTPUT_FB_AttachOutput(char src_lcdc_num, char output_type);
+extern void TCC_OUTPUT_FB_AttachOutput(char src_lcdc_num, char output_type, char starer_flag);
 extern void TCC_OUTPUT_FB_DetachOutput(char disable_all);
 extern void TCC_OUTPUT_FB_AttachUpdate(char src_lcdc_num);
 

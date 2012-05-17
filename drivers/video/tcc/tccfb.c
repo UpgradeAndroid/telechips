@@ -700,7 +700,8 @@ static void DisplayUpdate(void)
 
 	if(tccvid_vsync.outputMode == Output_SelectMode && tccvid_vsync.vsync_buffer.cur_lcdc_buff_addr != pNextImage->addr0)
 	{
-		//printk("mt(%d), st(%d), remain_buff(%d)\n", pNextImage->time_stamp, current_time+VIDEO_SYNC_MARGIN_EARLY, tccvid_vsync.vsync_buffer.readable_buff_count) ;
+		//printk("mt(%d), remain_buff(%d) readIdx(%d) write(%d) readaddr(%x) cleared_buff_id(%d) buffer_unique_id %d\n", pNextImage->time_stamp, tccvid_vsync.vsync_buffer.readable_buff_count,
+		//	tccvid_vsync.vsync_buffer.readIdx,tccvid_vsync.vsync_buffer.writeIdx,pNextImage->addr0,tccvid_vsync.vsync_buffer.last_cleared_buff_id,tccvid_vsync.vsync_buffer.stImage[tccvid_vsync.vsync_buffer.readIdx].buffer_unique_id) ;
 		tccvid_vsync.vsync_buffer.cur_lcdc_buff_addr = pNextImage->addr0;
 #if 0
 	    if(testToggleBit)
@@ -2656,6 +2657,11 @@ TCC_VSYNC_PUSH_ERROR:
 				return -1;
 			}
 			break ;
+		
+		case TCC_LCDC_VIDEO_GET_VALID_COUNT:
+			return tccvid_vsync.vsync_buffer.readable_buff_count; 
+			break ;
+		
 		case TCC_LCDC_VIDEO_CLEAR_FRAME:
 			{
 				int syncBufferIdx;

@@ -20,7 +20,7 @@
 #include <linux/i2c.h>
 #include <linux/i2c/pca953x.h>
 #include <linux/akm8975.h>
-#include <linux/usb/android_composite.h>
+//#include <linux/usb/android_composite.h>
 #include <linux/spi/spi.h>
 #include <linux/regulator/machine.h>
 #include <linux/regulator/axp192.h>
@@ -30,21 +30,39 @@
 #include <asm/mach/map.h>
 #include <asm/mach/flash.h>
 
+#include <mach/gpio.h>
+#include <mach/bsp.h>
 #include <plat/serial.h>
 #include <mach/tca_serial.h>
 #include <mach/gpio.h>
 #include <mach/bsp.h>
 #include <mach/tca_i2c.h>
+#include <mach/ohci.h>
+#include <mach/tcc_fb.h>
 #include <plat/tcc_ts.h>
 #include <plat/nand.h>
 
 #include "devices.h"
 #include "board-m801_88.h"
 
+#if defined(CONFIG_RADIO_RDA5870)
+#define RADIO_I2C_SLAVE_ID			(0x20>>1)
+#endif
+
+#if defined(CONFIG_FB_TCC_COMPONENT)
+#include <linux/i2c/cs4954.h>
+#endif
+
+#if defined(CONFIG_FB_TCC_COMPONENT)
+#define CS4954_I2C_SLAVE_ID 		(0x08>>1)
+#define THS8200_I2C_SLAVE_ID 		(0x40>>1)
+
+#endif // defined(CONFIG_FB_TCC_COMPONENT)
 void __cpu_early_init(void);
 
 extern void __init tcc_init_irq(void);
 extern void __init tcc_map_common_io(void);
+extern void __init tcc_reserve_sdram(void);
 
 static struct spi_board_info m801_88_spi0_board_info[] = {
 	{
@@ -99,10 +117,10 @@ static struct tcc_adc_ts_platform_data m801_touchscreen_pdata = {
 	.min_y = 1,
 	.max_y = 4095,
 #else
-	.min_x = 350,
-	.max_x = 3650,
-	.min_y = 420,
-	.max_y = 3680,
+	.min_x = 110,
+	.max_x = 3990,
+	.min_y = 250,
+	.max_y = 3800,
 #endif
 
 #ifdef CONFIG_PORTRAIT_LCD
@@ -135,7 +153,7 @@ static struct regulator_consumer_supply axp192_consumer_a = {
 static struct regulator_init_data axp192_dcdc2_info = {
 	.constraints = {
 		.name = "vdd_coreA range",
-		.min_uV =  950000,
+		.min_uV = 1050000,
 		.max_uV = 1700000,
 		.always_on = 1,
 		.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE,
@@ -191,6 +209,12 @@ static struct axp192_platform_data axp192_info = {
 };
 #endif
 
+#if defined(CONFIG_FB_TCC_COMPONENT)
+static struct cs4954_i2c_platform_data  cs4954_i2c_data = {
+};
+static struct cs4954_i2c_platform_data  ths8200_i2c_data = {
+};
+#endif
 #if defined(CONFIG_I2C_TCC_CORE0)
 static struct i2c_board_info __initdata i2c_devices0[] = {
     {
@@ -205,11 +229,33 @@ static struct i2c_board_info __initdata i2c_devices0[] = {
 		.platform_data = &axp192_info,
 	},
 #endif
+	#if defined(CONFIG_FB_TCC_COMPONENT)
+	{
+		I2C_BOARD_INFO("component-cs4954", CS4954_I2C_SLAVE_ID),
+		.platform_data = &cs4954_i2c_data,
+	},
+	{
+		I2C_BOARD_INFO("component-ths8200", THS8200_I2C_SLAVE_ID),
+		.platform_data = &ths8200_i2c_data,
+	}, //CONFIG_FB_TCC_COMPONENT
+	#endif
 };
 #endif
 
 #if defined(CONFIG_I2C_TCC_CORE1)
 static struct i2c_board_info __initdata i2c_devices1[] = {
+#if defined(CONFIG_TOUCHSCREEN_TCC_AK4183)
+	{
+		I2C_BOARD_INFO("tcc-ts-ak4183", 0x48),
+		.platform_data = NULL,
+	},
+#endif
+#if defined(CONFIG_TOUCHSCREEN_TCC_SITRONIX)
+	{
+		I2C_BOARD_INFO("tcc-ts-sitronix", 0x55),
+		.platform_data = NULL,
+	},
+#endif
 };
 #endif
 
@@ -249,32 +295,50 @@ static void __init tcc8800_init_irq(void)
 	tcc_init_irq();
 }
 
-static void m801_88_nand_init(void)
+static int gMultiCS = 0;
+static void tcc8800_nand_init(void)
 {
 	unsigned int gpio_wp = GPIO_NAND_WP;
-	unsigned int gpio_rdy = GPIO_NAND_RDY;
+	unsigned int gpio_rdy0 = GPIO_NAND_RDY0;	
 
 	tcc_gpio_config(gpio_wp, GPIO_FN(0));
-	tcc_gpio_config(gpio_rdy, GPIO_FN(0));
+	tcc_gpio_config(gpio_rdy0, GPIO_FN(0));	
 
 	gpio_request(gpio_wp, "nand_wp");
 	gpio_direction_output(gpio_wp, 1);
 
-	gpio_request(gpio_rdy, "nand_rdy");
-	gpio_direction_input(gpio_rdy);
+	gpio_request(gpio_rdy0, "nand_rdy0");
+	gpio_direction_input(gpio_rdy0);
 }
 
-static int m801_88_nand_ready(void)
+static int tcc8800_nand_ready(void)
 {
-	return !gpio_get_value(GPIO_NAND_RDY);
+	if ( gMultiCS == TRUE )
+		return ! ( ( gpio_get_value(GPIO_NAND_RDY0) ) && ( gpio_get_value(GPIO_NAND_RDY1) ) );
+	else
+		return !gpio_get_value(GPIO_NAND_RDY0);	
 }
 
+static void tcc8800_SetFlags( int bMultiCS )
+{
+	gMultiCS = bMultiCS;
+
+	if( gMultiCS == TRUE )
+	{
+		unsigned int gpio_rdy1 = GPIO_NAND_RDY1;
+
+		tcc_gpio_config(gpio_rdy1, GPIO_FN(0));
+		gpio_request(gpio_rdy1, "nand_rdy1");
+		gpio_direction_input(gpio_rdy1);
+	}
+}
 static struct tcc_nand_platform_data tcc_nand_platdata = {
 	.parts		= NULL,
 	.nr_parts	= 0,
 	.gpio_wp	= GPIO_NAND_WP,
-	.init		= m801_88_nand_init,
-	.ready		= m801_88_nand_ready,
+	.init		= tcc8800_nand_init,
+	.ready		= tcc8800_nand_ready,
+	.SetFlags	= tcc8800_SetFlags,
 };
 
 static struct platform_device tcc_nand_device = {
@@ -296,6 +360,7 @@ static void tcc_add_nand_device(void)
  * Device     : USB Android Gadget
  * Description:
  *----------------------------------------------------------------------*/
+#if 0
 static struct usb_mass_storage_platform_data mass_storage_pdata = {
 #ifdef CONFIG_SCSI
 	.nluns = 4, // for iNand
@@ -314,6 +379,9 @@ static struct platform_device usb_mass_storage_device = {
 		.platform_data = &mass_storage_pdata,
 	},
 };
+
+#endif
+
 
 #if CONFIG_TCC_UART2_DMA
 static struct tcc_uart_platform_data uart2_data = {
@@ -371,6 +439,7 @@ static struct tcc_uart_platform_data uart1_data_bt = {
 };
 #endif
 
+#if 0
 #ifdef CONFIG_USB_ANDROID_RNDIS
 static struct usb_ether_platform_data rndis_pdata = {
 	/* ethaddr is filled by board_serialno_setup */
@@ -459,6 +528,8 @@ static struct platform_device android_usb_device = {
 	},
 };
 
+#endif
+
 static struct platform_device tcc_earjack_detect_device = {
 	.name	= "switch-gpio-earjack-detect",
 	.id		= -1,
@@ -470,6 +541,53 @@ static struct platform_device tccwdt_device = {
 	.id		= -1,
 };
 #endif
+#if defined(CONFIG_USB_OHCI_HCD) || defined(CONFIG_USB_OHCI_HCD_MODULE)
+static u64 m801_88_device_ohci_dmamask = 0xffffffffUL;
+ 
+static struct resource m801_88_ohci_resources[] = {
+	[0] = {
+		.start = tcc_p2v(HwUSBHOST_BASE),
+		.end   = tcc_p2v(HwUSBHOST_BASE) + 0x5C,
+		.flags = IORESOURCE_MEM,
+	},
+	[1] = {
+		.start = INT_UH11,
+		.end   = INT_UH11,
+		.flags = IORESOURCE_IRQ,
+	}
+};
+
+static struct platform_device m801_88_ohci_device = {
+	.name			= "tcc-ohci",
+	.id				= 0,
+	.num_resources  = ARRAY_SIZE(m801_88_ohci_resources),
+	.resource       = m801_88_ohci_resources,
+	.dev			= {
+		.dma_mask 			= &m801_88_device_ohci_dmamask,
+		.coherent_dma_mask	= 0xffffffff,
+	},
+};
+
+static int m801_88_ohci_init(struct device *dev)
+{
+	return 0;
+}
+
+static struct tccohci_platform_data m801_88_ohci_platform_data = {
+	.port_mode	= USBOHCI_PPM_PERPORT,
+	.init			= m801_88_ohci_init,
+};
+
+void __init m801_88_set_ohci_info(struct tccohci_platform_data *info)
+{
+	m801_88_ohci_device.dev.platform_data = info;
+}
+
+void __init m801_88_init_usbhost(void)
+{
+	m801_88_set_ohci_info(&m801_88_ohci_platform_data);
+}
+#endif /* CONFIG_USB_OHCI_HCD */
 
 static struct platform_device *m801_88_devices[] __initdata = {
 	&tcc8800_uart0_device,
@@ -496,12 +614,15 @@ static struct platform_device *m801_88_devices[] __initdata = {
 #if defined(CONFIG_I2C_TCC_CORE1)
     &tcc8800_i2c_core1_device,
 #endif
+#if defined(CONFIG_USB_OHCI_HCD) || defined(CONFIG_USB_OHCI_HCD_MODULE)
+	&m801_88_ohci_device,
+#endif
 #if defined(CONFIG_TCC_DWC_OTG) || defined(CONFIG_TCC_DWC_OTG_MODULE)	
 	&tcc8800_dwc_otg_device,	
-#endif
 #if defined(CONFIG_USB_EHCI_TCC)  || defined(CONFIG_USB_EHCI_HCD_MODULE)
 	&ehci_hs_device,
 	&ehci_fs_device,
+#endif
 #endif
 #if defined(CONFIG_I2C_TCC_SMU)
     &tcc8800_i2c_smu_device,
@@ -515,8 +636,8 @@ static struct platform_device *m801_88_devices[] __initdata = {
 #endif
 
 #endif
-	&usb_mass_storage_device,
-	&android_usb_device,
+//	&usb_mass_storage_device,
+//	&android_usb_device,
 	&tcc_earjack_detect_device,
 #if defined(CONFIG_GPS_JGR_SC3_S)
 	&tcc8800_uart3_device,
@@ -528,7 +649,7 @@ static struct platform_device *m801_88_devices[] __initdata = {
 
 static int __init board_serialno_setup(char *serialno)
 {
-	android_usb_pdata.serial_number = serialno;
+	//android_usb_pdata.serial_number = serialno;
 	return 1;
 }
 __setup("androidboot.serialno=", board_serialno_setup);
@@ -599,13 +720,18 @@ static void __init tcc8800_map_io(void)
 	tcc_map_common_io();
 }
 
+static void __init tcc8800_mem_reserve(void)
+{
+    tcc_reserve_sdram();
+}
 extern struct sys_timer tcc_timer;
 
 MACHINE_START(M801_88, "m801_88")
 	/* Maintainer: Telechips Linux BSP Team <linux@telechips.com> */
-	.phys_io        = 0xf0000000,
-	.io_pg_offst    = ((0xf0000000) >> 18) & 0xfffc,
+	//.phys_io        = 0xf0000000,
+	//.io_pg_offst    = ((0xf0000000) >> 18) & 0xfffc,
 	.boot_params    = PHYS_OFFSET + 0x00000100,
+	.reserve        = tcc8800_mem_reserve,
 	.map_io         = tcc8800_map_io,
 	.init_irq       = tcc8800_init_irq,
 	.init_machine   = tcc8800_init_machine,

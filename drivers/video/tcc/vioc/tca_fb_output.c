@@ -232,10 +232,13 @@ extern struct tcc_freq_table_t gtHdmiClockLimitTable;
 extern unsigned int tca_get_lcd_lcdc_num(viod);
 extern unsigned int tca_get_output_lcdc_num(viod);
 
-char tcc_output_attach_state = 0;
-char tcc_output_attach_index = 0;
-char tcc_output_attach_lcdc = 0;
-char tcc_output_attach_output = 0;
+static char tcc_output_attach_state = 0;
+static char tcc_output_attach_index = 0;
+static char tcc_output_attach_lcdc = 0;
+static char tcc_output_attach_output = 0;
+static char tcc_output_attach_update = 0;
+static char tcc_output_attach_starter = 0;
+static char tcc_output_attach_plugin = 0;
 extern struct display_platform_data tcc_display_data;
 #if defined(CONFIG_FB_TCC_COMPOSITE)
 extern void tcc_composite_attach(int lcdc_num, char onoff);
@@ -260,6 +263,15 @@ static irqreturn_t TCC_OUTPUT_LCDC_Handler(int irq, void *dev_id)
 
 	BITCSET(pDISP_OUTPUT[OutputType].pVIOC_DispBase->uLSTATUS.nREG, 0xFFFFFFFF, 0xFFFFFFFF);
 
+	if(tcc_output_attach_state)
+	{
+		if(tcc_output_attach_update)
+		{
+			TCC_OUTPUT_FB_AttachUpdate(pDISP_OUTPUT[OutputType].LCDC_N);
+			tcc_output_attach_update = 0;
+		}
+	}
+	
 	if(Output_struct.state == 0){
 		Output_struct.state = 1;
 		wake_up_interruptible(&Output_struct.waitq);
@@ -1170,7 +1182,12 @@ void TCC_OUTPUT_FB_UpdateSync(unsigned int type)
 	VIOC_RDMA_SetImageBase(pDISP_OUTPUT[type].pVIOC_RDMA_FB, FBimg_buf_addr, 0, 0);
 
 	if(tcc_output_attach_state)
-		TCC_OUTPUT_FB_AttachUpdate(pDISP_OUTPUT[type].LCDC_N);
+	{
+		if(tcc_output_attach_starter)
+			TCC_OUTPUT_FB_AttachUpdate(pDISP_OUTPUT[type].LCDC_N);
+		else
+			tcc_output_attach_update = 1;
+	}
 	
 	FBimg_buf_addr = 0;
 
@@ -1350,6 +1367,13 @@ int TCC_OUTPUT_FB_MouseMove(unsigned int width, unsigned int height, tcc_mouse *
 	VIOC_WMIX_SetUpdate(pWMIXBase);
 	VIOC_RDMA_SetImageEnable(pRDMABase);
 
+	if(tcc_output_attach_state)
+	{
+		if(tcc_output_attach_starter)
+			TCC_OUTPUT_FB_AttachUpdate(pDISP_OUTPUT[type].LCDC_N);
+		else
+			tcc_output_attach_update = 1;
+	}
 
 	return 1;
 }
@@ -1423,11 +1447,12 @@ int TCC_OUTPUT_FB_Get3DMode(char *mode)
 	return output_3d_ui_flag;
 }
 
-void TCC_OUTPUT_FB_AttachOutput(char src_lcdc_num, char dst_output)
+void TCC_OUTPUT_FB_AttachOutput(char src_lcdc_num, char dst_output, char starter_flag)
 {
 	PVIOC_DISP	pDISP;
 	PVIOC_WMIX	pWMIX;
 	PVIOC_RDMA	pRDMA, pRDMA1, pRDMA2, pRDMA3;
+	PVIOC_SC 	pSC;
 	int dst_lcdc_num, fmt, src_wd, src_ht, dst_wd, dst_ht;
 
 	printk("%s, src_lcdc_num=%d, dst_output=%d\n", __func__, src_lcdc_num, dst_output);
@@ -1444,6 +1469,8 @@ void TCC_OUTPUT_FB_AttachOutput(char src_lcdc_num, char dst_output)
 		printk("%s, output type(%d) is not valid!!\n", __func__, dst_output);
 		return;
 	}
+
+	pSC = (VIOC_SC *)tcc_p2v(HwVIOC_SC0);
 
 	/* set the flag */
 	//tcc_output_attach_state = 1;
@@ -1535,6 +1562,8 @@ void TCC_OUTPUT_FB_AttachOutput(char src_lcdc_num, char dst_output)
 	tcc_output_attach_lcdc = dst_lcdc_num;
 	/* set the output type */
 	tcc_output_attach_output = dst_output;
+	/* set the starter flag */
+	tcc_output_attach_starter = 1;//starter_flag;
 }
 
 void TCC_OUTPUT_FB_DetachOutput(char disable_all)
@@ -1587,7 +1616,6 @@ void TCC_OUTPUT_FB_DetachOutput(char disable_all)
 		pRDMA_1st = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA04);
 		pDISP_2nd = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP0);
 		pRDMA_2nd = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA00);
-
 	}
 	else
 	{
@@ -1618,6 +1646,12 @@ void TCC_OUTPUT_FB_DetachOutput(char disable_all)
 		i++;
 	}
 
+	if(tcc_output_attach_plugin)
+	{
+		VIOC_CONFIG_PlugOut(VIOC_SC0);
+		tcc_output_attach_plugin = 0;
+	}
+		
 	/* disable another output */
 	if(disable_all)
 	{
@@ -1652,8 +1686,10 @@ void TCC_OUTPUT_FB_DetachOutput(char disable_all)
 void TCC_OUTPUT_FB_AttachUpdate(char src_lcdc_num)
 {
 	PVIOC_DISP	pDISP;
+	PVIOC_WMIX	pWMIX;
 	PVIOC_WDMA	pWDMA;
 	PVIOC_RDMA	pRDMA;
+	PVIOC_SC 	pSC;
 	char *pWDMA_Addr;
 	int dst_lcdc_num, fmt, src_wd, src_ht, dst_wd, dst_ht;
 
@@ -1663,9 +1699,11 @@ void TCC_OUTPUT_FB_AttachUpdate(char src_lcdc_num)
 	
 	dprintk("%s, src_lcdc_num=%d\n", __func__, src_lcdc_num);
 
-	if(UseVSyncInterrupt)	{
-		TCC_OUTPUT_FB_WaitVsyncInterrupt(OutputType);
-	}
+	pSC = (VIOC_SC *)tcc_p2v(HwVIOC_SC0);
+
+	//if(UseVSyncInterrupt)	{
+	//	TCC_OUTPUT_FB_WaitVsyncInterrupt(OutputType);
+	//}
 	
 	/* get the source resolution */
 	if(src_lcdc_num)
@@ -1689,11 +1727,13 @@ void TCC_OUTPUT_FB_AttachUpdate(char src_lcdc_num)
 	if(dst_lcdc_num)
 	{
 		pDISP = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP1);
+		pWMIX = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX1);
 		pRDMA = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA04);
 	}
 	else
 	{
 		pDISP = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP0);
+		pWMIX = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX0);
 		pRDMA = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA00);
 	}
 
@@ -1717,45 +1757,76 @@ void TCC_OUTPUT_FB_AttachUpdate(char src_lcdc_num)
 	VIOC_WDMA_SetImageEnable(pWDMA, 0 /* OFF */);
 	//pWDMA->uIRQSTS.nREG = 0xFFFFFFFF; // wdma status register all clear.
 
-	/* execute the scale operation */
+	if(tcc_output_attach_starter)
 	{
-		fbscaler.responsetype = SCALER_POLLING;
-		//fbscaler.responsetype = SCALER_NOWAIT;
+		/* execute the scale operation */
+		{
+			fbscaler.responsetype = SCALER_POLLING;
+			//fbscaler.responsetype = SCALER_NOWAIT;
 
-		fbscaler.src_Yaddr = (char *)pWDMA_Addr;
-		fbscaler.src_fmt = SCALER_ARGB8888;		
-		fbscaler.src_ImgWidth = src_wd;
-		fbscaler.src_ImgHeight = src_ht;
-		fbscaler.src_winLeft = 0;
-		fbscaler.src_winTop = 0;
-		fbscaler.src_winRight = src_wd;
-		fbscaler.src_winBottom = src_ht;
+			fbscaler.src_Yaddr = (char *)pWDMA_Addr;
+			fbscaler.src_fmt = SCALER_ARGB8888;		
+			fbscaler.src_ImgWidth = src_wd;
+			fbscaler.src_ImgHeight = src_ht;
+			fbscaler.src_winLeft = 0;
+			fbscaler.src_winTop = 0;
+			fbscaler.src_winRight = src_wd;
+			fbscaler.src_winBottom = src_ht;
 
-		if(tcc_output_attach_index)
-			fbscaler.dest_Yaddr = output_attach_pbuf2;	// destination image address
-		else
-			fbscaler.dest_Yaddr = output_attach_pbuf3;	// destination image address
+			if(tcc_output_attach_index)
+				fbscaler.dest_Yaddr = output_attach_pbuf2;	// destination image address
+			else
+				fbscaler.dest_Yaddr = output_attach_pbuf3;	// destination image address
 
-		tcc_output_attach_index = !tcc_output_attach_index;
+			tcc_output_attach_index = !tcc_output_attach_index;
 
-		fbscaler.dest_fmt = SCALER_ARGB8888;	// destination image format
-		fbscaler.viqe_onthefly = 0;
-		fbscaler.dest_ImgWidth = dst_wd; 
-		fbscaler.dest_ImgHeight = dst_ht;
-		fbscaler.dest_winLeft = 0;
-		fbscaler.dest_winTop = 0;
-		fbscaler.dest_winRight = dst_wd;
-		fbscaler.dest_winBottom = dst_ht;
-		fbscaler.divide_path = 0x00;
+			fbscaler.dest_fmt = SCALER_ARGB8888;	// destination image format
+			fbscaler.viqe_onthefly = 0;
+			fbscaler.dest_ImgWidth = dst_wd; 
+			fbscaler.dest_ImgHeight = dst_ht;
+			fbscaler.dest_winLeft = 0;
+			fbscaler.dest_winTop = 0;
+			fbscaler.dest_winRight = dst_wd;
+			fbscaler.dest_winBottom = dst_ht;
+			fbscaler.divide_path = 0x00;
 
-		tccxxx_scaler2_open((struct inode *)&sc_inode, (struct file *)&sc_filp);
-		tccxxx_scaler2_ioctl((struct file *)&sc_filp, TCC_SCALER_IOCTRL_KERENL, &fbscaler);
-		tccxxx_scaler2_release((struct inode *)&sc_inode, (struct file *)&sc_filp);
+			tccxxx_scaler2_open((struct inode *)&sc_inode, (struct file *)&sc_filp);
+			tccxxx_scaler2_ioctl((struct file *)&sc_filp, TCC_SCALER_IOCTRL_KERENL, &fbscaler);
+			tccxxx_scaler2_release((struct inode *)&sc_inode, (struct file *)&sc_filp);
+		}
+
+		VIOC_RDMA_SetImageSize(pRDMA, dst_wd, dst_ht);
+		VIOC_RDMA_SetImageOffset(pRDMA, fmt, dst_wd);
+		VIOC_RDMA_SetImageBase(pRDMA, fbscaler.dest_Yaddr, 0, 0);
+		VIOC_RDMA_SetImageEnable(pRDMA);
 	}
+	else
+	{
+		/* set the scaler */		
+		if(tcc_output_attach_plugin == 0)
+		{
+			if(dst_lcdc_num)
+				VIOC_CONFIG_PlugIn(VIOC_SC0, VIOC_SC_RDMA_04);
+			else
+				VIOC_CONFIG_PlugIn(VIOC_SC0, VIOC_SC_RDMA_00);
 
-	VIOC_RDMA_SetImageSize(pRDMA, dst_wd, dst_ht);
-	VIOC_RDMA_SetImageOffset(pRDMA, TCC_LCDC_IMG_FMT_RGB888, dst_wd);
-	VIOC_RDMA_SetImageBase(pRDMA, fbscaler.dest_Yaddr, 0, 0);
-	VIOC_RDMA_SetImageEnable(pRDMA);
+			tcc_output_attach_plugin = 1;
+		}
+		VIOC_SC_SetBypass(pSC, OFF);
+		VIOC_SC_SetSrcSize(pSC, src_wd, src_ht);
+		VIOC_SC_SetDstSize(pSC, dst_wd, dst_ht);
+		VIOC_SC_SetOutSize(pSC, dst_wd, dst_ht);
+		
+		/* set WDMA */
+		VIOC_RDMA_SetImageSize(pRDMA, src_wd, src_ht);
+		VIOC_RDMA_SetImageOffset(pRDMA, fmt, src_wd);
+		VIOC_RDMA_SetImageBase(pRDMA, pWDMA_Addr, 0, 0);
+		VIOC_RDMA_SetImageEnable(pRDMA);
+
+		if(tcc_output_attach_plugin)
+			VIOC_SC_SetUpdate(pSC);
+
+		VIOC_WMIX_SetUpdate(pWMIX);
+	}
 }
 

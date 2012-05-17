@@ -153,6 +153,7 @@ typedef struct dec_init_t
 #define M4V_DEBLK_ENABLE		1	// mpeg-4 deblocking
 #define M4V_GMC_FILE_SKIP		(0<<1)	// (default) seq.init failure
 #define M4V_GMC_FRAME_SKIP		(1<<1)	// frame skip without decoding
+#define AVC_FIELD_DISPLAY			(1<<3)	//if only one field is fed, display it.
 
 #define SEC_AXI_BUS_DISABLE		(0<<21)	//don't use sec. AXI bus.
 #define SEC_AXI_BUS_ENABLE_TCC93XX	(1<<21)	//Use SRAM for sec. AXI bus on TCC93XX(gets about 5% improvement of performance)
@@ -359,6 +360,11 @@ typedef struct enc_rc_init_t
 	int m_iSliceMode;//!< 0 : frame mode, 1 : Slice mode
 	int m_iSliceSizeMode;//!< 0 : the number of bit, 1 : the number of MB
 	int m_iSliceSize;//!< the number of bit or MB in one Slice
+
+	///////////Encoded Video Quality Related//////////////
+	int m_iEncQualityLevel;//!< Encoded Video Quality level control (H.264 only)
+						   //!< 1(Lowest Quality) ~ 35(Highest Quality), default is 11.
+
 }enc_rc_init_t;
 
 typedef struct enc_init_t 

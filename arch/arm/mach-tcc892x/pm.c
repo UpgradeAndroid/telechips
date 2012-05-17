@@ -1162,6 +1162,9 @@ FUNCTION
 static void shutdown(void)
 {
 	volatile unsigned int cnt = 0;
+#ifdef TCC_PM_CHECK_WAKEUP_SOURCE
+	volatile unsigned int loop = 0;
+#endif
 
 // -------------------------------------------------------------------------
 // mmu & cache off
@@ -1452,6 +1455,15 @@ static void shutdown(void)
 	while(1){
 		((PPMU)HwPMU_BASE)->PWRDN_TOP.nREG = 1;
 		nop_delay(100);
+
+#ifdef TCC_PM_CHECK_WAKEUP_SOURCE
+		if(loop++ > 100){
+			if(((PPMU)HwPMU_BASE)->PMU_WKSTS0.nREG || ((PPMU)HwPMU_BASE)->PMU_WKSTS1.nREG){
+				((PPMU)HwPMU_BASE)->PMU_WDTCTRL.nREG = (Hw31 + 0x1);
+				while(1);
+			}
+		}
+#endif
 	};
 }
 
@@ -1474,10 +1486,14 @@ static void wakeup(void)
 		dest[cnt] = src[cnt];
 
 // -------------------------------------------------------------------------
-// set wake-up
+// clear wake-up
 	//disable all for accessing PMU Reg. !!!
 	((PPMU)HwPMU_BASE)->PMU_WKUP0.nREG = 0x00000000;
 	((PPMU)HwPMU_BASE)->PMU_WKUP1.nREG = 0x00000000;
+#ifdef TCC_PM_CHECK_WAKEUP_SOURCE
+	((PPMU)HwPMU_BASE)->PMU_WKCLR0.nREG = 0xFFFFFFFF;
+	((PPMU)HwPMU_BASE)->PMU_WKCLR1.nREG = 0xFFFFFFFF;
+#endif
 
 // -------------------------------------------------------------------------
 // SSTL & IO Retention Disable
