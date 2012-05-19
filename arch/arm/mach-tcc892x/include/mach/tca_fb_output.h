@@ -45,7 +45,7 @@ extern
 #endif
 	
 #if defined(CONFIG_TCC_OUTPUT_ATTACH)
-	//#define TCC_OUTPUT_ATTACH_DUAL_AUTO
+	#define TCC_OUTPUT_ATTACH_DUAL_AUTO
 #endif
 
 /*****************************************************************************

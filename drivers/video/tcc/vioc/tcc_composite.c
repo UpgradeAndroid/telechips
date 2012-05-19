@@ -393,7 +393,9 @@ int tcc_composite_detect(void)
 				{
 					detect = false;
 				}
- 		#endif
+ 		#elif defined(CONFIG_TCC_OUTPUT_ATTACH) && defined(TCC_OUTPUT_ATTACH_DUAL_AUTO)
+			detect = false;
+		#endif
 	#endif
 
 	return detect;

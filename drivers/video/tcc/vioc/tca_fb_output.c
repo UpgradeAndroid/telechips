@@ -803,13 +803,17 @@ void TCC_OUTPUT_LCDC_OutputEnable(char output_lcdc, unsigned int onoff)
 	else
 		VIOC_DISP_TurnOff(pDISP);
 
-	#if 0//defined(CONFIG_TCC_OUTPUT_ATTACH)
-		TCC_OUTPUT_FB_DetachOutput();
+	#if defined(CONFIG_TCC_OUTPUT_ATTACH)
+		TCC_OUTPUT_FB_DetachOutput(0);
 
-		if(tcc_display_data.output == 3)
-			TCC_OUTPUT_FB_AttachOutput(output_lcdc, TCC_OUTPUT_COMPONENT);
-		else
-			TCC_OUTPUT_FB_AttachOutput(output_lcdc, TCC_OUTPUT_COMPOSITE);
+		#if defined(TCC_OUTPUT_ATTACH_DUAL_AUTO)
+			TCC_OUTPUT_FB_AttachOutput(output_lcdc, TCC_OUTPUT_COMPOSITE, 0);
+		#else
+			if(tcc_display_data.output == 3)
+				TCC_OUTPUT_FB_AttachOutput(output_lcdc, TCC_OUTPUT_COMPONENT, 0);
+			else
+				TCC_OUTPUT_FB_AttachOutput(output_lcdc, TCC_OUTPUT_COMPOSITE, 0);
+		#endif
 	#endif
 }
 
@@ -1580,14 +1584,14 @@ void TCC_OUTPUT_FB_DetachOutput(char disable_all)
 	PVIOC_DISP	pDISP_2nd;
 	PVIOC_RDMA	pRDMA_2nd;
 
-	printk("%s, src_lcdc_num=%d, dst_output=%d\n", __func__, tcc_output_attach_lcdc, tcc_output_attach_output);
-
 	/* check the flag */
 	if(tcc_output_attach_state == 0)
 	{
-		printk("%s, output(%d) was already detached!!\n", __func__, tcc_output_attach_output);
+		printk("%s, src_lcdc_num=%d, output(%d) was already detached!!\n", __func__, tcc_output_attach_lcdc, tcc_output_attach_output);
 		return;
 	}
+
+	printk("%s, src_lcdc_num=%d, dst_output=%d\n", __func__, tcc_output_attach_lcdc, tcc_output_attach_output);
 
 	/* clear the flag */
 	tcc_output_attach_state = 0;
