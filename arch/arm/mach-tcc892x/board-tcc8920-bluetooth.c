@@ -63,6 +63,7 @@ struct bcm_bt_lpm {
 	char wake_lock_name[100];
 } bt_lpm;
 
+static int bt_enable_flag = 0;
 #ifdef CONFIG_TCC_RDA_587X_MODULE_SUPPORT
 #if 0
 #include <linux/i2c.h>
@@ -175,7 +176,8 @@ static int tcc_bt_rfkill_set_power(void *data, bool blocked)
 
 	printk("[## BT ##] tcc_bt_rfkill_set_power [%d]\n", blocked);
 	
-	if (!blocked) {
+	if (!blocked && (bt_enable_flag == 0)) {
+	      bt_enable_flag = 1;
               if (machine_is_tcc8800() || machine_is_tcc8920()) {      // #elif defined (CONFIG_MACH_TCC9300)
 			#if defined (CONFIG_TCC_CSR_BC0406_MODULE_SUPPORT)|| defined(CONFIG_TCC_ATHEROS_AR3002_MODULE_SUPPORT)
 			//gpio_set_value(TCC_GPEXT1(7), 1);   /* BT-ON Enable */
@@ -205,7 +207,8 @@ static int tcc_bt_rfkill_set_power(void *data, bool blocked)
 			msleep(500);
 			gpio_set_value(TCC_GPD(12), 1);
 		}
-	} else {
+	} else if(blocked && (bt_enable_flag == 1)) {
+		bt_enable_flag = 0;
 		if (machine_is_tcc8800() || machine_is_tcc8920()) {      // #elif defined (CONFIG_MACH_TCC9300)
 			#if defined (CONFIG_TCC_CSR_BC0406_MODULE_SUPPORT)|| defined(CONFIG_TCC_ATHEROS_AR3002_MODULE_SUPPORT)
 			//gpio_set_value(TCC_GPEXT1(7), 0);   /* BT-ON Disable */
