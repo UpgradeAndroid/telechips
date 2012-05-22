@@ -43,6 +43,7 @@
 #include <asm/uaccess.h>
 #include <asm/div64.h>
 #include <asm/mach/map.h>
+#include <asm/mach-types.h>
 #ifdef CONFIG_PM
 #include <linux/pm.h>
 #endif
@@ -398,6 +399,20 @@ int tcc_component_detect(void)
 					dprintk("%s, detect=%d\n", __func__, detect);
 				}
 			}
+		#elif defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION) && defined(TCC_OUTPUT_AUTO_HDMI_CVBS)
+			detect = false;
+		#elif defined(CONFIG_TCC_OUTPUT_ATTACH) && defined(TCC_OUTPUT_ATTACH_DUAL_AUTO)
+			/* Check the HDMI detection */
+			#if defined(CONFIG_MACH_TCC9300ST)
+				if(gpio_get_value(TCC_GPA(14)))
+			#elif defined(CONFIG_MACH_TCC8800ST)
+				if(gpio_get_value(TCC_GPD(25)))
+			#elif defined(CONFIG_MACH_TCC8920ST)
+				if(gpio_get_value(TCC_GPHDMI(1)))
+			#endif
+				{
+					detect = false;
+				}
 		#endif
 	#endif
 
@@ -1449,6 +1464,10 @@ void tcc_component_update(struct tcc_lcdc_image_update *ImageInfo)
 	}
 
 	dprintk("%s lcdc:%d, pRDMA:0x%08x, pWMIX:0x%08x, pDISP:0x%08x, addr0:0x%08x\n", __func__, Component_LCDC_Num, pRDMABase, pWMIXBase, pDISPBase, ImageInfo->addr0);
+		
+	if(machine_is_tcc8920st()) {
+		VIOC_RDMA_SetImageUVIEnable(pRDMABase, TRUE);
+	}
 		
 	if(ImageInfo->fmt >= TCC_LCDC_IMG_FMT_UYVY && ImageInfo->fmt <= TCC_LCDC_IMG_FMT_YUV422ITL1)
 	{

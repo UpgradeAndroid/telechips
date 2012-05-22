@@ -179,7 +179,7 @@ void internal_tve_set_config(unsigned int type)
 	BITSET(pHwTVE->ECMDB.nREG, HwTVECMDB_CBW(2)|HwTVECMDB_YBW(2));
 	
 	//Set SAT Register
-	BITSET(pHwTVE->SAT.nREG, 0x10);
+	BITSET(pHwTVE->SAT.nREG, 0x44);
 	
 	//Set DACSEL Register
 	BITSET(pHwTVE->DACSEL.nREG, HwTVEDACSEL_DACSEL_CVBS);

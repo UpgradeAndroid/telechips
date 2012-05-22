@@ -1882,8 +1882,11 @@ static int tcc_battery_probe(struct platform_device *pdev)
 			printk(KERN_ERR "Failed to register power supply (%d)\n", err);
 	}
 
-
+        #if defined(CONFIG_STB_BOARD_HDB892S) || defined(CONFIG_STB_BOARD_HDB892F)
+        //Do't register usb notifier
+        #else
 	usb_register_notifier(&usb_status_notifier);
+        #endif
 	/* create tcc detail attributes */
 	tcc_battery_create_attrs(tcc_power_supplies[CHARGER_BATTERY].dev);
 

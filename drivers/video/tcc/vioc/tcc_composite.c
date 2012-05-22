@@ -43,6 +43,7 @@
 #include <asm/uaccess.h>
 #include <asm/div64.h>
 #include <asm/mach/map.h>
+#include <asm/mach-types.h>
 #ifdef CONFIG_PM
 #include <linux/pm.h>
 #endif
@@ -393,7 +394,9 @@ int tcc_composite_detect(void)
 				{
 					detect = false;
 				}
- 		#endif
+ 		#elif defined(CONFIG_TCC_OUTPUT_ATTACH) && defined(TCC_OUTPUT_ATTACH_DUAL_AUTO)
+			detect = false;
+		#endif
 	#endif
 
 	return detect;
@@ -585,7 +588,7 @@ void tcc_composite_set_lcd2tv(COMPOSITE_MODE_TYPE type)
  
 	memset(&LcdCtrlParam, NULL, sizeof(LcdCtrlParam));
 
-	LcdCtrlParam.r2ymd = 2;
+	LcdCtrlParam.r2ymd = 0;
 	LcdCtrlParam.ckg = 1;
 	LcdCtrlParam.id= 0;
 	LcdCtrlParam.iv = 0;
@@ -992,6 +995,10 @@ void tcc_composite_update(struct tcc_lcdc_image_update *ImageInfo)
 	}
 
 	dprintk("%s lcdc:%d, pRDMA:0x%08x, pWMIX:0x%08x, pDISP:0x%08x, addr0:0x%08x\n", __func__, Composite_LCDC_Num, pRDMABase, pWMIXBase, pDISPBase, ImageInfo->addr0);
+		
+	if(machine_is_tcc8920st()) {
+		VIOC_RDMA_SetImageUVIEnable(pRDMABase, TRUE);
+	}
 		
 	if(ImageInfo->fmt >= TCC_LCDC_IMG_FMT_UYVY && ImageInfo->fmt <= TCC_LCDC_IMG_FMT_YUV422ITL1)
 	{

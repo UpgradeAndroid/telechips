@@ -2086,12 +2086,15 @@ static void sleep(void)
 	((PPIC)HwPIC_BASE)->IEN0.nREG = 0;
 	((PPIC)HwPIC_BASE)->IEN1.nREG = 0;
 
+    #if defined(CONFIG_STB_BOARD_HDB892S) || defined(CONFIG_STB_BOARD_HDB892F)
+
+    #else
 	((PPIC)HwPIC_BASE)->IEN0.bREG.EINT0 = 1;
 	((PGPIO)HwGPIO_BASE)->EINTSEL0.bREG.EINT00SEL = 105;
 	((PPIC)HwPIC_BASE)->POL0.bREG.EINT0 = 1;
 	((PPIC)HwPIC_BASE)->MODE0.bREG.EINT0 = 1;
 	((PPIC)HwPIC_BASE)->INTMSK0.bREG.EINT0 = 1;
-
+    #endif
 	((PPIC)HwPIC_BASE)->IEN1.bREG.REMOCON = 1;
   #endif
 #else

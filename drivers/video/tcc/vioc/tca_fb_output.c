@@ -803,13 +803,17 @@ void TCC_OUTPUT_LCDC_OutputEnable(char output_lcdc, unsigned int onoff)
 	else
 		VIOC_DISP_TurnOff(pDISP);
 
-	#if 0//defined(CONFIG_TCC_OUTPUT_ATTACH)
-		TCC_OUTPUT_FB_DetachOutput();
+	#if defined(CONFIG_TCC_OUTPUT_ATTACH)
+		TCC_OUTPUT_FB_DetachOutput(0);
 
-		if(tcc_display_data.output == 3)
-			TCC_OUTPUT_FB_AttachOutput(output_lcdc, TCC_OUTPUT_COMPONENT);
-		else
-			TCC_OUTPUT_FB_AttachOutput(output_lcdc, TCC_OUTPUT_COMPOSITE);
+		#if defined(TCC_OUTPUT_ATTACH_DUAL_AUTO)
+			TCC_OUTPUT_FB_AttachOutput(output_lcdc, TCC_OUTPUT_COMPOSITE, 0);
+		#else
+			if(tcc_display_data.output == 3)
+				TCC_OUTPUT_FB_AttachOutput(output_lcdc, TCC_OUTPUT_COMPONENT, 0);
+			else
+				TCC_OUTPUT_FB_AttachOutput(output_lcdc, TCC_OUTPUT_COMPOSITE, 0);
+		#endif
 	#endif
 }
 
@@ -1126,6 +1130,10 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 		VIOC_WMIX_SetUpdate (pDISP_OUTPUT[type].pVIOC_WMIXBase);			// WMIX update
 	}
 			
+	if(machine_is_tcc8920st()) {
+		VIOC_RDMA_SetImageUVIEnable(pDISP_OUTPUT[type].pVIOC_RDMA_FB, TRUE);
+	}
+			
 	// size
 	VIOC_RDMA_SetImageSize(pDISP_OUTPUT[type].pVIOC_RDMA_FB, img_width, img_height);
 
@@ -1142,8 +1150,8 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 	VIOC_RDMA_SetImageOffset(pDISP_OUTPUT[type].pVIOC_RDMA_FB, ifmt, img_width);
 
 	// alpha & chroma key color setting
-	VIOC_RDMA_SetImageAlphaSelect(pDISP_OUTPUT[type].pVIOC_RDMA_FB, 1);
-	VIOC_RDMA_SetImageAlphaEnable(pDISP_OUTPUT[type].pVIOC_RDMA_FB, 1);
+	VIOC_RDMA_SetImageAlphaSelect(pDISP_OUTPUT[type].pVIOC_RDMA_FB, TRUE);
+	VIOC_RDMA_SetImageAlphaEnable(pDISP_OUTPUT[type].pVIOC_RDMA_FB, TRUE);
 
 	VIOC_WMIX_SetChromaKey(pDISP_OUTPUT[type].pVIOC_WMIXBase, 0, chroma_en, chromaR, chromaG, chromaB, 0xF8, 0xFC, 0xF8);			
 
@@ -1273,7 +1281,9 @@ int TCC_OUTPUT_FB_MouseMove(unsigned int width, unsigned int height, tcc_mouse *
 	unsigned int lcd_width, lcd_height, lcd_w_pos,lcd_h_pos, mouse_x, mouse_y;
 	unsigned int interlace_output, display_width, display_height;
 
-	if(pDISP_OUTPUT[type].pVIOC_DispBase == NULL)
+	if( (pDISP_OUTPUT[type].pVIOC_DispBase == NULL) ||
+		(pDISP_OUTPUT[type].pVIOC_WMIXBase == NULL) ||
+		(pDISP_OUTPUT[type].pVIOC_RDMA_Mouse == NULL) )
 	{
 		dprintk("%s - Err: Output LCDC is not valid, type=%d\n", __func__, type);
 		return 0;
@@ -1578,18 +1588,15 @@ void TCC_OUTPUT_FB_DetachOutput(char disable_all)
 	PVIOC_DISP	pDISP_2nd;
 	PVIOC_RDMA	pRDMA_2nd;
 
-	printk("%s, src_lcdc_num=%d, dst_output=%d\n", __func__, tcc_output_attach_lcdc, tcc_output_attach_output);
-
 	/* check the flag */
 	if(tcc_output_attach_state == 0)
 	{
-		printk("%s, output(%d) was already detached!!\n", __func__, tcc_output_attach_output);
+		printk("%s, src_lcdc_num=%d, output(%d) was already detached!!\n", __func__, tcc_output_attach_lcdc, tcc_output_attach_output);
 		return;
 	}
 
-	/* set the flag */
-	//tcc_output_attach_state = 0;
-	
+	printk("%s, src_lcdc_num=%d, dst_output=%d\n", __func__, tcc_output_attach_lcdc, tcc_output_attach_output);
+
 	/* clear the flag */
 	tcc_output_attach_state = 0;
 

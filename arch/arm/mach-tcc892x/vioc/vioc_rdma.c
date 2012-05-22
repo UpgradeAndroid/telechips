@@ -134,6 +134,12 @@ void VIOC_RDMA_GetImageAlpha(VIOC_RDMA *pRDMA, unsigned int *nAlpha0, unsigned i
 	*nAlpha1 = pRDMA->uALPHA.nREG & 0x000000FF;
 }
 
+void VIOC_RDMA_SetImageUVIEnable(VIOC_RDMA *pRDMA, unsigned int enable)
+{
+	BITCSET(pRDMA->uCTRL.nREG, 1<<23, enable << 23);
+
+}
+
 void VIOC_RDMA_SetImageSize(VIOC_RDMA *pRDMA, unsigned int sw, unsigned int sh)
 {
 	//pRDMA->uSIZE.bREG.WIDTH = sw;
