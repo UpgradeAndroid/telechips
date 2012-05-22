@@ -34,6 +34,7 @@
 #include <asm/uaccess.h>
 #include <asm/div64.h>
 #include <asm/mach/map.h>
+#include <asm/mach-types.h>
 #ifdef CONFIG_PM
 #include <linux/pm.h>
 #endif
@@ -288,6 +289,10 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 		
 	dprintk("%s lcdc:%d, pRDMA:0x%08x, pWMIX:0x%08x, pDISP:0x%08x, addr0:0x%08x\n", __func__, hdmi_lcdc, pRDMABase, pWMIXBase, pDISPBase, ImageInfo->addr0);
 		
+	if(machine_is_tcc8920st()) {
+		VIOC_RDMA_SetImageUVIEnable(pRDMABase, TRUE);
+	}
+		
 	if(ImageInfo->fmt >= TCC_LCDC_IMG_FMT_UYVY && ImageInfo->fmt <= TCC_LCDC_IMG_FMT_YUV422ITL1)
 	{
 		VIOC_RDMA_SetImageY2REnable(pRDMABase, TRUE);
@@ -352,7 +357,7 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 	else
 #endif		
 	{
-		VIOC_RDMA_SetImageIntl(pRDMABase, 0);
+		VIOC_RDMA_SetImageIntl(pRDMABase, FALSE);
 		VIOC_WMIX_SetPosition(pWMIXBase, ImageInfo->Lcdc_layer, ImageInfo->offset_x, ImageInfo->offset_y);
 	}
 	

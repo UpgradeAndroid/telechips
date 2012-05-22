@@ -1130,6 +1130,10 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 		VIOC_WMIX_SetUpdate (pDISP_OUTPUT[type].pVIOC_WMIXBase);			// WMIX update
 	}
 			
+	if(machine_is_tcc8920st()) {
+		VIOC_RDMA_SetImageUVIEnable(pDISP_OUTPUT[type].pVIOC_RDMA_FB, TRUE);
+	}
+			
 	// size
 	VIOC_RDMA_SetImageSize(pDISP_OUTPUT[type].pVIOC_RDMA_FB, img_width, img_height);
 
@@ -1146,8 +1150,8 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 	VIOC_RDMA_SetImageOffset(pDISP_OUTPUT[type].pVIOC_RDMA_FB, ifmt, img_width);
 
 	// alpha & chroma key color setting
-	VIOC_RDMA_SetImageAlphaSelect(pDISP_OUTPUT[type].pVIOC_RDMA_FB, 1);
-	VIOC_RDMA_SetImageAlphaEnable(pDISP_OUTPUT[type].pVIOC_RDMA_FB, 1);
+	VIOC_RDMA_SetImageAlphaSelect(pDISP_OUTPUT[type].pVIOC_RDMA_FB, TRUE);
+	VIOC_RDMA_SetImageAlphaEnable(pDISP_OUTPUT[type].pVIOC_RDMA_FB, TRUE);
 
 	VIOC_WMIX_SetChromaKey(pDISP_OUTPUT[type].pVIOC_WMIXBase, 0, chroma_en, chromaR, chromaG, chromaB, 0xF8, 0xFC, 0xF8);			
 
