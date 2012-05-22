@@ -175,8 +175,11 @@ static int block_allocator_allocate(void* ctx, ump_dd_mem * mem)
 	}
 
 	if((allocator->num_free== 0) || (allocator->num_free < mem->nr_blocks))
+	{
+		up(&allocator->mutex);
 		return 0;
-
+	}
+	
 	mem->size_bytes = 0;
 
 	//search for first-fit
