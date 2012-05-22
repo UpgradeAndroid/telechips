@@ -566,8 +566,8 @@ unsigned int tca_ckc_setfbusctrl(unsigned int clkname,unsigned int isenable,unsi
         return freq;
     }
 
-//    if (freq < 480000)
-//        freq = 480000;
+    if (freq < 480000)
+        freq = 480000;
 
     if (freq <= 60000) {
         clksrc = DIRECTXIN;
