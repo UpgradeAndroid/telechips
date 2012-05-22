@@ -305,7 +305,7 @@ struct tcc_lcdc_image_update
 	int output_toMemory;
 	int frameInfo_interlace;
 #endif
-
+	int MVCframeView;
 	unsigned int dst_addr0;
 	unsigned int dst_addr1;
 	unsigned int dst_addr2;
