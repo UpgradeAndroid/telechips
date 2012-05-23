@@ -798,6 +798,15 @@ enum {
 	RT5625_AEC_EN,
 };
 
+//#ifdef RT5625_F_SMT_PHO
+enum {
+	RT5625_PLL_DIS,
+	RT5625_PLL_112896_225792,
+	RT5625_PLL_112896_24576,
+};
+//#endif
+
+
 typedef struct { 
 	unsigned short index;
 	unsigned short value;
