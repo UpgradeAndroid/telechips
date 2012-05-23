@@ -34,6 +34,7 @@ struct rt5625_priv {
 	unsigned int voice_sysclk;
 
 	int vodsp_fun;
+	int pll_sel;
 };
 
 static const u16 rt5625_reg[0x80] = {
@@ -514,6 +515,9 @@ static const SOC_ENUM_SINGLE_DECL(rt5640_mic1_mode_enum,
 static const SOC_ENUM_SINGLE_DECL(rt5640_mic2_mode_enum,
 	RT5625_MIC_VOL, RT5625_MIC2_DIFF_SFT, rt5625_input_mode);
 
+static const char *rt5625_pll_sel[] = {"Disable", "11.2896->22.5792", "11.2896->24.576"};
+static const SOC_ENUM_SINGLE_DECL(rt5625_pll_sel_enum, 0, 0, rt5625_pll_sel);
+
 static int rt5625_init_vodsp_aec(struct snd_soc_codec *codec)
 {
 	int i, ret = 0;
@@ -590,6 +594,61 @@ static int rt5625_aec_put(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_val
 
 	return 0;
 }
+
+
+static int rt5625_pll_get(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
+	struct rt5625_priv *rt5625 = snd_soc_codec_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = rt5625->pll_sel;
+	return 0;
+}
+
+
+static int rt5625_pll_put(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
+{ 
+	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
+	struct rt5625_priv *rt5625 = snd_soc_codec_get_drvdata(codec);
+
+	if(ucontrol->value.integer.value[0] == rt5625->pll_sel)
+		return 0;
+	rt5625->pll_sel = ucontrol->value.integer.value[0];
+
+	switch(rt5625->pll_sel) {
+	case RT5625_PLL_DIS:
+		pr_info("%s(): Disable\n", __func__);
+		snd_soc_update_bits(codec, RT5625_GEN_CTRL1,
+					RT5625_SCLK_PLL1, 0);
+		snd_soc_write(codec, RT5625_DAC_CLK_CTRL2, 0);
+		break;
+
+	case RT5625_PLL_112896_225792:
+		pr_info("%s(): 11.2896>22.5792\n", __func__);
+		snd_soc_write(codec, RT5625_GEN_CTRL2, 0x0000);
+		snd_soc_write(codec, RT5625_PLL_CTRL, 0x06a0);
+		snd_soc_update_bits(codec, RT5625_GEN_CTRL1,
+			RT5625_SCLK_PLL1, RT5625_SCLK_PLL1);
+		snd_soc_write(codec, RT5625_DAC_CLK_CTRL2, 0x0210);
+		break;
+
+	case RT5625_PLL_112896_24576:
+		pr_info("%s(): 11.2896->24.576\n", __func__);
+		snd_soc_write(codec, RT5625_GEN_CTRL2, 0x0000);
+		snd_soc_write(codec, RT5625_PLL_CTRL, 0x922f);
+		snd_soc_update_bits(codec, RT5625_GEN_CTRL1,
+			RT5625_SCLK_PLL1, RT5625_SCLK_PLL1);
+		snd_soc_write(codec, RT5625_DAC_CLK_CTRL2, 0x0210);
+		break;
+
+	default:
+		break;
+	}
+
+	return 0;
+}
+
+
 
 static const DECLARE_TLV_DB_SCALE(out_vol_tlv, -4650, 150, 0);
 static const DECLARE_TLV_DB_SCALE(dac_vol_tlv, -3525, 75, 0);
@@ -685,6 +744,8 @@ static const struct snd_kcontrol_new rt5625_snd_controls[] = {
 	SOC_ENUM("VoDSP BP Pin Control",  rt5625_bp_ctrl_enum),
 	SOC_ENUM("VoDSP Power Down Pin Control",  rt5625_pd_ctrl_enum),
 	SOC_ENUM("VoDSP Reset Pin Control",  rt5625_rst_ctrl_enum),
+
+	SOC_ENUM_EXT("PLL Switch", rt5625_pll_sel_enum, rt5625_pll_get, rt5625_pll_put),
 
 #ifdef RT5625_REG_RW
 	{
@@ -1815,7 +1876,7 @@ static struct rt5625_init_reg init_list[] = {
 	{RT5625_OUTMIX_CTRL		, 0x0748},	//all output from hpmixer
 	{RT5625_MIC_CTRL		, 0x0500},	//mic boost 20db
 	{RT5625_ADC_REC_MIXER		, 0x3f3f},	//record source from mic1
-	{RT5625_GEN_CTRL1		, 0x0c0a},	//speaker vdd ratio is 1
+	{RT5625_GEN_CTRL1		, 0x0c08},	//speaker vdd ratio is 1.25
 	{RT5625_ADC_REC_GAIN		, 0xd5d5},	//gain 15db of ADC by default
 };
 #define RT5625_INIT_REG_LEN ARRAY_SIZE(init_list)
