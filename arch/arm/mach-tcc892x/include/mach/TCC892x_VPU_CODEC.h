@@ -66,16 +66,15 @@
 
 
 #define CODE_BUF_SIZE		(256*1024)
-//#define TEMP_BUF_SIZE		(204*1024)
 #define TEMP_BUF_SIZE		(512*1024)
 #define WORK_BUF_SIZE		(48*1024)
 #define PARA_BUF_SIZE		(10*1024)
 #define SEC_AXI_BUF_SIZE	(128*1024)
 #define PS_SAVE_SIZE		0x080000
 
-#define SIZE_BIT_WORK	TEMP_BUF_SIZE + PARA_BUF_SIZE + CODE_BUF_SIZE + SEC_AXI_BUF_SIZE + ((WORK_BUF_SIZE)*MAX_NUM_INSTANCE)
+#define SIZE_BIT_WORK	TEMP_BUF_SIZE + PARA_BUF_SIZE + CODE_BUF_SIZE + SEC_AXI_BUF_SIZE
 
-#define WORK_CODE_PARA_BUF_SIZE		SIZE_BIT_WORK
+#define WORK_CODE_PARA_BUF_SIZE		(SIZE_BIT_WORK + (WORK_BUF_SIZE * MAX_NUM_INSTANCE))
 
 #define	LARGE_STREAM_BUF_SIZE	0x200000
 #define	SLICE_SAVE_SIZE			0x100000
@@ -155,16 +154,13 @@ typedef struct dec_init_t
 	int m_iPicHeight;					//!< frame height from demuxer or etc
 
 	//! Decoding Options
-#define M4V_DEBLK_DISABLE		0	// (default)
-#define M4V_DEBLK_ENABLE		1	// mpeg-4 deblocking
-#define M4V_GMC_FILE_SKIP		(0<<1)	// (default) seq.init failure
-#define M4V_GMC_FRAME_SKIP		(1<<1)	// frame skip without decoding
-#define MVC_DEC_ENABLE			(1<<20)	// H.264 MVC enable
-#define AVCNPF_DEC_ENABLE		(1<<10)	// H.264 NPF enable
-
-#define SEC_AXI_BUS_DISABLE		(0<<21)	//don't use sec. AXI bus.
-#define SEC_AXI_BUS_ENABLE_TCC93XX	(1<<21)	//Use SRAM for sec. AXI bus on TCC93XX(gets about 5% improvement of performance)
-#define SEC_AXI_BUS_ENABLE_TCC88XX	(2<<21)	//Use SRAM for sec. AXI bus on TCC88XX(gets about 5% improvement of performance)
+#define M4V_DEBLK_DISABLE		0	//!< (default)
+#define M4V_DEBLK_ENABLE		1	//!< mpeg-4 deblocking
+#define M4V_GMC_FILE_SKIP		(0<<1)	//!< (default) seq.init failure
+#define M4V_GMC_FRAME_SKIP		(1<<1)	//!< frame skip without decoding
+#define MVC_DEC_ENABLE			(1<<20)	//!< H.264 MVC enable
+#define AVC_FIELD_DISPLAY		(1<<3)	//!< if only field is fed, display it
+#define SEC_AXI_BUS_ENABLE_SRAM	(1<<21) //!< Use SRAM for sec. AXI bus
 
 //#define JPG_THUMB_DISABLE		(0<<23)	//decode JPEG itself, not thumbnail.
 //#define JPG_THUMB_ENABLE_OPTIONAL	(1<<23)	//decode thumbnail if it exist. If it doesn't, decode original jpeg itself.
@@ -461,9 +457,7 @@ typedef struct enc_init_t
 	codec_addr_t m_BitstreamBufferAddr_VA; //!< virtual address : multiple of 4
 	int m_iBitstreamBufferSize;			//!< multiple of 1024
 	
-#define SEC_AXI_BUS_DISABLE			(0<<21)
-#define SEC_AXI_BUS_ENABLE_TCC93XX	(1<<21)
-#define SEC_AXI_BUS_ENABLE_TCC88XX	(2<<21)
+#define SEC_AXI_BUS_ENABLE_SRAM	    (1<<21)	//!< Use SRAM for sec. AXI bus
 #define ENHANCED_RC_MODEL_ENABLE	(1<<10)
 
 	unsigned int m_uiEncOptFlags;
