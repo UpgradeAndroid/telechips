@@ -846,7 +846,7 @@ static void set_core_voltage(unsigned int state)
 		BITCSET(*(volatile unsigned long *)(0x742001B8), 0x0000FF00, 0x00004400);
 		BITCSET(*(volatile unsigned long *)(0x76360000), 0x000000FF, 0x0000001A);
 #elif defined(CONFIG_MACH_M805_892X)
-		if (PMIC_PARAM(SYSTEM_REV) == 0x2002 || PMIC_PARAM(SYSTEM_REV) == 0x2003) {
+		if (PMIC_PARAM(SYSTEM_REV) == 0x2002 || PMIC_PARAM(SYSTEM_REV) == 0x2003 || system_rev == 0x2004) {
 			//I2C[12] - GPIOC[2][3]
 			//i2c_portcfg->PCFG0.bREG.MASTER0 = 12;
 			BITCSET(*(volatile unsigned long *)(0x742000B0), 0x0000FF00, 0x00007700);
@@ -888,7 +888,7 @@ static void set_core_voltage(unsigned int state)
 	}
 	else if (PMIC_PARAM(DEV_CH) == 1) {
 #if defined(CONFIG_MACH_M805_892X)
-		if (PMIC_PARAM(SYSTEM_REV) == 0x2002 || PMIC_PARAM(SYSTEM_REV) == 0x2003) {
+		if (PMIC_PARAM(SYSTEM_REV) == 0x2002 || PMIC_PARAM(SYSTEM_REV) == 0x2003 || system_rev == 0x2004) {
 			//I2C[25] - GPIOG[12][13]
 			//i2c_portcfg->PCFG0.bREG.MASTER1 = 25;
 			BITCSET(*(volatile unsigned long *)(0x742001B4), 0x00FF0000, 0x00440000);
@@ -936,7 +936,7 @@ static void set_core_voltage(unsigned int state)
 	}
 	else if (PMIC_PARAM(DEV_CH) == 2) {
 #if defined(CONFIG_MACH_M805_892X)
-		if (PMIC_PARAM(SYSTEM_REV) == 0x2002 || PMIC_PARAM(SYSTEM_REV) == 0x2003) {
+		if (PMIC_PARAM(SYSTEM_REV) == 0x2002 || PMIC_PARAM(SYSTEM_REV) == 0x2003 || system_rev == 0x2004) {
 			//I2C[18] - GPIOF[13][14]
 			//i2c_portcfg->PCFG0.bREG.MASTER1 = 18;
 			BITCSET(*(volatile unsigned long *)(0x74200178), 0x0FF00000, 0x0AA00000);
@@ -2603,7 +2603,7 @@ static void tcc_pm_power_off(void)
 	}
 	else if(machine_is_m805_892x())
 	{
-		if (system_rev == 0x2002 || system_rev == 0x2003) {
+		if (system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004) {
 			gpio_set_value(TCC_GPC(0), 0); // LCD_BLCTL
 			gpio_set_value(TCC_GPE(24), 0); // LCD_PWREN
 			//gpio_set_value(TCC_GPE(7), 0);  // SHDN
