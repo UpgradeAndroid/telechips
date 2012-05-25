@@ -2071,6 +2071,7 @@ void tcc_output_starter_hdmi(unsigned char lcdc_num, unsigned char hdmi_resoluti
 	}
 	
 	tcc_hdmi_power_on();
+	tcc_hdmi_phy_on();
 
 	if(hdmi_resolution > SUPPORT_HDMI_MODE_NUM)
 		hdmi_resolution = STARTER_HDMI_1920x1080P;		

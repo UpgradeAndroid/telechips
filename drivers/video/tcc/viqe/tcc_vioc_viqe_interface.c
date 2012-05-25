@@ -93,52 +93,17 @@ extern void tccxxx_GetAddress(unsigned char format, unsigned int base_Yaddr, uns
 					unsigned int start_x, unsigned int start_y, unsigned int* Y, unsigned int* U,unsigned int* V);
 
 /* VIQE Set */
-
-int VIOC_API_VIQE_SetPlugIn(unsigned int viqe, unsigned int path)
-{
-	int iResult = VIOC_DRIVER_ERR;
-
-	iResult = VIOC_CONFIG_PlugIn(viqe, path);
-
-	if(iResult == VIOC_DEVICE_CONNECTED)
-	{
-		iResult = VIOC_DRIVER_NOERR;
-	}
-	else
-	{
-		iResult = VIOC_DRIVER_ERR;
-	}
-	
-	return iResult;
-}
-
-int VIOC_API_VIQE_SetPlugOut(unsigned int viqe)
-{
-	int iResult = VIOC_DRIVER_ERR;
-
-	iResult = VIOC_CONFIG_PlugOut(viqe);
-
-	if(iResult == VIOC_DEVICE_CONNECTED)
-	{
-		iResult = VIOC_DRIVER_NOERR;
-	}
-	else
-	{
-		iResult = VIOC_DRIVER_ERR;
-	}
-	
-	return iResult;
-}
-
 //////////////////////////////////////////////////////////////////////////////////////////
 void TCC_VIQE_DI_Init(int scalerCh, int useWMIXER, unsigned int srcWidth, unsigned int srcHeight,
 						int crop_top, int crop_bottom, int crop_left, int crop_right, int OddFirst)
 {
+#ifndef USE_DEINTERLACE_S_IN30Hz
 	unsigned int deintl_dma_base0, deintl_dma_base1, deintl_dma_base2, deintl_dma_base3;
-	unsigned int framebufWidth, framebufHeight;
 	int imgSize;
-	VIOC_VIQE_FMT_TYPE img_fmt = VIOC_VIQE_FMT_YUV420;
 	int top_size_dont_use = OFF;		//If this value is OFF, The size information is get from VIOC modules.
+#endif
+	unsigned int framebufWidth, framebufHeight;
+	VIOC_VIQE_FMT_TYPE img_fmt = VIOC_VIQE_FMT_YUV420;
 
 	pmap_get_info("viqe", &pmap_viqe);
 
@@ -181,12 +146,9 @@ void TCC_VIQE_DI_Init(int scalerCh, int useWMIXER, unsigned int srcWidth, unsign
 	VIOC_RDMA_SetImageY2RMode(pRDMABase_30Hz, 0x02); /* Y2RMode Default 0 (Studio Color) */
 	VIOC_RDMA_SetImageIntl(pRDMABase_30Hz, 1);
 	VIOC_RDMA_SetImageBfield(pRDMABase_30Hz, OddFirst);
+	
 #ifdef USE_DEINTERLACE_S_IN30Hz
-	deintl_dma_base0	= NULL;
-	deintl_dma_base1	= NULL;
-	deintl_dma_base2	= NULL;
-	deintl_dma_base3	= NULL;
-	VIOC_API_VIQE_SetPlugIn(VIOC_DEINTLS, gVIQE_RDMA_num_30Hz);
+	VIOC_CONFIG_PlugIn(VIOC_DEINTLS, gVIQE_RDMA_num_30Hz);
 #else
 	// If you use 3D(temporal) De-interlace mode, you have to set physical address for using DMA register.
 	//If 2D(spatial) mode, these registers are ignored
@@ -209,11 +171,11 @@ void TCC_VIQE_DI_Init(int scalerCh, int useWMIXER, unsigned int srcWidth, unsign
 		VIOC_VIQE_SetImageY2REnable(pVIQE_30Hz, TRUE);
 		VIOC_VIQE_SetImageY2RMode(pVIQE_30Hz, 0x02);
 	}
-	VIOC_API_VIQE_SetPlugIn(VIOC_VIQE, gVIQE_RDMA_num_30Hz);
+	VIOC_CONFIG_PlugIn(VIOC_VIQE, gVIQE_RDMA_num_30Hz);
 	if(OddFirst)
-		gbfield =1;
+		gbfield_30Hz =1;
 	else
-	gbfield =0;
+		gbfield_30Hz =0;
 #endif
 
 	gFrmCnt_30Hz = 0;
@@ -223,20 +185,6 @@ void TCC_VIQE_DI_Init(int scalerCh, int useWMIXER, unsigned int srcWidth, unsign
 void TCC_VIQE_DI_Run(unsigned int srcWidth, unsigned int srcHeight,	
 						int crop_top, int crop_bottom, int crop_left, int crop_right, int OddFirst)
 {
-#if 0
-{
-	unsigned int pBase0, pBase1, pBase2;
-	unsigned int pBase3, pBase4, pBase5;
-	pBase0 = address[0] + (crop_top * srcWidth + crop_left);
-	pBase1 = address[1] + (crop_top / 2 * srcWidth + crop_left);
-	pBase2 = address[2] + (crop_top / 2 * srcWidth + crop_left);
-
-	pBase3 = address[3] + (crop_top * srcWidth + crop_left);
-	pBase4 = address[4] + (crop_top / 2 * srcWidth + crop_left);
-	pBase5 = address[5] + (crop_top / 2 * srcWidth + crop_left);
-}	
-#endif
-
 	if(gFrmCnt_30Hz == 0)
 		printk("TCC_VIQE_DI_Run\n");
 
@@ -244,22 +192,17 @@ void TCC_VIQE_DI_Run(unsigned int srcWidth, unsigned int srcHeight,
 	if(gFrmCnt_30Hz == 3)
 		VIOC_VIQE_SetDeintlMode(pVIQE_30Hz, VIOC_VIQE_DEINTL_MODE_3D);
 
-#if 1
 	if (gbfield_30Hz) 					// end fied of bottom field
 	{
 		VIOC_RDMA_SetImageBfield(pRDMABase_30Hz, 0);				// change the bottom to top field
 		// if you want to change the base address, you call the RDMA SetImageBase function in this line.
 		gbfield_30Hz= 0;
-
 	} 
 	else 
 	{
 		VIOC_RDMA_SetImageBfield(pRDMABase_30Hz, 1);				// change the top to bottom field
-		gbfield = 1;
+		gbfield_30Hz = 1;
 	}
-#else
-	VIOC_RDMA_SetImageBfield(pRDMABase_30Hz, OddFirst);				// change the top to bottom field
-#endif
 #else
 	VIOC_RDMA_SetImageY2REnable(pRDMABase_30Hz, FALSE);
 	VIOC_RDMA_SetImageY2RMode(pRDMABase_30Hz, 0x02); /* Y2RMode Default 0 (Studio Color) */
@@ -274,11 +217,11 @@ void TCC_VIQE_DI_DeInit(void)
 
 	printk("TCC_VIQE_DI_DeInit\n");
 #ifdef USE_DEINTERLACE_S_IN30Hz	
-	VIOC_API_VIQE_SetPlugOut(VIOC_DEINTLS);
+	VIOC_CONFIG_PlugOut(VIOC_DEINTLS);
 	BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<17), (0x01<<17)); // DEINTLS reset
 	BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<17), (0x00<<17)); // DEINTLS reset
 #else
-	VIOC_API_VIQE_SetPlugOut(VIOC_VIQE);
+	VIOC_CONFIG_PlugOut(VIOC_VIQE);
 	BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<16), (0x01<<16)); // VIQE reset
 	BITCSET(pIREQConfig->uSOFTRESET.nREG[1], (0x1<<16), (0x00<<16)); // VIQE reset
 #endif
@@ -301,7 +244,7 @@ void TCC_VIQE_DI_Init60Hz(int lcdCtrlNum, int Lcdc_layer, int useSCALER, unsigne
 	if(img_fmt == 24)
 		gViqe_fmt_60Hz = VIOC_VIQE_FMT_YUV420;
 	else
-		gViqe_fmt_60Hz = VIOC_VIQE_FMT_YUV420;
+		gViqe_fmt_60Hz = VIOC_VIQE_FMT_YUV422;
 	gImg_fmt_60Hz = img_fmt;
 		
 	pmap_get_info("viqe", &pmap_viqe);
@@ -426,7 +369,7 @@ void TCC_VIQE_DI_Run60Hz(int useSCALER, unsigned int addr0, unsigned int addr1, 
 						unsigned int destWidth, unsigned int destHeight, 
 						unsigned int offset_x, unsigned int offset_y, int OddFirst, int FrameInfo_Interlace)
 {
-	unsigned int lcd_width = 0, lcd_height = 0, scale_x = 0, scale_y = 0;
+	unsigned int lcd_width = 0, lcd_height = 0;
 	int cropWidth, cropHeight;
 
 	VIOC_DISP_GetSize(pDISPBase_60Hz, &lcd_width, &lcd_height);

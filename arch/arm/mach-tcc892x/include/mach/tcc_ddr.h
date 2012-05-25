@@ -1128,9 +1128,13 @@ enum
 /*---------------------------------------------------------------------------
  DDR3 Configuation
 ---------------------------------------------------------------------------*/
-#if defined(CONFIG_DRAM_16BIT_USED) && defined(CONFIG_TCC_MEM_1024MB)
+#if defined(CONFIG_DRAM_16BIT_USED)
 #define DDR3_PINMAP_TYPE                 1
+#if defined(CONFIG_TCC_MEM_1024MB)
 #define DDR3_LOGICAL_CHIP_NUM            2
+#else
+#define DDR3_LOGICAL_CHIP_NUM            1
+#endif
 #else
 #define DDR3_PINMAP_TYPE                 0
 #define DDR3_LOGICAL_CHIP_NUM            1
@@ -1198,9 +1202,13 @@ enum
 /*---------------------------------------------------------------------------
  DDR3 Configuation
 ---------------------------------------------------------------------------*/
-#if defined(CONFIG_DRAM_16BIT_USED) && defined(CONFIG_TCC_MEM_1024MB)
+#if defined(CONFIG_DRAM_16BIT_USED)
 #define DDR3_PINMAP_TYPE                 1
+#if defined(CONFIG_TCC_MEM_1024MB)
 #define DDR3_LOGICAL_CHIP_NUM            2
+#else
+#define DDR3_LOGICAL_CHIP_NUM            1
+#endif
 #else
 #define DDR3_PINMAP_TYPE                 0
 #define DDR3_LOGICAL_CHIP_NUM            1
@@ -1333,9 +1341,13 @@ enum
 /*---------------------------------------------------------------------------
  DDR3 Configuation
 ---------------------------------------------------------------------------*/
-#if defined(CONFIG_DRAM_16BIT_USED) && defined(CONFIG_TCC_MEM_1024MB)
+#if defined(CONFIG_DRAM_16BIT_USED)
 #define DDR3_PINMAP_TYPE                 1
+#if defined(CONFIG_TCC_MEM_1024MB)
 #define DDR3_LOGICAL_CHIP_NUM            2
+#else
+#define DDR3_LOGICAL_CHIP_NUM            1
+#endif
 #else
 #define DDR3_PINMAP_TYPE                 0
 #define DDR3_LOGICAL_CHIP_NUM            1
@@ -1403,9 +1415,13 @@ enum
 /*---------------------------------------------------------------------------
  DDR3 Configuation
 ---------------------------------------------------------------------------*/
-#if defined(CONFIG_DRAM_16BIT_USED) && defined(CONFIG_TCC_MEM_1024MB)
+#if defined(CONFIG_DRAM_16BIT_USED)
 #define DDR3_PINMAP_TYPE                 1
+#if defined(CONFIG_TCC_MEM_1024MB)
 #define DDR3_LOGICAL_CHIP_NUM            2
+#else
+#define DDR3_LOGICAL_CHIP_NUM            1
+#endif
 #else
 #define DDR3_PINMAP_TYPE                 0
 #define DDR3_LOGICAL_CHIP_NUM            1
