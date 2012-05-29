@@ -161,8 +161,7 @@ void hdmi_phy_reset(void);
 //static struct device_lcdc_timing_params lcdc_timing_params;
 void tcc_hdmi_power_on(void);
 void tcc_hdmi_power_off(void);
-void tcc_hdmi_phy_on(void);
-void tcc_hdmi_phy_off(void);
+
 static unsigned int gHdmiSettingFlag = 0;
 
 
@@ -431,22 +430,6 @@ int hdmi_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				tcc_hdmi_power_on();
 			break;
 		}
-		case HDMI_IOC_SET_PHY_ONOFF:
-		{
-			unsigned int cmd;
-			if (get_user(cmd, (unsigned int __user *) arg))
-				return -EFAULT;
-
-			dprintk(KERN_INFO "HDMI: ioctl(HDMI_IOC_SET_PHY_ONOFF :  %d 0x%x )\n", cmd, HDMI_IOC_SET_PHY_ONOFF);
-
-			if (cmd == 0)
-				tcc_hdmi_phy_off();
-			else
-				tcc_hdmi_phy_on();
-
-			break;
-		}
-
         case HDMI_IOC_SET_COLORSPACE:
         {
             int space;
@@ -1551,21 +1534,7 @@ void tcc_hdmi_power_on(void)
 
 	if (hdmi_clk)
 		clk_set_rate(hdmi_clk, 1*1000*1000);
-  
-	gHdmiPwrInfo.status = PWR_STATUS_ON;
-
-}
-
-void tcc_hdmi_phy_on(void)
-{
-	unsigned int  regl;
-
-	struct tcc_hdmi_platform_data *hdmi_dev;
-
-	dprintk(KERN_INFO "%s\n", __FUNCTION__);
-
-	hdmi_dev = (struct tcc_hdmi_platform_data *)pdev_hdmi->platform_data;
-
+	
     #if defined (CONFIG_ARCH_TCC92XX)
 	regl = readl(PMU_PWROFF);
 	writel(regl & ~PWROFF_HDMIPHY, PMU_PWROFF);
@@ -1651,6 +1620,8 @@ void tcc_hdmi_phy_on(void)
 	hdmi_set_color_depth(gHdmiVideoParms.colorDepth);
 	hdmi_set_pixel_aspect_ratio(gHdmiVideoParms.pixelAspectRatio);
 
+	gHdmiPwrInfo.status = PWR_STATUS_ON;
+
 	// disable HDCP INT
 	regl = readb(HDMI_SS_INTC_CON);
 	writeb(regl & ~(1<<HDMI_IRQ_HDCP), HDMI_SS_INTC_CON);
@@ -1670,27 +1641,8 @@ void tcc_hdmi_power_off(void)
 
 	dprintk(KERN_INFO "%s\n", __FUNCTION__);
 
-	
-	// enable HDMI Power-down
-	if (hdmi_clk && (gHdmiPwrInfo.status == PWR_STATUS_ON))
-		clk_disable(hdmi_clk);
-	
-	hdmi_dev = (struct tcc_hdmi_platform_data *)pdev_hdmi->platform_data;
-
-	if(hdmi_dev->set_power != NULL)
-		hdmi_dev->set_power(pdev_hdmi, TCC_HDMI_PWR_OFF);
-
-	gHdmiPwrInfo.status = PWR_STATUS_OFF;
-	memset(&gHdmiVideoParms, 0, sizeof(struct HDMIVideoParameter));
- }
-
-
-
-void tcc_hdmi_phy_off(void)
-{
-	dprintk(KERN_INFO "%s\n", __FUNCTION__);
-
 	writeb(0x7F,HDCP_RI_COMPARE_1);
+
 
 	// HDMI PHY Reset
 	tcc_ddi_hdmi_ctrl(HDMICTRL_RESET_HDMI, 0);
@@ -1728,6 +1680,20 @@ void tcc_hdmi_phy_off(void)
 	#elif defined(CONFIG_ARCH_TCC892X)
 	tca_ckc_setippwdn(PMU_ISOL_HDMI, 1); // power up
 	#endif
+	
+	// gpio power on
+	tcc_usleep(100);
+
+	// enable HDMI Power-down
+	if (hdmi_clk && (gHdmiPwrInfo.status == PWR_STATUS_ON))
+		clk_disable(hdmi_clk);
+	
+	hdmi_dev = (struct tcc_hdmi_platform_data *)pdev_hdmi->platform_data;
+
+	if(hdmi_dev->set_power != NULL)
+		hdmi_dev->set_power(pdev_hdmi, TCC_HDMI_PWR_OFF);
+
+	gHdmiPwrInfo.status = PWR_STATUS_OFF;
 	memset(&gHdmiVideoParms, 0, sizeof(struct HDMIVideoParameter));
  }
 
