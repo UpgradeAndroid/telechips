@@ -115,6 +115,8 @@ extern int tcc_component_detect(void);
 extern void tcc_component_update(struct tcc_lcdc_image_update *update);
 #endif
 
+extern unsigned int tca_get_lcd_lcdc_num(viod);
+extern unsigned int tca_get_output_lcdc_num(viod);
 
 static pmap_t pmap_fb_video;
 #define FB_VIDEO_MEM_BASE	pmap_fb_video.base
@@ -1438,6 +1440,18 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 
 	switch(cmd)
 	{
+		case TCC_LCDC_GET_NUM:
+			{
+				unsigned int LCD_lcdc_number;
+				LCD_lcdc_number = tca_get_lcd_lcdc_num();
+				dprintk("%s: TCC_LCDC_GET_NUM :: %d    \n", __func__ , LCD_lcdc_number);
+				
+				if (copy_to_user((unsigned int *)arg, &LCD_lcdc_number, sizeof(unsigned int))) {
+					return -EFAULT;
+				}
+			}
+			break;
+			
 		case TCC_LCDC_HDMI_START:
 			TCC_OUTPUT_FB_DetachOutput(1);
 			TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_HDMI, EX_OUT_LCDC, 1);
@@ -2682,8 +2696,7 @@ static struct platform_driver tccfb_driver = {
 		.owner	= THIS_MODULE,
 	},
 };
-extern unsigned int tca_get_lcd_lcdc_num(viod);
-extern unsigned int tca_get_output_lcdc_num(viod);
+
 //int __devinit tccfb_init(void)
 static int __init tccfb_init(void)
 {
