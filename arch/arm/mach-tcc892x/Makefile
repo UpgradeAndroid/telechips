@@ -49,4 +49,4 @@ obj-$(CONFIG_MACH_M805_892X)    += board-m805_892x-mmc.o
 obj-$(CONFIG_MACH_M805_892X)    += board-m805_892x-dxb.o
 obj-$(CONFIG_MACH_M805_892X)    += board-m805_892x-hdmi.o
 obj-$(CONFIG_MACH_M805_892X)    += board-m805_892x-camera.o
-
+obj-$(CONFIG_MACH_M805_892X)    += board-m805_892x-pmic.o
