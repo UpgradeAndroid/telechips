@@ -28,7 +28,7 @@ typedef struct
 	unsigned int		height;
 	unsigned int		bitrate;
 	unsigned int		framerate;
-	unsigned int		isSWCodec;	
+	unsigned int		isSWCodec;	//In case of VPU_ENC type, this value use to decide if clock limitation apply or not.
 }CONTENTS_INFO;
 
 typedef struct
