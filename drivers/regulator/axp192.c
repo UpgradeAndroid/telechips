@@ -341,7 +341,7 @@ int axp192_battery_voltage(void)
 		ret = ((data[0]<<4)|(data[1]&0xF))&0xFFF;
 	}
 
-	dbg("%s: %dmV\n", __func__, ret);
+//	dbg("%s: %dmV\n", __func__, ret);
 	return ret;
 }
 
@@ -391,7 +391,7 @@ int axp192_get_batt_discharge_current(void)
 		dischg[0] = i2c_smbus_read_byte_data(axp192_i2c_client, AXP192_BATT_DISCHARGE_CURRENT_H_REG);
 		dischg[1] = i2c_smbus_read_byte_data(axp192_i2c_client, AXP192_BATT_DISCHARGE_CURRENT_L_REG);
 		discharge_cur = ((dischg[0] << 5) | (dischg[1] & 0x1f))*5/10;
-		dbg("BATT Discharge Current %d\n", discharge_cur);
+//		dbg("BATT Discharge Current %d\n", discharge_cur);
 	}
 	return discharge_cur;	
 
@@ -405,7 +405,7 @@ int axp192_get_batt_charge_current(void)
 		chg[0] = i2c_smbus_read_byte_data(axp192_i2c_client, AXP192_BATT_CHARGE_CURRENT_H_REG);
 		chg[1] = i2c_smbus_read_byte_data(axp192_i2c_client, AXP192_BATT_CHARGE_CURRENT_L_REG);
 		charge_cur = ((chg[0] << 5) | (chg[1] & 0x0f))*5/10;
-		dbg("BATT Charge Current %d\n", charge_cur);
+//		dbg("BATT Charge Current %d\n", charge_cur);
 	}
 	return charge_cur;	
 }
@@ -835,7 +835,37 @@ static int axp192_ldo_disable(struct regulator_dev *rdev)
 
 static int axp192_ldo_is_enabled(struct regulator_dev *rdev)
 {
-	return 0;
+	struct axp192_data* axp192 = rdev_get_drvdata(rdev);
+	int id = rdev_get_id(rdev);
+	u8 reg, value;
+	int rst = 0;
+
+	switch (id) {
+		case AXP192_ID_LDO2:
+			reg = AXP192_DCDC13_LDO23_CTRL_REG;
+			value = (u8)i2c_smbus_read_byte_data(axp192->client, reg);
+			if (value & 0x04)
+				rst = 1;
+			break;
+		case AXP192_ID_LDO3:
+			reg = AXP192_DCDC13_LDO23_CTRL_REG;
+			value = (u8)i2c_smbus_read_byte_data(axp192->client, reg);
+			if (value & 0x08)
+				rst = 1;
+			break;
+		case AXP192_ID_LDO4:
+			reg = AXP192_LDO4_FUNC_SET_REG;
+			value = (u8)i2c_smbus_read_byte_data(axp192->client, reg);
+			if ((value&0x07) == 0x02)
+				rst = 1;
+			break;
+		default:
+			return -EINVAL;
+	}
+
+	dbg("%s: id:%d, rst:%d\n", __func__, id, rst);
+
+	return rst;
 }
 
 static struct regulator_ops axp192_ldo_ops = {
@@ -1102,7 +1132,6 @@ static int axp192_pmic_suspend(struct i2c_client *client, pm_message_t mesg)
 static int axp192_pmic_resume(struct i2c_client *client)
 {
 	int i;
-	unsigned long temp;
 	struct regulator_dev **rdev = i2c_get_clientdata(client);
 	struct axp192_data* axp192 = NULL;
 
