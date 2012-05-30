@@ -25,45 +25,90 @@
 #if defined(CONFIG_REGULATOR_AXP192)
 #include <linux/regulator/axp192.h>
 
-static struct regulator_consumer_supply axp192_consumer = {
-	.supply = "vdd_core",
+static struct regulator_init_data axp192_dcdc1_info = {
+	.constraints = {
+		.name = "vdd_dcdc1 range",
+		.min_uV =  700000,
+		.max_uV = 3500000,
+		.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE|REGULATOR_CHANGE_STATUS,
+	},
+	.num_consumer_supplies = 0,
 };
 
 static struct regulator_init_data axp192_dcdc2_info = {
 	.constraints = {
-		.name = "vdd_core range",
-		.min_uV = 1000000,
-		.max_uV = 1600000,
+		.name = "vdd_dcdc2 range",
+		.min_uV =  700000,
+		.max_uV = 2275000,
 		.always_on = 1,
 		.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE,
 	},
-	.num_consumer_supplies = 1,
-	.consumer_supplies     = &axp192_consumer,
+	.num_consumer_supplies = 0,
 };
 
-static struct regulator_consumer_supply axp192_consumer_sata33 = {
-	.supply = "vdd_hdmi_osc",
-};
-
-static struct regulator_init_data axp192_ldo4_info = {
+static struct regulator_init_data axp192_dcdc3_info = {
 	.constraints = {
-		.name = "vdd_hdmi_osc",
+		.name = "vdd_dcdc3 range",
+		.min_uV =  700000,
+		.max_uV = 3500000,
+		.always_on = 1,
+		.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE,
+	},
+	.num_consumer_supplies = 0,
+};
+
+static struct regulator_init_data axp192_ldo2_info = {
+	.constraints = {
+		.name = "vdd_ldo2 range",
 		.min_uV = 1800000,
 		.max_uV = 3300000,
 		.valid_ops_mask = REGULATOR_CHANGE_STATUS,
 	},
-	.num_consumer_supplies = 1,
-	.consumer_supplies     = &axp192_consumer_sata33,
+	.num_consumer_supplies = 0,
+};
+
+static struct regulator_init_data axp192_ldo3_info = {
+	.constraints = {
+		.name = "vdd_ldo3 range",
+		.min_uV = 1800000,
+		.max_uV = 3300000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS,
+	},
+	.num_consumer_supplies = 0,
+};
+
+static struct regulator_init_data axp192_ldo4_info = {
+	.constraints = {
+		.name = "vdd_ldo4 range",
+		.min_uV = 1800000,
+		.max_uV = 3300000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS,
+	},
+	.num_consumer_supplies = 0,
 };
 
 static struct axp192_subdev_data axp192_subdev[] = {
 	{
-		.name = "vdd_core",
+		.id   = AXP192_ID_DCDC1,
+		.platform_data = &axp192_dcdc1_info,
+	},
+	{
 		.id   = AXP192_ID_DCDC2,
 		.platform_data = &axp192_dcdc2_info,
 	},
 	{
-		.name = "vdd_hdmi_osc",
+		.id   = AXP192_ID_DCDC3,
+		.platform_data = &axp192_dcdc3_info,
+	},
+	{
+		.id   = AXP192_ID_LDO2,
+		.platform_data = &axp192_ldo2_info,
+	},
+	{
+		.id   = AXP192_ID_LDO3,
+		.platform_data = &axp192_ldo3_info,
+	},
+	{
 		.id   = AXP192_ID_LDO4,
 		.platform_data = &axp192_ldo4_info,
 	},
@@ -90,7 +135,7 @@ static int axp192_irq_init(void)
 }
 
 static struct axp192_platform_data axp192_info = {
-	.num_subdevs = 2,
+	.num_subdevs = ARRAY_SIZE(axp192_subdev),
 	.subdevs     = axp192_subdev,
 	.init_irq    = axp192_irq_init,
 };
@@ -202,7 +247,6 @@ static struct regulator_init_data rn5t614_ldo8_info = {
 	.num_consumer_supplies = 0,
 };
 
-
 static struct rn5t614_subdev_data rn5t614_subdev[] = {
 	{
 		.id   = RN5T614_ID_DCDC1,
@@ -276,21 +320,20 @@ static struct rn5t614_platform_data rn5t614_info = {
 #endif
 
 static struct i2c_board_info __initdata i2c_pmic_devices[] = {
-	#if defined(CONFIG_REGULATOR_AXP192)
+#if defined(CONFIG_REGULATOR_AXP192)
 	{
 		I2C_BOARD_INFO("axp192", 0x34),
 		.irq           = PMIC_IRQ,
 		.platform_data = &axp192_info,
 	},
-	#endif
-
-	#if defined(CONFIG_REGULATOR_RN5T614)
+#endif
+#if defined(CONFIG_REGULATOR_RN5T614)
 	{
 		I2C_BOARD_INFO("rn5t614", 0x32),
 		.irq           = PMIC_IRQ,
 		.platform_data = &rn5t614_info,
 	},
-	#endif
+#endif
 };
 
 static struct regulator_consumer_supply consumer_core = {
@@ -317,6 +360,10 @@ static struct regulator_consumer_supply consumer_hdmi_12d = {
 	.supply = "vdd_hdmi_12",
 };
 
+static struct regulator_consumer_supply consumer_hdmi_osc = {
+	.supply = "vdd_hdmi_osc",
+};
+
 static struct regulator_consumer_supply consumer_iod0 = {
 	.supply = "vdd_iod0",
 };
@@ -330,7 +377,18 @@ void __init m805_892x_init_pmic(void)
 	if (!machine_is_m805_892x())
 		return;
 
-	#if defined(CONFIG_REGULATOR_RN5T614)
+#if defined(CONFIG_REGULATOR_AXP192)
+	axp192_dcdc2_info.num_consumer_supplies = 1;
+	axp192_dcdc2_info.consumer_supplies = &consumer_core;
+	axp192_ldo2_info.num_consumer_supplies = 1;
+	axp192_ldo2_info.consumer_supplies = &consumer_iod0;
+	axp192_ldo3_info.num_consumer_supplies = 1;
+	axp192_ldo3_info.consumer_supplies = &consumer_wifi;
+	axp192_ldo4_info.num_consumer_supplies = 1;
+	axp192_ldo4_info.consumer_supplies = &consumer_hdmi_osc;
+#endif
+
+#if defined(CONFIG_REGULATOR_RN5T614)
 	rn5t614_dcdc1_info.num_consumer_supplies = 1;
 	rn5t614_dcdc1_info.consumer_supplies = &consumer_core;
 
@@ -358,7 +416,7 @@ void __init m805_892x_init_pmic(void)
 		rn5t614_ldo8_info.num_consumer_supplies = 1;
 		rn5t614_ldo8_info.consumer_supplies = &consumer_cam_iod;
 	}
-	#endif
+#endif
 
 	i2c_register_board_info(0, i2c_pmic_devices, ARRAY_SIZE(i2c_pmic_devices));
 }
