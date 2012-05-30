@@ -316,6 +316,18 @@ static int tsif_calculate_readable_cnt(struct tcc_tsif_handle *H)
     }
 }
 #endif
+static void debug_dump(char *data, int size)
+{
+    int i;
+    printk("===================");
+    for(i=0; i<size; i++)
+    {
+        if(!(i%32))
+            printk("\n");
+        printk("0x%02X, ", data[i]);        
+    }
+    printk("\n===================\n");
+}
 
 static int tsif_get_readable_cnt(struct tcc_tsif_handle *H)
 {
@@ -330,7 +342,28 @@ static int tsif_get_readable_cnt(struct tcc_tsif_handle *H)
                 if(tsif_ex_handle.mpeg_ts == (Hw0|Hw1))
                 {
                     if( *sync_byte != 0x47){                                  
-                        printk("call tsif-resync, readable[%d] !!!!\n", readable_cnt);
+                        printk("call tsif-resync, readable[%d][%d][%d] : [0x%X][0x%X]!!!!\n", readable_cnt, q_pos, H->cur_q_pos, sync_byte[0], sync_byte[1]);
+#if 0                        
+                        if(q_pos > 6 && q_pos < 7900)
+                        {
+                            char *start_ptr = (char *)tsif_ex_handle.rx_dma.v_addr;
+                            int i;
+                            printk("**********************");
+                            //debug_dump(sync_byte - 256, 512);
+                            for(i = 0; i<q_pos; i++)
+                            {
+                                if(!(i%32))
+                                    printk("\n");
+                                printk("0x%02X, ", start_ptr[i*188]);
+                                if(start_ptr[i*188] != 0x47)
+                                    break;
+                                
+                            }
+                            printk("\n[%d]**********************\n", i);
+                            debug_dump(&start_ptr[i*188] - 512, 1024);
+
+                        }
+#endif                        
                         tsif_resync(H);
                         return 0;
                     }
@@ -459,6 +492,9 @@ static ssize_t tcc_tsif_read(struct file *filp, char *buf, size_t len, loff_t *p
 
     readable_cnt = tsif_get_readable_cnt(&tsif_ex_handle);
     if (readable_cnt > 0) {
+
+        if(tsif_ex_pri.packet_read_count != len/TSIF_PACKET_SIZE)
+           printk("packet_read_count = %d !!!\n",len/TSIF_PACKET_SIZE); 
         tsif_ex_pri.packet_read_count = len/TSIF_PACKET_SIZE;
         copy_byte = readable_cnt * TSIF_PACKET_SIZE;
         if (copy_byte > len) {
