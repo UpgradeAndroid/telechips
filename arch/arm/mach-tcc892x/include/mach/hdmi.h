@@ -603,8 +603,7 @@ struct HDMIVideoParameter {
 
 /** Device request code to set/get Hdmi Device Power */
 #define HDMI_IOC_SET_PWR_CONTROL			_IOW(HDMI_IOC_MAGIC,31, unsigned int)
-#define HDMI_IOC_GET_PWR_STATUS			_IOR(HDMI_IOC_MAGIC,32, unsigned int)
-#define HDMI_IOC_SET_PHY_ONOFF            	_IOW(HDMI_IOC_MAGIC,33,unsigned int)
+#define HDMI_IOC_GET_PWR_STATUS				_IOR(HDMI_IOC_MAGIC,31, unsigned int)
 
 #endif /*TELECHIPS*/
 

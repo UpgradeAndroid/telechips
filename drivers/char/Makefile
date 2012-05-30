@@ -100,4 +100,5 @@ obj-$(CONFIG_SENSOR_BMA023)		+= sensor_bma023.o
 obj-$(CONFIG_SENSOR_BMA250)		+= sensor_bma250.o
 
 obj-$(CONFIG_WIFI_PWR_CTL)		+= wifi_pwr/
+obj-$(CONFIG_WPS_PBC)		+= wps_pbc/
 # E: telechips

@@ -824,6 +824,7 @@ config MSM_SMD_PKT
 	  ports via device interface for MSM chipset.
 
 source "drivers/char/wifi_pwr/Kconfig"
+source "drivers/char/wps_pbc/Kconfig"
 
 endmenu
 
