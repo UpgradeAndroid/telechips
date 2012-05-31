@@ -487,14 +487,22 @@ static const struct lcdc_timimg_parms_t LCDCTimimgParams[] =
   /* v720x480i_240Hz        PIXEL_FREQ_108_108, */    DEFAULT_HDMI_LCDC_TIMING,
 };
 
-#define SUPPORT_HDMI_MODE_NUM	4
+#define SUPPORT_HDMI_MODE_NUM	8
 enum VideoFormat TccSupportHdmiMode[] = {
 	/** 1920x1080p\@60Hz */
  	v1920x1080p_60Hz,
+	/** 1920x1080p\@50Hz */
+ 	v1920x1080p_50Hz,
 	/** 1920x1080i\@60Hz */
  	v1920x1080i_60Hz,
+	/** 1920x1080i\@50Hz */
+ 	v1920x1080i_50Hz,
 	/** 1280x700p\@60Hz */
 	v1280x720p_60Hz,
+	/** 1280x700p\@50Hz */
+	v1280x720p_50Hz,
+	/** 720x576p\@50Hz */
+	v720x576p_50Hz,
 	/** 720x480p\@60Hz */
 	v720x480p_60Hz,
 	/** 640x480p\@60Hz */
@@ -520,10 +528,10 @@ enum
 enum
 {
 	STARTER_HDMI_1920x1080P = 0,
-	STARTER_HDMI_1920x1080I,
-	STARTER_HDMI_1280x720P,
-	STARTER_HDMI_720x480P,
-	STARTER_HDMI_640x480P,
+	STARTER_HDMI_1920x1080I = 2,
+	STARTER_HDMI_1280x720P = 4,
+	STARTER_HDMI_720x480P = 7,
+	STARTER_HDMI_640x480P = 8,
 	STARTER_HDMI_MAX
 };
 
@@ -1448,7 +1456,7 @@ void tcc_output_starter_hdmi(unsigned char lcdc_num, unsigned char hdmi_resoluti
 	struct HDMIVideoParameter audio;
 	struct HDMIVideoParameter video;
 
-	printk("%s LCDC NUM:%d hdmi_mode=%d\n", __func__, lcdc_num, tcc_display_data.hdmi_mode);
+	printk("%s LCDC NUM:%d hdmi_resolution=%d hdmi_mode=%d\n", __func__, lcdc_num, hdmi_resolution, tcc_display_data.hdmi_mode);
 		
 	if(hdmi_resolution > SUPPORT_HDMI_MODE_NUM)
 		hdmi_resolution = STARTER_HDMI_1920x1080P;

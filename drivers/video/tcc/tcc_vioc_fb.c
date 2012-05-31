@@ -871,7 +871,11 @@ static irqreturn_t tcc_lcd_handler0_for_video(int irq, void *dev_id)
 					DisplayUpdateWithDeinterlace();
 				else
 			#endif
-			DisplayUpdate();				
+					DisplayUpdate();				
+
+			#if defined(CONFIG_TCC_OUTPUT_ATTACH)
+				TCC_OUTPUT_FB_AttachUpdateFlag(0);
+			#endif
 		}
 #endif	
 
@@ -904,7 +908,11 @@ static irqreturn_t tcc_lcd_handler1_for_video(int irq, void *dev_id)
 					DisplayUpdateWithDeinterlace();
 				else
 			#endif
-			DisplayUpdate();				
+					DisplayUpdate();
+
+			#if defined(CONFIG_TCC_OUTPUT_ATTACH)
+				TCC_OUTPUT_FB_AttachUpdateFlag(1);
+			#endif
 		}
 #endif	
 
@@ -1771,6 +1779,32 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 				TCC_OUTPUT_FB_Set3DMode(FALSE, 0);
 				TCC_OUTPUT_FB_Update(fb_info->fb->var.xres, fb_info->fb->var.yres, fb_info->fb->var.bits_per_pixel, Output_BaseAddr, Output_SelectMode);
 				TCC_OUTPUT_FB_UpdateSync(Output_SelectMode);
+			}
+			break;
+			
+		case TCC_LCDC_ATTACH_SET_STATE:
+			{
+				unsigned int attach_state;
+
+				if(copy_from_user((void *)&attach_state, (const void *)arg, sizeof(unsigned int)))
+					return -EFAULT;
+
+				#if defined(CONFIG_TCC_OUTPUT_ATTACH)
+					TCC_OUTPUT_FB_AttachSetSate(attach_state);
+				#endif
+			}
+			break;
+			
+		case TCC_LCDC_ATTACH_GET_STATE:
+			{
+				unsigned int attach_state = 0;
+
+				#if defined(CONFIG_TCC_OUTPUT_ATTACH)
+					attach_state = TCC_OUTPUT_FB_AttachGetSate();
+				#endif
+
+				if (copy_to_user((void *)arg, &attach_state, sizeof(unsigned int)))
+					return -EFAULT;
 			}
 			break;
 			

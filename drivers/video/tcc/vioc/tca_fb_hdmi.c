@@ -158,11 +158,14 @@ void TCC_HDMI_LCDC_OutputEnable(char hdmi_lcdc, unsigned int onoff)
 		VIOC_DISP_TurnOff(pDISP);
 
 	#if defined(CONFIG_TCC_OUTPUT_ATTACH)
-		TCC_OUTPUT_FB_DetachOutput(0);
-
-		#if defined(TCC_OUTPUT_ATTACH_DUAL_AUTO)
-			TCC_OUTPUT_FB_AttachOutput(hdmi_lcdc, TCC_OUTPUT_COMPOSITE, 0);
+		#if defined(TCC_OUTPUT_ATTACH_DUAL_AUTO) || defined(TCC_OUTPUT_ATTACH_HDMI_CVBS)
+			if(TCC_OUTPUT_FB_AttachGetSate())
+			{
+				TCC_OUTPUT_FB_DetachOutput(0);
+				TCC_OUTPUT_FB_AttachOutput(hdmi_lcdc, TCC_OUTPUT_COMPOSITE, 0);
+			}
 		#else
+			TCC_OUTPUT_FB_DetachOutput(0);
 			if(tcc_display_data.output == 3)
 				TCC_OUTPUT_FB_AttachOutput(hdmi_lcdc, TCC_OUTPUT_COMPONENT, 0);
 			else
