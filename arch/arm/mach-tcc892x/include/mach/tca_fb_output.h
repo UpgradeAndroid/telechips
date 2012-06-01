@@ -31,6 +31,7 @@ extern
 	#define TCC_OUTPUT_STARTER_AUTO_DETECT
 	#elif defined(CONFIG_TCC_OUTPUT_ATTACH)
 	#define TCC_OUTPUT_STARTER_DUAL_AUTO
+	//#define TCC_OUTPUT_STARTER_DUAL
 	#else
 	#define TCC_OUTPUT_STARTER_SINGLE
 	//#define TCC_OUTPUT_STARTER_DUAL
@@ -46,6 +47,7 @@ extern
 	
 #if defined(CONFIG_TCC_OUTPUT_ATTACH)
 	#define TCC_OUTPUT_ATTACH_DUAL_AUTO
+	//#define TCC_OUTPUT_ATTACH_HDMI_CVBS
 #endif
 
 /*****************************************************************************
@@ -121,7 +123,10 @@ extern int TCC_OUTPUT_FB_Get3DMode(char *mode);
 
 extern void TCC_OUTPUT_FB_AttachOutput(char src_lcdc_num, char output_type, char starer_flag);
 extern void TCC_OUTPUT_FB_DetachOutput(char disable_all);
-extern void TCC_OUTPUT_FB_AttachUpdate(char src_lcdc_num);
+extern void TCC_OUTPUT_FB_AttachUpdateFlag(char src_lcdc_num);
+extern void TCC_OUTPUT_FB_AttachUpdateScreen(char src_lcdc_num);
+extern void TCC_OUTPUT_FB_AttachSetSate(char attach_state);
+extern char TCC_OUTPUT_FB_AttachGetSate(void);
 
 #ifdef __cplusplus
  } 
