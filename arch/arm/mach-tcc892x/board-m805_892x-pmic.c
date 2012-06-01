@@ -356,8 +356,8 @@ static struct regulator_consumer_supply consumer_lvds_12d = {
 	.supply = "vdd_lvds_12",
 };
 
-static struct regulator_consumer_supply consumer_hdmi_12d = {
-	.supply = "vdd_hdmi_12",
+static struct regulator_consumer_supply consumer_hdmi_pll = {
+	.supply = "vdd_hdmi_pll",
 };
 
 static struct regulator_consumer_supply consumer_hdmi_osc = {
@@ -412,7 +412,7 @@ void __init m805_892x_init_pmic(void)
 		rn5t614_ldo6_info.num_consumer_supplies = 1;
 		rn5t614_ldo6_info.consumer_supplies = &consumer_lvds_12d;
 		rn5t614_ldo7_info.num_consumer_supplies = 1;
-		rn5t614_ldo7_info.consumer_supplies = &consumer_hdmi_12d;
+		rn5t614_ldo7_info.consumer_supplies = &consumer_hdmi_pll;
 		rn5t614_ldo8_info.num_consumer_supplies = 1;
 		rn5t614_ldo8_info.consumer_supplies = &consumer_cam_iod;
 	}
