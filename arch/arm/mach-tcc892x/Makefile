@@ -34,6 +34,7 @@ obj-$(CONFIG_MACH_TCC8920)      += board-tcc8920-dxb.o
 obj-$(CONFIG_MACH_TCC8920)      += board-tcc8920-hdmi.o
 obj-$(CONFIG_MACH_TCC8920)      += board-tcc8920-bluetooth.o
 obj-$(CONFIG_MACH_TCC8920)      += board-tcc8920-camera.o
+obj-$(CONFIG_MACH_TCC8920)      += board-tcc8920-pmic.o
 # obj-$(CONFIG_INPUT_TCC_REMOTE) += board-tcc8920-remocon.o
 obj-$(CONFIG_MACH_TCC8920ST)     += board-tcc8920st.o board-tcc8920st-gpio.o board-tcc8920st-keypad.o board-tcc8920st-power.o
 obj-$(CONFIG_MACH_TCC8920ST)     += board-tcc8920st-panel.o
