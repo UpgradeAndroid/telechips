@@ -271,9 +271,9 @@ static int ehci_hcd_tcc_drv_suspend(struct device *dev)
 		if(wifi_stat == 1) {
 			#if defined(CONFIG_REGULATOR)
 			struct regulator *vdd_wifi = NULL;
-			vdd_wifi = regulator_get(NULL, "vdd_wifi30");
+			vdd_wifi = regulator_get(NULL, "vdd_wifi");
 			if (IS_ERR(vdd_wifi)) {
-				printk("Failed to obtain vdd_wifi30\n");
+				printk("Failed to obtain vdd_wifi\n");
 				vdd_wifi = NULL;
 			}
 			if (vdd_wifi) {
@@ -299,9 +299,9 @@ static int ehci_hcd_tcc_drv_resume(struct device *dev)
 		if(system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004) {
 			#if defined(CONFIG_REGULATOR)
 			struct regulator *vdd_wifi = NULL;
-			vdd_wifi = regulator_get(NULL, "vdd_wifi30");
+			vdd_wifi = regulator_get(NULL, "vdd_wifi");
 			if (IS_ERR(vdd_wifi)) {
-				printk("Failed to obtain vdd_wifi30\n");
+				printk("Failed to obtain vdd_wifi\n");
 				vdd_wifi = NULL;
 			}
 			if (vdd_wifi) {
