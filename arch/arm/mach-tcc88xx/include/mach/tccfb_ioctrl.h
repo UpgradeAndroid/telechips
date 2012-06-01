@@ -63,6 +63,8 @@ typedef enum{
 #define TCC_LCDC_3D_UI_ENABLE			0x005B
 #define TCC_LCDC_3D_UI_DISABLE			0x005C
 
+#define	TCC_LCDC_GET_NUM			0x005D	//to fix compile error. ioctl is not implemented.
+
 #if defined(CONFIG_TCC_VIDEO_DISPLAY_BY_VSYNC_INT) || defined(TCC_VIDEO_DISPLAY_BY_VSYNC_INT)
 #define	TCC_LCDC_VIDEO_START_VSYNC		0x0060
 #define	TCC_LCDC_VIDEO_END_VSYNC		0x0061
