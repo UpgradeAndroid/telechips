@@ -1260,7 +1260,7 @@ static irqreturn_t tcc_lcd_handler0_for_video(int irq, void *dev_id)
 		if( tcc_vsync_is_empty_buffer(&tccvid_vsync.vsync_buffer) == 0 )
 		{
 			#ifdef TCC_VIDEO_DISPLAY_DEINTERLACE_MODE
-				if(!tccvid_vsync.output_toMemory)
+				if(tccvid_vsync.deinterlace_mode && !tccvid_vsync.output_toMemory)
 					DisplayUpdateWithDeinterlace();
 				else
 			#endif
@@ -1297,7 +1297,7 @@ static irqreturn_t tcc_lcd_handler1_for_video(int irq, void *dev_id)
 		if( tcc_vsync_is_empty_buffer(&tccvid_vsync.vsync_buffer) == 0)
 		{
 			#ifdef TCC_VIDEO_DISPLAY_DEINTERLACE_MODE
-				if(!tccvid_vsync.output_toMemory)
+				if(tccvid_vsync.deinterlace_mode && !tccvid_vsync.output_toMemory)
 					DisplayUpdateWithDeinterlace();
 				else
 			#endif
@@ -2116,12 +2116,14 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 
 				SavedOddfirst=-1;
 
+			/*
 				if(Output_SelectMode == TCC_OUTPUT_NONE)
 				{
 					struct tcc_lcdc_image_update ImageInfo;
 					memset(&ImageInfo, 0x00, sizeof(struct tcc_lcdc_image_update));
  					TCC_HDMI_DISPLAY_UPDATE(LCD_OUT_LCDC, &ImageInfo);
 				}
+			*/
 				vsync_started = 0;
 			}
 			break ;
@@ -2333,7 +2335,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 					tccvid_vsync.vsync_buffer.last_cleared_buff_id = input_image.buffer_unique_id;
 					spin_unlock_irq(&vsync_lockDisp) ;
 
-					if(!tccvid_vsync.output_toMemory && !tccvid_vsync.interlace_bypass_lcdc)		//tccvid_vsync.deinterlace_mode && //
+					if(!tccvid_vsync.output_toMemory && !tccvid_vsync.interlace_bypass_lcdc  && tccvid_vsync.deinterlace_mode )
 					{
 						int lcdCtrlNum;
 
@@ -2506,7 +2508,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 				}
 
 #ifdef TCC_VIDEO_DISPLAY_DEINTERLACE_MODE
-				if(!tccvid_vsync.output_toMemory && tccvid_vsync.firstFrameFlag &&!tccvid_vsync.interlace_bypass_lcdc)
+			if(tccvid_vsync.deinterlace_mode && !tccvid_vsync.output_toMemory && tccvid_vsync.firstFrameFlag &&!tccvid_vsync.interlace_bypass_lcdc)
 				{
 					int lcdCtrlNum;
 
