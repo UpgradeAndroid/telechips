@@ -984,7 +984,7 @@ int dpm_suspend(pm_message_t state)
 	int error = 0;
 
 	#if defined(CONFIG_PM_VERBOSE_DPM_SUSPEND)
-	printk("%s(%s)\n", __func__, pm_verb(state.event));
+	printk("%s(%s) : start\n", __func__, pm_verb(state.event));
 	#endif
 
 	might_sleep();
@@ -1000,7 +1000,7 @@ int dpm_suspend(pm_message_t state)
 
 		#if defined(CONFIG_PM_VERBOSE_DPM_SUSPEND)
 		if(dev->driver) {
-			printk("dpm <-%s:", dev->driver->name);
+			printk("dpm [:%s:", dev->driver->name);
 		}
 		#endif
 
