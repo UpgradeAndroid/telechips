@@ -126,7 +126,7 @@ static void hp_mute()
 #if defined(CONFIG_MACH_M805_892X)
 	if(machine_is_m805_892x())
 	{
-		if (system_rev == 0x2002 || system_rev == 0x2003)
+		if (system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004)
 			gpio_set_value(TCC_GPE(17), 0);
 		else
 			gpio_set_value(TCC_GPG(5), 0);
@@ -153,7 +153,7 @@ static void hp_un_mute()
 #if defined(CONFIG_MACH_M805_892X)
 	if(machine_is_m805_892x())
 	{
-		if (system_rev == 0x2002 || system_rev == 0x2003)
+		if (system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004)
 			gpio_set_value(TCC_GPE(17), 1);
 		else
 			gpio_set_value(TCC_GPG(5), 1);
@@ -260,8 +260,8 @@ static void tcc_shutdown(struct snd_pcm_substream *substream)
 //	 struct snd_soc_pcm_runtime *rtd = substream->private_data;
 //	 struct snd_soc_codec *codec = rtd->codec;
 //	 tcc_ext_control(codec);
-	 spk_mute();   //add by jf.s
-	 hp_mute();   //add by jf.s
+//	 spk_mute();   //add by jf.s
+//	 hp_mute();   //add by jf.s
 }
 
 static int tcc_hw_params(struct snd_pcm_substream *substream, struct snd_pcm_hw_params *params)
@@ -568,7 +568,7 @@ static int __init tcc_init_rt5633(void)
 
     /* h/w mute control */
     if(machine_is_m805_892x()) {
-		if (system_rev == 0x2002 || system_rev == 0x2003) {
+		if (system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004) {
 			tcc_gpio_config(TCC_GPE(17), GPIO_FN(0));
 			gpio_request(TCC_GPE(17), "HP_MUTE_CTL");
 			gpio_direction_output(TCC_GPE(17), 0);   // HeadPhone mute

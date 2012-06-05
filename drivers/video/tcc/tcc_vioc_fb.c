@@ -115,6 +115,8 @@ extern int tcc_component_detect(void);
 extern void tcc_component_update(struct tcc_lcdc_image_update *update);
 #endif
 
+extern unsigned int tca_get_lcd_lcdc_num(viod);
+extern unsigned int tca_get_output_lcdc_num(viod);
 
 static pmap_t pmap_fb_video;
 #define FB_VIDEO_MEM_BASE	pmap_fb_video.base
@@ -869,7 +871,11 @@ static irqreturn_t tcc_lcd_handler0_for_video(int irq, void *dev_id)
 					DisplayUpdateWithDeinterlace();
 				else
 			#endif
-			DisplayUpdate();				
+					DisplayUpdate();				
+
+			#if defined(CONFIG_TCC_OUTPUT_ATTACH)
+				TCC_OUTPUT_FB_AttachUpdateFlag(0);
+			#endif
 		}
 #endif	
 
@@ -902,7 +908,11 @@ static irqreturn_t tcc_lcd_handler1_for_video(int irq, void *dev_id)
 					DisplayUpdateWithDeinterlace();
 				else
 			#endif
-			DisplayUpdate();				
+					DisplayUpdate();
+
+			#if defined(CONFIG_TCC_OUTPUT_ATTACH)
+				TCC_OUTPUT_FB_AttachUpdateFlag(1);
+			#endif
 		}
 #endif	
 
@@ -918,7 +928,7 @@ static irqreturn_t tcc_vsync_timer_handler(int irq, void *dev_id)
 	PTIMER pTIMER_reg = (volatile PTIMER)tcc_p2v(HwTMR_BASE);
 
 	#if defined(CONFIG_ARCH_TCC892X)
-		if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002 || system_rev == 0x2003)
+		if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004)
 		{
 				pTIMER_reg->TIREQ.nREG = 0x00000202;
 		}
@@ -949,7 +959,7 @@ void tccfb_vsync_timer_onoff(int onOff)
 		BITCSET(pCKC->PCLKCTRL01.nREG, 0xFFFFFFFF, 0x24000000);
 
 		#if defined(CONFIG_ARCH_TCC892X)
-			if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002 || system_rev == 0x2003)
+			if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004)
 			{
 				pTIMER_reg->TCFG1.bREG.EN = 1;
 				pTIMER_reg->TCFG1.bREG.IEN = 1;
@@ -982,7 +992,7 @@ void tccfb_vsync_timer_onoff(int onOff)
 		{
 
 		#if defined(CONFIG_ARCH_TCC892X)
-			if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002 || system_rev == 0x2003)
+			if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004)
 			{
 				request_irq(INT_TC_TI1, tcc_vsync_timer_handler,	IRQF_SHARED,
 						"TCC_TC1",	tcc_vsync_timer_handler);
@@ -1000,7 +1010,7 @@ void tccfb_vsync_timer_onoff(int onOff)
 	else	{
 
 		#if defined(CONFIG_ARCH_TCC892X)
-			if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002 || system_rev == 0x2003)
+			if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004)
 			{
 				pTIMER_reg->TCFG1.bREG.EN = 0;
 				pTIMER_reg->TCFG1.bREG.IEN = 0;
@@ -1031,7 +1041,7 @@ void tccfb_vsync_timer_onoff(int onOff)
 		if(timer_interrupt_onoff == 1)
 		{
 			#if defined(CONFIG_ARCH_TCC892X)
-				if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002 || system_rev == 0x2003)
+				if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004)
 				{
 						free_irq(INT_TC_TI1, tcc_vsync_timer_handler);			
 				}
@@ -1056,7 +1066,7 @@ unsigned int tcc_vsync_get_timer_clock(void)
 
 
 	#if defined(CONFIG_ARCH_TCC892X)
-		if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002 || system_rev == 0x2003)
+		if(system_rev == 0x1005 || system_rev == 0x1006 || system_rev == 0x1007 ||system_rev == 0x1008 || system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004)
 		{
 				timer_tick = pTIMER_reg->TCNT1.bREG.TCNT;
 		}
@@ -1438,6 +1448,18 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 
 	switch(cmd)
 	{
+		case TCC_LCDC_GET_NUM:
+			{
+				unsigned int LCD_lcdc_number;
+				LCD_lcdc_number = tca_get_lcd_lcdc_num();
+				dprintk("%s: TCC_LCDC_GET_NUM :: %d    \n", __func__ , LCD_lcdc_number);
+				
+				if (copy_to_user((unsigned int *)arg, &LCD_lcdc_number, sizeof(unsigned int))) {
+					return -EFAULT;
+				}
+			}
+			break;
+			
 		case TCC_LCDC_HDMI_START:
 			TCC_OUTPUT_FB_DetachOutput(1);
 			TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_HDMI, EX_OUT_LCDC, 1);
@@ -1757,6 +1779,32 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 				TCC_OUTPUT_FB_Set3DMode(FALSE, 0);
 				TCC_OUTPUT_FB_Update(fb_info->fb->var.xres, fb_info->fb->var.yres, fb_info->fb->var.bits_per_pixel, Output_BaseAddr, Output_SelectMode);
 				TCC_OUTPUT_FB_UpdateSync(Output_SelectMode);
+			}
+			break;
+			
+		case TCC_LCDC_ATTACH_SET_STATE:
+			{
+				unsigned int attach_state;
+
+				if(copy_from_user((void *)&attach_state, (const void *)arg, sizeof(unsigned int)))
+					return -EFAULT;
+
+				#if defined(CONFIG_TCC_OUTPUT_ATTACH)
+					TCC_OUTPUT_FB_AttachSetSate(attach_state);
+				#endif
+			}
+			break;
+			
+		case TCC_LCDC_ATTACH_GET_STATE:
+			{
+				unsigned int attach_state = 0;
+
+				#if defined(CONFIG_TCC_OUTPUT_ATTACH)
+					attach_state = TCC_OUTPUT_FB_AttachGetSate();
+				#endif
+
+				if (copy_to_user((void *)arg, &attach_state, sizeof(unsigned int)))
+					return -EFAULT;
 			}
 			break;
 			
@@ -2682,8 +2730,7 @@ static struct platform_driver tccfb_driver = {
 		.owner	= THIS_MODULE,
 	},
 };
-extern unsigned int tca_get_lcd_lcdc_num(viod);
-extern unsigned int tca_get_output_lcdc_num(viod);
+
 //int __devinit tccfb_init(void)
 static int __init tccfb_init(void)
 {

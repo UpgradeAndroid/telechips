@@ -179,7 +179,7 @@ const struct tcc_freq_table_t gtHdmiClockLimitTable = {
 	  625000, 386880, 600000,      0, 243040, 296000, 296000,      0,      0	// Core 1.30V
 #else
 	#if defined(CONFIG_STB_BOARD_DONGLE)
-	  625000, 312000, 533000,      0, 196000,      0,      0,      0,      0	// Core 1.20V
+	       0, 312000, 533000,      0, 196000,      0,      0,      0,      0	// Core 1.20V
 	#else
 	  625000, 386880, 600000,      0, 243040,      0,      0,      0,      0	// Core 1.30V
 	#endif

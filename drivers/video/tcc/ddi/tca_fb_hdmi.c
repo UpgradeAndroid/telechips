@@ -84,6 +84,9 @@ static exclusive_ui_params hdmi_exclusive_ui_param;
 #endif
 
 extern void tccxxx_overlay_start(void);
+char M2M_Scaler1_Ctrl_Detail(SCALER_TYPE *scale_img);
+char M2M_Scaler_Ctrl_Detail(SCALER_TYPE *scale_img);
+
 /*****************************************************************************
 *
 * Functions
@@ -268,47 +271,185 @@ char TCC_OnTheFly_setting(char OnOff, char hdmi_lcdc,  char scaler)
 
 	pDDICONFIG = (volatile PDDICONFIG)tcc_p2v(HwDDI_CONFIG_BASE);
 
-	if(OnOff)	{		
-		if(scaler) //scaler 1
+	if(OnOff)
+	{		
+	 	if(scaler)
+			M2M_Scaler_SW_Reset(M2M_SCALER1); 
+		else
+			M2M_Scaler_SW_Reset(M2M_SCALER0); 
+
+		dprintk("%s, lcdc_num=%d, scaler_num=%d \n", __func__, hdmi_lcdc, scaler);
+	}
+
+	if(scaler)
+	{
+		if(hdmi_lcdc)
 		{
-			if(hdmi_lcdc)
-				BITCSET(pDDICONFIG->ON_THE_FLY, Hw4+Hw5, Hw4);	// lcdc 1
-			else
-				BITCSET(pDDICONFIG->ON_THE_FLY, Hw4+Hw5, 0); // lcdc 0
+			BITCSET(pDDICONFIG->ON_THE_FLY , Hw0+Hw1, 0);			// VIQE + LCDC0
+			BITCSET(pDDICONFIG->ON_THE_FLY, Hw2+Hw3, Hw3);			// SCALER0 Not Used
+
+			if(OnOff)	
+				BITCSET(pDDICONFIG->ON_THE_FLY, Hw4+Hw5, Hw4);		// SCALER1 + LCDC1
+			else	
+				BITCSET(pDDICONFIG->ON_THE_FLY, Hw4+Hw5, Hw4+Hw5);	// SCALER1 Not Used
 		}
 		else
 		{
-			if(hdmi_lcdc)
-				BITCSET(pDDICONFIG->ON_THE_FLY, Hw2+Hw3, Hw2);	// lcdc 1
-			else
-				BITCSET(pDDICONFIG->ON_THE_FLY, Hw2+Hw3, 0); // lcdc 0
+			BITCSET(pDDICONFIG->ON_THE_FLY, Hw0+Hw1, Hw0);			// VIQE + LCDC1
+			BITCSET(pDDICONFIG->ON_THE_FLY, Hw2+Hw3, Hw3);			// SCALER0 Not Used
+
+			if(OnOff)	
+				BITCSET(pDDICONFIG->ON_THE_FLY, Hw4+Hw5, 0);		// SCALER1 + LCDC0
+			else	
+				BITCSET(pDDICONFIG->ON_THE_FLY, Hw4+Hw5, Hw4+Hw5);	// SCALER1 Not Used
 		}
 	}
-	else	{
-		
-		if(scaler) //scaler 1
-			BITCSET(pDDICONFIG->ON_THE_FLY, Hw4+Hw5, Hw4+Hw5);
+	else
+	{
+		if(hdmi_lcdc)
+		{
+			BITCSET(pDDICONFIG->ON_THE_FLY, Hw0+Hw1, 0);			// VIQE + LCDC0
+			BITCSET(pDDICONFIG->ON_THE_FLY, Hw4+Hw5, Hw4+Hw5);		// SCALER1 Not Used
+
+			if(OnOff)	
+				BITCSET(pDDICONFIG->ON_THE_FLY, Hw2+Hw3, Hw2);		// SCALER0 + LCDC1
+			else	
+				BITCSET(pDDICONFIG->ON_THE_FLY, Hw2+Hw3, Hw3);		// SCALER0 Not Used
+		}
 		else
-			BITCSET(pDDICONFIG->ON_THE_FLY, Hw2+Hw3, Hw3);
+		{
+			BITCSET(pDDICONFIG->ON_THE_FLY, Hw0+Hw1, Hw0);			// VIQE + LCDC1
+			BITCSET(pDDICONFIG->ON_THE_FLY, Hw4+Hw5, Hw4+Hw5);		// SCALER1 Not Used
 
-
-//		M2M_Scaler_SW_Reset(M2M_SCALER1);
+			if(OnOff)	
+				BITCSET(pDDICONFIG->ON_THE_FLY, Hw2+Hw3, 0);		// SCALER0 + LCDC0
+			else	
+				BITCSET(pDDICONFIG->ON_THE_FLY, Hw2+Hw3, Hw3);		// SCALER0 Not Used
+		}
 	}
+
 	return 1;
 }
 
 
+void TCC_HDMI_DISPLAY_UPDATE_OnTheFly(char hdmi_lcdc, struct tcc_lcdc_image_update *ImageInfo)
+{
+	unsigned int lcd_width, lcd_height;
+	unsigned int img_width, img_height, img_offset_x, img_offset_y;
+	unsigned int output_width, output_height;
+	unsigned int scaler_num;
+	unsigned int scale_limit_wd, scale_limit_ht, scale_limit_total;
+	SCALER_TYPE fbscaler;
+	PLCDC pLCDC;
+	PLCDC_CHANNEL pLCDC_channel;
 
+	scaler_num = 0;
+
+	dprintk(" %s onoff:%d :fmt:%d Fw:%d Fh:%d Iw:%d Ih:%d \n", __func__,ImageInfo->enable,
+		ImageInfo->fmt,ImageInfo->Frame_width, ImageInfo->Frame_height, ImageInfo->Image_width, ImageInfo->Image_height);
+	
+	img_width	= ImageInfo->Frame_width;
+	img_height	= ImageInfo->Frame_height;
+
+	img_offset_x = 0;
+	img_offset_y = 0;
+
+ 	if (hdmi_lcdc)
+		pLCDC = (volatile PLCDC)tcc_p2v(HwLCDC1_BASE);
+	else
+		pLCDC = (volatile PLCDC)tcc_p2v(HwLCDC0_BASE);
+	
+	lcd_width	= ((pLCDC->LDS>>0 ) & 0xFFFF);
+	lcd_height	= ((pLCDC->LDS>>16) & 0xFFFF);
+
+	pLCDC_channel = (volatile PLCDC_CHANNEL)&pLCDC->LI0C;
+
+	output_width	= ImageInfo->Image_width;
+	output_height	= ImageInfo->Image_height;
+
+	 /* Set the scaler information */
+	memset(&fbscaler, 0x00, sizeof(SCALER_TYPE));
+
+	//fbscaler.responsetype = SCALER_INTERRUPT;
+	fbscaler.responsetype = SCALER_NOWAIT;
+
+	if(ImageInfo->fmt == TCC_LCDC_IMG_FMT_YUV422SP)
+		fbscaler.src_fmt = SCALER_YUV422_sp;
+	else if(ImageInfo->fmt == TCC_LCDC_IMG_FMT_YUV420SP)
+		fbscaler.src_fmt = SCALER_YUV420_sp;
+	else if(ImageInfo->fmt == TCC_LCDC_IMG_FMT_YUV422SQ)
+		fbscaler.src_fmt = SCALER_YUV422_sq0;
+	else if(ImageInfo->fmt == TCC_LCDC_IMG_FMT_YUV420ITL0)
+		fbscaler.src_fmt = SCALER_YUV420_inter;
+	else if(ImageInfo->fmt == TCC_LCDC_IMG_FMT_YUV422ITL0)
+		fbscaler.src_fmt = SCALER_YUV422_inter;
+	else if(ImageInfo->fmt == TCC_LCDC_IMG_FMT_RGB565)
+		fbscaler.src_fmt = SCALER_RGB565;
+	else
+		printk("%s, Err: M2M Scaler Format(%d) is not supported!!\n", __func__, ImageInfo->fmt);
+		
+	fbscaler.src_Yaddr = (char *)ImageInfo->addr0;
+	fbscaler.src_Uaddr = (char *)ImageInfo->addr1;
+	fbscaler.src_Vaddr = (char *)ImageInfo->addr2;
+	fbscaler.src_ImgWidth = img_width;
+	fbscaler.src_ImgHeight = img_height;
+	fbscaler.src_winLeft = 0;
+	fbscaler.src_winTop = 0;
+	fbscaler.src_winRight = img_width;
+	fbscaler.src_winBottom = img_height;
+
+	fbscaler.dest_fmt = SCALER_YUV422_sq0;		// destination image format
+	fbscaler.dest_ImgWidth = output_width;		// destination image width
+	fbscaler.dest_ImgHeight = output_height; 		// destination image height
+	fbscaler.dest_winLeft = 0;
+	fbscaler.dest_winTop = 0;
+	fbscaler.dest_winRight = output_width;
+	fbscaler.dest_winBottom = output_height;
+
+ 	/* Set the output path for ON_THE_FLY */
+	fbscaler.viqe_onthefly = 0x02;
+
+ 	/* Execute the scaler */
+	if(scaler_num)
+		M2M_Scaler1_Ctrl_Detail(&fbscaler);
+	else
+		M2M_Scaler_Ctrl_Detail(&fbscaler);
+	
+	dprintk("%s, src_format=%d, src_w=%d, src_h=%d, src_addr=0x%08x, dst_format=%d, dst_w=%d, dst_h=%d, offset_x=%d, offset_y=%d\n", 
+			__func__, fbscaler.src_fmt, fbscaler.src_ImgWidth, fbscaler.src_ImgHeight, fbscaler.src_Yaddr,
+			fbscaler.dest_fmt, fbscaler.dest_ImgWidth, fbscaler.dest_ImgHeight, img_offset_x, img_offset_y);
+		
+ 	/* Update new image information */
+	/*
+	ImageInfo->Frame_width = fbscaler.dest_ImgWidth;
+	ImageInfo->Frame_height = fbscaler.dest_ImgHeight;
+	ImageInfo->Image_width = fbscaler.dest_ImgWidth;
+	ImageInfo->Image_height = fbscaler.dest_ImgHeight;
+	ImageInfo->offset_x = img_offset_x;
+	ImageInfo->offset_y = img_offset_y;	
+
+	ImageInfo->fmt = TCC_LCDC_IMG_FMT_YUV422SQ;	
+	ImageInfo->addr0 = (unsigned int)fbscaler.dest_Yaddr;
+	ImageInfo->addr1 = (unsigned int)fbscaler.dest_Uaddr;
+	ImageInfo->addr2 = (unsigned int)fbscaler.dest_Vaddr;
+	*/
+
+	return ;
+}
+
+static unsigned int onthefly_using = 0;
 void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *ImageInfo)
 {
 	unsigned int regl;
 	unsigned int lcd_width = 0, lcd_height = 0, lcd_h_pos = 0, lcd_w_pos = 0, scale_x = 0, scale_y = 0;
 	unsigned int buffer_width = 0, y2r_option = 0, onthefly = 0;
+	unsigned int Image_fmt;
 	PLCDC pLCDC;
 	PLCDC_CHANNEL pLCDC_channel;
 
-	dprintk(" %s onoff:%d :fmt:%d Fw:%d Fh:%d Iw:%d Ih:%d \n", __func__,ImageInfo->enable,
-		ImageInfo->fmt,ImageInfo->Frame_width, ImageInfo->Frame_height, ImageInfo->Image_width, ImageInfo->Image_height);
+	dprintk(" %s onoff:%d :fmt:%d Fw:%d Fh:%d Iw:%d Ih:%d onthefly:%d \n", __func__,ImageInfo->enable,
+		ImageInfo->fmt,ImageInfo->Frame_width, ImageInfo->Frame_height, ImageInfo->Image_width, ImageInfo->Image_height,ImageInfo->on_the_fly);
+
 	if((ImageInfo->Lcdc_layer >= 3) || (ImageInfo->fmt >TCC_LCDC_IMG_FMT_MAX))
 		return;
 
@@ -347,10 +488,28 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 		return;
 	}
 
+	if( ImageInfo->on_the_fly) {
+		if(!onthefly_using){
+			TCC_OnTheFly_setting(1, hdmi_lcdc ,ImageInfo->on_the_fly - 1);
+			//TCC_OnTheFly_setting(1, hdmi_lcdc ,ImageInfo->on_the_fly);
+			onthefly =  HwLIC_SRC;						
+			onthefly_using = 1;
+		}		
+		TCC_HDMI_DISPLAY_UPDATE_OnTheFly( hdmi_lcdc, ImageInfo); // ok here!!!
+		BITCSET(pLCDC_channel->LIC, HwLIC_SRC, HwLIC_SRC);
+		Image_fmt = TCC_LCDC_IMG_FMT_YUV422SQ;
+		
+	}else{
+		BITCSET(pLCDC_channel->LIC, HwLIC_SRC, 0);
+		Image_fmt = ImageInfo->fmt;
+		onthefly_using = 0;		
+	}			
+
+
 	{
 		buffer_width = (((ImageInfo->Frame_width + 3)>>2)<<2);
 
-		switch(ImageInfo->fmt)
+		switch(Image_fmt)
 		{
 			case TCC_LCDC_IMG_FMT_RGB444:
 			case TCC_LCDC_IMG_FMT_RGB565:
@@ -385,7 +544,7 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 				break;
 
 		}
-
+		
 		scale_x = 0;
 		scale_y = 0;
 		lcd_h_pos = 0;
@@ -417,7 +576,7 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 		if(hdmi_exclusive_ui_param.enable && hdmi_exclusive_ui_onthefly)
 		{
 			//channel control
-			BITCSET(pLCDC_channel->LIC, HwLIC_SRC | HwLIC_Y2R | HwLIC_FMT, HwLIC_SRC | y2r_option | (ImageInfo->fmt));
+			BITCSET(pLCDC_channel->LIC, HwLIC_SRC | HwLIC_Y2R | HwLIC_FMT, HwLIC_SRC | y2r_option | (Image_fmt));
 		}
 		else
 		{
@@ -427,7 +586,7 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 			pLCDC_channel->LIBA2 = ImageInfo->addr2;
 
 			//channel control
-			BITCSET(pLCDC_channel->LIC, HwLIC_SRC | HwLIC_Y2R | HwLIC_FMT, y2r_option | (ImageInfo->fmt));
+			BITCSET(pLCDC_channel->LIC, HwLIC_SRC | HwLIC_Y2R | HwLIC_FMT, y2r_option | (Image_fmt));
 		}
 
 		hdmi_exclusive_ui_onthefly = FALSE;
@@ -447,18 +606,14 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 		pLCDC_channel->LIBA1 = ImageInfo->addr1;
 		pLCDC_channel->LIBA2 = ImageInfo->addr2;
 
-		//channel control
-		if(ImageInfo->on_the_fly) {
-			TCC_OnTheFly_setting(1, hdmi_lcdc ,ImageInfo->on_the_fly - 1);
-			onthefly =  HwLIC_SRC;
-		}
-
-		BITCSET(pLCDC_channel->LIC, HwLIC_Y2R | HwLIC_FMT| onthefly, onthefly | y2r_option | (ImageInfo->fmt));
+		//channel contro
+		BITCSET(pLCDC_channel->LIC, HwLIC_Y2R | HwLIC_FMT, y2r_option | (Image_fmt));
 
 		if(ISZERO(pLCDC->LCTRL, HwLCTRL_NI))
 			BITCSET(pLCDC_channel->LIC, HwLIC_INTL, HwLIC_INTL);
 		else
 			BITCSET(pLCDC_channel->LIC, HwLIC_INTL, 0);
+
 	#endif
 
 		#if defined(CONFIG_ARCH_TCC92XX)

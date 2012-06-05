@@ -21,8 +21,6 @@
 #include <linux/i2c/pca953x.h>
 #include <linux/akm8975.h>
 #include <linux/spi/spi.h>
-#include <linux/regulator/axp192.h>
-#include <linux/regulator/rn5t614.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
 #include <asm/mach/map.h>
@@ -123,132 +121,6 @@ static struct akm8975_platform_data akm8975_data = {
 };
 #endif
 
-#if defined(CONFIG_REGULATOR_AXP192)
-static struct regulator_consumer_supply axp192_consumer = {
-	.supply = "vdd_core",
-};
-
-static struct regulator_init_data axp192_dcdc2_info = {
-	.constraints = {
-		.name = "vdd_core range",
-		.min_uV = 1000000,
-		.max_uV = 1600000,
-		.always_on = 1,
-		.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE,
-	},
-	.num_consumer_supplies = 1,
-	.consumer_supplies     = &axp192_consumer,
-};
-
-static struct regulator_consumer_supply axp192_consumer_sata33 = {
-	.supply = "vdd_hdmi_osc",
-};
-
-static struct regulator_init_data axp192_ldo4_info = {
-	.constraints = {
-		.name = "vdd_hdmi_osc",
-		.min_uV = 1800000,
-		.max_uV = 3300000,
-		.valid_ops_mask = REGULATOR_CHANGE_STATUS,
-	},
-	.num_consumer_supplies = 1,
-	.consumer_supplies     = &axp192_consumer_sata33,
-};
-
-static struct axp192_subdev_data axp192_subdev[] = {
-	{
-		.name = "vdd_core",
-		.id   = AXP192_ID_DCDC2,
-		.platform_data = &axp192_dcdc2_info,
-	},
-	{
-		.name = "vdd_hdmi_osc",
-		.id   = AXP192_ID_LDO4,
-		.platform_data = &axp192_ldo4_info,
-	},
-};
-
-static int axp192_irq_init(void)
-{
-	if(system_rev == 0x2002 || system_rev == 0x2003) {
-		tcc_gpio_config(TCC_GPE(27), GPIO_FN(0)|GPIO_PULL_DISABLE);  // GPIOE[31]: input mode, disable pull-up/down
-		tcc_gpio_config_ext_intr(PMIC_IRQ, EXTINT_GPIOE_27);
-
-		gpio_request(TCC_GPE(27), "PMIC_IRQ");
-		gpio_direction_input(TCC_GPE(27));
-	}
-	else {
-		tcc_gpio_config(TCC_GPD(9), GPIO_FN(0)|GPIO_PULL_DISABLE);  // GPIOE[31]: input mode, disable pull-up/down
-		tcc_gpio_config_ext_intr(PMIC_IRQ, EXTINT_GPIOD_09);
-
-		gpio_request(TCC_GPD(9), "PMIC_IRQ");
-		gpio_direction_input(TCC_GPD(9));
-	}
-
-	return 0;
-}
-
-static struct axp192_platform_data axp192_info = {
-	.num_subdevs = 2,
-	.subdevs     = axp192_subdev,
-	.init_irq    = axp192_irq_init,
-};
-#endif
-
-#if defined(CONFIG_REGULATOR_RN5T614)
-static struct regulator_consumer_supply rn5t614_consumer = {
-	.supply = "vdd_core",
-};
-
-static struct regulator_init_data rn5t614_dcdc1_info = {
-	.constraints = {
-		.name = "vdd_core range",
-		.min_uV =  950000,
-		.max_uV = 1500000,
-		.always_on = 1,
-		.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE,
-	},
-	.num_consumer_supplies = 1,
-	.consumer_supplies     = &rn5t614_consumer,
-};
-
-static struct rn5t614_subdev_data rn5t614_subdev[] = {
-	{
-		.name = "vdd_core",
-		.id   = RN5T614_ID_DCDC1,
-		.platform_data = &rn5t614_dcdc1_info,
-	},
-};
-
-static int rn5t614_port_init(int irq_num)
-{
-	if (irq_num) {
-		if(system_rev == 0x2002 || system_rev == 0x2003) {
-			tcc_gpio_config(TCC_GPE(27), GPIO_FN(0)|GPIO_PULL_DISABLE);  // GPIOE[31]: input mode, disable pull-up/down
-			tcc_gpio_config_ext_intr(irq_num, EXTINT_GPIOE_27);
-		
-			gpio_request(TCC_GPE(27), "PMIC_IRQ");
-			gpio_direction_input(TCC_GPE(27));
-		}
-		else {
-			tcc_gpio_config(TCC_GPF(24), GPIO_FN(0)|GPIO_PULL_DISABLE);
-			tcc_gpio_config_ext_intr(irq_num, EXTINT_GPIOF_24);
-
-			gpio_request(TCC_GPF(24), "PMIC_IRQ");
-			gpio_direction_input(TCC_GPF(24));
-		}
-	}
-
-	return 0;
-}
-
-static struct rn5t614_platform_data rn5t614_info = {
-	.num_subdevs = 1,
-	.subdevs     = rn5t614_subdev,
-	.init_port   = rn5t614_port_init,
-};
-#endif
-
 #if defined(CONFIG_FB_TCC_COMPONENT)
 static struct cs4954_i2c_platform_data  cs4954_i2c_data = {
 };
@@ -271,22 +143,6 @@ static struct i2c_board_info __initdata i2c_devices0[] = {
         .platform_data = &akm8975_data,
     },
     #endif
-	#if defined(CONFIG_REGULATOR_AXP192)
-	{
-		I2C_BOARD_INFO("axp192", 0x34),
-		.irq           = PMIC_IRQ,
-		.platform_data = &axp192_info,
-	},
-	#endif
-
-	#if defined(CONFIG_REGULATOR_RN5T614)
-	{
-		I2C_BOARD_INFO("rn5t614", 0x32),
-		.irq           = PMIC_IRQ,
-		.platform_data = &rn5t614_info,
-	},
-	#endif
-
 	#if defined(CONFIG_FB_TCC_COMPONENT)
 	{
 		I2C_BOARD_INFO("component-cs4954", CS4954_I2C_SLAVE_ID),
@@ -297,7 +153,6 @@ static struct i2c_board_info __initdata i2c_devices0[] = {
 		.platform_data = &ths8200_i2c_data,
 	}, //CONFIG_FB_TCC_COMPONENT
 	#endif
-
 };
 #endif
 
@@ -378,6 +233,7 @@ static struct tcc_i2c_platform_data m805_892x_smu_platform_data = {
 };
 #endif
 
+extern void __init m805_892x_init_pmic(void);
 extern void __init m805_892x_init_gpio(void);
 extern void __init m805_892x_init_camera(void);
 
@@ -680,6 +536,7 @@ __setup("androidboot.btaddr=", board_btaddr_setup);
 
 static void __init m805_892x_init_machine(void)
 {
+	m805_892x_init_pmic();
 	m805_892x_init_gpio();
 	m805_892x_init_camera();
 

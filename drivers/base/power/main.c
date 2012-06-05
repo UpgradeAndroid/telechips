@@ -983,6 +983,10 @@ int dpm_suspend(pm_message_t state)
 	ktime_t starttime = ktime_get();
 	int error = 0;
 
+	#if defined(CONFIG_PM_VERBOSE_DPM_SUSPEND)
+	printk("%s(%s) : start\n", __func__, pm_verb(state.event));
+	#endif
+
 	might_sleep();
 
 	mutex_lock(&dpm_list_mtx);
@@ -994,7 +998,19 @@ int dpm_suspend(pm_message_t state)
 		get_device(dev);
 		mutex_unlock(&dpm_list_mtx);
 
+		#if defined(CONFIG_PM_VERBOSE_DPM_SUSPEND)
+		if(dev->driver) {
+			printk("dpm [:%s:", dev->driver->name);
+		}
+		#endif
+
 		error = device_suspend(dev);
+
+		#if defined(CONFIG_PM_VERBOSE_DPM_SUSPEND)
+		if(dev->driver) {
+			printk("]\n");
+		}
+		#endif
 
 		mutex_lock(&dpm_list_mtx);
 		if (error) {

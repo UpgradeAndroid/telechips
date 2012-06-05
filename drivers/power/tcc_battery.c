@@ -1766,7 +1766,7 @@ static tcc_battery_adc_channel(void)
 		adc_channel = 1;
 	}
 	else if(machine_is_m805_892x()){
-		if(system_rev == 0x2002 || system_rev == 0x2003)
+		if(system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004)
 		{
 			adc_channel = 3;
 			ac_channel = 2;

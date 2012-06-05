@@ -24,6 +24,7 @@ tcc_hdmi_power_s hdmipwr;
 
 #if defined(CONFIG_REGULATOR)
 static struct regulator *vdd_hdmi_osc = NULL;
+static struct regulator *vdd_hdmi_pll = NULL;
 #endif
 
 int m805_892x_hdmi_power(struct device *dev, tcc_hdmi_power_s pwr)
@@ -39,17 +40,25 @@ int m805_892x_hdmi_power(struct device *dev, tcc_hdmi_power_s pwr)
 		switch(pwr)
 		{
 			case TCC_HDMI_PWR_INIT:
-				#if defined(CONFIG_REGULATOR)
-				if (vdd_hdmi_osc == NULL)
-				{
+				
+#if defined(CONFIG_REGULATOR)
+				if (vdd_hdmi_osc == NULL) {
 					vdd_hdmi_osc = regulator_get(NULL, "vdd_hdmi_osc");
 					if (IS_ERR(vdd_hdmi_osc)) {
 						printk("Failed to obtain vdd_hdmi_osc\n");
 						vdd_hdmi_osc = NULL;
 					}
 				}
-				#endif
-				if (system_rev == 0x2002 || system_rev == 0x2003) {
+				if (vdd_hdmi_pll == NULL) {
+					vdd_hdmi_pll = regulator_get(NULL, "vdd_hdmi_pll");
+					if (IS_ERR(vdd_hdmi_pll)) {
+						printk("Failed to obtain vdd_hdmi_osc\n");
+						vdd_hdmi_pll = NULL;
+					}
+				}
+#endif
+				
+				if (system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004) {
 					gpio_request(TCC_GPE(26), "hdmi_on");					
 					gpio_direction_output(TCC_GPE(26), 1);
 				} else {
@@ -59,22 +68,26 @@ int m805_892x_hdmi_power(struct device *dev, tcc_hdmi_power_s pwr)
 				break;
 				
 			case TCC_HDMI_PWR_ON:	
-				#if defined(CONFIG_REGULATOR)
+#if defined(CONFIG_REGULATOR)
+				if (vdd_hdmi_pll)
+ 					regulator_enable(vdd_hdmi_pll);
 				if (vdd_hdmi_osc)
-					regulator_enable(vdd_hdmi_osc);
-				#endif
-				if (system_rev == 0x2002 || system_rev == 0x2003)
+ 					regulator_enable(vdd_hdmi_osc);
+#endif
+				if (system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004)
 					gpio_set_value(TCC_GPE(26), 1);
 				else
 					gpio_set_value(TCC_GPF(15), 1);
 				break;
 
 			case TCC_HDMI_PWR_OFF:
-				#if defined(CONFIG_REGULATOR)
+#if defined(CONFIG_REGULATOR)
 				if (vdd_hdmi_osc)
 					regulator_disable(vdd_hdmi_osc);
-				#endif
-				if (system_rev == 0x2002 || system_rev == 0x2003)
+				if (vdd_hdmi_pll)
+					regulator_disable(vdd_hdmi_pll);
+#endif
+				if (system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004)
 					gpio_set_value(TCC_GPE(26), 0);
 				else
 					gpio_set_value(TCC_GPF(15), 0);

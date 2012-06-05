@@ -272,50 +272,18 @@ static int tsif_calculate_readable_cnt(struct tcc_tsif_handle *H)
      return 0;
 }
 
-#if 0
+static void debug_dump(char *data, int size)
 {
-	size_t len = ts_demux_feed_handle.call_decoder_index * TSIF_PACKET_SIZE;
-
-    tsif_ex_pri.packet_read_count = len/TSIF_PACKET_SIZE;
-    copy_byte = readable_cnt * TSIF_PACKET_SIZE;
-    if (copy_byte > len) {
-        copy_byte = len;
+    int i;
+    printk("===================");
+    for(i=0; i<size; i++)
+    {
+        if(!(i%32))
+            printk("\n");
+        printk("0x%02X, ", data[i]);        
     }
-
-    copy_byte -= copy_byte % TSIF_PACKET_SIZE;
-    copy_cnt = copy_byte / TSIF_PACKET_SIZE;
-    copy_cnt -= copy_cnt % tsif_ex_handle.dma_intr_packet_cnt;
-    copy_byte = copy_cnt * TSIF_PACKET_SIZE;
-
-    if (copy_cnt >= tsif_ex_handle.dma_intr_packet_cnt) {
-        int offset = tsif_ex_handle.q_pos * TSIF_PACKET_SIZE;
-        if (copy_cnt > tsif_ex_handle.dma_total_packet_cnt - tsif_ex_handle.q_pos) {
-            int first_copy_byte = (tsif_ex_handle.dma_total_packet_cnt - tsif_ex_handle.q_pos) * TSIF_PACKET_SIZE;
-            int first_copy_cnt = first_copy_byte / TSIF_PACKET_SIZE;
-            int second_copy_byte = (copy_cnt - first_copy_cnt) * TSIF_PACKET_SIZE;
-
-            if (copy_to_user(buf, tsif_ex_handle.rx_dma.v_addr + offset, first_copy_byte)) {
-                return -EFAULT;
-            }
-            if (copy_to_user(buf + first_copy_byte, tsif_ex_handle.rx_dma.v_addr, second_copy_byte)) {
-                return -EFAULT;
-            }
-
-            tsif_ex_handle.q_pos = copy_cnt - first_copy_cnt;
-        } else {
-            if (copy_to_user(buf, tsif_ex_handle.rx_dma.v_addr + offset, copy_byte)) {
-                return -EFAULT;
-            }
-
-            tsif_ex_handle.q_pos += copy_cnt;
-            if (tsif_ex_handle.q_pos >= tsif_ex_handle.dma_total_packet_cnt) {
-                tsif_ex_handle.q_pos = 0;
-            }
-        }
-        return copy_byte;
-    }
+    printk("\n===================\n");
 }
-#endif
 
 static int tsif_get_readable_cnt(struct tcc_tsif_handle *H)
 {
@@ -330,7 +298,28 @@ static int tsif_get_readable_cnt(struct tcc_tsif_handle *H)
                 if(tsif_ex_handle.mpeg_ts == (Hw0|Hw1))
                 {
                     if( *sync_byte != 0x47){                                  
-                        printk("call tsif-resync, readable[%d] !!!!\n", readable_cnt);
+                        printk("call tsif-resync, readable[%d][%d][%d] : [0x%X][0x%X]!!!!\n", readable_cnt, q_pos, H->cur_q_pos, sync_byte[0], sync_byte[1]);
+#if 0                        
+                        if(q_pos > 6 && q_pos < 7900)
+                        {
+                            char *start_ptr = (char *)tsif_ex_handle.rx_dma.v_addr;
+                            int i;
+                            printk("**********************");
+                            //debug_dump(sync_byte - 256, 512);
+                            for(i = 0; i<q_pos; i++)
+                            {
+                                if(!(i%32))
+                                    printk("\n");
+                                printk("0x%02X, ", start_ptr[i*188]);
+                                if(start_ptr[i*188] != 0x47)
+                                    break;
+                                
+                            }
+                            printk("\n[%d]**********************\n", i);
+                            debug_dump(&start_ptr[i*188] - 512, 1024);
+
+                        }
+#endif                        
                         tsif_resync(H);
                         return 0;
                     }
@@ -359,6 +348,25 @@ static int tsif_get_readable_cnt(struct tcc_tsif_handle *H)
 	return 0;
 }
 
+static int tsif_ex_check_stc(tcc_tsif_handle_t *handle)
+{
+    struct tcc_tsif_pri_handle *h_pri = (struct tcc_tsif_pri_handle *)handle->private_data;
+    int start_pos, search_pos, search_size;
+    start_pos = handle->cur_q_pos - handle->dma_intr_packet_cnt;
+    if(start_pos > 0 )
+    {
+        search_pos = start_pos;
+        search_size = handle->dma_intr_packet_cnt;
+    }	
+    else
+    {
+        search_pos = 0;
+        search_size = handle->cur_q_pos;
+    }	
+    TSDEMUX_MakeSTC((unsigned char *)handle->rx_dma.v_addr + search_pos*TSIF_PACKET_SIZE, search_size*TSIF_PACKET_SIZE, h_pri->pcr_pid );				
+    return 0;
+}
+
 static irqreturn_t tsif_ex_dma_handler(int irq, void *dev_id)
 {
     tcc_tsif_handle_t *handle = (tcc_tsif_handle_t *)dev_id;
@@ -371,59 +379,41 @@ static irqreturn_t tsif_ex_dma_handler(int irq, void *dev_id)
 		{
 			if(ts_demux_feed_handle.ts_demux_decoder)
 			{
-				int readable_cnt = 0, copy_cnt = 0;
-				int copy_byte = 0;
+				int packet_th = 1;
+
+				if(h_pri->pcr_pid < 0x1FFF ) //such as scanning, not av playing
+                {
+				    packet_th = ts_demux_feed_handle.call_decoder_index;
+				    tsif_ex_check_stc(handle);
+                }
 	
-				if(++ts_demux_feed_handle.index >= ts_demux_feed_handle.call_decoder_index)
+				if(++ts_demux_feed_handle.index >= packet_th)
 				{
-					int offset = tsif_ex_handle.q_pos * TSIF_PACKET_SIZE;
 					char *p1 = NULL, *p2 = NULL;
-					int p1_size = 0, p2_size = 0;						 
+					int p1_size = 0, p2_size = 0;	
 
-					size_t len = ts_demux_feed_handle.index * TSIF_PACKET_SIZE;
-					readable_cnt = tsif_get_readable_cnt(&tsif_ex_handle);
-				
-					tsif_ex_pri.packet_read_count = len/TSIF_PACKET_SIZE;
-					copy_byte = readable_cnt * TSIF_PACKET_SIZE;
-					if (copy_byte > len) {
-						copy_byte = len;
-					}
-				
-					copy_byte -= copy_byte % TSIF_PACKET_SIZE;
-					copy_cnt = copy_byte / TSIF_PACKET_SIZE;
-					copy_cnt -= copy_cnt % tsif_ex_handle.dma_intr_packet_cnt;
-					copy_byte = copy_cnt * TSIF_PACKET_SIZE;
-				
-					if (copy_cnt >= tsif_ex_handle.dma_intr_packet_cnt) {
-						int offset = tsif_ex_handle.q_pos * TSIF_PACKET_SIZE;
-						if (copy_cnt > tsif_ex_handle.dma_total_packet_cnt - tsif_ex_handle.q_pos) {
-							int first_copy_byte = (tsif_ex_handle.dma_total_packet_cnt - tsif_ex_handle.q_pos) * TSIF_PACKET_SIZE;
-							int first_copy_cnt = first_copy_byte / TSIF_PACKET_SIZE;
-							int second_copy_byte = (copy_cnt - first_copy_cnt) * TSIF_PACKET_SIZE;
+					if( handle->cur_q_pos > handle->q_pos )
+                    {
+                        p1 = (char *)handle->rx_dma.v_addr + handle->q_pos*TSIF_PACKET_SIZE;
+                        p1_size = (handle->cur_q_pos - handle->q_pos)*TSIF_PACKET_SIZE;
+                    }
+                    else
+                    {
+                        p1 = (char *)handle->rx_dma.v_addr + handle->q_pos*TSIF_PACKET_SIZE;
+                        p1_size = (handle->dma_total_packet_cnt - handle->q_pos)*TSIF_PACKET_SIZE;
 
-							p1 = tsif_ex_handle.rx_dma.v_addr + offset;
-							p1_size = first_copy_byte;
-							p2 = tsif_ex_handle.rx_dma.v_addr;
-							p2_size = second_copy_byte;
-				
-							tsif_ex_handle.q_pos = copy_cnt - first_copy_cnt;
-						} else {
-							p1 = tsif_ex_handle.rx_dma.v_addr + offset;
-							p1_size = copy_byte;
-				
-							tsif_ex_handle.q_pos += copy_cnt;
-							if (tsif_ex_handle.q_pos >= tsif_ex_handle.dma_total_packet_cnt) {
-								tsif_ex_handle.q_pos = 0;
-							}
-						}
-					}
+                        p2 = (char *)handle->rx_dma.v_addr;
+                        p2_size = handle->cur_q_pos*TSIF_PACKET_SIZE;
+                    }
 					if(ts_demux_feed_handle.ts_demux_decoder(p1, p1_size, p2, p2_size) == 0)
 					{
+					    handle->q_pos = handle->cur_q_pos;
 						ts_demux_feed_handle.index = 0;
 					}
 				}
 			}
 		}
+        return IRQ_HANDLED;
 	}
 
   	if (h_pri->open_cnt > 0)
@@ -431,19 +421,7 @@ static irqreturn_t tsif_ex_dma_handler(int irq, void *dev_id)
         //Check PCR & Make STC
         if(h_pri->pcr_pid < 0x1FFF )
         {	
-            int start_pos, search_pos, search_size;
-            start_pos = handle->cur_q_pos - handle->dma_intr_packet_cnt;
-            if(start_pos > 0 )
-            {
-                search_pos = start_pos;
-                search_size = handle->dma_intr_packet_cnt;
-            }	
-            else
-            {
-                search_pos = 0;
-                search_size = handle->cur_q_pos;
-            }	
-            TSDEMUX_MakeSTC((unsigned char *)handle->rx_dma.v_addr + search_pos*TSIF_PACKET_SIZE, search_size*TSIF_PACKET_SIZE, h_pri->pcr_pid );				
+            tsif_ex_check_stc(handle);
         }			
         //check read count & wake_up wait_q
         if( tsif_calculate_readable_cnt(handle) >= tsif_ex_pri.packet_read_count)
@@ -459,6 +437,9 @@ static ssize_t tcc_tsif_read(struct file *filp, char *buf, size_t len, loff_t *p
 
     readable_cnt = tsif_get_readable_cnt(&tsif_ex_handle);
     if (readable_cnt > 0) {
+
+        if(tsif_ex_pri.packet_read_count != len/TSIF_PACKET_SIZE)
+           printk("packet_read_count = %d !!!\n",len/TSIF_PACKET_SIZE); 
         tsif_ex_pri.packet_read_count = len/TSIF_PACKET_SIZE;
         copy_byte = readable_cnt * TSIF_PACKET_SIZE;
         if (copy_byte > len) {

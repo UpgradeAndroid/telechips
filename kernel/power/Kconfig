@@ -294,6 +294,13 @@ config PM_VERBOSE_EARLYSUSPEND
 	---help---
 	This option enables verbose messages from the early suspend/late resume code.
 
+config PM_VERBOSE_DPM_SUSPEND
+	bool "Verbose DPM suspend/resume debugging"
+	depends on PM_DEBUG
+	default n
+	---help---
+	This option enables verbose messages from the dpm suspend/resume code.
+
 config PM_CONSOLE_NOT_SUSPEND
 	bool "Prevent suspending console"
 	depends on PM_DEBUG

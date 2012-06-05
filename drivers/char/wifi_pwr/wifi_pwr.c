@@ -50,9 +50,9 @@ static int wifi_pwr_open (struct inode *inode, struct file *filp)
 
 static int wifi_pwr_release (struct inode *inode, struct file *filp)  
 {  
-	if(system_rev == 0x2002 || system_rev == 0x2003)
-	    vdd_wifi = NULL;
-    printk("%s\n", __func__); 
+	//if(system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004)
+	//    vdd_wifi = NULL;
+    //printk("%s\n", __func__); 
     return 0;  
 }  
   
@@ -63,18 +63,24 @@ int wifi_pwr_ioctl_hw( unsigned int cmd)
     {  
         case 1 : // WIFI_On
 #ifdef CONFIG_REGULATOR
-			if(system_rev == 0x2002 || system_rev == 0x2003) {
-		        if (vdd_wifi)			
+			if(system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004) {
+		        if (vdd_wifi) {			
 		            regulator_enable(vdd_wifi);
+					printk("wifi_prw: power on\n");
+				}else
+					printk("vdd_wifi is null???\n");
 			}else
 #endif			
 				gpio_direction_output(GPIO_WF_EN, 1);	
             break;   
         case 0 : // WIFI_Off
 #ifdef CONFIG_REGULATOR	
-			if(system_rev == 0x2002 || system_rev == 0x2003) {
-	        	if (vdd_wifi)
+			if(system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004) {
+	        	if (vdd_wifi){
             		regulator_disable(vdd_wifi);
+					printk("wifi_prw: power off\n");
+				}else
+					printk("vdd_wifi is null???\n");
 			}else
 #endif
 			gpio_direction_output(GPIO_WF_EN, 0);	
@@ -152,12 +158,14 @@ static int __init wifi_pwr_init(void)
                   WIFI_GPIO_DEV_NAME);
 
 #if defined(CONFIG_REGULATOR)
-    if(system_rev == 0x2002 || system_rev == 0x2003) {
-        vdd_wifi =  regulator_get(NULL, "vdd_wifi30");
+    if(system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004) {
+        //vdd_wifi =  regulator_get(NULL, "vdd_wifi30");
+        vdd_wifi =  regulator_get(NULL, "vdd_wifi");
         if( IS_ERR(vdd_wifi))
         {
             vdd_wifi = NULL;
             printk("vdd_wifi--get ERROR!!!\n");
+			return -1;
         }
         regulator_enable(vdd_wifi);    // default is on
         regulator_disable(vdd_wifi);    // default is off
@@ -188,9 +196,11 @@ static void __exit wifi_pwr_exit(void)
     unregister_chrdev_region(dev, 1);
 
 #ifdef CONFIG_REGULATOR
-	if(system_rev == 0x2002 || system_rev == 0x2003) {
-		if (vdd_wifi)
+	if(system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004) {
+		if (vdd_wifi) {
 			regulator_disable(vdd_wifi);
+			//regulator_put(vdd_wifi);
+		}
 		vdd_wifi = NULL;
 	}else
 #endif

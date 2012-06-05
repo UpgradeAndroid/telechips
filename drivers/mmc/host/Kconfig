@@ -508,8 +508,8 @@ config MMC_TCC_SUPPORT_EMMC
         bool "Support an eMMC"
         depends on MMC_TCC_SDHC
         help
-          If you use eMMC , Say Y.
-          Otherwise, leave it uncheked.
+          If you use eMMC, Say Y.
+          Otherwise, leave it unchecked.
 
 config MMC_TCC_SDHC_CORE0_SLOT0
 	bool "Enabling a TCC SDHC Core 0 Slot 0"
@@ -596,6 +596,13 @@ config MMC_TCC_SDHC3
 	default n
 	help
 	  This selects the TCC SDHC3.
+
+config TCC_SDHC_SPEED_UP
+        bool "Enable TCC SDHC Speed Up"
+        depends on MMC_TCC_SDHC
+        help
+          If you want to speed up the access to SDHC, check this.
+          Otherwise, leave it unchecked.
 
 choice		
   bool "SDHC Data Transmission Methods"

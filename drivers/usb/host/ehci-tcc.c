@@ -267,13 +267,13 @@ static int ehci_hcd_tcc_drv_suspend(struct device *dev)
 	tcc_ehci_vbus_exit();
 
 #if defined(CONFIG_MACH_M805_892X) && defined(CONFIG_WIFI_PWR_CTL)
-	if(system_rev == 0x2002 || system_rev == 0x2003) {
+	if(system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004) {
 		if(wifi_stat == 1) {
 			#if defined(CONFIG_REGULATOR)
 			struct regulator *vdd_wifi = NULL;
-			vdd_wifi = regulator_get(NULL, "vdd_wifi30");
+			vdd_wifi = regulator_get(NULL, "vdd_wifi");
 			if (IS_ERR(vdd_wifi)) {
-				printk("Failed to obtain vdd_wifi30\n");
+				printk("Failed to obtain vdd_wifi\n");
 				vdd_wifi = NULL;
 			}
 			if (vdd_wifi) {
@@ -296,12 +296,12 @@ static int ehci_hcd_tcc_drv_resume(struct device *dev)
 
 #if defined(CONFIG_MACH_M805_892X) && defined(CONFIG_WIFI_PWR_CTL)
 	if(wifi_stat==1) {
-		if(system_rev == 0x2002 || system_rev == 0x2003) {
+		if(system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004) {
 			#if defined(CONFIG_REGULATOR)
 			struct regulator *vdd_wifi = NULL;
-			vdd_wifi = regulator_get(NULL, "vdd_wifi30");
+			vdd_wifi = regulator_get(NULL, "vdd_wifi");
 			if (IS_ERR(vdd_wifi)) {
-				printk("Failed to obtain vdd_wifi30\n");
+				printk("Failed to obtain vdd_wifi\n");
 				vdd_wifi = NULL;
 			}
 			if (vdd_wifi) {
