@@ -1133,8 +1133,7 @@ void cif_scaler_calc(void)
 	while(!(pWDMABase->uIRQSTS.nREG & VIOC_WDMA_IREQ_EOFR_MASK)) {
 		msleep(1);
 		if(cam_loop_lmt_cnt > CAMERA_LOOP_LIMIT_COUNT) {
-			volatile PVIOC_IREQ_CONFIG pIREQConfig = (volatile PVIOC_IREQ_CONFIG)tcc_p2v((unsigned int)HwVIOC_IREQ);
-			VIOC_WDMA_SWReset(pIREQConfig, 0x5/* WDMA05 */);
+			VIOC_WDMA_SWReset(pVIOCConfig, 0x5/* WDMA05 */);
 			VIOC_WDMA_SetImageFormat(pWDMABase, VIOC_IMG_FMT_YUV420SEP);
 			VIOC_WDMA_SetImageSize(pWDMABase, data->cif_cfg.main_set.target_x, data->cif_cfg.main_set.target_y);
 			VIOC_WDMA_SetImageOffset(pWDMABase, VIOC_IMG_FMT_YUV420SEP, data->cif_cfg.main_set.target_x);

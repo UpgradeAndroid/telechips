@@ -142,7 +142,7 @@ void TDD_CIF_Initialize()
 		
 	#endif
 		// Change to Driving Strength that GPIO_D
-		BITCSET(pGPIO_F->GPCD0.nREG, 0x00FFFFFF, 0x01FFFFFF);
+		BITCSET(pGPIO_F->GPCD0.nREG, 0x0FFFFFFF, 0x03FFFFFF);
 	
 	
 #else // CONFIG_ARCH_TCC79X
