@@ -845,13 +845,8 @@ enum
 /*---------------------------------------------------------------------------
  DDR3 Driving Strength
 ---------------------------------------------------------------------------*/
-#if defined(DDR3_AXI0_FIFO_1to2_ENABLE)
 #define MEMCTRL_DDS     MEMCTRL_OUTPUT_DRIVER_48_Ohm
 #define MEMCTRL_TERM    MEMCTRL_ODT_120_Ohm
-#else
-#define MEMCTRL_DDS     7
-#define MEMCTRL_TERM    7
-#endif
 #define DDR3_DIC        DDR3_DIC_RZQ_DIV_7
 #define DDR3_ODT        DDR3_RTT_RZQ_DIV_6
 
