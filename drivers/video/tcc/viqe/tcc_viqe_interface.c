@@ -779,6 +779,7 @@ void TCC_InitalizeVIQE(int lcdCtrlNo, int scalerCh, int OnTheFly, int DI_use, un
 	int complumaHeight;
 	int compOneFrameSize;
 
+	crop_top = (crop_top >>1)<<1;
 	framebufWidth = ((FrmWidth - crop_left - crop_right) >> 3) << 3;			// 8bit align
 	framebufHeight = ((FrmHeight - crop_top - crop_bottom) >> 1) << 1;		// 2bit align
 	framebufStride = FrmWidth;
@@ -1391,6 +1392,7 @@ void TCC_ExcuteVIQE(int scalerCh, unsigned int *address,			// address[0:3] : pre
 	unsigned int pBase3, pBase4, pBase5;
 	// This description's are represent to YUV420 Interleaved format.
 	// If screen mode will be used, cropping information have to apply on viqe source image.
+	crop_top = (crop_top >>1)<<1;
 	pBase0 = address[0] + (crop_top * srcWidth + crop_left);
 	pBase1 = address[1] + (crop_top / 2 * srcWidth + crop_left);
 	pBase2 = address[2] + (crop_top / 2 * srcWidth + crop_left);
@@ -1454,6 +1456,7 @@ void TCC_InitalizeVIQE_60Hz(int scalerCh, unsigned int *address,			// address[0:
 	int Width, Height;
 	// This description's are represent to YUV420 Interleaved format.
 	// If screen mode will be used, cropping information have to apply on viqe source image.
+	crop_top = (crop_top >>1)<<1;
 	pBase0 = address[0] + (crop_top * srcWidth + crop_left);
 	pBase1 = address[1] + (crop_top / 2 * srcWidth + crop_left);
 	pBase2 = address[2] + (crop_top / 2 * srcWidth + crop_left);
@@ -1597,6 +1600,7 @@ void TCC_ExcuteVIQE_60Hz(int scalerCh, unsigned int *address,			// address[0:3] 
 	int Width, Height;
 	// This description's are represent to YUV420 Interleaved format.
 	// If screen mode will be used, cropping information have to apply on viqe source image.
+	crop_top = (crop_top >>1)<<1;
 	pBase0 = address[0] + (crop_top * srcWidth + crop_left);
 	pBase1 = address[1] + (crop_top / 2 * srcWidth + crop_left);
 	pBase2 = address[2] + (crop_top / 2 * srcWidth + crop_left);

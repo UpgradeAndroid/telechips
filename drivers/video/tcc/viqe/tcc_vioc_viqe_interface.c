@@ -137,6 +137,7 @@ void TCC_VIQE_DI_Init(int scalerCh, int useWMIXER, unsigned int srcWidth, unsign
 	pVIQE_30Hz = (VIQE *)tcc_p2v(HwVIOC_VIQE0);
 	pRDMABase_30Hz = (VIOC_RDMA *)tcc_p2v(gRDMA_reg_30Hz);
 	
+	crop_top = (crop_top >>1)<<1;
 	framebufWidth = ((srcWidth - crop_left - crop_right) >> 3) << 3;			// 8bit align
 	framebufHeight = ((srcHeight - crop_top - crop_bottom) >> 1) << 1;		// 2bit align
 
@@ -380,6 +381,7 @@ void TCC_VIQE_DI_Run60Hz(int useSCALER, unsigned int addr0, unsigned int addr1, 
 	}
 	dprintk("%s lcd_width:%d, lcd_height:%d\n", __func__, lcd_width, lcd_height);
 
+	crop_top = (crop_top >>1)<<1;
 	cropWidth = crop_right - crop_left;
 	cropHeight = crop_bottom - crop_top;
 	{

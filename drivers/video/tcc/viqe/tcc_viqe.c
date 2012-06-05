@@ -329,7 +329,7 @@ static int tcc_viqe_initialize_wrapper(VIQE_DI_TYPE *arg)
 	if(copy_from_user(&viqe_arg, arg, sizeof(VIQE_DI_TYPE)))
 		return -EINVAL;
 
-	printk("[VIQE Initiaize] LCDC %d, Scaler %d, OnTheFly %d, W:%d, H:%d\n",
+	dprintk("[VIQE Initiaize] LCDC %d, Scaler %d, OnTheFly %d, W:%d, H:%d\n",
 		viqe_arg.lcdCtrlNo, viqe_arg.scalerCh, viqe_arg.onTheFly, viqe_arg.srcWidth, viqe_arg.srcHeight);
 
 	TCC_InitalizeVIQE(viqe_arg.lcdCtrlNo, viqe_arg.scalerCh, viqe_arg.onTheFly, viqe_arg.DI_use, viqe_arg.srcWidth, viqe_arg.srcHeight, 
