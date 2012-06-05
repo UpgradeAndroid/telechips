@@ -424,6 +424,7 @@ typedef enum {
 	TCC_FREQ_LIMIT_CIPHER,
 #endif
 	TCC_FREQ_LIMIT_POWER_RESUME,
+	TCC_FREQ_LIMIT_DXB,
 	TCC_FREQ_LIMIT_MAX,
 } tcc_freq_limit_idx_t;
 

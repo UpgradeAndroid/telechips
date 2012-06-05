@@ -14,6 +14,9 @@
 #include <mach/io.h>
 #include <linux/gpio.h>
 #include <mach/bsp.h>
+#include <linux/clk.h>
+#include <linux/cpufreq.h>
+
 #include <asm/mach-types.h>
 #include <mach/tca_tsif.h>
 #if defined(SUPPORT_PIDFILTER_INTERNAL)
@@ -22,6 +25,11 @@
 #endif
 #define     DEFAULT_PID     0x0  //0 is PAT PID, PAT will be always registered. to prevent disabling pid filter.
 //#define DEBUG_INFO
+
+const struct tcc_freq_table_t gtTSIFClockLimitTable = {
+      468750,      0, 600000,      0, 140000,      0,      0, 100000,      0 // Core 1.30V
+};
+
 static void tsif_delay(int m_sec)
 {
     mdelay(m_sec);
@@ -807,6 +815,7 @@ int tca_tsif_init(struct tcc_tsif_handle *h,
         /* interrupt init */
 		BITSET(pic_regs->MODE1.nREG, (INT_TSIF-32));	// level-trigger
 		BITCLR(pic_regs->POL1.nREG, (INT_TSIF-32));	// active-high            
+        tcc_cpufreq_set_limit_table(&gtTSIFClockLimitTable, TCC_FREQ_LIMIT_DXB, 1);
 		
 		if(ret)
 			tca_tsif_clean(h);
@@ -823,6 +832,7 @@ void tca_tsif_clean(struct tcc_tsif_handle *h)
 		}
 
 		tcc_tsif_hw_deinit(h);
+        tcc_cpufreq_set_limit_table(&gtTSIFClockLimitTable, TCC_FREQ_LIMIT_DXB, 0);
 	}
 }
 
