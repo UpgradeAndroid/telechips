@@ -364,6 +364,11 @@ void TCC_VIQE_DI_Init60Hz(int lcdCtrlNum, int Lcdc_layer, int useSCALER, unsigne
 }
 
 
+void TCC_VIQE_DI_Swap60Hz(void)
+{
+	VIOC_VIQE_SwapDeintlBase(pVIQE_60Hz);
+}
+
 void TCC_VIQE_DI_Run60Hz(int useSCALER, unsigned int addr0, unsigned int addr1, unsigned int addr2,
 						unsigned int srcWidth, unsigned int srcHeight,	
 						int crop_top, int crop_bottom, int crop_left, int crop_right, 
