@@ -120,6 +120,7 @@ extern int TCC_OUTPUT_FB_MouseMove(unsigned int width, unsigned int height, tcc_
 extern int TCC_OUTPUT_FB_MouseSetIcon(tcc_mouse_icon *mouse_icon);
 extern int TCC_OUTPUT_FB_Set3DMode(char enable, char mode);
 extern int TCC_OUTPUT_FB_Get3DMode(char *mode);
+extern void TCC_OUTPUT_FB_Update3D(unsigned int src_wd, unsigned int src_ht, char lcdc_num);
 
 extern void TCC_OUTPUT_FB_AttachOutput(char src_lcdc_num, char output_type, char starer_flag);
 extern void TCC_OUTPUT_FB_DetachOutput(char disable_all);

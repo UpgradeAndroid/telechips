@@ -112,7 +112,6 @@ u_char *		Gmap_cpu;	/* virtual */
 *
 ******************************************************************************/
 //#define TCC_FB_UPSCALE
-//#define TCC_OUTPUT_3DUI_SUPPORT
 
 /*****************************************************************************
 *
@@ -196,6 +195,8 @@ static output_video_img_info output_video_img;
 
 static char output_3d_ui_flag = 0;
 static char output_3d_ui_mode = 0;
+static char output_3d_ui_enable = 0;
+static char output_3d_ui_plugin = 0;
 static char output_ui_resize_count = 0;
 
 struct inode scaler_inode;
@@ -392,7 +393,7 @@ void TCC_OUTPUT_LCDC_Init(void)
 		scaler_open = tccxxx_scaler_open;
 		scaler_release = tccxxx_scaler_release;
 	#else
-		#if defined(TCC_OUTPUT_3DUI_SUPPORT)
+		#if defined(CONFIG_TCC_OUTPUT_3D_UI)
 			scaler_ioctl = tccxxx_scaler2_ioctl;
 			scaler_open = tccxxx_scaler2_open;
 			scaler_release = tccxxx_scaler2_release;
@@ -415,7 +416,7 @@ void TCC_OUTPUT_LCDC_Init(void)
 		pMouseBuffer1 = (char *)Gmap_dma;
 		pMouseBuffer2 = (char *)(Gmap_dma + MOUSE_CURSOR_BUFF_SIZE/2);
 	}
- }
+}
 
 void TCC_OUTPUT_UPDATE_OnOff(char onoff, char type)
 {
@@ -436,10 +437,6 @@ void TCC_OUTPUT_UPDATE_OnOff(char onoff, char type)
 	}
 	else
 		vioc_scaler_plug_in = 1;
-
-	#if defined(TCC_OUTPUT_3DUI_SUPPORT)
-		vioc_scaler_plug_in = 0;
-	#endif
 
 	if(onoff)	
 	{
@@ -886,13 +883,6 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 	else
 		vioc_scaler_plug_in = 1;
 
-	#if defined(TCC_OUTPUT_3DUI_SUPPORT)
-		if(TCC_OUTPUT_FB_Get3DMode(&mode_3d))
-	 		scaler_need = 1;
-
-		vioc_scaler_plug_in = 0;
-	#endif
-	
 	if( vioc_scaler_plug_in == 1 )
 	{
 		if(g2d_rotate_need || g2d_format_need)
@@ -963,7 +953,7 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 			output_wmixer_info wmixer_info;
 				
 			//need to add scaler component
-			#if defined(TCC_OUTPUT_3DUI_SUPPORT)
+			#if defined(CONFIG_TCC_OUTPUT_3D_UI)
 				fbscaler.responsetype = SCALER_POLLING;
 			#else
 				fbscaler.responsetype = SCALER_NOWAIT;
@@ -1010,18 +1000,10 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 				img_height = lcd_height;
 			}
 
-		#if defined(TCC_OUTPUT_3DUI_SUPPORT)
+		#if defined(CONFIG_TCC_OUTPUT_3D_UI)
 			if(TCC_OUTPUT_FB_Get3DMode(&mode_3d))
 			{
 				int x_offset, y_offset, img_wd, img_ht;
-
-				#if 0
-				if(VIOC_CONFIG_CheckPlugState(VIOC_SC2) == VIOC_PATH_CONNECTED)
-				{
-					printk("vioc_scaler%d is pluged out!!\n", VIOC_SC2);
-					VIOC_CONFIG_PlugOut(VIOC_SC2);
-				}
-				#endif
 
 				VIOC_WMIX_SetPosition(pDISP_OUTPUT[type].pVIOC_WMIXBase, 0, 0, 0);
 						
@@ -1063,7 +1045,7 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 				FBimg_buf_addr = fbscaler.dest_Yaddr;
 			}
 			else
-		#endif //TCC_OUTPUT_3DUI_SUPPORT
+		#endif
 			{
 				if(machine_is_tcc8920st())
 				{
@@ -1114,24 +1096,42 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 			VIOC_WMIX_SetPosition(pDISP_OUTPUT[type].pVIOC_WMIXBase, 0, lcd_w_pos, lcd_h_pos);
 		}
 
-		#if 0//defined(TCC_OUTPUT_3DUI_SUPPORT)
-			if(VIOC_CONFIG_CheckPlugState(VIOC_SC2) == VIOC_PATH_DISCONNECTED)
-			{
-				printk("vioc_scaler%d is pluged in!!, lcdc_num=%d\n", VIOC_SC2, pDISP_OUTPUT[type].LCDC_N);
+	#if defined(CONFIG_TCC_OUTPUT_3D_UI)
+		if(TCC_OUTPUT_FB_Get3DMode(&mode_3d))
+		{
+			VIOC_SC_SetBypass (pSC, OFF);
+			VIOC_SC_SetSrcSize(pSC, width, height);
 
-				if(pDISP_OUTPUT[type].LCDC_N)
-					VIOC_CONFIG_PlugIn(VIOC_SC2, VIOC_SC_RDMA_04);
-				else
-					VIOC_CONFIG_PlugIn(VIOC_SC2, VIOC_SC_RDMA_00);
+			/* 3D MKV : SBS(SideBySide) Mode */
+			if(mode_3d == 0)	
+			{
+				VIOC_SC_SetDstSize (pSC, lcd_width>>1, lcd_height);			// set destination size in scaler
+				VIOC_SC_SetOutSize (pSC, lcd_width>>1, lcd_height);			// set output size in scaer
+				VIOC_WMIX_SetPosition(pDISP_OUTPUT[type].pVIOC_WMIXBase, 0, lcd_w_pos>>1, lcd_h_pos);
 			}
-		#endif
-		
-		VIOC_SC_SetBypass (pSC, OFF);
-		VIOC_SC_SetSrcSize(pSC, width, height);
-		VIOC_SC_SetDstSize (pSC, lcd_width, lcd_height);			// set destination size in scaler
-		VIOC_SC_SetOutSize (pSC, lcd_width, lcd_height);			// set output size in scaer
-		VIOC_SC_SetUpdate (pSC);				// Scaler update
-		VIOC_WMIX_SetUpdate (pDISP_OUTPUT[type].pVIOC_WMIXBase);			// WMIX update
+			else
+			/* 3D MKV : TNB(Top&Bottom) Mode */
+			{
+				VIOC_SC_SetDstSize (pSC, lcd_width, lcd_height>>1);			// set destination size in scaler
+				VIOC_SC_SetOutSize (pSC, lcd_width, lcd_height>>1);			// set output size in scaer
+				VIOC_WMIX_SetPosition(pDISP_OUTPUT[type].pVIOC_WMIXBase, 0, lcd_w_pos, lcd_h_pos>>1);
+			}
+
+			VIOC_SC_SetUpdate (pSC);				// Scaler update
+			VIOC_WMIX_SetUpdate (pDISP_OUTPUT[type].pVIOC_WMIXBase);			// WMIX update
+
+			TCC_OUTPUT_FB_Update3D(width, height, pDISP_OUTPUT[type].LCDC_N);
+		}
+		else
+	#endif
+		{
+			VIOC_SC_SetBypass (pSC, OFF);
+			VIOC_SC_SetSrcSize(pSC, width, height);
+			VIOC_SC_SetDstSize (pSC, lcd_width, lcd_height);			// set destination size in scaler
+			VIOC_SC_SetOutSize (pSC, lcd_width, lcd_height);			// set output size in scaer
+			VIOC_SC_SetUpdate (pSC);				// Scaler update
+			VIOC_WMIX_SetUpdate (pDISP_OUTPUT[type].pVIOC_WMIXBase);			// WMIX update
+		}
 	}
 			
 	if(machine_is_tcc8920st()) {
@@ -1424,9 +1424,192 @@ int TCC_OUTPUT_FB_MouseSetIcon(tcc_mouse_icon *mouse_icon)
     return 1;
 }
 
+void TCC_OUTPUT_FB_Enable3D(char lcdc_num)
+{
+	PVIOC_DISP	pDISP;
+	PVIOC_WMIX	pWMIX;
+	PVIOC_SC 	pSC;
+	int fmt, lcd_width, lcd_height;
+
+	if(output_3d_ui_enable)
+	{
+		dprintk("%s, 3D UI was already enabled!!\n", __func__);
+		return;
+	}
+
+	output_3d_ui_enable = 1;
+
+	pSC = (VIOC_SC *)tcc_p2v(HwVIOC_SC0);
+
+	/* get the source resolution */
+	if(lcdc_num)
+	{
+		pDISP = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP1);
+		pWMIX = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX1);
+	}
+	else
+	{
+		pDISP = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP0);
+		pWMIX = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX0);
+	}
+
+	lcd_width = (pDISP->uLSIZE.nREG & 0xFFFF);
+	lcd_height = ((pDISP->uLSIZE.nREG>>16) & 0xFFFF);
+
+	fmt = TCC_LCDC_IMG_FMT_RGB888;
+
+	VIOC_SC_SetBypass(pSC, OFF);
+	VIOC_SC_SetSrcSize(pSC, lcd_width, lcd_height);
+	VIOC_SC_SetDstSize(pSC, lcd_width, lcd_height);
+	VIOC_SC_SetOutSize(pSC, lcd_width, lcd_height);
+	
+	/* set the scaler */		
+	if(output_3d_ui_plugin == 0)
+	{
+		if(lcdc_num)
+			VIOC_CONFIG_PlugIn(VIOC_SC0, VIOC_SC_RDMA_05);
+		else
+			VIOC_CONFIG_PlugIn(VIOC_SC0, VIOC_SC_RDMA_01);
+
+		output_3d_ui_plugin = 1;
+	}
+	
+	if(output_3d_ui_plugin)
+		VIOC_SC_SetUpdate(pSC);
+
+	VIOC_WMIX_SetUpdate(pWMIX);
+}
+
+void TCC_OUTPUT_FB_Disable3D(char lcdc_num)
+{
+	PVIOC_WMIX	pWMIX;
+	PVIOC_RDMA	pRDMA;
+	PVIOC_SC 	pSC;
+
+	pSC = (VIOC_SC *)tcc_p2v(HwVIOC_SC0);
+
+	if(output_3d_ui_enable == 0)
+	{
+		dprintk("%s, 3D UI was already disabled!!\n", __func__);
+		return;
+	}
+
+	output_3d_ui_enable = 0;
+
+	/* get the source resolution */
+	if(lcdc_num)
+	{
+		pWMIX = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX1);
+		pRDMA = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA05);
+	}
+	else
+	{
+		pWMIX = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX0);
+		pRDMA = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA01);
+	}
+
+	/* set the scaler */		
+	if(output_3d_ui_plugin)
+	{
+		VIOC_RDMA_SetImageDisable(pRDMA);
+	
+		if(lcdc_num)
+			VIOC_CONFIG_PlugOut(VIOC_SC0);
+		else
+			VIOC_CONFIG_PlugOut(VIOC_SC0);
+
+		output_3d_ui_plugin = 0;
+	}
+	
+	if(output_3d_ui_plugin)
+		VIOC_SC_SetUpdate(pSC);
+
+	VIOC_WMIX_SetUpdate(pWMIX);
+}
+
+void TCC_OUTPUT_FB_Update3D(unsigned int src_wd, unsigned int src_ht, char lcdc_num)
+{
+	PVIOC_DISP	pDISP;
+	PVIOC_WMIX	pWMIX;
+	PVIOC_RDMA	pRDMA;
+	PVIOC_SC 	pSC;
+	int fmt, dst_wd, dst_ht, dst_sx, dst_sy, lcd_width, lcd_height;
+
+	if(output_3d_ui_enable == 0)
+	{
+		dprintk("%s, 3D UI should be enabled in advance!!\n", __func__);
+		return;
+	}
+	
+	pSC = (VIOC_SC *)tcc_p2v(HwVIOC_SC0);
+
+	/* get the source resolution */
+	if(lcdc_num)
+	{
+		pDISP = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP1);
+		pWMIX = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX1);
+		pRDMA = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA05);
+	}
+	else
+	{
+		pDISP = (VIOC_DISP *)tcc_p2v(HwVIOC_DISP0);
+		pWMIX = (VIOC_WMIX *)tcc_p2v(HwVIOC_WMIX0);
+		pRDMA = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA01);
+	}
+
+	dst_wd = lcd_width = (pDISP->uLSIZE.nREG & 0xFFFF);
+	dst_ht = lcd_height = ((pDISP->uLSIZE.nREG>>16) & 0xFFFF);
+
+	fmt = TCC_LCDC_IMG_FMT_RGB888;
+	
+	if(machine_is_tcc8920st())
+	{
+		dst_wd -= uiOutputResizeMode.resize_x << 4;
+		dst_ht -= uiOutputResizeMode.resize_y << 3;
+
+        dst_sx = uiOutputResizeMode.resize_x << 3;
+		dst_sy = uiOutputResizeMode.resize_y << 2;
+	
+		if(output_3d_ui_mode == 0)	/* 3D MKV : SBS(SideBySide) Mode */
+			VIOC_WMIX_SetPosition(pWMIX, 1, (dst_sx + lcd_width)>>1, dst_sy);
+		else						/* 3D MKV : TNB(Top&Bottom) Mode */
+			VIOC_WMIX_SetPosition(pWMIX, 1, dst_sx, (dst_sy + lcd_height)>>1);
+	}
+
+	VIOC_SC_SetBypass(pSC, OFF);
+	VIOC_SC_SetSrcSize(pSC, src_wd, src_ht);
+
+	/* 3D MKV : SBS(SideBySide) Mode */
+	if(output_3d_ui_mode == 0)
+	{
+		VIOC_SC_SetDstSize(pSC, dst_wd>>1, dst_ht);
+		VIOC_SC_SetOutSize(pSC, dst_wd>>1, dst_ht);
+	}
+	else
+	/* 3D MKV : TNB(Top&Bottom) Mode */
+	{
+		VIOC_SC_SetDstSize(pSC, dst_wd, dst_ht>>1);
+		VIOC_SC_SetOutSize(pSC, dst_wd, dst_ht>>1);
+	}
+
+	/* set RDMA */
+	VIOC_RDMA_SetImageAlphaSelect(pRDMA, TRUE);
+	VIOC_RDMA_SetImageAlphaEnable(pRDMA, TRUE);
+	VIOC_RDMA_SetImageFormat(pRDMA, fmt);
+	VIOC_RDMA_SetImageSize(pRDMA, src_wd, src_ht);
+	VIOC_RDMA_SetImageOffset(pRDMA, fmt, src_wd);
+	VIOC_RDMA_SetImageBase(pRDMA, FBimg_buf_addr, 0, 0);
+	VIOC_RDMA_SetImageEnable(pRDMA);
+
+	if(output_3d_ui_plugin)
+		VIOC_SC_SetUpdate(pSC);
+
+	VIOC_WMIX_SetUpdate(pWMIX);
+}
+
 int TCC_OUTPUT_FB_Set3DMode(char enable, char mode)
 {
-	dprintk("%s, enable=%d, mode=%d\n", __func__, enable, mode);
+	printk("%s, enable=%d, mode=%d\n", __func__, enable, mode);
 
 	if(output_3d_ui_flag)
 	{
@@ -1441,6 +1624,17 @@ int TCC_OUTPUT_FB_Set3DMode(char enable, char mode)
 	
 	output_3d_ui_mode = mode;
 	output_ui_resize_count = 4;
+
+	if(pDISP_OUTPUT[OutputType].pVIOC_DispBase)
+	{
+		if((pDISP_OUTPUT[OutputType].pVIOC_DispBase != (VIOC_DISP*)tcc_p2v(HwVIOC_DISP0)) || (pDISP_OUTPUT[OutputType].pVIOC_DispBase->uCTRL.nREG & HwDISP_NI)) 
+		{
+			if(enable)
+				TCC_OUTPUT_FB_Enable3D(pDISP_OUTPUT[OutputType].LCDC_N);	
+			else
+				TCC_OUTPUT_FB_Disable3D(pDISP_OUTPUT[OutputType].LCDC_N);	
+		}
+	}
 
 	return 0;
 }
