@@ -384,39 +384,6 @@ static void port_arrange(void)
 }
 #endif //#ifdef PORT_ARRANGE_USED
 
-#if defined(CONFIG_PM_CONSOLE_NOT_SUSPEND)
-static void tcc_pm_uart_suspend(bkUART *pBackupUART)
-{	
-	UART *pHwUART = (UART *)tcc_p2v(HwUART0_BASE);
-
-	pBackupUART->IER	= pHwUART->REG2.IER;	//0x04 : IER
-	BITCLR(pHwUART->REG2.IER, Hw2);	//disable interrupt : ELSI
-	pBackupUART->LCR	= pHwUART->LCR;	//0x0C : LCR
-	BITSET(pHwUART->LCR, Hw7);		// DLAB = 1
-	pBackupUART->DLL	= pHwUART->REG1.DLL;	//0x00 : DLL
-	pBackupUART->DLM	= pHwUART->REG2.DLM;	//0x04 : DLM
-	pBackupUART->MCR	= pHwUART->MCR;	//0x10 : MCR
-	pBackupUART->AFT	= pHwUART->AFT;		//0x20 : AFT
-	pBackupUART->UCR	= pHwUART->UCR;	//0x24 : UCR
-}
-
-static void tcc_pm_uart_resume(bkUART *pBackupUART)
-{
-	UART *pHwUART = (UART *)tcc_p2v(HwUART0_BASE);
-
-	BITCLR(pHwUART->REG2.IER, Hw2);	//disable interrupt : ELSI
-	BITSET(pHwUART->LCR, Hw7);		// DLAB = 1
-	pHwUART->REG3.FCR	= Hw2 + Hw1 + Hw0;	//0x08 : FCR
-	pHwUART->REG1.DLL	= pBackupUART->DLL;	//0x00 : DLL
-	pHwUART->REG2.DLM	= pBackupUART->DLM;	//0x04 : DLM
-	pHwUART->MCR	= pBackupUART->MCR;	//0x10 : MCR
-	pHwUART->AFT	= pBackupUART->AFT;	//0x20 : AFT
-	pHwUART->UCR	= pBackupUART->UCR;	//0x24 : UCR
-	pHwUART->LCR	= pBackupUART->LCR;	//0x0C : LCR
-	pHwUART->REG2.IER	= pBackupUART->IER;	//0x04 : IER
-}
-#endif
-
 #if defined(TCC_PMIC_COREPWR_CTRL_USED) || defined(CONFIG_REGULATOR)
 #define I2C_WR				0
 #define I2C_RD				1
@@ -900,6 +867,39 @@ set_core_voltage_end:
                                  Shut-down
 
 ===========================================================================*/
+
+#if defined(CONFIG_PM_CONSOLE_NOT_SUSPEND)
+static void tcc_pm_uart_suspend(bkUART *pBackupUART)
+{
+	UART *pHwUART = (UART *)tcc_p2v(HwUART0_BASE);
+
+	pBackupUART->IER	= pHwUART->REG2.IER;	//0x04 : IER
+	BITCLR(pHwUART->REG2.IER, Hw2);	//disable interrupt : ELSI
+	pBackupUART->LCR	= pHwUART->LCR;	//0x0C : LCR
+	BITSET(pHwUART->LCR, Hw7);		// DLAB = 1
+	pBackupUART->DLL	= pHwUART->REG1.DLL;	//0x00 : DLL
+	pBackupUART->DLM	= pHwUART->REG2.DLM;	//0x04 : DLM
+	pBackupUART->MCR	= pHwUART->MCR;	//0x10 : MCR
+	pBackupUART->AFT	= pHwUART->AFT;		//0x20 : AFT
+	pBackupUART->UCR	= pHwUART->UCR;	//0x24 : UCR
+}
+
+static void tcc_pm_uart_resume(bkUART *pBackupUART)
+{
+	UART *pHwUART = (UART *)tcc_p2v(HwUART0_BASE);
+
+	BITCLR(pHwUART->REG2.IER, Hw2);	//disable interrupt : ELSI
+	BITSET(pHwUART->LCR, Hw7);		// DLAB = 1
+	pHwUART->REG3.FCR	= Hw2 + Hw1 + Hw0;	//0x08 : FCR
+	pHwUART->REG1.DLL	= pBackupUART->DLL;	//0x00 : DLL
+	pHwUART->REG2.DLM	= pBackupUART->DLM;	//0x04 : DLM
+	pHwUART->MCR	= pBackupUART->MCR;	//0x10 : MCR
+	pHwUART->AFT	= pBackupUART->AFT;	//0x20 : AFT
+	pHwUART->UCR	= pBackupUART->UCR;	//0x24 : UCR
+	pHwUART->LCR	= pBackupUART->LCR;	//0x0C : LCR
+	pHwUART->REG2.IER	= pBackupUART->IER;	//0x04 : IER
+}
+#endif
 
 /*===========================================================================
 VARIABLE

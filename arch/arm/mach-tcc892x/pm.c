@@ -750,45 +750,6 @@ static void sdram_init(void)
 #endif
 }
 
-#if defined(CONFIG_PM_CONSOLE_NOT_SUSPEND)
-static void tcc_pm_uart_suspend(bkUART *pBackupUART)
-{	
-	UART *pHwUART = (UART *)tcc_p2v(HwUART0_BASE);
-
-	//pBackupUART->CFG0 = *(volatile unsigned long *)tcc_p2v(HwUART_PORTCFG_BASE);
-	//pBackupUART->CFG1 = *(volatile unsigned long *)tcc_p2v(HwUART_PORTCFG_BASE + 0x4);
-
-	pBackupUART->IER	= pHwUART->REG2.nREG;	//0x04 : IER
-	pHwUART->REG2.nREG	&= ~Hw2;	//disable interrupt : ELSI
-	pBackupUART->LCR	= pHwUART->LCR.nREG;	//0x0C : LCR
-	pHwUART->LCR.nREG	|= Hw7;		// DLAB = 1
-	pBackupUART->DLL	= pHwUART->REG1.nREG;	//0x00 : DLL
-	pBackupUART->DLM	= pHwUART->REG2.nREG;	//0x04 : DLM
-	pBackupUART->MCR	= pHwUART->MCR.nREG;	//0x10 : MCR
-	pBackupUART->AFT	= pHwUART->AFT.nREG;	//0x20 : AFT
-	pBackupUART->UCR	= pHwUART->UCR.nREG;	//0x24 : UCR
-}
-
-static void tcc_pm_uart_resume(bkUART *pBackupUART)
-{
-	UART *pHwUART = (UART *)tcc_p2v(HwUART0_BASE);
-
-	//*(volatile unsigned long *)tcc_p2v(HwUART_PORTCFG_BASE) = pBackupUART->CFG0;
-	//*(volatile unsigned long *)tcc_p2v(HwUART_PORTCFG_BASE + 0x4) = pBackupUART->CFG1;
-
-	pHwUART->REG2.nREG	&= ~Hw2;	//disable interrupt : ELSI
-	pHwUART->LCR.nREG	|= Hw7;		// DLAB = 1
-	pHwUART->REG3.nREG	= Hw2 + Hw1 + Hw0;	//0x08 : FCR
-	pHwUART->REG1.nREG	= pBackupUART->DLL;	//0x00 : DLL
-	pHwUART->REG2.nREG	= pBackupUART->DLM;	//0x04 : DLM
-	pHwUART->MCR.nREG	= pBackupUART->MCR;	//0x10 : MCR
-	pHwUART->AFT.nREG	= pBackupUART->AFT;	//0x20 : AFT
-	pHwUART->UCR.nREG	= pBackupUART->UCR;	//0x24 : UCR
-	pHwUART->LCR.nREG	= pBackupUART->LCR;	//0x0C : LCR
-	pHwUART->REG2.nREG	= pBackupUART->IER;	//0x04 : IER
-}
-#endif
-
 #if defined(TCC_PM_REGULATOR_CTRL)
 #define I2C_WR				0
 #define I2C_RD				1
@@ -1151,6 +1112,44 @@ set_core_voltage_end:
                                  Shut-down
 
 ===========================================================================*/
+#if defined(CONFIG_PM_CONSOLE_NOT_SUSPEND)
+static void tcc_pm_uart_suspend(bkUART *pBackupUART)
+{
+	UART *pHwUART = (UART *)tcc_p2v(HwUART0_BASE);
+
+	//pBackupUART->CFG0 = *(volatile unsigned long *)tcc_p2v(HwUART_PORTCFG_BASE);
+	//pBackupUART->CFG1 = *(volatile unsigned long *)tcc_p2v(HwUART_PORTCFG_BASE + 0x4);
+
+	pBackupUART->IER	= pHwUART->REG2.nREG;	//0x04 : IER
+	pHwUART->REG2.nREG	&= ~Hw2;	//disable interrupt : ELSI
+	pBackupUART->LCR	= pHwUART->LCR.nREG;	//0x0C : LCR
+	pHwUART->LCR.nREG	|= Hw7;		// DLAB = 1
+	pBackupUART->DLL	= pHwUART->REG1.nREG;	//0x00 : DLL
+	pBackupUART->DLM	= pHwUART->REG2.nREG;	//0x04 : DLM
+	pBackupUART->MCR	= pHwUART->MCR.nREG;	//0x10 : MCR
+	pBackupUART->AFT	= pHwUART->AFT.nREG;	//0x20 : AFT
+	pBackupUART->UCR	= pHwUART->UCR.nREG;	//0x24 : UCR
+}
+
+static void tcc_pm_uart_resume(bkUART *pBackupUART)
+{
+	UART *pHwUART = (UART *)tcc_p2v(HwUART0_BASE);
+
+	//*(volatile unsigned long *)tcc_p2v(HwUART_PORTCFG_BASE) = pBackupUART->CFG0;
+	//*(volatile unsigned long *)tcc_p2v(HwUART_PORTCFG_BASE + 0x4) = pBackupUART->CFG1;
+
+	pHwUART->REG2.nREG	&= ~Hw2;	//disable interrupt : ELSI
+	pHwUART->LCR.nREG	|= Hw7;		// DLAB = 1
+	pHwUART->REG3.nREG	= Hw2 + Hw1 + Hw0;	//0x08 : FCR
+	pHwUART->REG1.nREG	= pBackupUART->DLL;	//0x00 : DLL
+	pHwUART->REG2.nREG	= pBackupUART->DLM;	//0x04 : DLM
+	pHwUART->MCR.nREG	= pBackupUART->MCR;	//0x10 : MCR
+	pHwUART->AFT.nREG	= pBackupUART->AFT;	//0x20 : AFT
+	pHwUART->UCR.nREG	= pBackupUART->UCR;	//0x24 : UCR
+	pHwUART->LCR.nREG	= pBackupUART->LCR;	//0x0C : LCR
+	pHwUART->REG2.nREG	= pBackupUART->IER;	//0x04 : IER
+}
+#endif
 
 /*===========================================================================
 VARIABLE

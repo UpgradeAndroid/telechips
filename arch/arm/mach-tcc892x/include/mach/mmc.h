@@ -61,6 +61,7 @@ struct mmc_port_config {
 	int cmd;
 	int func;
 	int width;
+	int strength;
 
 	int cd;
 	int pwr;

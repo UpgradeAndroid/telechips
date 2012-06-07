@@ -115,6 +115,7 @@ static struct mmc_port_config mmc_ports[] = {
 		.clk	= TCC_GPD(20),
 		.func	= GPIO_FN(2),
 		.width	= TCC_MMC_BUS_WIDTH_8,
+		.strength = GPIO_CD(1),
 
 		.cd	= TCC_MMC_PORT_NULL,	//TCC_GPB(14),
 		.pwr	= GPIO_SD0_ON,
@@ -133,6 +134,7 @@ static struct mmc_port_config mmc_ports[] = {
 		.clk	= TCC_GPF(17),
 		.func	= GPIO_FN(2),
 		.width	= TCC_MMC_BUS_WIDTH_4,
+		.strength = GPIO_CD(1),
 
 		.cd	= TCC_GPB(12),
 		.pwr	= TCC_MMC_PORT_NULL,
@@ -150,6 +152,7 @@ static struct mmc_port_config mmc_ports[] = {
 		.clk	= TCC_GPB(28),
 		.func	= GPIO_FN(3),
 		.width	= TCC_MMC_BUS_WIDTH_4,
+		.strength = GPIO_CD(1),
 
 		.cd	= TCC_GPB(13),
 		.pwr	= GPIO_SD1_ON,
@@ -158,7 +161,6 @@ static struct mmc_port_config mmc_ports[] = {
 #endif	//#if defined(CONFIG_MMC_TCC_SD30_TEST)
 
 static int tccUsedSDportNum = TCC_MMC_TYPE_MAX;
-static int TCC_SDMMC_DRIVE_STRENGTH = GPIO_CD(1);
 
 int tcc8920_mmc_init(struct device *dev, int id)
 {
@@ -185,20 +187,20 @@ int tcc8920_mmc_init(struct device *dev, int id)
 	}
 	#endif
 
-	tcc_gpio_config(mmc_ports[id].data0, mmc_ports[id].func | TCC_SDMMC_DRIVE_STRENGTH);
-	tcc_gpio_config(mmc_ports[id].data1, mmc_ports[id].func | TCC_SDMMC_DRIVE_STRENGTH);
-	tcc_gpio_config(mmc_ports[id].data2, mmc_ports[id].func | TCC_SDMMC_DRIVE_STRENGTH);
-	tcc_gpio_config(mmc_ports[id].data3, mmc_ports[id].func | TCC_SDMMC_DRIVE_STRENGTH);
+	tcc_gpio_config(mmc_ports[id].data0, mmc_ports[id].func | mmc_ports[id].strength);
+	tcc_gpio_config(mmc_ports[id].data1, mmc_ports[id].func | mmc_ports[id].strength);
+	tcc_gpio_config(mmc_ports[id].data2, mmc_ports[id].func | mmc_ports[id].strength);
+	tcc_gpio_config(mmc_ports[id].data3, mmc_ports[id].func | mmc_ports[id].strength);
 
 	if(mmc_ports[id].width == TCC_MMC_BUS_WIDTH_8)
 	{
-		tcc_gpio_config(mmc_ports[id].data4, mmc_ports[id].func | TCC_SDMMC_DRIVE_STRENGTH);
-		tcc_gpio_config(mmc_ports[id].data5, mmc_ports[id].func | TCC_SDMMC_DRIVE_STRENGTH);
-		tcc_gpio_config(mmc_ports[id].data6, mmc_ports[id].func | TCC_SDMMC_DRIVE_STRENGTH);
-		tcc_gpio_config(mmc_ports[id].data7, mmc_ports[id].func | TCC_SDMMC_DRIVE_STRENGTH);
+		tcc_gpio_config(mmc_ports[id].data4, mmc_ports[id].func | mmc_ports[id].strength);
+		tcc_gpio_config(mmc_ports[id].data5, mmc_ports[id].func | mmc_ports[id].strength);
+		tcc_gpio_config(mmc_ports[id].data6, mmc_ports[id].func | mmc_ports[id].strength);
+		tcc_gpio_config(mmc_ports[id].data7, mmc_ports[id].func | mmc_ports[id].strength);
 	}
 
-	tcc_gpio_config(mmc_ports[id].cmd, mmc_ports[id].func | TCC_SDMMC_DRIVE_STRENGTH);
+	tcc_gpio_config(mmc_ports[id].cmd, mmc_ports[id].func | mmc_ports[id].strength);
 	tcc_gpio_config(mmc_ports[id].clk, mmc_ports[id].func | GPIO_CD(3));
 
 	if(mmc_ports[id].cd != TCC_MMC_PORT_NULL)
@@ -556,7 +558,7 @@ static void tcc8920_mmc_port_setup(void)
 		// for eMMC
 		tcc8920_mmc_platform_data[TCC_MMC_TYPE_EMMC].caps |= (MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED);
 
-		TCC_SDMMC_DRIVE_STRENGTH = GPIO_CD(0);
+		mmc_ports[TCC_MMC_TYPE_EMMC].strength = GPIO_CD(0);
 
 		// for SDHC - WiFi
 		mmc_ports[TCC_MMC_TYPE_SD].cd = TCC_GPE(0);
