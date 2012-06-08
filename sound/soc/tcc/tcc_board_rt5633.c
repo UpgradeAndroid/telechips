@@ -126,7 +126,7 @@ static void hp_mute()
 #if defined(CONFIG_MACH_M805_892X)
 	if(machine_is_m805_892x())
 	{
-		if (system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004)
+		if (system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004 || system_rev == 0x2005)
 			gpio_set_value(TCC_GPE(17), 0);
 		else
 			gpio_set_value(TCC_GPG(5), 0);
@@ -153,7 +153,7 @@ static void hp_un_mute()
 #if defined(CONFIG_MACH_M805_892X)
 	if(machine_is_m805_892x())
 	{
-		if (system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004)
+		if (system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004 || system_rev == 0x2005)
 			gpio_set_value(TCC_GPE(17), 1);
 		else
 			gpio_set_value(TCC_GPG(5), 1);
@@ -568,7 +568,7 @@ static int __init tcc_init_rt5633(void)
 
     /* h/w mute control */
     if(machine_is_m805_892x()) {
-		if (system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004) {
+		if (system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004 || system_rev == 0x2005) {
 			tcc_gpio_config(TCC_GPE(17), GPIO_FN(0));
 			gpio_request(TCC_GPE(17), "HP_MUTE_CTL");
 			gpio_direction_output(TCC_GPE(17), 0);   // HeadPhone mute

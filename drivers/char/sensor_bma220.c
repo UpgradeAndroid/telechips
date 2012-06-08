@@ -1490,7 +1490,7 @@ int __init tcc_sensor_init(void)
             gpio_direction_input(TCC_GPB(28));
         }
 		else if(machine_is_m805_892x()) {
-			if (system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004) {
+			if (system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004 || system_rev == 0x2005) {
 				gpio_request(TCC_GPC(1), NULL);
 				tcc_gpio_config(TCC_GPC(1), GPIO_FN(0));
 				gpio_direction_input(TCC_GPC(1));
