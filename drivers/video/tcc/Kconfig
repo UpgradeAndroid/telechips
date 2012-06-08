@@ -116,11 +116,18 @@ config TCC_OUTPUT_AUTO_DETECTION
 	  HDMI/Composite/Component output can be detected automatically.
 
 config TCC_OUTPUT_ATTACH
-    bool "Attaching Additional Output for Dual Display"
-	depends on FB && (MACH_TCC9300ST || MACH_TCC8800ST || MACH_TCC8920ST)
+    bool "Attach Additional Output for Dual Display"
+	depends on FB && MACH_TCC8920ST
 	default n
 	help
 	  Composite or Component output can be attached to HDMI output.
+
+config TCC_OUTPUT_3D_UI
+    bool "Support 3D(SBS/TNB) UI Display for MKV 3D files"
+	depends on FB && MACH_TCC8920ST
+	default n
+	help
+	  UI will be devided in horizontal/vertical direction according to 3D mode.
 
 config TCC_VIDEO_DISPLAY_BY_VSYNC_INT
     bool "Displaying video frame by hw vsync interrupt"

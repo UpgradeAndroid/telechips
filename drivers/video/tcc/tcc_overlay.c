@@ -449,10 +449,14 @@ void tccxxx_overlay_common_enable(void)
 }
 EXPORT_SYMBOL(tccxxx_overlay_common_enable);
 
+#if  defined (CONFIG_TCC_VIOC_CONTROLLER)
+void tccxxx_overlay_common_disable(int channel, VIOC_RDMA *pRdmaBase)
+#else
 void tccxxx_overlay_common_disable(int channel)
+#endif
 {
 #if  defined (CONFIG_TCC_VIOC_CONTROLLER)
-	VIOC_RDMA* pRDMABase;
+	VIOC_RDMA* pRDMABase = pRdmaBase;
 	unsigned int enable;
 #endif//
 
@@ -472,8 +476,7 @@ void tccxxx_overlay_common_disable(int channel)
 				BITCSET (pLCDC0->LI0C, HwLCT_RU, HwLCT_RU); //Image update
 			}
 			#else
-			pRDMABase = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA02);
-			VIOC_RDMA_SetImageDisable	(pRDMABase);
+			VIOC_RDMA_SetImageDisable(pRDMABase);
 			#endif//
 		}
 #endif
@@ -482,7 +485,6 @@ void tccxxx_overlay_common_disable(int channel)
 		if(!(pLCDC1->LI0C & Hw28))
 			return;
 	#else
-		pRDMABase = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA06);
 		VIOC_RDMA_GetImageEnable(pRDMABase, &enable);
 		if(!enable)
 			return;
@@ -494,7 +496,6 @@ void tccxxx_overlay_common_disable(int channel)
 		if(!(pLCDC1->LI1C & Hw28))
 			return;
 		#else
-		pRDMABase = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA05);
 		VIOC_RDMA_GetImageEnable(pRDMABase, &enable);
 		if(!enable)
 			return;
@@ -937,7 +938,11 @@ static int tccxxx_overlay_release(struct inode *inode, struct file *file)
 	tcc_overlay_use--;
 	dprintk(" ===========> tccxxx_overlay_release num:%d \n", tcc_overlay_use);
 
+#if  defined (CONFIG_TCC_VIOC_CONTROLLER)
+	tccxxx_overlay_common_disable(0, pRDMABase6);
+#else
 	tccxxx_overlay_common_disable(0);
+#endif
 
 	clk_disable(overlay_lcdc_clk);
 
@@ -956,7 +961,11 @@ static int tccxxx_overlay_open(struct inode *inode, struct file *file)
 		tcc_overlay_use--;
 		dprintk(" ===========> forced close num:%d \n", tcc_overlay_use);
 
+#if  defined (CONFIG_TCC_VIOC_CONTROLLER)
+		tccxxx_overlay_common_disable(0, pRDMABase6);
+#else
 		tccxxx_overlay_common_disable(0);
+#endif
 		clk_disable(overlay_lcdc_clk);
 	}
 

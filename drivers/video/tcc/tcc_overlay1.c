@@ -130,7 +130,11 @@ static DEFINE_MUTEX(overlay1_mutex);
 
 extern OUTPUT_SELECT_MODE	Output_SelectMode;
 extern void tccxxx_overlay_common_enable(void);
+#if  defined (CONFIG_TCC_VIOC_CONTROLLER)
+extern void tccxxx_overlay_common_disable(int channel, VIOC_RDMA *pRdmaBase);
+#else
 extern void tccxxx_overlay_common_disable(int channel);
+#endif
 extern void tccxxx_overlay_check_priority(void);
 unsigned char tccxxx_overlay1_use(void)
 {
@@ -700,7 +704,11 @@ static int tccxxx_overlay1_release(struct inode *inode, struct file *file)
 		tcc_overlay1_use--;
 		dprintk(" ===========> tccxxx_overlay1_release num:%d \n", tcc_overlay1_use);
 
+#if  defined (CONFIG_TCC_VIOC_CONTROLLER)
+		tccxxx_overlay_common_disable(1, pRDMABase5);
+#else
 		tccxxx_overlay_common_disable(1);
+#endif
 		clk_disable(overlay1_lcdc_clk);
 	}
 	mutex_unlock(&overlay1_mutex);
@@ -722,7 +730,11 @@ static int tccxxx_overlay1_open(struct inode *inode, struct file *file)
 			tcc_overlay1_use--;
 			dprintk(" ===========> forced close num:%d \n", tcc_overlay1_use);
 
+#if  defined (CONFIG_TCC_VIOC_CONTROLLER)
+			tccxxx_overlay_common_disable(1, pRDMABase5);
+#else
 			tccxxx_overlay_common_disable(1);
+#endif
 			clk_disable(overlay1_lcdc_clk);
 		}
 	}
