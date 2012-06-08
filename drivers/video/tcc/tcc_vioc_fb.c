@@ -76,6 +76,7 @@
 #include <mach/vioc_disp.h>
 #ifdef TCC_VIDEO_DISPLAY_DEINTERLACE_MODE
 #include "tcc_vioc_viqe_interface.h"
+#include "viqe.h"
 #endif
 
 
@@ -706,6 +707,7 @@ static void DisplayUpdateWithDeinterlace(void)
 			}
 		}
 
+/*
 		pNextImage = &tccvid_vsync.vsync_buffer.stImage[tccvid_vsync.vsync_buffer.readIdx];
 //		printk("mt(%d), st(%d)\n", pNextImage->time_stamp, current_time) ;
 		time_diff = abs (( pNextImage->time_stamp - (current_time+VIDEO_SYNC_MARGIN_EARLY) ));
@@ -766,7 +768,9 @@ static void DisplayUpdateWithDeinterlace(void)
 			tccvid_vsync.nDeinterProcCount ++;
 		}		
 		#endif
+*/		
 	}
+/*
 	else
 	{
 		if(tccvid_vsync.outputMode == Output_SelectMode)
@@ -809,7 +813,8 @@ static void DisplayUpdateWithDeinterlace(void)
 		tccvid_vsync.nDeinterProcCount = 0;
 
 	}
-
+*/
+	viqe_render_field(current_time);
 	return;
 }
 #endif // TCC_VIDEO_DISPLAY_DEINTERLACE_MODE
@@ -864,6 +869,7 @@ static irqreturn_t tcc_lcd_handler0_for_video(int irq, void *dev_id)
 			tccvid_vsync.baseTime++;
 #endif
 
+#if 0
 		if( tcc_vsync_is_empty_buffer(&tccvid_vsync.vsync_buffer) == 0 )
 		{
 			#ifdef TCC_VIDEO_DISPLAY_DEINTERLACE_MODE
@@ -877,6 +883,20 @@ static irqreturn_t tcc_lcd_handler0_for_video(int irq, void *dev_id)
 				TCC_OUTPUT_FB_AttachUpdateFlag(0);
 			#endif
 		}
+#else
+		#ifdef TCC_VIDEO_DISPLAY_DEINTERLACE_MODE
+		if(tccvid_vsync.deinterlace_mode && !tccvid_vsync.output_toMemory)
+			DisplayUpdateWithDeinterlace();
+		else
+		#endif
+		if( tcc_vsync_is_empty_buffer(&tccvid_vsync.vsync_buffer) == 0 )
+		{
+			DisplayUpdate();
+			#if defined(CONFIG_TCC_OUTPUT_ATTACH)
+				TCC_OUTPUT_FB_AttachUpdateFlag(0);
+			#endif
+		}
+#endif
 #endif	
 
 	return IRQ_HANDLED;	
@@ -1834,7 +1854,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 				tccvid_vsync.output_toMemory = -1;
 				tccvid_vsync.nTimeGapToNextField = backup_time;
 				tccvid_vsync.video_frame_rate = backup_frame_rate;
-
+				viqe_render_init();
 				if(backup_time)
 					tccvid_vsync.updateGapTime = backup_time;
 				else
@@ -2191,6 +2211,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 #endif
 			
 			tccvid_vsync.firstFrameFlag = 0;
+			int curTime = tcc_vsync_get_time();
 
 PUSH_VIDEO_FORCE : 
 			if(tcc_vsync_is_full_buffer(&tccvid_vsync.vsync_buffer))
@@ -2207,6 +2228,13 @@ PUSH_VIDEO_FORCE :
 			{
 				printk("critical error: vsync buffer full by fault buffer controll\n");
 			}
+			if(tccvid_vsync.deinterlace_mode && !tccvid_vsync.output_toMemory)
+
+			viqe_render_frame(input_image.addr0, input_image.addr1, input_image.addr2, input_image.odd_first_flag, tccvid_vsync.vsync_interval, curTime,
+							input_image.Frame_width, input_image.Frame_height,	// srcWidth, srcHeight
+							input_image.crop_top, input_image.crop_bottom, input_image.crop_left, input_image.crop_right,
+							input_image.Image_width, input_image.Image_height,
+							input_image.offset_x, input_image.offset_y, input_image.frameInfo_interlace);
 			spin_unlock_irq(&vsync_lock) ;
 			//printk("OddFirst = %d, interlaced %d\n", input_image.odd_first_flag, input_image.deinterlace_mode);
 			vprintk("vtime : %d, curtime : %d\n", input_image.time_stamp, input_image.sync_time) ;
