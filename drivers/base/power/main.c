@@ -457,6 +457,9 @@ static int device_resume_noirq(struct device *dev, pm_message_t state)
  * Call the "noirq" resume handlers for all devices marked as DPM_OFF_IRQ and
  * enable device drivers to receive interrupts.
  */
+#if defined(CONFIG_PM_VERBOSE_DPM_SUSPEND)
+static int device_resume(struct device *dev, pm_message_t state, bool async);
+#endif
 void dpm_resume_noirq(pm_message_t state)
 {
 	ktime_t starttime = ktime_get();
@@ -473,6 +476,18 @@ void dpm_resume_noirq(pm_message_t state)
 		error = device_resume_noirq(dev, state);
 		if (error)
 			pm_dev_err(dev, state, " early", error);
+
+		#if defined(CONFIG_PM_VERBOSE_DPM_SUSPEND)
+		if(dev->driver) {
+			if(memcmp(dev_name(dev), "tcc-uart", 8) == 0)
+			{
+				error = device_resume(dev, state, false);
+
+				if (error)
+					pm_dev_err(dev, state, "", error);
+			}
+		}
+		#endif
 
 		mutex_lock(&dpm_list_mtx);
 		put_device(dev);
@@ -626,6 +641,10 @@ void dpm_resume(pm_message_t state)
 	struct device *dev;
 	ktime_t starttime = ktime_get();
 
+	#if defined(CONFIG_PM_VERBOSE_DPM_SUSPEND)
+	printk("%s(%s) : start\n", __func__, pm_verb(state.event));
+	#endif
+
 	might_sleep();
 
 	mutex_lock(&dpm_list_mtx);
@@ -648,9 +667,17 @@ void dpm_resume(pm_message_t state)
 
 			mutex_unlock(&dpm_list_mtx);
 
+			#if defined(CONFIG_PM_VERBOSE_DPM_SUSPEND)
+			printk("dpm [:%s:", dev_name(dev));
+			#endif
+
 			suspend_test_start_dev(TEST_SUSPEND_TIME_LEVEL1);
 			error = device_resume(dev, state, false);
 			suspend_test_finish_dev(dev, TEST_SUSPEND_TIME_LEVEL1, "device_resume");
+
+			#if defined(CONFIG_PM_VERBOSE_DPM_SUSPEND)
+			printk("]\n");
+			#endif
 
 			if (error)
 				pm_dev_err(dev, state, "", error);
@@ -706,6 +733,9 @@ static void device_complete(struct device *dev, pm_message_t state)
 void dpm_complete(pm_message_t state)
 {
 	struct list_head list;
+#if defined(CONFIG_PM_VERBOSE_DPM_SUSPEND)
+	ktime_t starttime = ktime_get();
+#endif
 
 	might_sleep();
 
@@ -726,6 +756,9 @@ void dpm_complete(pm_message_t state)
 	}
 	list_splice(&list, &dpm_list);
 	mutex_unlock(&dpm_list_mtx);
+#if defined(CONFIG_PM_VERBOSE_DPM_SUSPEND)
+	dpm_show_time(starttime, state, "dpm_complete");
+#endif
 }
 
 /**
@@ -999,17 +1032,13 @@ int dpm_suspend(pm_message_t state)
 		mutex_unlock(&dpm_list_mtx);
 
 		#if defined(CONFIG_PM_VERBOSE_DPM_SUSPEND)
-		if(dev->driver) {
-			printk("dpm [:%s:", dev->driver->name);
-		}
+		printk("dpm [:%s:", dev_name(dev));
 		#endif
 
 		error = device_suspend(dev);
 
 		#if defined(CONFIG_PM_VERBOSE_DPM_SUSPEND)
-		if(dev->driver) {
-			printk("]\n");
-		}
+		printk("]\n");
 		#endif
 
 		mutex_lock(&dpm_list_mtx);
@@ -1089,6 +1118,9 @@ static int device_prepare(struct device *dev, pm_message_t state)
  */
 int dpm_prepare(pm_message_t state)
 {
+#if defined(CONFIG_PM_VERBOSE_DPM_SUSPEND)
+	ktime_t starttime = ktime_get();
+#endif
 	int error = 0;
 
 	might_sleep();
@@ -1127,6 +1159,10 @@ int dpm_prepare(pm_message_t state)
 		put_device(dev);
 	}
 	mutex_unlock(&dpm_list_mtx);
+#if defined(CONFIG_PM_VERBOSE_DPM_SUSPEND)
+	if (!error)
+		dpm_show_time(starttime, state, "dpm_prepare");
+#endif
 	return error;
 }
 
