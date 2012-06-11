@@ -278,9 +278,9 @@ char TCC_OnTheFly_setting(char OnOff, char hdmi_lcdc,  char scaler)
 		else
 			M2M_Scaler_SW_Reset(M2M_SCALER0); 
 
-		dprintk("%s, lcdc_num=%d, scaler_num=%d \n", __func__, hdmi_lcdc, scaler);
-	}
-
+		dprintk("%s, lcdc_num=%d, scaler_num=%d on\n", __func__, hdmi_lcdc, scaler);
+	}		
+	
 	if(scaler)
 	{
 		if(hdmi_lcdc)
@@ -330,7 +330,6 @@ char TCC_OnTheFly_setting(char OnOff, char hdmi_lcdc,  char scaler)
 
 	return 1;
 }
-
 
 void TCC_HDMI_DISPLAY_UPDATE_OnTheFly(char hdmi_lcdc, struct tcc_lcdc_image_update *ImageInfo)
 {
@@ -483,29 +482,32 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 		#if defined(CONFIG_ARCH_TCC92XX)
 		pLCDC_channel->LIC = 0;
 		#else
-		pLCDC_channel->LIC= HwLCT_RU;
+		pLCDC_channel->LIC= HwLCT_RU | !HwLIC_IEN;		
+		onthefly_using = 0;		
 		#endif//
 		return;
 	}
 
 	if( ImageInfo->on_the_fly) {
-		if(!onthefly_using){
+		if(!onthefly_using)
+		{
 			TCC_OnTheFly_setting(1, hdmi_lcdc ,ImageInfo->on_the_fly - 1);
-			//TCC_OnTheFly_setting(1, hdmi_lcdc ,ImageInfo->on_the_fly);
 			onthefly =  HwLIC_SRC;						
 			onthefly_using = 1;
 		}		
-		TCC_HDMI_DISPLAY_UPDATE_OnTheFly( hdmi_lcdc, ImageInfo); // ok here!!!
+		TCC_HDMI_DISPLAY_UPDATE_OnTheFly( hdmi_lcdc, ImageInfo);
 		BITCSET(pLCDC_channel->LIC, HwLIC_SRC, HwLIC_SRC);
 		Image_fmt = TCC_LCDC_IMG_FMT_YUV422SQ;
 		
-	}else{
+	} else {
+		if(onthefly_using)
+		{
+			onthefly_using = 0;		
+		}
 		BITCSET(pLCDC_channel->LIC, HwLIC_SRC, 0);
-		Image_fmt = ImageInfo->fmt;
-		onthefly_using = 0;		
-	}			
-
-
+		Image_fmt = ImageInfo->fmt;		
+	}				
+	
 	{
 		buffer_width = (((ImageInfo->Frame_width + 3)>>2)<<2);
 
