@@ -118,6 +118,43 @@ static struct mmc_port_config mmc_ports[] = {
 	#endif
 };
 
+#elif defined(CONFIG_STB_BOARD_ISDBT_MODULE)
+#define TCC_MMC_SD_CARD_USED
+
+typedef enum {
+	TCC_MMC_TYPE_SD,
+	TCC_MMC_TYPE_MAX
+} tcc_mmc_type;
+
+#define TFCD_EXT_INT		EXTINT_GPIOD_14
+#define TFCD_GPIO_PORT		TCC_GPD(14)
+
+#define TFCD_SDMMC_PORT		4
+#define TFCD_PERI_SDMMC		PERI_SDMMC0
+#define TFCD_RB_SDMMC		RB_SDMMC0CONTROLLER
+#define TFCD_HwINT1_SD		HwINT1_SD0
+
+static struct mmc_port_config mmc_ports[] = {
+	[TCC_MMC_TYPE_SD] = {
+		.data0	= TCC_GPD(18),
+		.data1	= TCC_GPD(17),
+		.data2	= TCC_GPD(16),
+		.data3	= TCC_GPD(15),
+		.data4	= TCC_MMC_PORT_NULL,
+		.data5	= TCC_MMC_PORT_NULL,
+		.data6	= TCC_MMC_PORT_NULL,
+		.data7	= TCC_MMC_PORT_NULL,
+		.cmd	= TCC_GPD(19),
+		.clk	= TCC_GPD(20),
+		.func	= GPIO_FN(2),
+		.width	= TCC_MMC_BUS_WIDTH_4,
+
+		.cd	= TFCD_GPIO_PORT,
+		.pwr	= TCC_MMC_PORT_NULL,
+	},
+};
+
+
 #elif defined(CONFIG_STB_BOARD_HDB892S) || defined(CONFIG_STB_BOARD_HDB892F)
 #define TCC_MMC_SD_CARD_USED
 
