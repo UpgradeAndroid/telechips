@@ -139,28 +139,54 @@ viqe_queue_show_entry_info (viqe_queue_entry_t *p_entry, char *prefix)
 
 #define	NORMAL_MODE		0		//normal mode
 #define	DUPLI_MODE		1		//duplicate mode
+#define	SKIP_MODE		2		// skip mode
 
 void
 viqe_swap_buffer (uint mode)
 {
-	uint tmp;
 #if 0
+	uint	i;
+	uint 	temp_field_conv_disable;
+	static	uint	prev_viqe_base[4] = {0,0,0,0};
+	uint	curr_viqe_base[4];
+	uint	next_viqe_base[4];
+	static	uint	skip_d = 0;
+
 	VIQE *pVIQE = (VIQE *)HwVIOC_VIQE0;
-#if 1
-	if (mode == DUPLI_MODE) {
-		tmp	= pVIQE->cDEINTL_DMA.nDEINTL_BASE3.nREG;
-		pVIQE->cDEINTL_DMA.nDEINTL_BASE3.nREG = pVIQE->cDEINTL_DMA.nDEINTL_BASE2.nREG;
-		pVIQE->cDEINTL_DMA.nDEINTL_BASE2.nREG = pVIQE->cDEINTL_DMA.nDEINTL_BASE1.nREG;
-		pVIQE->cDEINTL_DMA.nDEINTL_BASE1.nREG = pVIQE->cDEINTL_DMA.nDEINTL_BASE0.nREG;
-		pVIQE->cDEINTL_DMA.nDEINTL_BASE0.nREG = tmp;
-	}
-#else
-#endif
-#else
-	if (mode == DUPLI_MODE) {
-		TCC_VIQE_DI_Swap60Hz();
+
+	curr_viqe_base[3] = pVIQE->cDEINTL_DMA.nDEINTL_BASE3.uBASE ;
+	curr_viqe_base[2] = pVIQE->cDEINTL_DMA.nDEINTL_BASE2.uBASE ;
+	curr_viqe_base[1] = pVIQE->cDEINTL_DMA.nDEINTL_BASE1.uBASE ;
+	curr_viqe_base[0] = pVIQE->cDEINTL_DMA.nDEINTL_BASE0.uBASE ;
+
+	switch (mode) {
+		case	DUPLI_MODE :
+			next_viqe_base[3] = curr_viqe_base[2];
+			next_viqe_base[2] = curr_viqe_base[1];
+			next_viqe_base[1] = curr_viqe_base[0];
+			next_viqe_base[0] = curr_viqe_base[3];
+			break;
+		case	SKIP_MODE :
+			next_viqe_base[3] = curr_viqe_base[2];//[0];
+			next_viqe_base[2] = curr_viqe_base[1];//[3];
+			next_viqe_base[1] = curr_viqe_base[0];//[2];
+			next_viqe_base[0] = curr_viqe_base[3];//[1];
+			break;
+		default :
+			next_viqe_base[3] = curr_viqe_base[3];
+			next_viqe_base[2] = curr_viqe_base[2];
+			next_viqe_base[1] = curr_viqe_base[1];
+			next_viqe_base[0] = curr_viqe_base[0];
+			break;
 	}
 
+	pVIQE->cDEINTL_DMA.nDEINTL_BASE3.uBASE = next_viqe_base[3] ;
+	pVIQE->cDEINTL_DMA.nDEINTL_BASE2.uBASE = next_viqe_base[2] ;
+	pVIQE->cDEINTL_DMA.nDEINTL_BASE1.uBASE = next_viqe_base[1] ;
+	pVIQE->cDEINTL_DMA.nDEINTL_BASE0.uBASE = next_viqe_base[0] ;
+
+#else
+	TCC_VIQE_DI_Swap60Hz(mode);
 #endif
 }
 
@@ -232,42 +258,18 @@ viqe_render_field (int curTime)
 	if ( viqe_queue_is_empty (&g_viqe_render_queue) ) {
 		if ( !g_viqe_render_queue.ready ) {
 			//printf ("[RDMA] empty ...\n");
-			next_frame_info = VIQE_FIELD_SKIP;
+			next_frame_info = VIQE_FIELD_BROKEN;
 		} else {
 			p_entry = &g_viqe_render_queue.curr_entry;
 			next_frame_info 	= VIQE_FIELD_DUP;
 		}
 	} else {
-#if 0
-		p_entry = &g_viqe_render_queue.curr_entry;
-		next_frame_info = VIQE_FIELD_NEW;
-		while (1) {
-			if ( viqe_queue_is_empty (&g_viqe_render_queue) ) {
-				break;
-			}
-			p_entry_next = viqe_queue_show_entry (&g_viqe_render_queue);
-			if ( !g_viqe_render_queue.ready ) {
-				g_viqe_render_queue.ready = 1;
-				p_entry = p_entry_next;
-				next_frame_info = VIQE_FIELD_NEW;
-				viqe_queue_pop_entry (&g_viqe_render_queue);
-				break;
-			} else if ( (int)(p_entry_next->time_stamp - curr_time) <= 0 ) {
-				if ( g_viqe_render_queue.curr_entry.bottom_field != p_entry_next->bottom_field) {
-					p_entry = p_entry_next;
-				}
-				next_frame_info = VIQE_FIELD_NEW;
-				viqe_queue_pop_entry (&g_viqe_render_queue);
-			} else {
-				break;
-			}
-		}
-#else
 		p_entry = &g_viqe_render_queue.curr_entry;
 		next_frame_info = VIQE_FIELD_NEW;
 		while (1) {
 			p_entry_next = viqe_queue_show_entry (&g_viqe_render_queue);
 			if ( viqe_queue_is_empty (&g_viqe_render_queue) ) {
+				// field duplicate 
 				break;
 			} else if ( !g_viqe_render_queue.ready ) {
 				g_viqe_render_queue.ready = 1;
@@ -277,36 +279,56 @@ viqe_render_field (int curTime)
 				break;
 			} else {
 				if ( g_viqe_render_queue.curr_entry.bottom_field != p_entry_next->bottom_field) {
-					p_entry = p_entry_next;
-				}
-				next_frame_info = VIQE_FIELD_NEW;
-				viqe_queue_pop_entry (&g_viqe_render_queue);
-				if (( viqe_queue_get_filled (&g_viqe_render_queue)) >= 3 ) {
-					continue;
+					// normal condition : T->B->T->B->T->B->T->B->T
+					if ( (g_viqe_render_queue.curr_entry.bottom_field) && ((viqe_queue_get_filled (&g_viqe_render_queue)) >= 3) ) {
+						// in case of source frame rate is higher than sink(display) frame rate..
+						// for example, 30i contents and 50p display
+						
+						// 1. remove a field
+						viqe_queue_pop_entry (&g_viqe_render_queue);
+						p_entry = viqe_queue_show_entry (&g_viqe_render_queue);
+						next_frame_info = VIQE_FIELD_SKIP;
+						viqe_queue_pop_entry (&g_viqe_render_queue);
+						break;
+					} else {
+						p_entry = p_entry_next;
+						next_frame_info = VIQE_FIELD_NEW;
+						viqe_queue_pop_entry (&g_viqe_render_queue);
+						break;
+					}
 				} else {
+					// abnormal condition : T->B->B->T->T->B->B->T->T
+					p_entry = p_entry_next;
+					next_frame_info = VIQE_FIELD_SKIP;
+					viqe_queue_pop_entry (&g_viqe_render_queue);
 					break;
 				}
 			}
 		}
-#endif
 		if ( p_entry->new_field == 0 )
 			next_frame_info = VIQE_FIELD_DUP;
 	}
-
-	if ( next_frame_info == VIQE_FIELD_SKIP ) {
+	
+	if ( next_frame_info == VIQE_FIELD_BROKEN ) {
 			// do nothing
-//			printk ("[RDMA:SKIP]");
+//			printk ("[RDMA:SKIP]\n");
 			return;
 	}
-	if ( g_viqe_render_queue.frame_cnt < 8 ) {
+	
+	
+	if ( g_viqe_render_queue.frame_cnt < 4 ) {
 		next_frame_info = VIQE_FIELD_NEW;
 	}
+
 	switch (next_frame_info) {
 		case VIQE_FIELD_SKIP :
+			viqe_queue_show_entry_info (p_entry, "RDMA:SKIP");
+			viqe_swap_buffer (SKIP_MODE);				
+			if ( (g_viqe_render_queue.inout_rate++) >= 10 ) g_viqe_render_queue.inout_rate = 10;
 			break;
 		case VIQE_FIELD_NEW :
 			viqe_queue_show_entry_info (p_entry, "RDMA:NEW");
-			viqe_swap_buffer (0);
+			viqe_swap_buffer (NORMAL_MODE);			
 			break;
 		case VIQE_FIELD_BROKEN :
 			viqe_queue_show_entry_info (p_entry, "RDMA:BROKEN");
@@ -315,14 +337,21 @@ viqe_render_field (int curTime)
 			break;
 		case VIQE_FIELD_DUP :
 			viqe_queue_show_entry_info (p_entry, "RDMA:DUP");
-			viqe_swap_buffer (1);
+			viqe_swap_buffer (DUPLI_MODE);
+			if ( (g_viqe_render_queue.inout_rate--) <= -10 ) g_viqe_render_queue.inout_rate = -10;
 			break;
 	}
+	
+//	sim_value (g_viqe_render_queue.inout_rate);
+	if ( g_viqe_render_queue.inout_rate <= -3 )
+		TCC_VIQE_DI_SetFMT60Hz(0);
+	else if ( g_viqe_render_queue.inout_rate >= 3 )
+		TCC_VIQE_DI_SetFMT60Hz(1);
 
 	if ( !g_viqe_render_queue.ready ) {
 	} else {
 		//viqe_queue_show_entry_info (p_entry, "RDMA:WRITE");
-		if ( g_viqe_render_queue.frame_cnt < 8 ) {
+		if ( g_viqe_render_queue.frame_cnt < 4 ) {
 			p_entry->bottom_field = g_viqe_render_queue.frame_cnt&0x1;
 		}
 		#if 0
@@ -338,8 +367,8 @@ viqe_render_field (int curTime)
 		
 		#endif
 		g_viqe_render_queue.frame_cnt ++;
-		if ( g_viqe_render_queue.frame_cnt >= 10 ) 
-			g_viqe_render_queue.frame_cnt = 10;
+		if ( g_viqe_render_queue.frame_cnt >= 6 ) 
+			g_viqe_render_queue.frame_cnt = 6;
 	}
 
 	p_entry->new_field = 0;

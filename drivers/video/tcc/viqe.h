@@ -33,6 +33,10 @@ typedef	struct	_my_queue {
 	int					w_ptr;
 	int					r_ptr;
 
+	// frame rate vs. output rate
+	int					inout_rate;	// + : input frame rate is greater than output frame rate
+									// - : output frame rate is greater than input frame rate
+
 	// hardware releated
 	void *				p_rdma_ctrl;
 	int					frame_cnt;

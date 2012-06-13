@@ -199,15 +199,43 @@ void VIOC_VIQE_SetDeintlBase(VIQE *pVIQE, unsigned int frmnum, unsigned int base
 	
 }
 
-void VIOC_VIQE_SwapDeintlBase(VIQE *pVIQE)
+void VIOC_VIQE_SwapDeintlBase(VIQE *pVIQE, int mode)
 {
 	dprintk(KERN_INFO "%s\n", __FUNCTION__);
-	unsigned int tmp;
-	tmp	= pVIQE->cDEINTL_DMA.nDEINTL_BASE3.nREG;
-	BITCSET(pVIQE->cDEINTL_DMA.nDEINTL_BASE3.nREG, 0xFFFFFFFF, pVIQE->cDEINTL_DMA.nDEINTL_BASE2.nREG);	
-	BITCSET(pVIQE->cDEINTL_DMA.nDEINTL_BASE2.nREG, 0xFFFFFFFF, pVIQE->cDEINTL_DMA.nDEINTL_BASE1.nREG);
-	BITCSET(pVIQE->cDEINTL_DMA.nDEINTL_BASE1.nREG, 0xFFFFFFFF, pVIQE->cDEINTL_DMA.nDEINTL_BASE0.nREG);
-	BITCSET(pVIQE->cDEINTL_DMA.nDEINTL_BASE0.nREG, 0xFFFFFFFF, tmp);
+
+	unsigned int	curr_viqe_base[4];
+	unsigned int	next_viqe_base[4];
+
+	curr_viqe_base[3] = pVIQE->cDEINTL_DMA.nDEINTL_BASE3.nREG ;
+	curr_viqe_base[2] = pVIQE->cDEINTL_DMA.nDEINTL_BASE2.nREG ;
+	curr_viqe_base[1] = pVIQE->cDEINTL_DMA.nDEINTL_BASE1.nREG ;
+	curr_viqe_base[0] = pVIQE->cDEINTL_DMA.nDEINTL_BASE0.nREG ;
+
+	switch (mode) {
+		case	DUPLI_MODE :
+			next_viqe_base[3] = curr_viqe_base[2];
+			next_viqe_base[2] = curr_viqe_base[1];
+			next_viqe_base[1] = curr_viqe_base[0];
+			next_viqe_base[0] = curr_viqe_base[3];
+			break;
+		case	SKIP_MODE :
+			next_viqe_base[3] = curr_viqe_base[2];//[0];
+			next_viqe_base[2] = curr_viqe_base[1];//[3];
+			next_viqe_base[1] = curr_viqe_base[0];//[2];
+			next_viqe_base[0] = curr_viqe_base[3];//[1];
+			break;
+		default :
+			next_viqe_base[3] = curr_viqe_base[3];
+			next_viqe_base[2] = curr_viqe_base[2];
+			next_viqe_base[1] = curr_viqe_base[1];
+			next_viqe_base[0] = curr_viqe_base[0];
+			break;
+	}
+
+	BITCSET(pVIQE->cDEINTL_DMA.nDEINTL_BASE3.nREG, 0xFFFFFFFF, next_viqe_base[3]) ;
+	BITCSET(pVIQE->cDEINTL_DMA.nDEINTL_BASE2.nREG, 0xFFFFFFFF, next_viqe_base[2]) ;
+	BITCSET(pVIQE->cDEINTL_DMA.nDEINTL_BASE1.nREG, 0xFFFFFFFF, next_viqe_base[1]) ;
+	BITCSET(pVIQE->cDEINTL_DMA.nDEINTL_BASE0.nREG, 0xFFFFFFFF, next_viqe_base[0]);
 }
 
 void VIOC_VIQE_SetDeintlSize(VIQE *pVIQE, unsigned int width, unsigned int height)
@@ -394,6 +422,13 @@ void VIOC_VIQE_InitDeintlCoreTemporal(VIQE *pVIQE)
 	BITCSET(pVIQE->cDEINTL.nDI_INT, 0xFFFFFFFF, 0x00000000);
 	
 	BITCSET(pVIQE->cDEINTL.nPD_SAW, 0xFFFFFFFF, 0x0008050a);
+}
+
+
+void VIOC_VIQE_SetDeintlFMT(VIQE *pVIQE, int enable)
+{
+	BITCSET(pVIQE->cDEINTL.nDI_FMT, 1<<31, enable << 31);
+
 }
 
 void VIOC_VIQE_SetDeintlMode(VIQE *pVIQE, VIOC_VIQE_DEINTL_MODE mode)

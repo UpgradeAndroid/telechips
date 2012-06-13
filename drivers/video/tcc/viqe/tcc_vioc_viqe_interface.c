@@ -364,9 +364,13 @@ void TCC_VIQE_DI_Init60Hz(int lcdCtrlNum, int Lcdc_layer, int useSCALER, unsigne
 }
 
 
-void TCC_VIQE_DI_Swap60Hz(void)
+void TCC_VIQE_DI_Swap60Hz(int mode)
 {
-	VIOC_VIQE_SwapDeintlBase(pVIQE_60Hz);
+	VIOC_VIQE_SwapDeintlBase(pVIQE_60Hz, mode);
+}
+void TCC_VIQE_DI_SetFMT60Hz(int enable)
+{
+	VIOC_VIQE_SetDeintlFMT(pVIQE_60Hz, enable);
 }
 
 void TCC_VIQE_DI_Run60Hz(int useSCALER, unsigned int addr0, unsigned int addr1, unsigned int addr2,
