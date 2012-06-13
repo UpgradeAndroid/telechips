@@ -820,7 +820,7 @@ static int tcc_usb_thread(void* _dwc_otg_device)
 					{
 						ret = usb_state_notification(dwc_otg_device->core_if, USB_BUS_ADD);
 						if(ret == 0) dwc_otg_device->flagDeviceAttach = 1;
-						tcc_cpufreq_set_limit_table(&gtUSBClockLimitTable[0], TCC_FREQ_LIMIT_USB, 1);						
+						tcc_cpufreq_set_limit_table(&gtUSBClockLimitTable[1], TCC_FREQ_LIMIT_USB, 1);						
 					}
 				} 
 				/* else if USB cable is not connected */ 
@@ -830,7 +830,7 @@ static int tcc_usb_thread(void* _dwc_otg_device)
 					{
 						ret = usb_state_notification(dwc_otg_device->core_if, USB_BUS_REMOVE);
 						if(ret == 0) dwc_otg_device->flagDeviceAttach = 0;
-						tcc_cpufreq_set_limit_table(&gtUSBClockLimitTable[0], TCC_FREQ_LIMIT_USB, 0);						
+						tcc_cpufreq_set_limit_table(&gtUSBClockLimitTable[1], TCC_FREQ_LIMIT_USB, 0);						
 					}
 				}
 			}

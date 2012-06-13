@@ -101,6 +101,14 @@ enum {
 typedef void (*CoreFuncPtr)(unsigned int goto_state);
 #endif
 
+//#define TCC_PM_TP_DEBUG		// Test Port debugging - 120611, hjbae
+#if defined(TCC_PM_TP_DEBUG)
+#include <mach/gpio.h>
+
+//#define TP_GPIO_PORT	(TCC_GPE(30))	// 0x1007 : UT_RTS2
+#define TP_GPIO_PORT	(TCC_GPG(4))	// 0x1008 : SD2_WP
+//#define TP_GPIO_PORT	(TCC_GPG(5))
+#endif
 
 /*===========================================================================
 FUNCTION
@@ -1581,7 +1589,6 @@ static void wakeup(void)
 	//IP isolation on
 	((PPMU)HwPMU_BASE)->PMU_ISOL.nREG = 0x00000BD0;
 #endif
-
 }
 
 /*===========================================================================
@@ -1742,9 +1749,17 @@ static void shutdown_mode(void)
 	__asm__ __volatile__ ("nop\n");
 
 
+#if defined(TCC_PM_TP_DEBUG)	// 1
+	gpio_set_value(TP_GPIO_PORT, 0);
+#endif
+
 	/* all peri io bus on */
 	((PIOBUSCFG)tcc_p2v(HwIOBUSCFG_BASE))->HCLKEN0.nREG = 0xFFFFFFFF;
 	((PIOBUSCFG)tcc_p2v(HwIOBUSCFG_BASE))->HCLKEN1.nREG = 0xFFFFFFFF;
+
+#if defined(TCC_PM_TP_DEBUG)	// 2
+	gpio_set_value(TP_GPIO_PORT, 1);
+#endif
 
 	/*--------------------------------------------------------------
 	 SMU & PMU
@@ -1781,6 +1796,10 @@ static void shutdown_mode(void)
 		memcpy((void*)&(((PCKC)tcc_p2v(HwCKC_BASE))->PCLKCTRL00.nREG), (void*)&(RegRepo.ckc.PCLKCTRL00.nREG), 0x150-0x80);
 	}
 	nop_delay(100);
+
+#if defined(TCC_PM_TP_DEBUG)	// 3
+	gpio_set_value(TP_GPIO_PORT, 0);
+#endif
 
 #if defined(TCC_PM_PMU_CTRL)
 	//memcpy((PPMU)tcc_p2v(HwPMU_BASE), &RegRepo.pmu, sizeof(PMU));
@@ -1823,10 +1842,18 @@ static void shutdown_mode(void)
 	}
 #endif
 
+#if defined(TCC_PM_TP_DEBUG)	// 4
+	gpio_set_value(TP_GPIO_PORT, 1);
+#endif
+
 	memcpy((PPIC)tcc_p2v(HwPIC_BASE), &RegRepo.pic, sizeof(PIC));
 	memcpy((PVIC)tcc_p2v(HwVIC_BASE), &RegRepo.vic, sizeof(VIC));
 	memcpy((PTIMER *)tcc_p2v(HwTMR_BASE), &RegRepo.timer, sizeof(TIMER));
 	memcpy((PSMUCONFIG)tcc_p2v(HwSMUCONFIG_BASE), &RegRepo.smuconfig, sizeof(SMUCONFIG));
+
+#if defined(TCC_PM_TP_DEBUG)	// 5
+	gpio_set_value(TP_GPIO_PORT, 0);
+#endif
 
 	/*--------------------------------------------------------------
 	 BUS Config
@@ -1834,10 +1861,18 @@ static void shutdown_mode(void)
 	memcpy((PIOBUSCFG)tcc_p2v(HwIOBUSCFG_BASE), &RegRepo.iobuscfg, sizeof(IOBUSCFG));
 	memcpy((PMEMBUSCFG)tcc_p2v(HwMBUSCFG_BASE), &RegRepo.membuscfg, sizeof(MEMBUSCFG));
 
+#if defined(TCC_PM_TP_DEBUG)	// 6
+	gpio_set_value(TP_GPIO_PORT, 1);
+#endif
+
 	/*--------------------------------------------------------------
 	 NFC
 	--------------------------------------------------------------*/
 	tcc_nfc_resume((PNFC)tcc_p2v(HwNFC_BASE), &RegRepo.nfc);
+
+#if defined(TCC_PM_TP_DEBUG)	// 7
+	gpio_set_value(TP_GPIO_PORT, 0);
+#endif
 
 #ifdef CONFIG_PM_CONSOLE_NOT_SUSPEND
 	/*--------------------------------------------------------------
@@ -1846,10 +1881,18 @@ static void shutdown_mode(void)
 	tcc_pm_uart_resume(&RegRepo.bkuart);
 #endif
 
+#if defined(TCC_PM_TP_DEBUG)	// 8
+	gpio_set_value(TP_GPIO_PORT, 1);
+#endif
+
 	/*--------------------------------------------------------------
 	 cpu re-init for VFP
 	--------------------------------------------------------------*/
 	__cpu_early_init();
+
+#if defined(TCC_PM_TP_DEBUG)	// 9
+	gpio_set_value(TP_GPIO_PORT, 0);
+#endif
 
 #ifdef CONFIG_CACHE_L2X0
 	/*--------------------------------------------------------------
@@ -1866,6 +1909,10 @@ static void shutdown_mode(void)
 	*(volatile unsigned int *)(L2CACHE_BASE+L2X0_CACHE_SYNC) = 0; //sync
 	while(*(volatile unsigned int *)(L2CACHE_BASE+L2X0_CACHE_SYNC)&1); //wait for sync
 	*(volatile unsigned int *)(L2CACHE_BASE+L2X0_CTRL) = 1; //cache on
+#endif
+
+#if defined(TCC_PM_TP_DEBUG)	// 10
+	gpio_set_value(TP_GPIO_PORT, 1);
 #endif
 }
 /*=========================================================================*/
@@ -2552,12 +2599,20 @@ static int tcc_pm_enter(suspend_state_t state)
 	*(volatile unsigned long *)(SRAM_STACK_ADDR+4) = tcc892x_sd_card_detect();
 #endif
 
+#if defined(TCC_PM_TP_DEBUG)	// Start
+	gpio_set_value(TP_GPIO_PORT, 1);
+#endif
+
 // -------------------------------------------------------------------------
 // enter shutdown mode
 #if defined(CONFIG_SHUTDOWN_MODE)
 	shutdown_mode();
 #elif defined(CONFIG_SLEEP_MODE)
 	sleep_mode();
+#endif
+
+#if defined(TCC_PM_TP_DEBUG)	// End
+	gpio_set_value(TP_GPIO_PORT, 0);
 #endif
 
 // -------------------------------------------------------------------------
@@ -2686,6 +2741,14 @@ static int __init tcc_pm_init(void)
 	register_reboot_notifier(&tcc_reboot_notifier);
 
 	suspend_set_ops(&tcc_pm_ops);
+
+#if defined(TCC_PM_TP_DEBUG)	// Init
+	tcc_gpio_config(TP_GPIO_PORT, GPIO_FN(0)|GPIO_PULLUP);
+	gpio_request(TP_GPIO_PORT, "TestPort");
+
+	gpio_direction_output(TP_GPIO_PORT, 0);
+#endif
+
 	return 0;
 }
 

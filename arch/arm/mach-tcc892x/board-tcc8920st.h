@@ -24,6 +24,8 @@
 #if defined(CONFIG_STB_BOARD_HDB892F)
 // PWR KEY
 #define GPIO_PWR_KEY		TCC_GPE(20)
+#elif defined(CONFIG_STB_BOARD_ISDBT_MODULE)
+// PWR KEY
 #else
 // PWR KEY
 #define GPIO_PWR_KEY		TCC_GPD(14)

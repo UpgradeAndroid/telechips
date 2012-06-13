@@ -4,6 +4,13 @@ config MALI_GPU
 	---help---
 	  Device driver for ARM Mali-200 and Mali-400 GPUs.
 
+config GPU_BUS_SCALING
+	bool "Use GPU bus scaling"
+	default n
+	depends on MALI_GPU
+	---help---
+	   Use GPU bus scaling for Mali GPU
+
 config MALI_OS_MEMORY
 	bool "Use OS memory"
 	default y

@@ -110,8 +110,18 @@ const struct tcc_freq_table_t gtHdmiClockLimitTable = {
 	       0, 386880, 385700,      0, 243040,      0,      0,      0,      0	// Core 1.30V
 };
 
-const struct tcc_freq_table_t gtMaliClockLimitTable = {
-	       0,      0, 300000, 370000,      0,      0,      0,      0,      0	// Core 1.20V
+const struct tcc_freq_table_t gtMaliClockLimitTable[] = {
+#if defined(CONFIG_GPU_BUS_SCALING)
+	{      0,      0, 149190, 184000,      0,      0,      0,      0,      0 },	// Core 1.00V
+	{      0,      0, 181740, 224140,      0,      0,      0,      0,      0 },	// Core 1.05V
+	{      0,      0, 214290, 264290,      0,      0,      0,      0,      0 },	// Core 1.10V
+	{      0,      0, 257140, 317140,      0,      0,      0,      0,      0 },	// Core 1.15V
+	{      0,      0, 300000, 370000,      0,      0,      0,      0,      0 },	// Core 1.20V
+	{      0,      0, 342850, 414400,      0,      0,      0,      0,      0 },	// Core 1.25V
+	{      0,      0, 385700, 458800,      0,      0,      0,      0,      0 },	// Core 1.30V
+#else
+	{      0,      0, 300000, 370000,      0,      0,      0,      0,      0 },	// Core 1.20V
+#endif
 };
 
 const struct tcc_freq_table_t stFBClockLimitTable = {

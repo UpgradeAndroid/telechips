@@ -21,6 +21,14 @@
 #define MEM_SRC_CH  4
 #define MEM_SRC_PLL DIRECTPLL4
 
+#if defined(CONFIG_GPU_BUS_SCALING)
+#define USE_GPU_SCALING
+#endif
+#if defined(USE_GPU_SCALING)
+#define GPU_SRC_CH  3
+#define GPU_SRC_PLL DIRECTPLL3
+#endif
+
 #define MAX_PERI_DIV    4096
 #define MAX_FBUS_DIV    16
 
@@ -209,12 +217,18 @@ void tca_ckc_init(void)
     for (i=0 ; i<MAX_TCC_PLL ; i++) {
         if (i == CPU_SRC_CH) {
             stClockSource[i] = 0;
-            pr_info("    pll_%d:  cpu clcok source\n", i);
+            pr_info("    pll_%d:  cpu clock source\n", i);
         }
         else if (i == MEM_SRC_CH) {
             stClockSource[i] = 0;
-            pr_info("    pll_%d:  memory clcok source\n", i);
+            pr_info("    pll_%d:  memory clock source\n", i);
         }
+#if defined(USE_GPU_SCALING)
+        else if (i == GPU_SRC_CH) {
+            stClockSource[i] = 0;
+            pr_info("    pll_%d:  graphic clock source\n", i);
+        }
+#endif
         else {
             stClockSource[i] = tca_ckc_getpll(i);
             pr_info("    pll_%d:  %d kHz (Fixed)\n", i, stClockSource[i]/10);
@@ -223,12 +237,18 @@ void tca_ckc_init(void)
     for ( ; i<(MAX_TCC_PLL*2) ; i++) {
         if ((i-MAX_TCC_PLL) == CPU_SRC_CH) {
             stClockSource[i] = 0;
-            pr_info("div_pll_%d:  cpu clcok source\n", i-MAX_TCC_PLL);
+            pr_info("div_pll_%d:  cpu clock source\n", i-MAX_TCC_PLL);
         }
         else if ((i-MAX_TCC_PLL) == MEM_SRC_CH) {
             stClockSource[i] = 0;
-            pr_info("div_pll_%d:  memory clcok source\n", i-MAX_TCC_PLL);
+            pr_info("div_pll_%d:  memory clock source\n", i-MAX_TCC_PLL);
         }
+#if defined(USE_GPU_SCALING)
+        else if ((i-MAX_TCC_PLL) == GPU_SRC_CH) {
+            stClockSource[i] = 0;
+            pr_info("div_pll_%d:  graphic clock source\n", i-MAX_TCC_PLL);
+        }
+#endif
         else {
             stClockSource[i] = tca_ckc_getdividpll(i-MAX_TCC_PLL);
             pr_info("div_pll_%d:  %d kHz (Fixed)\n", i-MAX_TCC_PLL, stClockSource[i]/10);
@@ -277,7 +297,7 @@ int tca_ckc_setpll(unsigned int pll, unsigned int ch)
             pPLL = &pIO_CKC_PLL[uCnt];
         }
 
-        pPLLCFG->nREG = ((pPLL->VSEL&0x1) << 30) | ((pPLL->S&0x3) << 24) | (1 << 20) | ((pPLL->M&0x3FF) << 8) | (pPLL->P&0x3F);
+        pPLLCFG->nREG = ((pPLL->VSEL&0x1) << 30) | ((pPLL->S&0x7) << 24) | (1 << 20) | ((pPLL->M&0x3FF) << 8) | (pPLL->P&0x3F);
         pPLLCFG->nREG |= (1 << 31);
         tca_pll_lock_wait(&(pPLLCFG->nREG));
 
@@ -311,45 +331,45 @@ unsigned int tca_ckc_getpll(unsigned int ch)
 
     switch(ch) {
         case 0:
-			iEN = pCKC->PLL0CFG.bREG.EN;
+            iEN = pCKC->PLL0CFG.bREG.EN;
             iP = pCKC->PLL0CFG.bREG.P;
             iM = pCKC->PLL0CFG.bREG.M;
             iS = pCKC->PLL0CFG.bREG.S;
             break;
         case 1:
-			iEN = pCKC->PLL1CFG.bREG.EN;
+            iEN = pCKC->PLL1CFG.bREG.EN;
             iP = pCKC->PLL1CFG.bREG.P;
             iM = pCKC->PLL1CFG.bREG.M;
             iS = pCKC->PLL1CFG.bREG.S;
             break;
         case 2:
-			iEN = pCKC->PLL2CFG.bREG.EN;
+            iEN = pCKC->PLL2CFG.bREG.EN;
             iP = pCKC->PLL2CFG.bREG.P;
             iM = pCKC->PLL2CFG.bREG.M;
             iS = pCKC->PLL2CFG.bREG.S;
             break;
         case 3:
-			iEN = pCKC->PLL3CFG.bREG.EN;
+            iEN = pCKC->PLL3CFG.bREG.EN;
             iP = pCKC->PLL3CFG.bREG.P;
             iM = pCKC->PLL3CFG.bREG.M;
             iS = pCKC->PLL3CFG.bREG.S;
             break;
         case 4:
-			iEN = pCKC->PLL4CFG.bREG.EN;
+            iEN = pCKC->PLL4CFG.bREG.EN;
             iP = pCKC->PLL4CFG.bREG.P;
             iM = pCKC->PLL4CFG.bREG.M;
             iS = pCKC->PLL4CFG.bREG.S;
             break;
         case 5:
-			iEN = pCKC->PLL5CFG.bREG.EN;
+            iEN = pCKC->PLL5CFG.bREG.EN;
             iP = pCKC->PLL5CFG.bREG.P;
             iM = pCKC->PLL5CFG.bREG.M;
             iS = pCKC->PLL5CFG.bREG.S;
             break;
     }
 
-	if (iEN == 0)
-		return 0;
+    if (iEN == 0)
+        return 0;
 
     tPCO = (120000 * iM ) / iP;
     tPLL= ((tPCO) >> (iS));
@@ -367,8 +387,8 @@ unsigned int tca_ckc_getdividpll(unsigned int ch)
     unsigned int tPLL = tca_ckc_getpll(ch);
     unsigned int uiPDIV = 0;
 
-	if (tPLL == 0)
-		return 0;
+    if (tPLL == 0)
+        return 0;
 
     switch(ch) {
         case 0:
@@ -438,7 +458,7 @@ static unsigned int tca_ckc_setcpu(unsigned int freq)
         pPLL = &pIO_CKC_PLL[uCnt];
     }
 
-    pPLLCFG->nREG = ((pPLL->VSEL&0x1) << 30) | ((pPLL->S&0x3) << 24) | (1 << 20) | ((pPLL->M&0x3FF) << 8) | (pPLL->P&0x3F);
+    pPLLCFG->nREG = ((pPLL->VSEL&0x1) << 30) | ((pPLL->S&0x7) << 24) | (1 << 20) | ((pPLL->M&0x3FF) << 8) | (pPLL->P&0x3F);
     pPLLCFG->nREG |= (1 << 31);
     tca_pll_lock_wait(&(pPLLCFG->nREG));
 #endif
@@ -533,6 +553,50 @@ static unsigned int tca_ckc_getcpu(void)
 }
 
 /****************************************************************************************
+* FUNCTION :void tca_ckc_setfpll(unsigned int pll, unsigned int fbus, unsigned int freq)
+* ***************************************************************************************/
+static unsigned int tca_ckc_setfpll(unsigned int pll_ch, unsigned int pll_src, unsigned int fbus_ch, unsigned int freq)
+{
+    unsigned uCnt;
+    sfPLL    *pPLL;
+    volatile PLLCFG_TYPE *pPLLCFG = (PLLCFG_TYPE *)((&pCKC->PLL0CFG)+pll_ch);
+    volatile CLKCTRL_TYPE *pCLKCTRL = (CLKCTRL_TYPE *)((&pCKC->CLKCTRL0)+fbus_ch);
+
+    if (freq < 480000)
+        freq = 480000;
+
+    // 1. temporally change the fbus clock source.(XIN)
+    pCLKCTRL->nREG = (pCLKCTRL->nREG & 0xFFF00000) | 0x00014;
+
+    // 2. change pll(for fbus) clock.
+#if (0)
+    tca_ckc_setpll(freq*2, CPU_SRC_CH);
+#else
+    pPLL = &pIO_CKC_PLL[0];
+    for (uCnt = 0; uCnt < NUM_PLL; uCnt ++, pPLL++) {
+        if (pPLL->uFpll <= freq*2)
+            break;
+    }
+
+    if (uCnt >= NUM_PLL) {
+        uCnt = NUM_PLL - 1;
+        pPLL = &pIO_CKC_PLL[uCnt];
+    }
+
+    pPLLCFG->nREG = ((pPLL->VSEL&0x1) << 30) | ((pPLL->S&0x7) << 24) | (1 << 20) | ((pPLL->M&0x3FF) << 8) | (pPLL->P&0x3F);
+    pPLLCFG->nREG |= (1 << 31);
+    tca_pll_lock_wait(&(pPLLCFG->nREG));
+#endif
+
+    // 3. change the fbus clock source.
+    pCLKCTRL->nREG = (pCLKCTRL->nREG & 0xFFF00000) | 0x00010 | pll_src;
+
+    tca_wait();
+
+    return tca_ckc_getpll(pll_ch)/2;
+}
+
+/****************************************************************************************
 * FUNCTION :void tca_ckc_setfbusctrl(unsigned int clkname,unsigned int isenable,unsigned int freq)
 * DESCRIPTION :
 *   return: real clock rate. ( unit: 100 Hz)
@@ -552,7 +616,11 @@ unsigned int tca_ckc_setfbusctrl(unsigned int clkname, unsigned int isenable, un
         tcc_ddr_set_clock(freq/10);
         return freq;
     }
-
+#if defined(USE_GPU_SCALING)
+    else if (clkname == FBUS_GPU) {
+        return tca_ckc_setfpll(GPU_SRC_CH, GPU_SRC_PLL, FBUS_GPU, freq);
+    }
+#endif
     if (freq < 480000)
         freq = 480000;
 
@@ -949,7 +1017,7 @@ unsigned int tca_ckc_setperi(unsigned int periname,unsigned int isenable, unsign
             stHDMIReg.bREG.SEL = PCHDMI;
             if (isenable)
                 stHDMIReg.bREG.EN = 1;
-	    pPCLKCTRL_XXX->nREG = stHDMIReg.nREG;
+            pPCLKCTRL_XXX->nREG = stHDMIReg.nREG;
         }
         else {
             pPCLKCTRL_XXX->bREG.EN = 0;
@@ -1081,23 +1149,23 @@ unsigned int tca_ckc_getperi(unsigned int periname)
 int tca_ckc_setippwdn( unsigned int sel, unsigned int ispwdn)
 {
 #if (1)
-	static unsigned int isol = 0x0;
-	
-	if( sel == PMU_ISOL_HDMI || sel == PMU_ISOL_LVDS ||
-		sel == PMU_ISOL_VDAC || sel == PMU_ISOL_TSADC ||
-		//Bruce, These IP powers are controlled by PM.
-		//sel == PMU_ISOL_RTC || sel == PMU_ISOL_PLL || sel == PMU_ISOL_OTP || sel == PMU_ISOL_ECID ||
-		sel == PMU_ISOL_USBHP || sel == PMU_ISOL_USBOP )
-	{
-		if (ispwdn)
-			isol |= (1<<sel);
-		else
-			isol &= ~(1<<sel);
+    static unsigned int isol = 0x0;
+    
+    if( sel == PMU_ISOL_HDMI || sel == PMU_ISOL_LVDS ||
+        sel == PMU_ISOL_VDAC || sel == PMU_ISOL_TSADC ||
+        //Bruce, These IP powers are controlled by PM.
+        //sel == PMU_ISOL_RTC || sel == PMU_ISOL_PLL || sel == PMU_ISOL_OTP || sel == PMU_ISOL_ECID ||
+        sel == PMU_ISOL_USBHP || sel == PMU_ISOL_USBOP )
+    {
+        if (ispwdn)
+            isol |= (1<<sel);
+        else
+            isol &= ~(1<<sel);
 
-		pPMU->PMU_ISOL.nREG = isol;
-		return 0;
-	}
-	return -1;
+        pPMU->PMU_ISOL.nREG = isol;
+        return 0;
+    }
+    return -1;
 #else
     unsigned int ctrl_value;
 
@@ -1704,14 +1772,14 @@ int tca_ckc_pclk_enable(unsigned int pclk, unsigned int enable)
             stHDMIReg.bREG.EN = 1;
         else
             stHDMIReg.bREG.EN = 0;
-	pPERI->nREG = stHDMIReg.nREG;
+        pPERI->nREG = stHDMIReg.nREG;
     }
     else if (pclk == PERI_HDMIA) {
         if (enable)
             stHDMIAudReg.bREG.EN = 1;
         else
             stHDMIAudReg.bREG.EN = 0;
-	pPERI->nREG = stHDMIAudReg.nREG;
+        pPERI->nREG = stHDMIAudReg.nREG;
     }
     else {
         if (enable)
@@ -1754,8 +1822,6 @@ EXPORT_SYMBOL(tca_ckc_init);
 EXPORT_SYMBOL(tca_ckc_setpll);
 EXPORT_SYMBOL(tca_ckc_getpll);
 EXPORT_SYMBOL(tca_ckc_getdividpll);
-EXPORT_SYMBOL(tca_ckc_setcpu);
-EXPORT_SYMBOL(tca_ckc_getcpu);
 EXPORT_SYMBOL(tca_ckc_setfbusctrl);
 EXPORT_SYMBOL(tca_ckc_getfbusctrl);
 EXPORT_SYMBOL(tca_ckc_setperi);

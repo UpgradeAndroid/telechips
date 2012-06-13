@@ -38,6 +38,12 @@ void tca_i2c_setgpio(int core, int ch)
 				BITCSET(((PI2CPORTCFG)io_p2v(HwI2C_PORTCFG_BASE))->PCFG0.nREG, 0x0000FF00, 25<<8);
 				tcc_gpio_config(TCC_GPE(14), GPIO_FN6|GPIO_OUTPUT|GPIO_LOW);
 				tcc_gpio_config(TCC_GPE(14), GPIO_FN6|GPIO_OUTPUT|GPIO_LOW);
+				#elif defined(CONFIG_STB_BOARD_ISDBT_MODULE)
+				//I2C[22] - GPIOG[2][3]
+				//i2c_portcfg->PCFG0.bREG.MASTER0 = 22;
+				BITCSET(((PI2CPORTCFG)io_p2v(HwI2C_PORTCFG_BASE))->PCFG0.nREG, 0x000000FF, 22);
+				tcc_gpio_config(TCC_GPG(2), GPIO_FN4|GPIO_OUTPUT|GPIO_LOW);
+				tcc_gpio_config(TCC_GPG(3), GPIO_FN4|GPIO_OUTPUT|GPIO_LOW);
 				#else
 				//I2C[26] - GPIOG[18][19]
 				//i2c_portcfg->PCFG0.bREG.MASTER0 = 26;
