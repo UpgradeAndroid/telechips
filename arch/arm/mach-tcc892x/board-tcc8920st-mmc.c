@@ -50,6 +50,11 @@ typedef enum {
 #define WIFI_RB_SDMMC		RB_SDMMC0CONTROLLER
 #define WIFI_HwINT1_SD		HwINT1_SD0
 
+#define EMMC_SDMMC_PORT		4
+#define EMMC_PERI_SDMMC		PERI_SDMMC0
+#define EMMC_RB_SDMMC		RB_SDMMC0CONTROLLER
+#define EMMC_HwINT1_SD		HwINT1_SD0
+
 typedef enum {
 	#if defined(CONFIG_MMC_TCC_SUPPORT_EMMC)
 	TCC_MMC_TYPE_EMMC,
@@ -227,6 +232,9 @@ static struct mmc_port_config mmc_ports[] = {
 //#define TCC_MMC_SDIO_WIFI_USED
 
 typedef enum {
+	#if defined(CONFIG_MMC_TCC_SUPPORT_EMMC)
+	TCC_MMC_TYPE_EMMC,
+	#endif
 	#if defined(TCC_MMC_SD_CARD_USED)
 	TCC_MMC_TYPE_SD,
 	#endif
@@ -249,7 +257,32 @@ typedef enum {
 #define WIFI_RB_SDMMC		RB_SDMMC2CONTROLLER
 #define WIFI_HwINT1_SD		HwINT1_SD2
 
+#define EMMC_SDMMC_PORT		5
+#define EMMC_PERI_SDMMC		PERI_SDMMC1
+#define EMMC_RB_SDMMC		RB_SDMMC1CONTROLLER
+#define EMMC_HwINT1_SD		HwINT1_SD1
+
 static struct mmc_port_config mmc_ports[] = {
+	#if defined(CONFIG_MMC_TCC_SUPPORT_EMMC)
+		[TCC_MMC_TYPE_EMMC] = {
+		.data0	= TCC_GPF(19),
+		.data1	= TCC_GPF(20),
+		.data2	= TCC_GPF(21),
+		.data3	= TCC_GPF(22),
+		.data4	= TCC_MMC_PORT_NULL,
+		.data5	= TCC_MMC_PORT_NULL,
+		.data6	= TCC_MMC_PORT_NULL,
+		.data7	= TCC_MMC_PORT_NULL,
+		.cmd	= TCC_GPF(18),
+		.clk	= TCC_GPF(17),
+		.func	= GPIO_FN(2),
+		.width	= TCC_MMC_BUS_WIDTH_4,
+
+		.cd		= TCC_MMC_PORT_NULL,
+		.pwr	= TCC_MMC_PORT_NULL,
+		},
+	#endif
+
 	#if defined(TCC_MMC_SD_CARD_USED)
 	[TCC_MMC_TYPE_SD] = {
 		.data0	= TCC_GPF(19),
@@ -465,7 +498,7 @@ int tcc892x_sd_card_detect(void)
 struct tcc_mmc_platform_data tcc8920_mmc_platform_data[] = {
 	#if defined(CONFIG_MMC_TCC_SUPPORT_EMMC)		// [0]:eMMC,   [1]:SD,   [2]:WiFi
 	[TCC_MMC_TYPE_EMMC] = {
-		.slot	= 4,
+		.slot	= EMMC_SDMMC_PORT,
 		.caps	= MMC_CAP_SDIO_IRQ | MMC_CAP_4_BIT_DATA
 			/*| MMC_CAP_8_BIT_DATA*/
 			/*| MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED*/,		// SD0 Slot
@@ -482,9 +515,9 @@ struct tcc_mmc_platform_data tcc8920_mmc_platform_data[] = {
 
 		.cd_int_num = -1,
 		.cd_ext_irq = -1,
-		.peri_name = PERI_SDMMC0,
-		.io_name = RB_SDMMC0CONTROLLER,
-		.pic = HwINT1_SD0,
+		.peri_name = EMMC_PERI_SDMMC,
+		.io_name = EMMC_RB_SDMMC,
+		.pic = EMMC_HwINT1_SD,
 	},
 	#endif
 	#if defined(TCC_MMC_SD_CARD_USED)
