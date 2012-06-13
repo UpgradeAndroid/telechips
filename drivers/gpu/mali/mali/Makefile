@@ -35,7 +35,11 @@ USING_MALI_PMU ?= 0
 USING_PMM ?= 1
 USING_OS_MEMORY ?= 1
 
+ifeq ($(CONFIG_GPU_BUS_SCALING),y)
+USING_GPU_UTILIZATION ?= 1
+else
 USING_GPU_UTILIZATION ?= 0
+endif
 USING_MALI_RUN_TIME_PM ?= 1
 USING_MALI_PMM_TESTSUITE ?= 0
 OS_MEMORY_KERNEL_BUFFER_SIZE_IN_MB ?= 6
@@ -193,6 +197,11 @@ endif
 ifeq ($(USING_GPU_UTILIZATION),1)
 SRC += \
 	common/mali_kernel_utilization.c
+endif
+
+ifeq ($(CONFIG_GPU_BUS_SCALING),y)
+SRC += \
+	platform/$(TARGET_PLATFORM)/mali_platform_dvfs.c
 endif
 
 ifneq ($(call submodule_enabled, $(src), MALI400PP),0)
