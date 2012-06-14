@@ -21,10 +21,55 @@
 #include <linux/cpufreq.h>
 
 extern struct tcc_freq_table_t gtMaliClockLimitTable[];
-#define MALI_DVFS_STEPS 7 //ARRAY_SIZE(gtMaliClockLimitTable)
 
-#define GPU_UP_THRESHOLD	((int)((85*255)/100))
-#define GPU_DOWN_THRESHOLD	((int)((75*255)/100))
+#define GPU_THRESHOLD(x)	((unsigned int)((x*255)/100))
+
+struct tcc_gpu_dvfs_table_t {
+	unsigned int gpu_freq;
+	unsigned int up_threshold;
+	unsigned int down_threshold;
+};
+
+static struct tcc_gpu_dvfs_table_t gpu_dvfs_table[] = {
+#if (1)	// normal
+	{ 184000, 50, 30 },	// Core 1.00V
+	{ 224140, 60, 40 },	// Core 1.05V
+	{ 264290, 70, 50 },	// Core 1.10V
+	{ 317140, 80, 60 },	// Core 1.15V
+	{ 370000, 85, 70 },	// Core 1.20V
+	{ 414400, 90, 80 },	// Core 1.25V
+	{ 458800, 95, 85 },	// Core 1.30V
+#else
+#if (1)	// for reducing current
+	#if (0)
+	{ 184000, 85, 75 },	// Core 1.00V
+	{ 224140, 85, 75 },	// Core 1.05V
+	{ 264290, 85, 75 },	// Core 1.10V
+	{ 317140, 85, 75 },	// Core 1.15V
+	{ 370000, 90, 80 },	// Core 1.20V
+	{ 414400, 95, 85 },	// Core 1.25V
+	{ 458800, 95, 90 },	// Core 1.30V
+	#else
+	{ 184000, 95, 85 },	// Core 1.00V
+	{ 224140, 95, 85 },	// Core 1.05V
+	{ 264290, 95, 85 },	// Core 1.10V
+	{ 317140, 95, 85 },	// Core 1.15V
+	{ 370000, 95, 85 },	// Core 1.20V
+	{ 414400, 95, 85 },	// Core 1.25V
+	{ 458800, 95, 90 },	// Core 1.30V
+	#endif
+#else	// for performance
+	{ 184000, 60, 40 },	// Core 1.00V
+	{ 224140, 60, 40 },	// Core 1.05V
+	{ 264290, 60, 40 },	// Core 1.10V
+	{ 317140, 60, 40 },	// Core 1.15V
+	{ 370000, 60, 40 },	// Core 1.20V
+	{ 414400, 60, 40 },	// Core 1.25V
+	{ 458800, 60, 40 },	// Core 1.30V
+#endif
+#endif
+};
+#define MALI_DVFS_STEPS ARRAY_SIZE(gpu_dvfs_table)
 
 static struct workqueue_struct *mali_dvfs_wq = 0;
 static unsigned int maliDvfsCurrentStep;
@@ -33,22 +78,22 @@ static u32 mali_dvfs_utilization = 255;
 static void mali_dvfs_work_handler(struct work_struct *w);
 static DECLARE_WORK(mali_dvfs_work, mali_dvfs_work_handler);
 
-__inline static unsigned int decideNextStatus(unsigned int utilization)
+__inline static unsigned int decideNextStatus(unsigned int utilization, unsigned int currStep)
 {
-    unsigned int level;
-	level = maliDvfsCurrentStep;
+	if (currStep >= MALI_DVFS_STEPS)
+		return currStep;
 
-    if(utilization > GPU_UP_THRESHOLD) {
-	    level++;
-		if (level >= (MALI_DVFS_STEPS-1))
-			level = MALI_DVFS_STEPS-1;
+    if(utilization > GPU_THRESHOLD(gpu_dvfs_table[currStep].up_threshold)) {
+	    currStep++;
+		if (currStep >= (MALI_DVFS_STEPS-1))
+			currStep = MALI_DVFS_STEPS-1;
 	}
-    else if(utilization < GPU_DOWN_THRESHOLD) {
-		if (level > 0)
-			level--;
+    else if(utilization < GPU_THRESHOLD(gpu_dvfs_table[currStep].down_threshold)) {
+		if (currStep > 0)
+			currStep--;
 	}
 
-	return level;
+	return currStep;
 }
 
 static void mali_dvfs_work_handler(struct work_struct *w)
@@ -59,7 +104,7 @@ static void mali_dvfs_work_handler(struct work_struct *w)
 
 	/*decide next step*/
 	currStep = maliDvfsCurrentStep;
-	nextStep = decideNextStatus(mali_dvfs_utilization);
+	nextStep = decideNextStatus(mali_dvfs_utilization, currStep);
 
 	/*if next status is same with current status, don't change anything*/
 	if(currStep != nextStep) {
