@@ -15,6 +15,7 @@
 #include "devices.h"
 #include "board-tcc8800st.h"
 
+#if defined(CONFIG_MMC_TCC_SDHC)
 typedef enum {
 	TCC_MMC_TYPE_SD,
 #if defined(CONFIG_MMC_TCC_PORT7)
@@ -277,7 +278,6 @@ static int __init tcc8800st_init_mmc(void)
 
 	printk("%s\n",__func__);
 
-#if defined(CONFIG_MMC_TCC_SDHC)
 #if defined(CONFIG_MMC_TCC_SDHC0)
 	tcc_sdhc0_device.dev.platform_data = &tcc8800st_mmc_platform_data[0];
 	platform_device_register(&tcc_sdhc0_device);
@@ -286,8 +286,9 @@ static int __init tcc8800st_init_mmc(void)
 	tcc_sdhc1_device.dev.platform_data = &tcc8800st_mmc_platform_data[1];
 	platform_device_register(&tcc_sdhc1_device);
 #endif
-#endif
 
 	return 0;
 }
 device_initcall(tcc8800st_init_mmc);
+#endif
+

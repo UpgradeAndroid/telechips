@@ -304,7 +304,7 @@ config PM_CONSOLE_NOT_SUSPEND
 config PM_VERBOSE_DPM_SUSPEND
 	bool "Verbose DPM suspend/resume debugging"
 	depends on PM_CONSOLE_NOT_SUSPEND
-	default y
+	default n
 	---help---
 	This option enables verbose messages from the dpm suspend/resume code.
 

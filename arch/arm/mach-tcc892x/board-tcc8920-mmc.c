@@ -17,6 +17,7 @@
 #include "devices.h"
 #include "board-tcc8920.h"
 
+#if defined(CONFIG_MMC_TCC_SDHC)
 extern void tcc_init_sdhc_devices(void);
 
 struct tcc_mmc_platform_data tcc8920_mmc_platform_data[];
@@ -118,7 +119,7 @@ static struct mmc_port_config mmc_ports[] = {
 		.strength = GPIO_CD(1),
 
 		.cd	= TCC_MMC_PORT_NULL,	//TCC_GPB(14),
-		.pwr	= GPIO_SD0_ON,
+		.pwr	= TCC_MMC_PORT_NULL,	// do not used!
 	},
 	#endif
 	[TCC_MMC_TYPE_SD] = {
@@ -137,7 +138,7 @@ static struct mmc_port_config mmc_ports[] = {
 		.strength = GPIO_CD(1),
 
 		.cd	= TCC_GPB(12),
-		.pwr	= TCC_MMC_PORT_NULL,
+		.pwr	= TCC_MMC_PORT_NULL,	// do not used!
 	},
 	[TCC_MMC_TYPE_WIFI] = {
 		.data0	= TCC_GPB(20),
@@ -155,7 +156,7 @@ static struct mmc_port_config mmc_ports[] = {
 		.strength = GPIO_CD(1),
 
 		.cd	= TCC_GPB(13),
-		.pwr	= GPIO_SD1_ON,
+		.pwr	= GPIO_SD1_ON,	// for Power Control
 	},
 };
 #endif	//#if defined(CONFIG_MMC_TCC_SD30_TEST)
@@ -164,51 +165,55 @@ static int tccUsedSDportNum = TCC_MMC_TYPE_MAX;
 
 int tcc8920_mmc_init(struct device *dev, int id)
 {
+	struct mmc_port_config *mmc_port;
+	int mmc_gpio_config;
+
 	BUG_ON(id >= tccUsedSDportNum);
 
-	if(mmc_ports[id].pwr != TCC_MMC_PORT_NULL)
-		gpio_request(mmc_ports[id].pwr, "sd_power");
+	mmc_port = &mmc_ports[id];
 
-	#if defined(TCC_MMC_SDIO_WIFI_USED)
-	if(id == TCC_MMC_TYPE_WIFI)
+	// 1. Power Up
+	#if defined(CONFIG_MMC_TCC_SUPPORT_EMMC)
+	if(id == TCC_MMC_TYPE_EMMC)
 	{
-		gpio_request(GPIO_SD1_ON, "wifi_pre_power");
-		gpio_direction_output(GPIO_SD1_ON, 0);
-		msleep(100);
-		gpio_direction_output(GPIO_SD1_ON, 1);
-
-		#if 0
-		gpio_request(TCC_GPG(11),"wifi_rst");
-
-		gpio_direction_output(TCC_GPG(11), 0);
-		msleep(100);
-		gpio_direction_output(TCC_GPG(11), 1);
-		#endif
+		gpio_request(GPIO_SD0_ON, "eMMC_Power");
+		gpio_direction_output(GPIO_SD0_ON, 1);
 	}
 	#endif
 
-	tcc_gpio_config(mmc_ports[id].data0, mmc_ports[id].func | mmc_ports[id].strength);
-	tcc_gpio_config(mmc_ports[id].data1, mmc_ports[id].func | mmc_ports[id].strength);
-	tcc_gpio_config(mmc_ports[id].data2, mmc_ports[id].func | mmc_ports[id].strength);
-	tcc_gpio_config(mmc_ports[id].data3, mmc_ports[id].func | mmc_ports[id].strength);
-
-	if(mmc_ports[id].width == TCC_MMC_BUS_WIDTH_8)
+	if(mmc_port->pwr != TCC_MMC_PORT_NULL)
 	{
-		tcc_gpio_config(mmc_ports[id].data4, mmc_ports[id].func | mmc_ports[id].strength);
-		tcc_gpio_config(mmc_ports[id].data5, mmc_ports[id].func | mmc_ports[id].strength);
-		tcc_gpio_config(mmc_ports[id].data6, mmc_ports[id].func | mmc_ports[id].strength);
-		tcc_gpio_config(mmc_ports[id].data7, mmc_ports[id].func | mmc_ports[id].strength);
+		gpio_request(mmc_port->pwr, "WiFi_Power");
+		gpio_direction_output(mmc_port->pwr, 0);
+		msleep(100);
+		gpio_direction_output(mmc_port->pwr, 1);
 	}
 
-	tcc_gpio_config(mmc_ports[id].cmd, mmc_ports[id].func | mmc_ports[id].strength);
-	tcc_gpio_config(mmc_ports[id].clk, mmc_ports[id].func | GPIO_CD(3));
+	// 2. GPIO Function
+	mmc_gpio_config = mmc_port->func | mmc_port->strength;
+	tcc_gpio_config(mmc_port->data0, mmc_gpio_config);
+	tcc_gpio_config(mmc_port->data1, mmc_gpio_config);
+	tcc_gpio_config(mmc_port->data2, mmc_gpio_config);
+	tcc_gpio_config(mmc_port->data3, mmc_gpio_config);
 
-	if(mmc_ports[id].cd != TCC_MMC_PORT_NULL)
+	if(mmc_port->width == TCC_MMC_BUS_WIDTH_8)
 	{
-		tcc_gpio_config(mmc_ports[id].cd, GPIO_FN(0)|GPIO_PULL_DISABLE);
-		gpio_request(mmc_ports[id].cd, "sd_cd");
+		tcc_gpio_config(mmc_port->data4, mmc_gpio_config);
+		tcc_gpio_config(mmc_port->data5, mmc_gpio_config);
+		tcc_gpio_config(mmc_port->data6, mmc_gpio_config);
+		tcc_gpio_config(mmc_port->data7, mmc_gpio_config);
+	}
 
-		gpio_direction_input(mmc_ports[id].cd);
+	tcc_gpio_config(mmc_port->cmd, mmc_gpio_config);
+	tcc_gpio_config(mmc_port->clk, mmc_port->func | GPIO_CD(3));
+
+	// 3. Card Detect
+	if(mmc_port->cd != TCC_MMC_PORT_NULL)
+	{
+		tcc_gpio_config(mmc_port->cd, GPIO_FN(0)|GPIO_PULL_DISABLE);
+		gpio_request(mmc_port->cd, "sd_cd");
+
+		gpio_direction_input(mmc_port->cd);
 	}
 
 	return 0;
@@ -226,22 +231,16 @@ int tcc8920_mmc_card_detect(struct device *dev, int id)
 
 int tcc8920_mmc_suspend(struct device *dev, int id)
 {
-	#if defined(TCC_MMC_SDIO_WIFI_USED)
-	if(id == TCC_MMC_TYPE_WIFI) {
-		gpio_direction_output(GPIO_SD1_ON, 0);
-	}
-	#endif
+	if(mmc_ports[id].pwr != TCC_MMC_PORT_NULL)
+		gpio_direction_output(mmc_ports[id].pwr, 0);
 
 	return 0;
 }
 
 int tcc8920_mmc_resume(struct device *dev, int id)
 {
-	#if defined(TCC_MMC_SDIO_WIFI_USED)
-	if (id == TCC_MMC_TYPE_WIFI) {
-		gpio_direction_output(GPIO_SD1_ON, 1);
-	}
-	#endif
+	if(mmc_ports[id].pwr != TCC_MMC_PORT_NULL)
+		gpio_direction_output(mmc_ports[id].pwr, 1);
 
  	return 0;
 }
@@ -562,6 +561,7 @@ static void tcc8920_mmc_port_setup(void)
 
 		// for SDHC - WiFi
 		mmc_ports[TCC_MMC_TYPE_SD].cd = TCC_GPE(0);
+		mmc_ports[TCC_MMC_TYPE_SD].pwr = GPIO_SD1_ON;
 
 		tcc8920_mmc_platform_data[TCC_MMC_TYPE_SD].f_max	= 24000000,	/* support highspeed mode */
 		tcc8920_mmc_platform_data[TCC_MMC_TYPE_SD].caps &= ~(MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED);
@@ -625,7 +625,6 @@ static int __init tcc8920_init_mmc(void)
 
 	printk("%s(%d)\n",__func__, tccUsedSDportNum);
 
-#if defined(CONFIG_MMC_TCC_SDHC)
 #if defined(CONFIG_MMC_TCC_SDHC0)
 	if (tccUsedSDportNum > 0)
 	{
@@ -654,8 +653,9 @@ static int __init tcc8920_init_mmc(void)
 		platform_device_register(&tcc_sdhc3_device);
 	}
 #endif
-#endif
 
 	return 0;
 }
 device_initcall(tcc8920_init_mmc);
+#endif
+
