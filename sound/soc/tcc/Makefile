@@ -1,6 +1,6 @@
 # TCC Platform Support
-snd-soc-tcc-pcm-objs := tcc-pcm.o tcc/tca_tcchwcontrol.o
-snd-soc-tcc-i2s-objs := tcc-i2s.o
+snd-soc-tcc-pcm-objs := tcc-pcm.o tcc/tca_tcchwcontrol.o tcc-pcm-ch1.o
+snd-soc-tcc-i2s-objs := tcc-i2s.o tcc-i2s-ch1.o
 snd-soc-tcc-loopback-objs := tcc-loopback.o
 
 obj-$(CONFIG_SND_SOC_TCC) += snd-soc-tcc-pcm.o

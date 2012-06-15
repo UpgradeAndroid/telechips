@@ -380,10 +380,10 @@ static struct snd_soc_dai_link tcc_dai[] = {
     {
         .name = "TCC",
         .stream_name = "IEC958",
-        .platform_name  = "tcc-pcm-audio",
-        .cpu_dai_name   = "tcc-dai-spdif",
+        .platform_name  = "tcc-pcm-audio-ch1",	//Planet 20120615 Audio Driver Improvement
+        .cpu_dai_name   = "tcc-dai-spdif-ch1",	//Planet 20120615 Audio Driver Improvement
 
-        .codec_name     = "tcc-iec958",
+        .codec_name     = "tcc-iec958-ch1",		//Planet 20120615 Audio Driver Improvement
         .codec_dai_name = "IEC958",
         .init = &tcc_iec958_dummy_init,
         .ops = &tcc_ops,

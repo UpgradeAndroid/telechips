@@ -46,8 +46,8 @@
 #include <mach/tca_ckc.h>
 #include <mach/tca_i2s.h>
 
-#include "tcc-pcm.h"
-#include "tcc-i2s.h"
+#include "tcc-pcm-ch1.h"
+#include "tcc-i2s-ch1.h"
 #include "tcc/tca_tcchwcontrol.h"
 
 
@@ -65,7 +65,7 @@
 
 #undef alsa_dbg
 #if 0
-#define alsa_dbg(f, a...)  printk("== alsa-debug I2S CH0 == " f, ##a)
+#define alsa_dbg(f, a...)  printk("== alsa-debug I2S CH1 == " f, ##a)
 #else
 #define alsa_dbg(f, a...)  
 #endif
@@ -84,16 +84,16 @@ static ADMADAI     gADMA_DAI;
 static ADMASPDIFTX gADMA_SPDIFTX;
 
 #if defined(CONFIG_ARCH_TCC892X)
-struct clk *tcc_adma0_clk;
-struct clk *tcc_dai_clk;
-struct clk *tcc_adma1_clk;
-struct clk *tcc_spdif_clk;
-struct clk *pll3_clk;
+struct clk *tcc_adma0_clk_ch1;
+struct clk *tcc_adma1_clk_ch1;
+struct clk *tcc_dai_clk_ch1;
+struct clk *tcc_spdif_clk_ch1;
+struct clk *pll3_clk_ch1;
 #else
-struct clk *tcc_adma_clk;
-struct clk *tcc_dai_clk;
-struct clk *tcc_spdif_clk;
-struct clk *pll3_clk;
+struct clk *tcc_adma_clk_ch1;
+struct clk *tcc_dai_clk_ch1;
+struct clk *tcc_spdif_clk_ch1;
+struct clk *pll3_clk_ch1;
 #endif
 
 static struct tcc_pcm_dma_params tcc_i2s_pcm_stereo_out = {
@@ -114,7 +114,7 @@ static struct tcc_pcm_dma_params tcc_i2s_pcm_spdif_out = {
     .channel    = 0,
 };
 
-static unsigned int io_ckc_get_dai_clock(unsigned int freq)
+static unsigned int io_ckc_get_dai_clock_ch1(unsigned int freq)
 {
     switch (freq) {
         case 44100: 
@@ -135,7 +135,7 @@ static unsigned int io_ckc_get_dai_clock(unsigned int freq)
 /************************************************************************
  * export Function
  ************************************************************************/
-void tcc_i2s_set_clock(unsigned int ClockRate)
+void tcc_i2s_set_clock_ch1(unsigned int ClockRate)
 {
     unsigned int clk_rate;
 #if defined(CONFIG_MEM_CLK_SYNC_MODE)
@@ -143,10 +143,10 @@ void tcc_i2s_set_clock(unsigned int ClockRate)
 	volatile PCKC pCKC = (volatile PCKC)tcc_p2v(HwCKC_BASE);
 #endif
 
-    if(tcc_dai_clk == NULL)
+    if(tcc_dai_clk_ch1 == NULL)
         return ;
 
-    clk_rate = io_ckc_get_dai_clock(ClockRate);
+    clk_rate = io_ckc_get_dai_clock_ch1(ClockRate);
 
 #if defined(CONFIG_MEM_CLK_SYNC_MODE)
 	if ((pCKC->MBUSCTRL & 0x1) == 0) {
@@ -165,37 +165,37 @@ void tcc_i2s_set_clock(unsigned int ClockRate)
 		else
 			pll3_rate = 336*1000*1000;
 
-		if (tcc_spdif_clk)
-			clk_set_rate(tcc_spdif_clk, 1000000);
+		if (tcc_spdif_clk_ch1)
+			clk_set_rate(tcc_spdif_clk_ch1, 1000000);
 
-		clk_set_rate(pll3_clk, pll3_rate);
+		clk_set_rate(pll3_clk_ch1, pll3_rate);
 	}
 #endif
     
 #if defined(CONFIG_MEM_CLK_SYNC_MODE)
-    clk_set_rate(tcc_dai_clk, 0);
+    clk_set_rate(tcc_dai_clk_ch1, 0);
 #endif
-    clk_set_rate(tcc_dai_clk, clk_rate);
+    clk_set_rate(tcc_dai_clk_ch1, clk_rate);
 
     alsa_dbg("tcc_i2s_set_clock()   rate[%d] clk_rate[%d]\n", ClockRate, clk_rate);
 
 #if defined(CONFIG_ARCH_TCC93XX)
-	if(tcc_spdif_clk)
+	if(tcc_spdif_clk_ch1)
 	{
-	    clk_rate = io_ckc_get_dai_clock(ClockRate) * 2;   /* set 512fs for HDMI */
-	    clk_set_rate(tcc_spdif_clk, clk_rate);
+	    clk_rate = io_ckc_get_dai_clock_ch1(ClockRate) * 2;   /* set 512fs for HDMI */
+	    clk_set_rate(tcc_spdif_clk_ch1, clk_rate);
 	}
 #endif
 
 }
-EXPORT_SYMBOL(tcc_i2s_set_clock);
+EXPORT_SYMBOL(tcc_i2s_set_clock_ch1);
 
-void tcc_spdif_set_clock(unsigned int clock_rate)
+void tcc_spdif_set_clock_ch1(unsigned int clock_rate)
 {
     unsigned int clk_rate;
     unsigned tmpCfg, tmpStatus;	
 #if defined(CONFIG_ARCH_TCC892X)
-    volatile ADMASPDIFTX *p_adma_spdif_tx_base = (volatile ADMASPDIFTX *)tcc_p2v(BASE_ADDR_SPDIFTX0);
+    volatile ADMASPDIFTX *p_adma_spdif_tx_base = (volatile ADMASPDIFTX *)tcc_p2v(BASE_ADDR_SPDIFTX1);
 #else
     volatile ADMASPDIFTX *p_adma_spdif_tx_base = (volatile ADMASPDIFTX *)tcc_p2v(BASE_ADDR_SPDIFTX);
 #endif
@@ -207,7 +207,7 @@ void tcc_spdif_set_clock(unsigned int clock_rate)
     alsa_dbg("[%s], clock_rate[%u]\n", __func__, clock_rate);
 
     //clk_rate = ((clock_rate * 256 * 2) / 100);
-    clk_rate = io_ckc_get_dai_clock(clock_rate) * 2;   /* set 512fs for HDMI */
+    clk_rate = io_ckc_get_dai_clock_ch1(clock_rate) * 2;   /* set 512fs for HDMI */
 
 #if defined(CONFIG_MEM_CLK_SYNC_MODE)
 	if ((pCKC->MBUSCTRL & 0x1) == 0) {
@@ -224,12 +224,12 @@ void tcc_spdif_set_clock(unsigned int clock_rate)
 		else
 			pll3_rate = 429*1000*1000;
 
-		clk_set_rate(tcc_spdif_clk, 1000000);
-		clk_set_rate(pll3_clk, pll3_rate);
+		clk_set_rate(tcc_spdif_clk_ch1, 1000000);
+		clk_set_rate(pll3_clk_ch1, pll3_rate);
 	}
 #endif
 
-    clk_set_rate(tcc_spdif_clk, clk_rate);
+    clk_set_rate(tcc_spdif_clk_ch1, clk_rate);
 
     tmpCfg = p_adma_spdif_tx_base->TxConfig;
     tmpStatus = p_adma_spdif_tx_base->TxChStat;
@@ -248,7 +248,7 @@ void tcc_spdif_set_clock(unsigned int clock_rate)
         p_adma_spdif_tx_base->TxChStat = ((tmpStatus & 0xFFFFFF3F) | (3 << 6));
     }
 }
-EXPORT_SYMBOL(tcc_spdif_set_clock);
+EXPORT_SYMBOL(tcc_spdif_set_clock_ch1);
 
 
 
@@ -259,18 +259,18 @@ EXPORT_SYMBOL(tcc_spdif_set_clock);
 static int tcc_i2s_init(void)
 {
 #if defined(CONFIG_ARCH_TCC892X)
-	volatile PADMADAI pADMA_DAI = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI0);
+	volatile PADMADAI pADMA_DAI = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI1);	// Planet 20120531
 
     alsa_dbg(" %s \n", __func__);
 
     /* clock enable */
-    tcc_dai_clk = clk_get(NULL, CLK_NAME_DAI0);
-    if(IS_ERR(tcc_dai_clk))     return (-EINVAL);
-    clk_enable(tcc_dai_clk);
+    tcc_dai_clk_ch1 = clk_get(NULL, CLK_NAME_DAI1);	// Planet 20120531
+    if(IS_ERR(tcc_dai_clk_ch1))     return (-EINVAL);
+    clk_enable(tcc_dai_clk_ch1);
 
-    tcc_adma0_clk = clk_get(NULL, CLK_NAME_ADMA0);
-    if(IS_ERR(tcc_adma0_clk))    return (-EINVAL);
-    clk_enable(tcc_adma0_clk);
+    tcc_adma0_clk_ch1 = clk_get(NULL, CLK_NAME_ADMA1);	// Planet 20120531
+    if(IS_ERR(tcc_adma0_clk_ch1))    return (-EINVAL);
+    clk_enable(tcc_adma0_clk_ch1);
 #else
 	volatile PADMADAI pADMA_DAI = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI);
 	volatile PPIC pPIC = (volatile PPIC)tcc_p2v(BASE_ADDR_PIC);
@@ -278,19 +278,19 @@ static int tcc_i2s_init(void)
     alsa_dbg(" %s \n", __func__);
 
     /* clock enable */
-    tcc_dai_clk = clk_get(NULL, CLK_NAME_DAI);
-    if(IS_ERR(tcc_dai_clk))     return (-EINVAL);
-    clk_enable(tcc_dai_clk);
+    tcc_dai_clk_ch1 = clk_get(NULL, CLK_NAME_DAI);
+    if(IS_ERR(tcc_dai_clk_ch1))     return (-EINVAL);
+    clk_enable(tcc_dai_clk_ch1);
 
-    tcc_adma_clk = clk_get(NULL, CLK_NAME_ADMA);
-    if(IS_ERR(tcc_adma_clk))    return (-EINVAL);
-    clk_enable(tcc_adma_clk);
+    tcc_adma_clk_ch1 = clk_get(NULL, CLK_NAME_ADMA);
+    if(IS_ERR(tcc_adma_clk_ch1))    return (-EINVAL);
+    clk_enable(tcc_adma_clk_ch1);
 #endif
 
 #if defined(CONFIG_MEM_CLK_SYNC_MODE)
-	if (pll3_clk == NULL) {
-		pll3_clk = clk_get(NULL, "pll3");
-		if (IS_ERR(pll3_clk))       return (-EINVAL);
+	if (pll3_clk_ch1 == NULL) {
+		pll3_clk_ch1 = clk_get(NULL, "pll3");
+		if (IS_ERR(pll3_clk_ch1))       return (-EINVAL);
 	}
 #endif
 
@@ -311,24 +311,24 @@ static int tcc_spdif_init(void)
 
 #if defined(CONFIG_ARCH_TCC892X)
     /* clock enable */
-    tcc_spdif_clk = clk_get(NULL, CLK_NAME_SPDIF0);
-    if(IS_ERR(tcc_spdif_clk))   return (-EINVAL);
-    clk_enable(tcc_spdif_clk);
+    tcc_spdif_clk_ch1 = clk_get(NULL, CLK_NAME_SPDIF1);
+    if(IS_ERR(tcc_spdif_clk_ch1))   return (-EINVAL);
+    clk_enable(tcc_spdif_clk_ch1);
 
-    tcc_adma1_clk = clk_get(NULL, CLK_NAME_ADMA0);
-    if(IS_ERR(tcc_adma1_clk))    return (-EINVAL);
-    clk_enable(tcc_adma1_clk);
+    tcc_adma1_clk_ch1 = clk_get(NULL, CLK_NAME_ADMA1);
+    if(IS_ERR(tcc_adma1_clk_ch1))    return (-EINVAL);
+    clk_enable(tcc_adma1_clk_ch1);
 #else
     /* clock enable */
-    tcc_spdif_clk = clk_get(NULL, CLK_NAME_SPDIF);
-    if(IS_ERR(tcc_spdif_clk))   return (-EINVAL);
-    clk_enable(tcc_spdif_clk);
+    tcc_spdif_clk_ch1 = clk_get(NULL, CLK_NAME_SPDIF);
+    if(IS_ERR(tcc_spdif_clk_ch1))   return (-EINVAL);
+    clk_enable(tcc_spdif_clk_ch1);
 #endif
 
 #if defined(CONFIG_MEM_CLK_SYNC_MODE)
-	if (pll3_clk == NULL) {
-		pll3_clk = clk_get(NULL, "pll3");
-		if (IS_ERR(pll3_clk))       return (-EINVAL);
+	if (pll3_clk_ch1 == NULL) {
+		pll3_clk_ch1 = clk_get(NULL, "pll3");
+		if (IS_ERR(pll3_clk_ch1))       return (-EINVAL);
 	}
 #endif
 
@@ -407,7 +407,7 @@ static int tcc_i2s_hw_params(struct snd_pcm_substream *substream,
         snd_soc_dai_set_dma_data(cpu_dai, substream, dma_data);
 
         // Set DAI clock
-        tcc_i2s_set_clock(params_rate(params));
+        tcc_i2s_set_clock_ch1(params_rate(params));
     }
 
 alsa_dbg("=====================\n");
@@ -430,7 +430,7 @@ static int tcc_spdif_hw_params(struct snd_pcm_substream *substream,
         cpu_dai->playback_dma_data = &tcc_i2s_pcm_spdif_out;
 
         // Set SPDIF clock
-        tcc_spdif_set_clock(params_rate(params));
+        tcc_spdif_set_clock_ch1(params_rate(params));
     }
     return 0;
 }
@@ -471,8 +471,8 @@ static void tcc_i2s_shutdown(struct snd_pcm_substream *substream, struct snd_soc
 static int tcc_i2s_suspend(struct snd_soc_dai *dai)
 {
 #if defined(CONFIG_ARCH_TCC892X)
-	volatile PADMADAI     pADMA_DAI     = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI0);
-	volatile PADMASPDIFTX pADMA_SPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX0);
+	volatile PADMADAI     pADMA_DAI     = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI1);	// Planet 20120531
+	volatile PADMASPDIFTX pADMA_SPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX1);
 #else
 	volatile PADMADAI     pADMA_DAI     = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI);
 	volatile PADMASPDIFTX pADMA_SPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX);
@@ -485,15 +485,15 @@ static int tcc_i2s_suspend(struct snd_soc_dai *dai)
         gADMA_DAI.MCCR0  = pADMA_DAI->MCCR0;
         gADMA_DAI.MCCR1  = pADMA_DAI->MCCR1;
 
-        if(tcc_dai_clk)
-            clk_disable(tcc_dai_clk);
+        if(tcc_dai_clk_ch1)
+            clk_disable(tcc_dai_clk_ch1);
 
 #if defined(CONFIG_ARCH_TCC892X)
-        if(tcc_adma0_clk)
-            clk_disable(tcc_adma0_clk);
+        if(tcc_adma0_clk_ch1)
+            clk_disable(tcc_adma0_clk_ch1);
 #else
-        if(tcc_adma_clk)
-            clk_disable(tcc_adma_clk);
+        if(tcc_adma_clk_ch1)
+            clk_disable(tcc_adma_clk_ch1);
 #endif
     }
     else {              // SPDIFTX
@@ -503,11 +503,11 @@ static int tcc_i2s_suspend(struct snd_soc_dai *dai)
 //        gADMA_SPDIFTX.TxIntStat = pADMA_SPDIFTX->TxIntStat;
         gADMA_SPDIFTX.DMACFG    = pADMA_SPDIFTX->DMACFG;
 
-        if(tcc_spdif_clk)
-            clk_disable(tcc_spdif_clk);
+        if(tcc_spdif_clk_ch1)
+            clk_disable(tcc_spdif_clk_ch1);
 #if defined(CONFIG_ARCH_TCC892X)
-        if(tcc_adma1_clk)
-            clk_disable(tcc_adma1_clk);
+        if(tcc_adma1_clk_ch1)
+            clk_disable(tcc_adma1_clk_ch1);
 #endif
     }
 
@@ -517,8 +517,8 @@ static int tcc_i2s_suspend(struct snd_soc_dai *dai)
 static int tcc_i2s_resume(struct snd_soc_dai *dai)
 {
 #if defined(CONFIG_ARCH_TCC892X)
-	volatile PADMADAI     pADMA_DAI     = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI0);
-	volatile PADMASPDIFTX pADMA_SPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX0);
+	volatile PADMADAI     pADMA_DAI     = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI1);	// Planet 20120531
+	volatile PADMASPDIFTX pADMA_SPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX1);
 #else
 	volatile PADMADAI     pADMA_DAI     = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI);
 	volatile PADMASPDIFTX pADMA_SPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX);
@@ -526,15 +526,15 @@ static int tcc_i2s_resume(struct snd_soc_dai *dai)
 
     alsa_dbg(" %s \n", __func__);
     if(dai->id == 0) {  // DAI
-        if(tcc_dai_clk)
-            clk_enable(tcc_dai_clk);
+        if(tcc_dai_clk_ch1)
+            clk_enable(tcc_dai_clk_ch1);
 
 #if defined(CONFIG_ARCH_TCC892X)
-        if(tcc_adma0_clk)
-            clk_enable(tcc_adma0_clk);
+        if(tcc_adma0_clk_ch1)
+            clk_enable(tcc_adma0_clk_ch1);
 #else
-        if(tcc_adma_clk)
-            clk_enable(tcc_adma_clk);
+        if(tcc_adma_clk_ch1)
+            clk_enable(tcc_adma_clk_ch1);
 #endif
 
         pADMA_DAI->DAMR   = gADMA_DAI.DAMR;
@@ -543,11 +543,11 @@ static int tcc_i2s_resume(struct snd_soc_dai *dai)
         pADMA_DAI->MCCR1  = gADMA_DAI.MCCR1;
     }
     else {              // SPDIFTX
-        if(tcc_spdif_clk)
-            clk_enable(tcc_spdif_clk);
+        if(tcc_spdif_clk_ch1)
+            clk_enable(tcc_spdif_clk_ch1);
 #if defined(CONFIG_ARCH_TCC892X)
-        if(tcc_adma1_clk)
-            clk_enable(tcc_adma1_clk);
+        if(tcc_adma1_clk_ch1)
+            clk_enable(tcc_adma1_clk_ch1);
 #endif
 
         pADMA_SPDIFTX->TxConfig  = gADMA_SPDIFTX.TxConfig;
@@ -568,14 +568,14 @@ static void tcc_i2s_late_resume(struct early_suspend *h);
 
 
                            
-int tcc_i2s_probe(struct snd_soc_dai *dai)
+int tcc_i2s_probe_ch1(struct snd_soc_dai *dai)
 {
     alsa_dbg("== alsa-debug == %s() \n", __func__);
     if(tcc_i2s_init())
         return -EINVAL;
 
     // default clock of DAI : 44100Hz
-    tcc_i2s_set_clock(44100);
+    tcc_i2s_set_clock_ch1(44100);
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	early_suspend.suspend = tcc_i2s_early_suspend;
@@ -587,14 +587,14 @@ int tcc_i2s_probe(struct snd_soc_dai *dai)
     return 0;
 }
 
-int tcc_spdif_probe(struct snd_soc_dai *dai)
+int tcc_spdif_probe_ch1(struct snd_soc_dai *dai)
 {
     alsa_dbg("%s() \n", __func__);
     if(tcc_spdif_init())
         return -EINVAL;
 
     // default clock of SPDIF : 44100Hz
-    tcc_spdif_set_clock(44100);
+    tcc_spdif_set_clock_ch1(44100);
 
     return 0;
 }
@@ -622,8 +622,8 @@ static struct snd_soc_dai_ops tcc_spdif_ops = {
 
 static struct snd_soc_dai_driver tcc_i2s_dai[] = {
     [__I2S_DEV_NUM__] = {
-        .name = "tcc-dai-i2s",
-        .probe = tcc_i2s_probe,
+        .name = "tcc-dai-i2s-ch1",
+        .probe = tcc_i2s_probe_ch1,
         .suspend = tcc_i2s_suspend,
         .resume = tcc_i2s_resume,
 
@@ -645,8 +645,8 @@ static struct snd_soc_dai_driver tcc_i2s_dai[] = {
     },
     [__SPDIF_DEV_NUM__] =
     {
-        .name = "tcc-dai-spdif",
-        .probe = tcc_spdif_probe,
+        .name = "tcc-dai-spdif-ch1",
+        .probe = tcc_spdif_probe_ch1,
         .suspend = tcc_i2s_suspend,
         .resume  = tcc_i2s_resume,
 
@@ -680,7 +680,7 @@ static int __devexit soc_tcc_i2s_remove(struct platform_device *pdev)
 
 static struct platform_driver tcc_i2s_driver = {
 	.driver = {
-			.name = "tcc-dai",
+			.name = "tcc-dai-ch1",
 			.owner = THIS_MODULE,
 	},
 

@@ -1020,6 +1020,8 @@ static snd_pcm_uframes_t soc_pcm_pointer(struct snd_pcm_substream *substream)
 	return offset;
 }
 
+//Planet 20120615 Audio Driver Improvement Start
+#if !defined(CONFIG_ARCH_TCC892X)
 /* ASoC PCM operations */
 static struct snd_pcm_ops soc_pcm_ops = {
 	.open		= soc_pcm_open,
@@ -1030,6 +1032,8 @@ static struct snd_pcm_ops soc_pcm_ops = {
 	.trigger	= soc_pcm_trigger,
 	.pointer	= soc_pcm_pointer,
 };
+#endif
+//Planet 20120615 Audio Driver Improvement End
 
 #ifdef CONFIG_PM_SLEEP
 /* powers down audio subsystem for suspend */
@@ -2108,6 +2112,9 @@ static int soc_new_pcm(struct snd_soc_pcm_runtime *rtd, int num)
 	struct snd_pcm *pcm;
 	char new_name[64];
 	int ret = 0, playback = 0, capture = 0;
+#if defined(CONFIG_ARCH_TCC892X)
+	struct snd_pcm_ops *soc_pcm_ops;	//Planet 20120615 Audio Driver Improvement
+#endif
 
 	/* check client and interface hw capabilities */
 	snprintf(new_name, sizeof(new_name), "%s %s-%d",
@@ -2128,6 +2135,24 @@ static int soc_new_pcm(struct snd_soc_pcm_runtime *rtd, int num)
 
 	rtd->pcm = pcm;
 	pcm->private_data = rtd;
+
+//Planet 20120615 Audio Driver Improvement Start
+#if defined(CONFIG_ARCH_TCC892X)
+	soc_pcm_ops = kmalloc(sizeof(struct snd_pcm_ops), GFP_KERNEL);
+	soc_pcm_ops->open		= soc_pcm_open;
+	soc_pcm_ops->close		= soc_codec_close;
+	soc_pcm_ops->hw_params	= soc_pcm_hw_params;
+	soc_pcm_ops->hw_free	= soc_pcm_hw_free;
+	soc_pcm_ops->prepare	= soc_pcm_prepare;
+	soc_pcm_ops->trigger	= soc_pcm_trigger;
+	soc_pcm_ops->mmap = platform->driver->ops->mmap;
+	soc_pcm_ops->pointer = platform->driver->ops->pointer;
+	soc_pcm_ops->ioctl = platform->driver->ops->ioctl;
+	soc_pcm_ops->copy = platform->driver->ops->copy;
+	soc_pcm_ops->silence = platform->driver->ops->silence;
+	soc_pcm_ops->ack = platform->driver->ops->ack;
+	soc_pcm_ops->page = platform->driver->ops->page;
+#else
 	if (platform->driver->ops) {
 		soc_pcm_ops.mmap = platform->driver->ops->mmap;
 		soc_pcm_ops.pointer = platform->driver->ops->pointer;
@@ -2137,12 +2162,25 @@ static int soc_new_pcm(struct snd_soc_pcm_runtime *rtd, int num)
 		soc_pcm_ops.ack = platform->driver->ops->ack;
 		soc_pcm_ops.page = platform->driver->ops->page;
 	}
+#endif
+//Planet 20120615 Audio Driver Improvement End
 
 	if (playback)
+	{
+#if defined(CONFIG_ARCH_TCC892X)
+		snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_PLAYBACK, soc_pcm_ops);	//Planet 20120615 Audio Driver Improvement
+#else
 		snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_PLAYBACK, &soc_pcm_ops);
-
+#endif
+	}
 	if (capture)
+	{
+#if defined(CONFIG_ARCH_TCC892X)
+		snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_CAPTURE, soc_pcm_ops);	//Planet 20120615 Audio Driver Improvement
+#else
 		snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_CAPTURE, &soc_pcm_ops);
+#endif
+	}
 
 	if (platform->driver->pcm_new) {
 		ret = platform->driver->pcm_new(rtd->card->snd_card,
