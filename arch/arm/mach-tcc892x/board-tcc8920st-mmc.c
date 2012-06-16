@@ -17,6 +17,7 @@
 #include "devices.h"
 #include "board-tcc8920st.h"
 
+#if defined(CONFIG_MMC_TCC_SDHC)
 extern void tcc_init_sdhc_devices(void);
 
 struct tcc_mmc_platform_data tcc8920_mmc_platform_data[];
@@ -604,7 +605,6 @@ static int __init tcc8920_init_mmc(void)
 
 	printk("%s(%d)\n",__func__, tccUsedSDportNum);
 
-#if defined(CONFIG_MMC_TCC_SDHC)
 #if defined(CONFIG_MMC_TCC_SDHC0)
 	if (tccUsedSDportNum > 0)
 	{
@@ -633,8 +633,9 @@ static int __init tcc8920_init_mmc(void)
 		platform_device_register(&tcc_sdhc3_device);
 	}
 #endif
-#endif
 
 	return 0;
 }
 device_initcall(tcc8920_init_mmc);
+#endif
+

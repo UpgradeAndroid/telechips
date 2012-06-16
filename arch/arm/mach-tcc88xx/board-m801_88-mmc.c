@@ -15,6 +15,7 @@
 #include "devices.h"
 //#include "board-m801_88.h"
 
+#if defined(CONFIG_MMC_TCC_SDHC)
 typedef enum {
 	TCC_MMC_TYPE_SD = 0,
 	TCC_MMC_TYPE_WIFI,
@@ -236,7 +237,6 @@ static int __init m801_88_init_mmc(void)
 		mmc_ports[TCC_MMC_TYPE_SD].cd = TCC_GPE(25);
 	}
 
-#if defined(CONFIG_MMC_TCC_SDHC)
 #if defined(CONFIG_MMC_TCC_SDHC0)
 	tcc_sdhc0_device.dev.platform_data = &m801_88_mmc_platform_data[0];
 	platform_device_register(&tcc_sdhc0_device);
@@ -253,8 +253,9 @@ static int __init m801_88_init_mmc(void)
 	tcc_sdhc3_device.dev.platform_data = &m801_88_mmc_platform_data[3];
 	platform_device_register(&tcc_sdhc3_device);
 #endif
-#endif
 
 	return 0;
 }
 device_initcall(m801_88_init_mmc);
+#endif
+

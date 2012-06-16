@@ -47,13 +47,13 @@
 #include <mach/tca_i2s.h>
 
 #include "tcc-i2s.h"
-#include "tcc-pcm.h"
+#include "tcc-pcm-ch1.h"
 
 #include "tcc/tca_tcchwcontrol.h"
 
 #undef alsa_dbg
 #if 0
-#define alsa_dbg(f, a...)  printk("== alsa-debug PCM CH0 == " f, ##a)
+#define alsa_dbg(f, a...)  printk("== alsa-debug PCM CH1 == " f, ##a)
 #else
 #define alsa_dbg(f, a...)
 #endif
@@ -65,8 +65,8 @@ static ADMA gADMA1;
 #endif
 #endif
 
-tcc_interrupt_info_x tcc_alsa_info;
-EXPORT_SYMBOL(tcc_alsa_info);
+tcc_interrupt_info_x_ch1 tcc_alsa_info_ch1;
+EXPORT_SYMBOL(tcc_alsa_info_ch1);
 
 static const struct snd_pcm_hardware tcc_pcm_hardware_play = {
     .info = (SNDRV_PCM_INFO_MMAP
@@ -153,7 +153,7 @@ static int alsa_get_intr_num(struct snd_pcm_substream *substream)
 static void set_dma_outbuffer(unsigned int addr, unsigned int length, unsigned int period)
 {
 #if defined(CONFIG_ARCH_TCC892X)
-    volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA0);
+    volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA1);	// Planet 20120531
 #else
     volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA);
 #endif
@@ -205,8 +205,8 @@ static void set_dma_outbuffer(unsigned int addr, unsigned int length, unsigned i
 static void set_dma_spdif_outbuffer(unsigned int addr, unsigned int length, unsigned int period)
 {
 #if defined(CONFIG_ARCH_TCC892X)
-    volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA0);
-    volatile PADMASPDIFTX pADMASPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX0);
+    volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA1);
+    volatile PADMASPDIFTX pADMASPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX1);
 #else
     volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA);
 	volatile PADMASPDIFTX pADMASPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX);
@@ -285,7 +285,7 @@ static void set_dma_spdif_outbuffer(unsigned int addr, unsigned int length, unsi
 static void set_dma_inbuffer(unsigned int addr, unsigned int length, unsigned int period)
 {
 #if defined(CONFIG_ARCH_TCC892X)
-    volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA0);
+    volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA1);	// Planet 20120531
 #else
     volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA);
 #endif
@@ -338,7 +338,7 @@ static void set_dma_inbuffer(unsigned int addr, unsigned int length, unsigned in
 static irqreturn_t tcc_dma_done_handler(int irq, void *dev_id)
 {
 #if defined(CONFIG_ARCH_TCC892X)
-    volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA0);
+    volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA1);	// Planet 20120531
 #else
     volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA);
 #endif
@@ -366,26 +366,26 @@ static irqreturn_t tcc_dma_done_handler(int irq, void *dev_id)
     }
 
     if ((dmaInterruptSource & DMA_CH_SPDIF)
-        && (tcc_alsa_info.flag & TCC_RUNNING_SPDIF)) {
+        && (tcc_alsa_info_ch1.flag & TCC_RUNNING_SPDIF)) {
 
-        snd_pcm_period_elapsed(tcc_alsa_info.spdif_ptr);
+        snd_pcm_period_elapsed(tcc_alsa_info_ch1.spdif_ptr);
 
-        runtime = tcc_alsa_info.spdif_ptr->runtime;
+        runtime = tcc_alsa_info_ch1.spdif_ptr->runtime;
         prtd = (struct tcc_runtime_data *)runtime->private_data;
     }
 
     if ((dmaInterruptSource & DMA_CH_OUT)
-        && (tcc_alsa_info.flag & TCC_RUNNING_PLAY)) {
-        snd_pcm_period_elapsed(tcc_alsa_info.play_ptr);
+        && (tcc_alsa_info_ch1.flag & TCC_RUNNING_PLAY)) {
+        snd_pcm_period_elapsed(tcc_alsa_info_ch1.play_ptr);
 
-        runtime = tcc_alsa_info.play_ptr->runtime;
+        runtime = tcc_alsa_info_ch1.play_ptr->runtime;
         prtd = (struct tcc_runtime_data *) runtime->private_data;
     }
     if ((dmaInterruptSource & DMA_CH_IN)
-        && (tcc_alsa_info.flag & TCC_RUNNING_CAPTURE)) {
-        snd_pcm_period_elapsed(tcc_alsa_info.cap_ptr);
+        && (tcc_alsa_info_ch1.flag & TCC_RUNNING_CAPTURE)) {
+        snd_pcm_period_elapsed(tcc_alsa_info_ch1.cap_ptr);
 
-        runtime = tcc_alsa_info.cap_ptr->runtime;
+        runtime = tcc_alsa_info_ch1.cap_ptr->runtime;
         prtd = (struct tcc_runtime_data *)runtime->private_data;
     }
 
@@ -395,7 +395,7 @@ static irqreturn_t tcc_dma_done_handler(int irq, void *dev_id)
 #if defined(CONFIG_ARCH_TCC892X)
 static irqreturn_t tcc_dma1_done_handler(int irq, void *dev_id)
 {
-    volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA0);
+    volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA1);
     struct snd_pcm_runtime *runtime;
     struct tcc_runtime_data *prtd;
     int dmaInterruptSource = 0;
@@ -420,26 +420,26 @@ static irqreturn_t tcc_dma1_done_handler(int irq, void *dev_id)
     }
 
     if ((dmaInterruptSource & DMA_CH_SPDIF)
-        && (tcc_alsa_info.flag & TCC_RUNNING_SPDIF)) {
+        && (tcc_alsa_info_ch1.flag & TCC_RUNNING_SPDIF)) {
 
-        snd_pcm_period_elapsed(tcc_alsa_info.spdif_ptr);
+        snd_pcm_period_elapsed(tcc_alsa_info_ch1.spdif_ptr);
 
-        runtime = tcc_alsa_info.spdif_ptr->runtime;
+        runtime = tcc_alsa_info_ch1.spdif_ptr->runtime;
         prtd = (struct tcc_runtime_data *)runtime->private_data;
     }
 
     if ((dmaInterruptSource & DMA_CH_OUT)
-        && (tcc_alsa_info.flag & TCC_RUNNING_PLAY)) {
-        snd_pcm_period_elapsed(tcc_alsa_info.play_ptr);
+        && (tcc_alsa_info_ch1.flag & TCC_RUNNING_PLAY)) {
+        snd_pcm_period_elapsed(tcc_alsa_info_ch1.play_ptr);
 
-        runtime = tcc_alsa_info.play_ptr->runtime;
+        runtime = tcc_alsa_info_ch1.play_ptr->runtime;
         prtd = (struct tcc_runtime_data *) runtime->private_data;
     }
     if ((dmaInterruptSource & DMA_CH_IN)
-        && (tcc_alsa_info.flag & TCC_RUNNING_CAPTURE)) {
-        snd_pcm_period_elapsed(tcc_alsa_info.cap_ptr);
+        && (tcc_alsa_info_ch1.flag & TCC_RUNNING_CAPTURE)) {
+        snd_pcm_period_elapsed(tcc_alsa_info_ch1.cap_ptr);
 
-        runtime = tcc_alsa_info.cap_ptr->runtime;
+        runtime = tcc_alsa_info_ch1.cap_ptr->runtime;
         prtd = (struct tcc_runtime_data *)runtime->private_data;
     }
 
@@ -470,14 +470,14 @@ static int tcc_pcm_hw_params(struct snd_pcm_substream *substream, struct snd_pcm
     int ret = 0;
 
 #if defined(CONFIG_ARCH_TCC892X)
-    volatile PADMA    pADMA     = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA0);
-    volatile PADMADAI pADMA_DAI = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI0);
-	volatile PADMASPDIFTX pADMA_SPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX0);
+    volatile PADMA    pADMA     = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA1);		// Planet 20120531
+    volatile PADMADAI pADMA_DAI = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI1);	// Planet 20120531
+	volatile PADMASPDIFTX pADMA_SPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX1);
     irq_handler_t handler;
 
     if (substream->pcm->device == __SPDIF_DEV_NUM__)
     {
-        pADMA     = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA0);
+        pADMA     = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA1);
         handler   = tcc_dma1_done_handler;
     }
     else
@@ -502,28 +502,28 @@ static int tcc_pcm_hw_params(struct snd_pcm_substream *substream, struct snd_pcm
         prtd->params = dma;
         alsa_dbg(" prtd->params = dma\n");
 
-        mutex_lock(&(tcc_alsa_info.mutex));
-        if (!(tcc_alsa_info.flag & TCC_INTERRUPT_REQUESTED)) {
+        mutex_lock(&(tcc_alsa_info_ch1.mutex));
+        if (!(tcc_alsa_info_ch1.flag & TCC_INTERRUPT_REQUESTED)) {
 #if defined(CONFIG_ARCH_TCC892X)
             ret = request_irq(alsa_get_intr_num(substream),
                               handler,
                               IRQF_SHARED,
                               "alsa-audio",
-                              &tcc_alsa_info);
+                              &tcc_alsa_info_ch1);
 #else
             ret = request_irq(alsa_get_intr_num(substream),
                               tcc_dma_done_handler,
                               IRQF_SHARED,
                               "alsa-audio",
-                              &tcc_alsa_info);
+                              &tcc_alsa_info_ch1);
 #endif
             if (ret < 0) {
-                mutex_unlock(&(tcc_alsa_info.mutex));
+                mutex_unlock(&(tcc_alsa_info_ch1.mutex));
                 return -EBUSY;
             }
-            tcc_alsa_info.flag |= TCC_INTERRUPT_REQUESTED;
+            tcc_alsa_info_ch1.flag |= TCC_INTERRUPT_REQUESTED;
         }
-        mutex_unlock(&(tcc_alsa_info.mutex));
+        mutex_unlock(&(tcc_alsa_info_ch1.mutex));
 
         if (substream->pcm->device == __SPDIF_DEV_NUM__) {
             prtd->dma_ch = DMA_CH_SPDIF;
@@ -712,12 +712,12 @@ static int tcc_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
     //    audio_stream_t *s = &output_stream;        
     int ret = 0;
 #if defined(CONFIG_ARCH_TCC892X)
-	volatile PADMADAI pDAI  = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI0);
-	volatile PADMASPDIFTX pADMASPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX0);
-	volatile PADMA    pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA0);
+	volatile PADMADAI pDAI  = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI1);	// Planet 20120531
+	volatile PADMASPDIFTX pADMASPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX1);
+	volatile PADMA    pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA1);		// Planet 20120531
 
 	if (substream->pcm->device == __SPDIF_DEV_NUM__) {
-		pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA0);
+		pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA1);
 	}
 #else
     volatile PADMADAI pDAI  = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI);
@@ -786,13 +786,13 @@ static int tcc_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 }
 
 
-int countt;
+int countn;
 //buffer point update
 //current position   range 0-(buffer_size-1)
 static snd_pcm_uframes_t tcc_pcm_pointer(struct snd_pcm_substream *substream)
 {
 #if defined(CONFIG_ARCH_TCC892X)
-    volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA0);
+    volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA1);	// Planet 20120531
 #else
     volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA);
 #endif
@@ -800,17 +800,17 @@ static snd_pcm_uframes_t tcc_pcm_pointer(struct snd_pcm_substream *substream)
     snd_pcm_uframes_t x;
     dma_addr_t ptr = 0;
 
-	if(countt>200)
+    if(countn>200)
 	{
 	    alsa_dbg(" %s \n", __func__);
-		countt= 0;
+		countn= 0;
 	}
 	else
-		countt++;
+		countn++;
 
     if (substream->pcm->device == __SPDIF_DEV_NUM__) {
 #if defined(CONFIG_ARCH_TCC892X)
-        pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA0);
+        pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA1);
 #endif
         ptr = pADMA->TxSpCsar;
     } else {
@@ -835,11 +835,11 @@ static int tcc_pcm_open(struct snd_pcm_substream *substream)
 										substream->pcm->device == __SPDIF_DEV_NUM__ ? "spdif":"pcm", 
 										substream->stream == SNDRV_PCM_STREAM_PLAYBACK ? "output" : "input");
 
-    mutex_lock(&(tcc_alsa_info.mutex));
+    mutex_lock(&(tcc_alsa_info_ch1.mutex));
     if (substream->pcm->device == __SPDIF_DEV_NUM__) {
         if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
-            tcc_alsa_info.flag |= TCC_RUNNING_SPDIF;
-            tcc_alsa_info.spdif_ptr = substream;
+            tcc_alsa_info_ch1.flag |= TCC_RUNNING_SPDIF;
+            tcc_alsa_info_ch1.spdif_ptr = substream;
             snd_soc_set_runtime_hwparams(substream, &tcc_pcm_hardware_play);
             alsa_dbg("[%s] open spdif device\n", __func__);
         } else {
@@ -848,16 +848,16 @@ static int tcc_pcm_open(struct snd_pcm_substream *substream)
         }
     } else {
         if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {  
-            tcc_alsa_info.flag |= TCC_RUNNING_PLAY;
-            tcc_alsa_info.play_ptr = substream;
+            tcc_alsa_info_ch1.flag |= TCC_RUNNING_PLAY;
+            tcc_alsa_info_ch1.play_ptr = substream;
             snd_soc_set_runtime_hwparams(substream, &tcc_pcm_hardware_play);
         } else {
-            tcc_alsa_info.flag |= TCC_RUNNING_CAPTURE;
-            tcc_alsa_info.cap_ptr = substream;
+            tcc_alsa_info_ch1.flag |= TCC_RUNNING_CAPTURE;
+            tcc_alsa_info_ch1.cap_ptr = substream;
             snd_soc_set_runtime_hwparams(substream, &tcc_pcm_hardware_capture);
         }
     }
-    mutex_unlock(&(tcc_alsa_info.mutex));
+    mutex_unlock(&(tcc_alsa_info_ch1.mutex));
 
     prtd = kzalloc(sizeof(struct tcc_runtime_data), GFP_KERNEL);
 
@@ -878,8 +878,8 @@ static int tcc_pcm_close(struct snd_pcm_substream *substream)
     struct snd_pcm_runtime *runtime = substream->runtime;
     struct tcc_runtime_data *prtd = runtime->private_data;
 #if defined(CONFIG_ARCH_TCC892X)
-    volatile PADMADAI pDAI = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI0);
-    volatile PADMASPDIFTX pADMASPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX0);
+    volatile PADMADAI pDAI = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI1);	// Planet 20120531
+    volatile PADMASPDIFTX pADMASPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX1);
 #else
     volatile PADMADAI pDAI = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI);
     volatile PADMASPDIFTX pADMASPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX);
@@ -888,19 +888,19 @@ static int tcc_pcm_close(struct snd_pcm_substream *substream)
     alsa_dbg("[%s] close %s device, %s\n", __func__, substream->pcm->device == __SPDIF_DEV_NUM__ ? "spdif":"pcm", 
 													substream->stream == SNDRV_PCM_STREAM_PLAYBACK ? "output" : "input");
 
-    mutex_lock(&(tcc_alsa_info.mutex));
+    mutex_lock(&(tcc_alsa_info_ch1.mutex));
     if (substream->pcm->device == __SPDIF_DEV_NUM__) {
-        tcc_alsa_info.flag &= ~TCC_RUNNING_SPDIF;
+        tcc_alsa_info_ch1.flag &= ~TCC_RUNNING_SPDIF;
         //tca_i2s_stop(pDAI, pADMASPDIFTX, 0);
         pADMASPDIFTX->TxConfig &= ~Hw0;
         alsa_dbg("[%s] close spdif device\n", __func__);
     } else {
         if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
-            tcc_alsa_info.flag &= ~TCC_RUNNING_PLAY;
+            tcc_alsa_info_ch1.flag &= ~TCC_RUNNING_PLAY;
             //tca_i2s_stop(pDAI, pADMASPDIFTX, 0);
             pDAI->DAMR &= ~Hw14;
         } else {
-            tcc_alsa_info.flag &= ~TCC_RUNNING_CAPTURE;
+            tcc_alsa_info_ch1.flag &= ~TCC_RUNNING_CAPTURE;
             //tca_i2s_stop(pDAI, pADMASPDIFTX, 1);
             pDAI->DAMR &= ~Hw13;
         }
@@ -911,13 +911,13 @@ static int tcc_pcm_close(struct snd_pcm_substream *substream)
         kfree(prtd);
     }
 
-    if (tcc_alsa_info.flag & TCC_INTERRUPT_REQUESTED) {
-        if (!(tcc_alsa_info.flag & (TCC_RUNNING_SPDIF | TCC_RUNNING_PLAY | TCC_RUNNING_CAPTURE))) {
-            free_irq(alsa_get_intr_num(substream), &tcc_alsa_info);
-            tcc_alsa_info.flag &= ~TCC_INTERRUPT_REQUESTED;
+    if (tcc_alsa_info_ch1.flag & TCC_INTERRUPT_REQUESTED) {
+        if (!(tcc_alsa_info_ch1.flag & (TCC_RUNNING_SPDIF | TCC_RUNNING_PLAY | TCC_RUNNING_CAPTURE))) {
+            free_irq(alsa_get_intr_num(substream), &tcc_alsa_info_ch1);
+            tcc_alsa_info_ch1.flag &= ~TCC_INTERRUPT_REQUESTED;
         }
     }
-    mutex_unlock(&(tcc_alsa_info.mutex));
+    mutex_unlock(&(tcc_alsa_info_ch1.mutex));
 
     return 0;
 }
@@ -931,7 +931,7 @@ static int tcc_pcm_mmap(struct snd_pcm_substream *substream, struct vm_area_stru
         runtime->dma_bytes);
 }
 
-struct snd_pcm_ops tcc_pcm_ops = {
+struct snd_pcm_ops tcc_pcm_ops_ch1 = {
     .open  = tcc_pcm_open,
     .close  = tcc_pcm_close,
     .ioctl  = snd_pcm_lib_ioctl,
@@ -971,7 +971,7 @@ static int tcc_pcm_preallocate_dma_buffer(struct snd_pcm *pcm, int stream)
 }
 
 
-static void tcc_pcm_free_dma_buffers(struct snd_pcm *pcm)
+static void tcc_pcm_free_dma_buffers_ch1(struct snd_pcm *pcm)
 {
     struct snd_pcm_substream *substream;
     struct snd_dma_buffer *buf;
@@ -989,19 +989,19 @@ static void tcc_pcm_free_dma_buffers(struct snd_pcm *pcm)
         dma_free_writecombine(pcm->card->dev, buf->bytes, buf->area, buf->addr);
         buf->area = NULL;
     }
-    mutex_init(&(tcc_alsa_info.mutex));
+    mutex_init(&(tcc_alsa_info_ch1.mutex));
 }
 
 static u64 tcc_pcm_dmamask = DMA_32BIT_MASK;
 
-int tcc_pcm_new(struct snd_card *card, struct snd_soc_dai *dai, struct snd_pcm *pcm)
+int tcc_pcm_new_ch1(struct snd_card *card, struct snd_soc_dai *dai, struct snd_pcm *pcm)
 {
     int ret = 0;
 
     alsa_dbg("[%s] \n", __func__);
 
-    memset(&tcc_alsa_info, 0, sizeof(tcc_interrupt_info_x));
-    mutex_init(&(tcc_alsa_info.mutex));
+    memset(&tcc_alsa_info_ch1, 0, sizeof(tcc_interrupt_info_x_ch1));
+    mutex_init(&(tcc_alsa_info_ch1.mutex));
 
     if (!card->dev->dma_mask) {
         card->dev->dma_mask = &tcc_pcm_dmamask;
@@ -1020,7 +1020,7 @@ int tcc_pcm_new(struct snd_card *card, struct snd_soc_dai *dai, struct snd_pcm *
     } 
 	{
 #if defined(CONFIG_ARCH_TCC892X)
-        volatile ADMASPDIFTX *pADMASPDIFTX = (volatile ADMASPDIFTX *)tcc_p2v(BASE_ADDR_SPDIFTX0);
+        volatile ADMASPDIFTX *pADMASPDIFTX = (volatile ADMASPDIFTX *)tcc_p2v(BASE_ADDR_SPDIFTX1);
 #else
         volatile ADMASPDIFTX *pADMASPDIFTX = (volatile ADMASPDIFTX *)tcc_p2v(BASE_ADDR_SPDIFTX);
 #endif
@@ -1089,10 +1089,10 @@ out:
 
 
 #if defined(CONFIG_PM)
-int tcc_pcm_suspend(struct snd_soc_dai *dai)
+int tcc_pcm_suspend_ch1(struct snd_soc_dai *dai)
 {
 #if defined(CONFIG_ARCH_TCC892X)
-    volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA0);
+    volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA1);	// Planet 20120531
 #else
     volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA);
 #endif
@@ -1104,7 +1104,7 @@ int tcc_pcm_suspend(struct snd_soc_dai *dai)
     gADMA.GIntReq   = pADMA->GIntReq;
 
 #if defined(CONFIG_ARCH_TCC892X)
-    pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA0);
+    pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA1);
     gADMA1.TransCtrl = pADMA->TransCtrl;
     gADMA1.RptCtrl   = pADMA->RptCtrl;
     gADMA1.ChCtrl    = pADMA->ChCtrl;
@@ -1113,10 +1113,10 @@ int tcc_pcm_suspend(struct snd_soc_dai *dai)
     return 0;
 }
 
-int tcc_pcm_resume(struct snd_soc_dai *dai)
+int tcc_pcm_resume_ch1(struct snd_soc_dai *dai)
 {
 #if defined(CONFIG_ARCH_TCC892X)
-    volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA0);
+    volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA1);	// Planet 20120531
 #else
     volatile PADMA pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA);
 #endif
@@ -1128,7 +1128,7 @@ int tcc_pcm_resume(struct snd_soc_dai *dai)
     pADMA->GIntReq   = gADMA.GIntReq;
 
 #if defined(CONFIG_ARCH_TCC892X)
-    pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA0);
+    pADMA = (volatile PADMA)tcc_p2v(BASE_ADDR_ADMA1);
     pADMA->TransCtrl = gADMA1.TransCtrl;
     pADMA->RptCtrl   = gADMA1.RptCtrl;
     pADMA->ChCtrl    = gADMA1.ChCtrl;
@@ -1139,12 +1139,12 @@ int tcc_pcm_resume(struct snd_soc_dai *dai)
 #endif
 
 static struct snd_soc_platform_driver tcc_soc_platform = {
-    .ops      = &tcc_pcm_ops,
-    .pcm_new  = tcc_pcm_new,
-    .pcm_free = tcc_pcm_free_dma_buffers,
+    .ops      = &tcc_pcm_ops_ch1,
+    .pcm_new  = tcc_pcm_new_ch1,
+    .pcm_free = tcc_pcm_free_dma_buffers_ch1,
 #if defined(CONFIG_PM)
-    .suspend  = tcc_pcm_suspend,
-    .resume   = tcc_pcm_resume,
+    .suspend  = tcc_pcm_suspend_ch1,
+    .resume   = tcc_pcm_resume_ch1,
 #endif
 };
 
@@ -1163,7 +1163,7 @@ static int __devexit tcc_pcm_remove(struct platform_device *pdev)
 
 static struct platform_driver tcc_pcm_driver = {
 	.driver = {
-			.name = "tcc-pcm-audio",
+			.name = "tcc-pcm-audio-ch1",
 			.owner = THIS_MODULE,
 	},
 
@@ -1265,7 +1265,7 @@ static int tcc_iec958_remove(struct platform_device *pdev)
 
 static struct platform_driver tcc_iec958_driver = {
 	.driver = {
-			.name = "tcc-iec958",
+			.name = "tcc-iec958-ch1",
 			.owner = THIS_MODULE,
 	},
 
