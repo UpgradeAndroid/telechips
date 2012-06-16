@@ -1176,7 +1176,7 @@ static int tcc_hdmi_detect_cable(void)
 	int ret = true;
 
 	#if defined(CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST) || defined(CONFIG_MACH_TCC8920ST)
-		#if defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION) || defined(TCC_OUTPUT_STARTER_DUAL_AUTO)
+		#if defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION) || (defined(TCC_OUTPUT_STARTER_ATTACH) && defined(TCC_OUTPUT_ATTACH_DUAL_AUTO))
 			tcc_gpio_config(GPIO_OUTPUT_HDMI_DETECT, GPIO_FN(0));
 			gpio_request(GPIO_OUTPUT_HDMI_DETECT, NULL);
 			gpio_direction_input(GPIO_OUTPUT_HDMI_DETECT);
@@ -1839,7 +1839,7 @@ void tcc_output_starter_component(unsigned char lcdc_num, unsigned char type)
 	PCKC			pCKC = (PCKC)tcc_p2v(HwCKC_BASE);
 	PVIOC_SC		pSC;
 	
-	DPRINTF("%s, lcdc_num=%d, type=%d\n", __func__, lcdc_num, type);
+	printk("%s, lcdc_num=%d, type=%d\n", __func__, lcdc_num, type);
 
 	switch(type)
 	{
@@ -2740,7 +2740,7 @@ int __init tcc_output_starter_init(void)
 				tcc_output_starter_hdmi(lcdc_1st, tcc_display_data.hdmi_resolution);
 
 			/* 2nd Output Setting */
-			if(tcc_display_data.output == 3)
+			if(tcc_display_data.output == STARTER_OUTPUT_COMPONENT)
 			{
 				if(tcc_component_detect_cable() == true)
 					tcc_output_starter_component(lcdc_2nd, STARTER_COMPONENT_720P+tcc_display_data.component_resolution);
@@ -2755,10 +2755,14 @@ int __init tcc_output_starter_init(void)
 					tcc_output_starter_component(lcdc_2nd, STARTER_COMPONENT_720P+tcc_display_data.component_resolution);
 			}
 		#endif
-	#elif defined(TCC_OUTPUT_STARTER_DUAL_AUTO)
+	#elif defined(TCC_OUTPUT_STARTER_ATTACH)
 		#if defined(CONFIG_ARCH_TCC892X)
 			/* 1st Output Setting */
+		#if defined(TCC_OUTPUT_ATTACH_DUAL_AUTO)
 			if(tcc_hdmi_detect_cable() == true)
+		#else
+			if(tcc_display_data.output != STARTER_OUTPUT_COMPONENT)
+		#endif
 			{
 				if(tcc_display_data.output >= STARTER_OUTPUT_MAX)
 					tcc_output_starter_hdmi(lcdc_1st, STARTER_HDMI_640x480P);
@@ -2788,14 +2792,14 @@ int __init tcc_output_starter_init(void)
 	#else
 		switch(tcc_display_data.output)
 		{
-			case 0:
-			case 1:
+			case STARTER_OUTPUT_LCD:
+			case STARTER_OUTPUT_HDMI:
 				tcc_output_starter_hdmi(lcdc_1st, tcc_display_data.hdmi_resolution);
 				break;
-			case 2:
+			case STARTER_OUTPUT_COMPOSITE:
 				tcc_output_starter_composite(lcdc_1st, tcc_display_data.composite_resolution);
 				break;
-			case 3:
+			case STARTER_OUTPUT_COMPONENT:
 				#if defined(TCC_COMPONENT_IC_CS4954)
 					tcc_output_starter_component(lcdc_1st, tcc_display_data.component_resolution);
 				#else

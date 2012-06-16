@@ -1412,6 +1412,22 @@ static long tcc_composite_ioctl(struct file *file, unsigned int cmd, void *arg)
 			#endif
 			break;
 
+		case TCC_COMPOSITE_IOCTL_ATTACH:
+			#if defined(CONFIG_TCC_OUTPUT_ATTACH) && (defined(TCC_OUTPUT_ATTACH_DUAL) || defined(TCC_OUTPUT_ATTACH_DUAL_AUTO))
+				copy_from_user(&start,arg,sizeof(start));
+				tcc_composite_mode = start.mode;
+
+				TCC_OUTPUT_FB_DetachOutput(0);
+				TCC_OUTPUT_FB_AttachOutput(start.lcdc, TCC_OUTPUT_COMPOSITE, 0);
+			#endif
+			break;
+
+		case TCC_COMPOSITE_IOCTL_DETACH:
+			#if defined(CONFIG_TCC_OUTPUT_ATTACH) && (defined(TCC_OUTPUT_ATTACH_DUAL) || defined(TCC_OUTPUT_ATTACH_DUAL_AUTO))
+				TCC_OUTPUT_FB_DetachOutput(0);
+			#endif
+			break;
+			
 		default:
 			printk(" Unsupported IOCTL!!!\n");      
 			break;			
@@ -1426,6 +1442,8 @@ static long tcc_composite_ioctl(struct file *file, unsigned int cmd, void *arg)
 void tcc_composite_attach(char lcdc_num, char onoff)
 {
 	char composite_mode;
+
+	dprintk("%s, lcdc_num=%d, onoff=%d, mode=%d\n", __func__, lcdc_num, onoff, tcc_composite_mode);
 
 	if(onoff)
 	{

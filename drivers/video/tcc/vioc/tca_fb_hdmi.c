@@ -158,7 +158,7 @@ void TCC_HDMI_LCDC_OutputEnable(char hdmi_lcdc, unsigned int onoff)
 		VIOC_DISP_TurnOff(pDISP);
 
 	#if defined(CONFIG_TCC_OUTPUT_ATTACH)
-		#if defined(TCC_OUTPUT_ATTACH_DUAL_AUTO) || defined(TCC_OUTPUT_ATTACH_HDMI_CVBS)
+		#if defined(TCC_OUTPUT_ATTACH_DUAL) || defined(TCC_OUTPUT_ATTACH_DUAL_AUTO) || defined(TCC_OUTPUT_ATTACH_HDMI_CVBS)
 			if(TCC_OUTPUT_FB_AttachGetSate())
 			{
 				TCC_OUTPUT_FB_DetachOutput(0);

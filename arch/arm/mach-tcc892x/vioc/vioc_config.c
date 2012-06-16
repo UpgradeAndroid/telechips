@@ -118,7 +118,7 @@ int VIOC_CONFIG_PlugIn (unsigned int nType, unsigned int nValue)
 	BITCSET(pConfigPath->nREG, (0x1<<31), (0x1<<31));
 
 	if((pConfigPath->nREG>>18) & 0x1) {
-		printk("VIOC_CONFIG_PlugIn:  path configuration error(1). device is busy. \n");
+		printk("VIOC_CONFIG_PlugIn:  path configuration error(1). device is busy. Type:%d Value:%d\n", nType, nValue);
 		BITCSET(pConfigPath->nREG, (0x1<<31), (0x0<<31));
 		return VIOC_DEVICE_BUSY;
 	}
@@ -129,7 +129,7 @@ int VIOC_CONFIG_PlugIn (unsigned int nType, unsigned int nValue)
 		nStatus = (pConfigPath->nREG>>16) & 0x3;
 		if(nStatus == VIOC_PATH_CONNECTED) 	break;
 		if(loop < 1) {
-			printk("VIOC_CONFIG_PlugIn:  path configuration error(2). device is busy. \n");
+			printk("VIOC_CONFIG_PlugIn:  path configuration error(2). device is busy. Type:%d Value:%d\n", nType, nValue);
 			return VIOC_DEVICE_BUSY;
 		}
 	}
@@ -151,7 +151,7 @@ int VIOC_CONFIG_PlugOut(unsigned int nType)
 	BITCSET(pConfigPath->nREG, (0x1<<31), (0x0<<31));
 
 	if((pConfigPath->nREG>>18) & 0x1) {
-		printk("VIOC_CONFIG_PlugOut:  path configuration error(1). device is busy. \n");
+		printk("VIOC_CONFIG_PlugOut:  path configuration error(1). device is busy. Type:%d\n", nType);
 		BITCSET(pConfigPath->nREG, (0x1<<31), (0x0<<31));
 		return VIOC_DEVICE_BUSY;
 	}
@@ -162,7 +162,7 @@ int VIOC_CONFIG_PlugOut(unsigned int nType)
 		nStatus = (pConfigPath->nREG>>16) & 0x3;
 		if(nStatus == VIOC_PATH_DISCONNECTED) 	break;
 		if(loop < 1) {
-			printk("VIOC_CONFIG_PlugOut:  path configuration error(2). device is busy. \n");
+			printk("VIOC_CONFIG_PlugOut:  path configuration error(2). device is busy. Type:%d\n", nType);
 			return VIOC_DEVICE_BUSY;
 		}
 	}
