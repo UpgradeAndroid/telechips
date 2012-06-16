@@ -194,6 +194,8 @@ int tcc_hp_hw_mute(int flag)
         hp_mute();
     else
         hp_un_mute();
+    if(!flag)
+	tcc_jack_func = TCC_HP;
 }
 
 int tcc_spk_hw_mute(int flag)
@@ -203,6 +205,8 @@ int tcc_spk_hw_mute(int flag)
         spk_mute();
     else
         spk_un_mute();
+    if(!flag)
+	tcc_jack_func = TCC_SPK;
 }
 
 
@@ -216,10 +220,6 @@ static void tcc_ext_control(struct snd_soc_codec *codec)
 	/* set up jack connection */
     if(dapm->bias_level == SND_SOC_BIAS_ON) {
     	switch (tcc_jack_func) {
-#ifdef CONFIG_COBY_MID7025
-		tcc_hp_hw_mute(false);
-		tcc_spk_hw_mute(false);
-#else
     	case TCC_HP:
             tcc_hp_hw_mute(false);
             tcc_spk_hw_mute(true);
@@ -228,7 +228,6 @@ static void tcc_ext_control(struct snd_soc_codec *codec)
             tcc_hp_hw_mute(true);
             tcc_spk_hw_mute(false);
     		break;
-#endif	
     	}
     }
 	if (tcc_spk_func == TCC_SPK_ON)

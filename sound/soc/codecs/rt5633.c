@@ -216,23 +216,27 @@ void rt5633_write_index_mask(struct snd_soc_codec *codec, unsigned int reg,unsig
 
 
 static struct rt5633_init_reg init_list[] = {
-	{RT5633_SPK_OUT_VOL		, 0x8000},//speaker output volume is 0db by default
+	{RT5633_SPK_OUT_VOL		, 0xe000},//speaker output volume is 0db by default,
 	{RT5633_SPK_HP_MIXER_CTRL	, 0x0020},//HP from HP_VOL	
 	{RT5633_HP_OUT_VOL 		, 0xc0c0},//HP output volume is 0 db by default
 	{RT5633_AUXOUT_VOL		, 0x0010},//Auxout volume is 0db by default
 	{RT5633_REC_MIXER_CTRL		, 0x7d7d},//ADC Record Mixer Control
-	{RT5633_MIC_CTRL_2		, 0x5500},//boost 40db
+	{RT5633_ADC_CTRL		, 0x000a},
+	{RT5633_MIC_CTRL_2		, 0x7700},//boost 40db
 	{RT5633_HPMIXER_CTRL		, 0x3e3e},//"HP Mixer Control"
 //	{RT5633_AUXMIXER_CTRL		, 0x3e3e},//"AUX Mixer Control"
 	{RT5633_SPKMIXER_CTRL		, 0x08fc},//"SPK Mixer Control"
 	{RT5633_SPK_AMP_CTRL		, 0x0000},
-	{RT5633_GEN_PUR_CTRL_1		, 0x8C00}, //set spkratio to auto  
+//	{RT5633_GEN_PUR_CTRL_1		, 0x8C00}, //set spkratio to auto  
 	{RT5633_ZC_SM_CTRL_1		, 0x0001},	//Disable Zero Cross
 	{RT5633_ZC_SM_CTRL_2		, 0x3000},	//Disable Zero cross
 	{RT5633_MIC_CTRL_1       	, 0x8808}, //set mic1 to differnetial mode	
 	{RT5633_DEPOP_CTRL_2		, 0xB000},
-	{RT5633_PRI_REG_ADD		, 0x0056},
+	{RT5633_PRI_REG_ADD		    , 0x0056},
 	{RT5633_PRI_REG_DATA		, 0x303f},	
+	{RT5633_ALC_CTRL_1		    , 0x0808},
+	{RT5633_ALC_CTRL_2		    , 0x0003},
+	{RT5633_ALC_CTRL_3		    , 0xe081},
 #if 0	//internal hp detect
 	{RT5633_ZC_SM_CTRL_1		, 0x04b0},	
 	{RT5633_ZC_SM_CTRL_2		, 0x3000},
@@ -423,7 +427,6 @@ SOC_ENUM_SINGLE(RT5633_SPK_OUT_VOL, 13, 4, rt5633_spor_source_sel), /*6*/
 SOC_ENUM_SINGLE(RT5633_AUXOUT_VOL, 14, 2, rt5633_auxout_mode_source_sel), /*7*/
 };
 
-
 static const struct snd_kcontrol_new rt5633_snd_controls[] = {
 SOC_ENUM("MIC1 Mode Control",  rt5633_enum[1]),   
 SOC_ENUM("MIC1 Boost", rt5633_enum[4]),
@@ -454,11 +457,15 @@ SOC_DOUBLE("HP Playback Volume", RT5633_HP_OUT_VOL, 8, 0, 31, 1),
 static void hp_depop_mode2(struct snd_soc_codec *codec)
 {
         rt5633_write_mask(codec,RT5633_PWR_MANAG_ADD3,PWR_MAIN_BIAS|PWR_VREF,PWR_VREF|PWR_MAIN_BIAS);
-        rt5633_write_mask(codec,RT5633_PWR_MANAG_ADD4,PWR_HP_L_VOL|PWR_HP_R_VOL,PWR_HP_L_VOL|PWR_HP_R_VOL);
-        rt5633_write_mask(codec,RT5633_PWR_MANAG_ADD3,PWR_HP_AMP,PWR_HP_AMP);
-        rt5633_write_mask(codec,RT5633_DEPOP_CTRL_1,PW_SOFT_GEN|EN_DEPOP_2,PW_SOFT_GEN|EN_DEPOP_2);       
-        schedule_timeout_uninterruptible(msecs_to_jiffies(300));
+		rt5633_write_mask(codec,RT5633_DEPOP_CTRL_1,PW_SOFT_GEN,PW_SOFT_GEN);
+		rt5633_write_mask(codec,RT5633_PWR_MANAG_ADD3,PWR_HP_AMP,PWR_HP_AMP);
+		rt5633_write_mask(codec,RT5633_DEPOP_CTRL_1,EN_DEPOP_2,EN_DEPOP_2);
+		schedule_timeout_uninterruptible(msecs_to_jiffies(300));
         rt5633_write_mask(codec,RT5633_PWR_MANAG_ADD3,PWR_HP_DIS_DEPOP|PWR_HP_AMP_DRI,PWR_HP_DIS_DEPOP|PWR_HP_AMP_DRI);
+		
+        rt5633_write_mask(codec,RT5633_PWR_MANAG_ADD4,PWR_HP_L_VOL|PWR_HP_R_VOL,PWR_HP_L_VOL|PWR_HP_R_VOL);
+        
+         
         rt5633_write_mask(codec,RT5633_DEPOP_CTRL_1,0,EN_DEPOP_2);
 }
 
@@ -577,7 +584,8 @@ static int spk_event(struct snd_soc_dapm_widget *w,
 	case SND_SOC_DAPM_PRE_PMD:
 		if (l && r) 
 		{
-			rt5633_write_mask(codec, RT5633_SPK_OUT_VOL, 0xE000, 0xE000);
+			rt5633_write_mask(codec, RT5633_SPK_OUT_VOL, 0x8000, 0x8000);
+           			
 			rt5633_write_mask(codec, RT5633_PWR_MANAG_ADD1, 0x0000, 0x2020);		
 		}
 		
@@ -586,7 +594,9 @@ static int spk_event(struct snd_soc_dapm_widget *w,
 		if (l && r) 
 		{
 			rt5633_write_mask(codec, RT5633_PWR_MANAG_ADD1, 0x2020, 0x2020);
-			rt5633_write_mask(codec, RT5633_SPK_OUT_VOL, 0x0000, 0xE000);
+			rt5633_write_mask(codec, RT5633_SPK_OUT_VOL, 0x0000, 0x8000);
+			 rt5633_write(codec, RT5633_DAC_DIG_VOL, 0x1010);
+			 rt5633_write_index(codec, 0X45, 0X4100);
 		}
 		break;
 	default:
@@ -642,6 +652,7 @@ static int hp_event(struct snd_soc_dapm_widget *w,
 		 	hp_depop_mode2(codec);
 			open_hp_end_widgets(codec);
 			hp_out_enable=1;
+			rt5633_write(codec, RT5633_DAC_DIG_VOL, 0x0000);
 		}
 
 	break;
@@ -1531,7 +1542,7 @@ static int rt5633_set_bias_level(struct snd_soc_codec *codec, enum snd_soc_bias_
 		}
 		break;
 	case SND_SOC_BIAS_OFF:
-		rt5633_write_mask(codec, RT5633_SPK_OUT_VOL, 0x8080, 0x8080);	//mute speaker volume
+		rt5633_write_mask(codec, RT5633_SPK_OUT_VOL, 0x8000, 0x8000);	//mute speaker volume
 		rt5633_write_mask(codec, RT5633_HP_OUT_VOL, 0x8080, 0x8080);	//mute hp volume
 		rt5633_write(codec, RT5633_PWR_MANAG_ADD1, 0x0000);
 		rt5633_write(codec, RT5633_PWR_MANAG_ADD2, 0x0000);
