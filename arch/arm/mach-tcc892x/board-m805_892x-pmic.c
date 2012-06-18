@@ -116,7 +116,7 @@ static struct axp192_subdev_data axp192_subdev[] = {
 
 static int axp192_irq_init(void)
 {
-	if(system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004) {
+	if(system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004 || system_rev == 0x2005) {
 		tcc_gpio_config(TCC_GPE(27), GPIO_FN(0)|GPIO_PULL_DISABLE);  // GPIOE[31]: input mode, disable pull-up/down
 		tcc_gpio_config_ext_intr(PMIC_IRQ, EXTINT_GPIOE_27);
 
@@ -293,7 +293,7 @@ static struct rn5t614_subdev_data rn5t614_subdev[] = {
 static int rn5t614_port_init(int irq_num)
 {
 	if (irq_num) {
-		if(system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004) {
+		if(system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004 || system_rev == 0x2005) {
 			tcc_gpio_config(TCC_GPE(27), GPIO_FN(0)|GPIO_PULL_DISABLE);  // GPIOE[31]: input mode, disable pull-up/down
 			tcc_gpio_config_ext_intr(irq_num, EXTINT_GPIOE_27);
 		
@@ -404,7 +404,7 @@ void __init m805_892x_init_pmic(void)
 		rn5t614_ldo8_info.num_consumer_supplies = 1;
 		rn5t614_ldo8_info.consumer_supplies = &consumer_cam_iod;
 	}
-	else if (system_rev == 0x2003) {
+	else if (system_rev == 0x2003 || system_rev == 0x2004 || system_rev == 0x2005) {
 		rn5t614_ldo4_info.num_consumer_supplies = 1;
 		rn5t614_ldo4_info.consumer_supplies = &consumer_iod0;
 		rn5t614_ldo5_info.num_consumer_supplies = 1;
