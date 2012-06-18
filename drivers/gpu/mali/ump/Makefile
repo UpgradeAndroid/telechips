@@ -20,10 +20,10 @@ endif
 
 ARCH ?= arm
 ## @note Should allow overriding of building UMP for non-debug:
-EXTRA_CFLAGS += -DDEBUG -DMALI_STATE_TRACKING=0
 
 EXTRA_CFLAGS += -I$(src) -I$(src)/common -I$(src)/linux -I$(src)/../mali/common -I$(src)/../mali/linux -I$(src)/include/ump
 EXTRA_CFLAGS += -I$(src)/arch
+EXTRA_CFLAGS += -DDEBUG -DMALI_STATE_TRACKING=0
 
 # For customer releases the Linux Device Drivers will be provided as ARM proprietary and GPL releases:
 # The ARM proprietary product will only include the license/proprietary directory
@@ -35,7 +35,11 @@ else
 EXTRA_CFLAGS += -I$(src)/linux/license/gpl
 endif
 
-SRC +=	$(UMP_FILE_PREFIX)linux/ump_kernel_linux.c \
+SRC +=	$(UMP_FILE_PREFIX)common/ump_kernel_common.c \
+	$(UMP_FILE_PREFIX)common/ump_kernel_descriptor_mapping.c \
+	$(UMP_FILE_PREFIX)common/ump_kernel_api.c \
+	$(UMP_FILE_PREFIX)common/ump_kernel_ref_drv.c \
+	$(UMP_FILE_PREFIX)linux/ump_kernel_linux.c \
 	$(UMP_FILE_PREFIX)linux/ump_kernel_memory_backend_os.c \
 	$(UMP_FILE_PREFIX)linux/ump_kernel_memory_backend_dedicated.c \
 	$(UMP_FILE_PREFIX)linux/ump_memory_backend.c \
