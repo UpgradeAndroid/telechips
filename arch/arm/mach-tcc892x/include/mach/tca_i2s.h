@@ -24,20 +24,14 @@
 #if defined(CONFIG_ARCH_TCC892X)
 #define	BASE_ADDR_ADMA0      HwAUDIO0_ADMA_BASE
 #define BASE_ADDR_DAI0       HwAUDIO0_DAI_BASE
-#define BASE_ADDR_SPDIFTX0   HwAUDIO0_SPDIFTX_BASE
+
+#define	BASE_ADDR_ADMA1      HwAUDIO1_ADMA_BASE
+#define BASE_ADDR_SPDIFTX1   HwAUDIO1_SPDIFTX_BASE
 
 #define CLK_NAME_ADMA0       "adma0"
 #define CLK_NAME_DAI0        "dai0"
-#define CLK_NAME_SPDIF0      "spdif0"
-
-#define	BASE_ADDR_ADMA1      HwAUDIO1_ADMA_BASE
-#define BASE_ADDR_DAI1       HwAUDIO1_DAI_BASE
-#define BASE_ADDR_SPDIFTX1   HwAUDIO1_SPDIFTX_BASE
-
 #define CLK_NAME_ADMA1       "adma1"
-#define CLK_NAME_DAI1        "dai1"
 #define CLK_NAME_SPDIF1      "spdif1"
-
 #else
 #define	BASE_ADDR_ADMA      HwAUDIO0_ADMA_BASE
 #define BASE_ADDR_DAI       HwAUDIO0_DAI_BASE

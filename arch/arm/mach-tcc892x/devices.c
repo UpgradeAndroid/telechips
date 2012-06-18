@@ -814,23 +814,6 @@ static struct platform_device tcc_iec958 = {
 	.id	= -1,
 };
 
-//Planet 20120615 Audio Driver Improvement Start	
-static struct platform_device tcc_pcm_ch1 = {
-	.name	= "tcc-pcm-audio-ch1",
-	.id	= -1,
-};
-
-static struct platform_device tcc_dai_ch1 = {
-	.name	= "tcc-dai-ch1",
-	.id	= -1,
-};
-
-static struct platform_device tcc_iec958_ch1 = {
-	.name	= "tcc-iec958-ch1",
-	.id	= -1,
-};
-//Planet 20120615 Audio Driver Improvement End
-
 #if defined(CONFIG_SND_SOC_WM8524)
 static struct platform_device tcc_wm8524 = {
 	.name	= "tcc-wm8524",
@@ -843,10 +826,6 @@ static void tcc_init_audio(void)
 	platform_device_register(&tcc_pcm);
 	platform_device_register(&tcc_dai);
 	platform_device_register(&tcc_iec958);
-
-	platform_device_register(&tcc_pcm_ch1);		//Planet 20120615 Audio Driver Improvement
-	platform_device_register(&tcc_dai_ch1);		//Planet 20120615 Audio Driver Improvement
-	platform_device_register(&tcc_iec958_ch1);	//Planet 20120615 Audio Driver Improvement
 
 #if defined(CONFIG_SND_SOC_WM8524)
 	platform_device_register(&tcc_wm8524);

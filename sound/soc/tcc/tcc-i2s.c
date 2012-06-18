@@ -65,7 +65,7 @@
 
 #undef alsa_dbg
 #if 0
-#define alsa_dbg(f, a...)  printk("== alsa-debug I2S CH0 == " f, ##a)
+#define alsa_dbg(f, a...)  printk("== alsa-debug == " f, ##a)
 #else
 #define alsa_dbg(f, a...)  
 #endif
@@ -195,7 +195,7 @@ void tcc_spdif_set_clock(unsigned int clock_rate)
     unsigned int clk_rate;
     unsigned tmpCfg, tmpStatus;	
 #if defined(CONFIG_ARCH_TCC892X)
-    volatile ADMASPDIFTX *p_adma_spdif_tx_base = (volatile ADMASPDIFTX *)tcc_p2v(BASE_ADDR_SPDIFTX0);
+    volatile ADMASPDIFTX *p_adma_spdif_tx_base = (volatile ADMASPDIFTX *)tcc_p2v(BASE_ADDR_SPDIFTX1);
 #else
     volatile ADMASPDIFTX *p_adma_spdif_tx_base = (volatile ADMASPDIFTX *)tcc_p2v(BASE_ADDR_SPDIFTX);
 #endif
@@ -311,11 +311,11 @@ static int tcc_spdif_init(void)
 
 #if defined(CONFIG_ARCH_TCC892X)
     /* clock enable */
-    tcc_spdif_clk = clk_get(NULL, CLK_NAME_SPDIF0);
+    tcc_spdif_clk = clk_get(NULL, CLK_NAME_SPDIF1);
     if(IS_ERR(tcc_spdif_clk))   return (-EINVAL);
     clk_enable(tcc_spdif_clk);
 
-    tcc_adma1_clk = clk_get(NULL, CLK_NAME_ADMA0);
+    tcc_adma1_clk = clk_get(NULL, CLK_NAME_ADMA1);
     if(IS_ERR(tcc_adma1_clk))    return (-EINVAL);
     clk_enable(tcc_adma1_clk);
 #else
@@ -472,7 +472,7 @@ static int tcc_i2s_suspend(struct snd_soc_dai *dai)
 {
 #if defined(CONFIG_ARCH_TCC892X)
 	volatile PADMADAI     pADMA_DAI     = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI0);
-	volatile PADMASPDIFTX pADMA_SPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX0);
+	volatile PADMASPDIFTX pADMA_SPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX1);
 #else
 	volatile PADMADAI     pADMA_DAI     = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI);
 	volatile PADMASPDIFTX pADMA_SPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX);
@@ -518,7 +518,7 @@ static int tcc_i2s_resume(struct snd_soc_dai *dai)
 {
 #if defined(CONFIG_ARCH_TCC892X)
 	volatile PADMADAI     pADMA_DAI     = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI0);
-	volatile PADMASPDIFTX pADMA_SPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX0);
+	volatile PADMASPDIFTX pADMA_SPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX1);
 #else
 	volatile PADMADAI     pADMA_DAI     = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI);
 	volatile PADMASPDIFTX pADMA_SPDIFTX = (volatile PADMASPDIFTX)tcc_p2v(BASE_ADDR_SPDIFTX);
