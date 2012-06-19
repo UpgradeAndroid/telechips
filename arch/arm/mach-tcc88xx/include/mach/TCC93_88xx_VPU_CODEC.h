@@ -363,8 +363,7 @@ typedef struct enc_rc_init_t
 
 	///////////Encoded Video Quality Related//////////////
 	int m_iEncQualityLevel;//!< Encoded Video Quality level control (H.264 only)
-						   //!< 1(Lowest Quality) ~ 35(Highest Quality), default is 11.
-
+						   //!< 1(Lowest Quality) ~ 35(Highest Quality), 11 is default
 }enc_rc_init_t;
 
 typedef struct enc_init_t 
@@ -396,6 +395,7 @@ typedef struct enc_init_t
 #define SEC_AXI_BUS_DISABLE		(0<<21)
 #define SEC_AXI_BUS_ENABLE_TCC93XX	(1<<21)
 #define SEC_AXI_BUS_ENABLE_TCC88XX	(2<<21)
+#define ENHANCED_RC_MODEL_ENABLE	(1<<10)	//!< H.264 encoder enhanced RC model enable
 
 	unsigned int m_uiEncOptFlags;
 
