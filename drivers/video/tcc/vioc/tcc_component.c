@@ -399,7 +399,7 @@ int tcc_component_detect(void)
 					dprintk("%s, detect=%d\n", __func__, detect);
 				}
 			}
-		#elif defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION) && defined(TCC_OUTPUT_AUTO_HDMI_CVBS)
+		#elif (defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION) && defined(TCC_OUTPUT_AUTO_HDMI_CVBS)) || (defined(CONFIG_TCC_OUTPUT_ATTACH) && defined(TCC_OUTPUT_ATTACH_HDMI_CVBS))
 			detect = false;
 		#elif defined(CONFIG_TCC_OUTPUT_ATTACH) && defined(TCC_OUTPUT_ATTACH_DUAL_AUTO)
 			/* Check the HDMI detection */
