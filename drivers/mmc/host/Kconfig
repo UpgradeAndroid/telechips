@@ -626,17 +626,17 @@ config MMC_TCC_ADMA
 
 endchoice 	
 
-config ATH_WIFI
-        bool "Support Atheros WIFI"
-	depends on MMC_TCC_SDHC
+config BROADCOM_WIFI
+        bool "Support Broadcom BCM4330 Wi-Fi module"
+        depends on MMC_TCC892X_SDHC
         help
-         Telechips SDHC core 1 Atheros WIFI enable
+         Broadcom BCM4330 enable
 
-config WIFI_SUB_BOARD
-        bool "Support Atheros WIFI sub board"
-        depends on MMC_TCC_PORT7 && MMC_TCC88XX_SDHC
+config BCM4330_SUB_BOARD
+        bool "Support Broadcom BCM4330 sub board"
+        depends on MMC_TCC892X_SDHC && BROADCOM_WIFI
         help
-         Telechips SDHC core 1 Atheros WIFI sub board enable
+         Telechips SDHC core 1 Broadcom BCM4330 sub board enable
 
 config MMC_TCC_4SD_SLOT
         bool "Enabling a 4 SD SLOT SUPPORT"

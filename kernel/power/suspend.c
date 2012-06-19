@@ -275,6 +275,11 @@ static void suspend_finish(void)
 #if defined(CONFIG_USB_EHCI_HCD_MODULE)
 extern int tcc_umh_ehci_module(int flag);
 #endif
+
+#if defined(CONFIG_BROADCOM_WIFI)
+int tcc_bcmwifi_module(int flag);
+#endif
+
 int enter_state(suspend_state_t state)
 {
 	int error;
@@ -282,6 +287,9 @@ int enter_state(suspend_state_t state)
 	suspend_test_start_level(TEST_SUSPEND_TIME_TOP);
 #if defined(CONFIG_USB_EHCI_HCD_MODULE)
 	tcc_umh_ehci_module(0);
+#endif
+#if defined(CONFIG_BROADCOM_WIFI)
+	tcc_bcmwifi_module(0);
 #endif
 
 	if (!valid_state(state)) {
@@ -321,6 +329,11 @@ int enter_state(suspend_state_t state)
 #if defined(CONFIG_USB_EHCI_HCD_MODULE)
 	tcc_umh_ehci_module(1);
 #endif
+
+#if defined(CONFIG_BROADCOM_WIFI)
+	tcc_bcmwifi_module(1);
+#endif
+
 	suspend_test_finish_level(TEST_SUSPEND_TIME_TOP, "total transition time of resume");
 	return error;
 }
@@ -385,4 +398,36 @@ End:
 	return retval;
 }
 EXPORT_SYMBOL(tcc_umh_ehci_module);
+#endif
+
+#if defined(CONFIG_BROADCOM_WIFI)
+int tcc_bcmwifi_module(int flag)
+{
+	int retval = 0;
+	struct subprocess_info *sub_info_hs;
+	static char *envp[] = {NULL};
+	char *argv_hs[] = {
+		flag ? "/system/bin/insmod" : "/system/bin/rmmod",
+		flag ? "/system/wifi/bcm4330.ko" : "bcmdhd",
+		NULL};
+
+	sub_info_hs = call_usermodehelper_setup( argv_hs[0], argv_hs, envp, GFP_ATOMIC );
+	if (sub_info_hs == NULL) {
+	printk("-> [%s:%d] ERROR-hs:0x%p, fs:0x%p\n", __func__, __LINE__, sub_info_hs);
+		if(sub_info_hs) call_usermodehelper_freeinfo(sub_info_hs);
+		retval = -ENOMEM;
+		goto End;
+	}
+
+	if (flag) {
+		retval = call_usermodehelper_exec(sub_info_hs, UMH_WAIT_PROC);
+		if(retval) printk("-> [%s:%d] retval:%d\n", __func__, __LINE__, retval);
+	} else {
+		retval |= call_usermodehelper_exec(sub_info_hs, UMH_WAIT_PROC);
+		if(retval) printk("-> [%s:%d] retval:%d\n", __func__, __LINE__, retval);
+	}
+End:
+	return retval;
+}
+EXPORT_SYMBOL(tcc_bcmwifi_module);
 #endif

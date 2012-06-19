@@ -189,6 +189,13 @@ int tcc8920_mmc_init(struct device *dev, int id)
 		gpio_direction_output(mmc_port->pwr, 1);
 	}
 
+	#if defined(CONFIG_BCM4330_SUB_BOARD)
+	gpio_request(GPIO_SDWF_RST, "bcm4330_on");
+	gpio_direction_output(GPIO_SDWF_RST, 0);
+    msleep(300); // FIXME:
+    gpio_direction_output(GPIO_SDWF_RST, 1);
+	#endif
+
 	// 2. GPIO Function
 	mmc_gpio_config = mmc_port->func | mmc_port->strength;
 	tcc_gpio_config(mmc_port->data0, mmc_gpio_config);
@@ -222,6 +229,11 @@ int tcc8920_mmc_init(struct device *dev, int id)
 int tcc8920_mmc_card_detect(struct device *dev, int id)
 {
 	BUG_ON(id >= tccUsedSDportNum);
+
+#if defined(CONFIG_BCM4330_SUB_BOARD)
+	if(id == TCC_MMC_TYPE_WIFI)
+		return 1;
+#endif
 
 	if(mmc_ports[id].cd == TCC_MMC_PORT_NULL)
 		return 1;
