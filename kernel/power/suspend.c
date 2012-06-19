@@ -413,7 +413,7 @@ int tcc_bcmwifi_module(int flag)
 
 	sub_info_hs = call_usermodehelper_setup( argv_hs[0], argv_hs, envp, GFP_ATOMIC );
 	if (sub_info_hs == NULL) {
-	printk("-> [%s:%d] ERROR-hs:0x%p, fs:0x%p\n", __func__, __LINE__, sub_info_hs);
+	printk("-> [%s:%d] ERROR-hs:0x%p", __func__, __LINE__, sub_info_hs);
 		if(sub_info_hs) call_usermodehelper_freeinfo(sub_info_hs);
 		retval = -ENOMEM;
 		goto End;
