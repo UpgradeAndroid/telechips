@@ -185,9 +185,13 @@ int tcc8920_mmc_init(struct device *dev, int id)
 	{
 		gpio_request(mmc_port->pwr, "WiFi_Power");
 		gpio_direction_output(mmc_port->pwr, 0);
-		msleep(100);
+		msleep(300);	//for EVM - suspend.resume issue (100->300)
 		gpio_direction_output(mmc_port->pwr, 1);
 	}
+	//Start : for EVM - suspend.resume issue
+	if((system_rev >= 0x1000)&&(system_rev <= 0x1008))
+		msleep(300);
+	//End
 
 	#if defined(CONFIG_BCM4330_SUB_BOARD)
 	gpio_request(GPIO_SDWF_RST, "bcm4330_on");
