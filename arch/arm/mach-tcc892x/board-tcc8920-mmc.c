@@ -194,10 +194,12 @@ int tcc8920_mmc_init(struct device *dev, int id)
 	//End
 
 	#if defined(CONFIG_BCM4330_SUB_BOARD)
-	gpio_request(GPIO_SDWF_RST, "bcm4330_on");
-	gpio_direction_output(GPIO_SDWF_RST, 0);
-    msleep(300); // FIXME:
-    gpio_direction_output(GPIO_SDWF_RST, 1);
+	if(id == TCC_MMC_TYPE_WIFI) {
+	    gpio_request(GPIO_SDWF_RST, "bcm4330_on");
+	    gpio_direction_output(GPIO_SDWF_RST, 0);
+	    msleep(300); // FIXME:
+	    gpio_direction_output(GPIO_SDWF_RST, 1);
+	}
 	#endif
 
 	// 2. GPIO Function
