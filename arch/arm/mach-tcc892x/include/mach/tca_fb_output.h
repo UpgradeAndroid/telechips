@@ -44,12 +44,6 @@ extern
 	#define TCC_OUTPUT_AUTO_HDMI_CVBS
 #endif
 	
-#if defined(CONFIG_TCC_OUTPUT_ATTACH)
-	//#define TCC_OUTPUT_ATTACH_DUAL
-	#define TCC_OUTPUT_ATTACH_DUAL_AUTO
-	//#define TCC_OUTPUT_ATTACH_HDMI_CVBS
-#endif
-
 /*****************************************************************************
 *
 * Enum

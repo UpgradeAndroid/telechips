@@ -122,6 +122,19 @@ config TCC_OUTPUT_ATTACH
 	help
 	  Composite or Component output can be attached to HDMI output.
 
+choice
+	prompt "Select Attach Mode"
+	depends on TCC_OUTPUT_ATTACH
+	default OUTPUT_ATTACH_DUAL
+
+config OUTPUT_ATTACH_DUAL
+	bool 'Normal Mode'
+config OUTPUT_ATTACH_DUAL_AUTO
+	bool 'Auto-Detection Mode'
+config OUTPUT_ATTACH_HDMI_CVBS
+	bool 'HDMI/CVBS Mode'
+endchoice
+
 config TCC_OUTPUT_3D_UI
     bool "Support 3D(SBS/TNB) UI Display for MKV 3D files"
 	depends on FB && MACH_TCC8920ST

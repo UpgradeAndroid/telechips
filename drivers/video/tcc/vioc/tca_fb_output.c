@@ -800,13 +800,13 @@ void TCC_OUTPUT_LCDC_OutputEnable(char output_lcdc, unsigned int onoff)
 		VIOC_DISP_TurnOff(pDISP);
 
 	#if defined(CONFIG_TCC_OUTPUT_ATTACH)
-		#if defined(TCC_OUTPUT_ATTACH_DUAL) || defined(TCC_OUTPUT_ATTACH_DUAL_AUTO)
+		#if defined(CONFIG_OUTPUT_ATTACH_DUAL) || defined(CONFIG_OUTPUT_ATTACH_DUAL_AUTO)
 			if(TCC_OUTPUT_FB_AttachGetSate())
 			{
 				TCC_OUTPUT_FB_DetachOutput(0);
 				TCC_OUTPUT_FB_AttachOutput(output_lcdc, TCC_OUTPUT_COMPOSITE, 0);
 			}
-		#else !defined(TCC_OUTPUT_ATTACH_HDMI_CVBS)
+		#else !defined(CONFIG_OUTPUT_ATTACH_HDMI_CVBS)
 			TCC_OUTPUT_FB_DetachOutput(0);
 			if(tcc_display_data.output == 3)
 				TCC_OUTPUT_FB_AttachOutput(output_lcdc, TCC_OUTPUT_COMPONENT, 0);

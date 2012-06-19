@@ -1176,7 +1176,7 @@ static int tcc_hdmi_detect_cable(void)
 	int ret = true;
 
 	#if defined(CONFIG_MACH_TCC9300ST) || defined(CONFIG_MACH_TCC8800ST) || defined(CONFIG_MACH_TCC8920ST)
-		#if defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION) || (defined(TCC_OUTPUT_STARTER_ATTACH) && defined(TCC_OUTPUT_ATTACH_DUAL_AUTO))
+		#if defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION) || (defined(TCC_OUTPUT_STARTER_ATTACH) && defined(CONFIG_OUTPUT_ATTACH_DUAL_AUTO))
 			tcc_gpio_config(GPIO_OUTPUT_HDMI_DETECT, GPIO_FN(0));
 			gpio_request(GPIO_OUTPUT_HDMI_DETECT, NULL);
 			gpio_direction_input(GPIO_OUTPUT_HDMI_DETECT);
@@ -2742,13 +2742,13 @@ int __init tcc_output_starter_init(void)
 	#elif defined(TCC_OUTPUT_STARTER_ATTACH)
 		#if defined(CONFIG_ARCH_TCC892X)
 			/* 1st Output Setting */
-			#if defined(TCC_OUTPUT_ATTACH_HDMI_CVBS)
+			#if defined(CONFIG_OUTPUT_ATTACH_HDMI_CVBS)
 				if(tcc_display_data.output >= STARTER_OUTPUT_MAX)
 					tcc_output_starter_hdmi(lcdc_1st, STARTER_HDMI_640x480P);
 				else
 					tcc_output_starter_hdmi(lcdc_1st, tcc_display_data.hdmi_resolution);
 			#else
-				#if defined(TCC_OUTPUT_ATTACH_DUAL_AUTO)
+				#if defined(CONFIG_OUTPUT_ATTACH_DUAL_AUTO)
 					if(tcc_hdmi_detect_cable() == true)
 				#else
 					if(tcc_display_data.output != STARTER_OUTPUT_COMPONENT)

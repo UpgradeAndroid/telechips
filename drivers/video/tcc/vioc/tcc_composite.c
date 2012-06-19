@@ -382,7 +382,7 @@ int tcc_composite_detect(void)
 					dprintk("%s, detect=%d\n", __func__, detect);
 				}
 			}
-		#elif (defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION) && defined(TCC_OUTPUT_AUTO_HDMI_CVBS)) || (defined(CONFIG_TCC_OUTPUT_ATTACH) && defined(TCC_OUTPUT_ATTACH_HDMI_CVBS))
+		#elif (defined(CONFIG_TCC_OUTPUT_AUTO_DETECTION) && defined(TCC_OUTPUT_AUTO_HDMI_CVBS)) || (defined(CONFIG_TCC_OUTPUT_ATTACH) && defined(CONFIG_OUTPUT_ATTACH_HDMI_CVBS))
 			/* Check the HDMI detection */
 			#if defined(CONFIG_MACH_TCC9300ST)
 				if(gpio_get_value(TCC_GPA(14)))
@@ -394,7 +394,7 @@ int tcc_composite_detect(void)
 				{
 					detect = false;
 				}
- 		#elif defined(CONFIG_TCC_OUTPUT_ATTACH) && defined(TCC_OUTPUT_ATTACH_DUAL_AUTO)
+ 		#elif defined(CONFIG_TCC_OUTPUT_ATTACH) && defined(CONFIG_OUTPUT_ATTACH_DUAL_AUTO)
 			detect = false;
 		#endif
 	#endif
@@ -1413,7 +1413,7 @@ static long tcc_composite_ioctl(struct file *file, unsigned int cmd, void *arg)
 			break;
 
 		case TCC_COMPOSITE_IOCTL_ATTACH:
-			#if defined(CONFIG_TCC_OUTPUT_ATTACH) && (defined(TCC_OUTPUT_ATTACH_DUAL) || defined(TCC_OUTPUT_ATTACH_DUAL_AUTO))
+			#if defined(CONFIG_TCC_OUTPUT_ATTACH) && (defined(CONFIG_OUTPUT_ATTACH_DUAL) || defined(CONFIG_OUTPUT_ATTACH_DUAL_AUTO))
 				copy_from_user(&start,arg,sizeof(start));
 				tcc_composite_mode = start.mode;
 
@@ -1423,7 +1423,7 @@ static long tcc_composite_ioctl(struct file *file, unsigned int cmd, void *arg)
 			break;
 
 		case TCC_COMPOSITE_IOCTL_DETACH:
-			#if defined(CONFIG_TCC_OUTPUT_ATTACH) && (defined(TCC_OUTPUT_ATTACH_DUAL) || defined(TCC_OUTPUT_ATTACH_DUAL_AUTO))
+			#if defined(CONFIG_TCC_OUTPUT_ATTACH) && (defined(CONFIG_OUTPUT_ATTACH_DUAL) || defined(CONFIG_OUTPUT_ATTACH_DUAL_AUTO))
 				TCC_OUTPUT_FB_DetachOutput(0);
 			#endif
 			break;
