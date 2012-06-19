@@ -65,6 +65,10 @@ enum VideoFormat
     v1920x1080p_25Hz,
     /** 1920x1080p\@30Hz */
     v1920x1080p_30Hz,
+
+	/** 1280x720p\@60Hz 3D Frame packing */
+    v1280x720p_60Hz_3D,
+
     /** 2880x480p\@60Hz */
     v2880x480p_60Hz,
     /** 2880x576p\@60Hz */

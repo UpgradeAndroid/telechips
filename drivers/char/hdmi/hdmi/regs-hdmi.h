@@ -268,6 +268,25 @@ static inline int machine_is_hdmidp(void)
 
 //@{
 /**
+ * @name SPD packet registers
+ */
+#define HDMI_SPD_CON                HDMIDP_HDMIREG(0x0400)
+#define HDMI_SPD_HEADER0            HDMIDP_HDMIREG(0x0410)
+#define HDMI_SPD_HEADER1            HDMIDP_HDMIREG(0x0414)
+#define HDMI_SPD_HEADER2            HDMIDP_HDMIREG(0x0418)
+#define HDMI_SPD_CHECK_SUM          HDMIDP_HDMIREG(0x0420) //HDMI_SPD_BYTE0
+#define HDMI_SPD_DATA1              HDMIDP_HDMIREG(0x0424)
+#define HDMI_SPD_DATA2              HDMIDP_HDMIREG(0x0428)
+#define HDMI_SPD_DATA3              HDMIDP_HDMIREG(0x042C)
+#define HDMI_SPD_DATA4              HDMIDP_HDMIREG(0x0430)
+#define HDMI_SPD_DATA5              HDMIDP_HDMIREG(0x0434)
+#define HDMI_SPD_DATA6              HDMIDP_HDMIREG(0x0438)
+#define HDMI_SPD_DATA7              HDMIDP_HDMIREG(0x043C)
+
+//@}
+
+//@{
+/**
  * @name HDMI video config registers
  */
 #define HDMI_VACT_END_MG            HDMIDP_HDMIREG(0x008c)
@@ -542,6 +561,22 @@ static inline int machine_is_hdmidp(void)
 #define HDMI_AUI_SF_SF_48KHZ        (1<<3|1<<2)
 #define HDMI_AUI_SF_SF_96KHZ        (1<<4|1<<2)
 #define HDMI_AUI_SF_SF_192KHZ       (1<<4|1<<3|1<<2)
+
+#define SPD_PACKET_TYPE					(0x81)
+#define SPD_PACKET_VERSION				(0x01)
+#define SPD_PACKET_BYTE_LENGTH			(0x07)
+#define SPD_HEADER                  	(SPD_PACKET_TYPE + SPD_PACKET_VERSION + SPD_PACKET_BYTE_LENGTH)
+#define SPD_PACKET_ID0					(0x03)
+#define SPD_PACKET_ID1					(0x0c)
+#define SPD_PACKET_ID2					(0x00)
+#define SPD_PACKET_ID_LENGTH			(0x03)
+#define SPD_HDMI_VIDEO_FORMAT_NONE		(0x00)
+#define SPD_HDMI_VIDEO_FORMAT_VIC		(0x01)
+#define SPD_HDMI_VIDEO_FORMAT_3D		(0x02)
+
+#define SPD_3D_STRUCT_FRAME_PACKING		(0x00)
+#define SPD_3D_STRUCT_TOP_AND_BOTTOM	(0x06)
+#define SPD_3D_STRUCT_SIDE_BY_SIDE		(0x08)
 
 #define GCP_AVMUTE_ON               (1<<0)
 #define GCP_AVMUTE_OFF              (1<<4)

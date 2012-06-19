@@ -136,6 +136,10 @@ static int hdmi_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 static void hdcp_reset(void);
 static void hdcp_enable(unsigned char enable);
 static void hdmi_avi_update_checksum(void);
+
+static void hdmi_spd_update_checksum(void);
+static int hdmi_set_spd_infoframe(struct HDMIVideoFormatCtrl VideoFormatCtrl);
+
 void hdmi_aui_update_checksum(void);
 int hdmi_set_color_space(enum ColorSpace);
 int hdmi_set_color_depth(enum ColorDepth);
@@ -1244,6 +1248,24 @@ int hdmi_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
             writeb(reg, HDMI_AUI_BYTE2);
             break;
         }
+		case HDMI_IOC_VIDEO_FORMAT_CONTROL:
+		{
+            struct HDMIVideoFormatCtrl video_format_ctrl;
+            int ret;
+
+            dprintk(KERN_INFO "HDMI: ioctl(HDMI_IOC_VIDEO_FORMAT_CONTROL)\n");
+
+            // get size arg;
+            if ( (ret = copy_from_user((void*)&video_format_ctrl,(const void*)arg,sizeof(video_format_ctrl))) < 0)
+                return -EFAULT;
+
+			hdmi_set_spd_infoframe( video_format_ctrl );
+
+			writeb(TRANSMIT_EVERY_VSYNC,HDMI_SPD_CON);
+
+			break;
+		}
+
         default:
             return -EINVAL;
     }
@@ -1964,6 +1986,24 @@ void load_hdcp_key(void)
 }
 
 /**
+ * Set checksum in SPD InfoFrame Packet. @n
+ * Calculate a checksum and set it in packet.
+ */
+void hdmi_spd_update_checksum(void)
+{
+    unsigned char index, checksum;
+
+    checksum = SPD_HEADER;
+
+    for (index = 0; index < SPD_PACKET_BYTE_LENGTH; index++)
+    {
+        checksum += readb(HDMI_SPD_DATA1 + 4*index);
+    }
+
+    writeb(~checksum+1,HDMI_SPD_CHECK_SUM);
+}
+
+/**
  * Set checksum in Audio InfoFrame Packet. @n
  * Calculate a checksum and set it in packet.
  */
@@ -2510,6 +2550,63 @@ int hdmi_set_audio_channel_number(enum ChannelNum channel)
     return ret;
 }
 
+int hdmi_set_spd_infoframe(struct HDMIVideoFormatCtrl VideoFormatCtrl)
+{
+	//SPD INFOFRAME PACKET HEADER
+	writeb(SPD_PACKET_TYPE,HDMI_SPD_HEADER0);
+	writeb(SPD_PACKET_VERSION,HDMI_SPD_HEADER1);
+	writeb(SPD_PACKET_BYTE_LENGTH,HDMI_SPD_HEADER2);
+
+	//SPD INFOFRAME PACKET CONTENTS
+	writeb(SPD_PACKET_ID0,HDMI_SPD_DATA1);
+	writeb(SPD_PACKET_ID1,HDMI_SPD_DATA2);
+	writeb(SPD_PACKET_ID2,HDMI_SPD_DATA3);
+
+	switch(VideoFormatCtrl.video_format)
+	{
+		case HDMI_2D:
+			writeb((SPD_HDMI_VIDEO_FORMAT_NONE << 5),HDMI_SPD_DATA4);
+			break;
+		case HDMI_VIC:
+			writeb((SPD_HDMI_VIDEO_FORMAT_VIC << 5),HDMI_SPD_DATA4);
+			break;
+		case HDMI_3D:
+			writeb((SPD_HDMI_VIDEO_FORMAT_3D << 5),HDMI_SPD_DATA4);
+			break;
+		default:
+			break;
+	}
+
+	if(VideoFormatCtrl.video_format == HDMI_3D)
+	{
+		switch(VideoFormatCtrl.structure_3D)
+		{
+			case FRAME_PACKING:
+				writeb((SPD_3D_STRUCT_FRAME_PACKING << 4),HDMI_SPD_DATA5);
+				break;
+			case TOP_AND_BOTTOM:
+				writeb((SPD_3D_STRUCT_TOP_AND_BOTTOM << 4),HDMI_SPD_DATA5);
+				break;
+			case SIDE_BY_SIDE:
+				writeb((SPD_3D_STRUCT_SIDE_BY_SIDE << 4),HDMI_SPD_DATA5);
+				break;
+		}
+
+		if(VideoFormatCtrl.ext_data_3D)
+			writeb(VideoFormatCtrl.ext_data_3D << 4,HDMI_SPD_DATA5);
+	}
+	else
+	{
+		writeb(0,HDMI_SPD_DATA5);
+		writeb(0,HDMI_SPD_DATA6);
+		writeb(0,HDMI_SPD_DATA7);
+	}
+	
+	hdmi_spd_update_checksum();
+
+	return 1;
+}
+
 /**
  * hdmi_phy_reset.
  */
@@ -2604,6 +2701,7 @@ void hdmi_start(void)
         writeb(DO_NOT_TRANSMIT,HDMI_AUI_CON);
         writeb(DO_NOT_TRANSMIT,HDMI_AVI_CON);
         writeb(DO_NOT_TRANSMIT,HDMI_GCP_CON);
+		writeb(DO_NOT_TRANSMIT,HDMI_SPD_CON);
 
         // enable hdmi without audio
         reg &= ~HDMI_ASP_ENABLE;

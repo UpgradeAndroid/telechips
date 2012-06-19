@@ -68,6 +68,10 @@ enum VideoFormat
     v1920x1080p_25Hz,
     /** 1920x1080p\@30Hz */
     v1920x1080p_30Hz,
+
+	/** 1280x720p\@60Hz 3D Frame packing */
+    v1280x720p_60Hz_3D,
+ 
     /** 2880x480p\@60Hz */
     v2880x480p_60Hz,
     /** 2880x576p\@60Hz */
@@ -490,6 +494,26 @@ struct HDMIVideoParameter {
 };
 #endif /* __HDMI_VIDEO_PARAMETERS__ */
 
+enum hdmi_video_format
+{
+	HDMI_2D,
+	HDMI_VIC,
+	HDMI_3D,
+};
+
+enum hdmi_3d_type
+{
+	FRAME_PACKING,
+	TOP_AND_BOTTOM,
+	SIDE_BY_SIDE,
+};
+
+struct HDMIVideoFormatCtrl{
+    unsigned char video_format;
+	unsigned char structure_3D;
+	unsigned char ext_data_3D;
+};
+
 
 // IOW
 /** Device request code to set color space. */
@@ -606,6 +630,8 @@ struct HDMIVideoParameter {
 #define HDMI_IOC_GET_PWR_STATUS				_IOR(HDMI_IOC_MAGIC,31, unsigned int)
 
 #endif /*TELECHIPS*/
+
+#define HDMI_IOC_VIDEO_FORMAT_CONTROL		_IOW(HDMI_IOC_MAGIC,40, struct HDMIVideoFormatCtrl)
 
 /**
  * Device requset code to get status of HDMI PHY H/W @n
