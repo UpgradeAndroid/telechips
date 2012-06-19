@@ -157,13 +157,13 @@ void tca_sc_init_port(void)
 	//sc_fnt.pwren = tca_sc_pwren;
 	//sc_fnt.set_voltage = tca_sc_select_voltage;
 #elif defined (CONFIG_MACH_TCC8920ST)
-	sc_io.rst = TCC_GPEXT2(6);
-	sc_io.detect = TCC_GPB(16);
-	sc_io.pwren = TCC_GPEXT2(7);
+	sc_io.rst = TCC_GPB(27);
+	sc_io.detect = TCC_GPG(16);
+	sc_io.pwren = TCC_GPB(20);
 	sc_io.set_volt = -1;
-	sc_io.clk = TCC_GPC(24);
-	sc_io.data = TCC_GPC(23);
-	
+	sc_io.clk = TCC_GPB(26);
+	sc_io.data = TCC_GPB(25);
+
 	//sc_fnt.reset = tca_sc_make_reset;
 	//sc_fnt.detect = tca_sc_detect_card;
 	//sc_fnt.pwren = tca_sc_pwren;
