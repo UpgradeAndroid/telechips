@@ -338,41 +338,62 @@ static volatile VIOC_RDMA pRDMA_BackUp;
 
 void tca_fb_early_suspend(struct early_suspend *h)
 {
-	pRDMA_BackUp = *pRDMABase;
+	if((system_rev != 0x2004) && (system_rev != 0x2005))
+	{
+		pRDMA_BackUp = *pRDMABase;
 
-	#ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
-	tca_lcdc_interrupt_onoff(FALSE, Fb_Lcdc_num);
-	#endif
-	
-	if (Fb_Lcdc_num)
-		disable_irq(INT_VIOC_DEV1);
+		#ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
+		tca_lcdc_interrupt_onoff(FALSE, Fb_Lcdc_num);
+		#endif
+		
+		if (Fb_Lcdc_num)
+			disable_irq(INT_VIOC_DEV1);
+		else
+			disable_irq(INT_VIOC_DEV0);
+
+		VIOC_DISP_TurnOff(pDISPBase);
+		VIOC_RDMA_SetImageDisable(pRDMABase);
+
+		tcafb_clock_set(PWR_CMD_OFF);
+	}
 	else
-		disable_irq(INT_VIOC_DEV0);
+	{
+		VIOC_RDMA *pRDMABase_video;
+			
+		if(Fb_Lcdc_num)	{
+			pRDMABase_video = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA06);
+		}
+		else	{
+			pRDMABase_video = (VIOC_RDMA *)tcc_p2v(HwVIOC_RDMA02);
+		}
+		VIOC_RDMA_SetImageSize(pRDMABase_video, 0, 0);
+		VIOC_RDMA_SetImageUpdate(pRDMABase_video);
 
-	VIOC_DISP_TurnOff(pDISPBase);
-	VIOC_RDMA_SetImageDisable(pRDMABase);
-
-	tcafb_clock_set(PWR_CMD_OFF);
-
+		VIOC_RDMA_SetImageSize(pRDMABase, 0, 0);
+		VIOC_RDMA_SetImageUpdate(pRDMABase);
+	}
+	
 }
 EXPORT_SYMBOL(tca_fb_early_suspend);
 
 
 void tca_fb_late_resume(struct early_suspend *h)
 {
-	tcafb_clock_set(PWR_CMD_ON);	
+	if((system_rev != 0x2004) && (system_rev != 0x2005))
+	{
+		tcafb_clock_set(PWR_CMD_ON);	
 
-	*pRDMABase = pRDMA_BackUp;
-	VIOC_RDMA_SetImageSize(pRDMABase, 0, 0);
-	VIOC_RDMA_SetImageEnable(pRDMABase);
+		*pRDMABase = pRDMA_BackUp;
+		VIOC_RDMA_SetImageSize(pRDMABase, 0, 0);
+		VIOC_RDMA_SetImageEnable(pRDMABase);
 
-	VIOC_WMIX_SetUpdate(pWMIXBase);	
+		VIOC_WMIX_SetUpdate(pWMIXBase);	
 
-	if (Fb_Lcdc_num)
-		enable_irq(INT_VIOC_DEV1);
-	else
-		enable_irq(INT_VIOC_DEV0);
-
+		if (Fb_Lcdc_num)
+			enable_irq(INT_VIOC_DEV1);
+		else
+			enable_irq(INT_VIOC_DEV0);
+	}
 }
 EXPORT_SYMBOL(tca_fb_late_resume);
 
@@ -391,6 +412,25 @@ EXPORT_SYMBOL(tca_fb_later_resume);
 int tca_fb_suspend(struct platform_device *dev, pm_message_t state)
 {
 	printk("%s:  \n", __FUNCTION__);
+	if((system_rev == 0x2004) || (system_rev == 0x2005))
+	{
+		pRDMA_BackUp = *pRDMABase;
+
+		#ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
+		tca_lcdc_interrupt_onoff(FALSE, Fb_Lcdc_num);
+		#endif
+		
+		if (Fb_Lcdc_num)
+			disable_irq(INT_VIOC_DEV1);
+		else
+			disable_irq(INT_VIOC_DEV0);
+
+		VIOC_DISP_TurnOff(pDISPBase);
+		VIOC_RDMA_SetImageDisable(pRDMABase);
+
+		tcafb_clock_set(PWR_CMD_OFF);
+	}
+	
 	return 0;
 }
 EXPORT_SYMBOL(tca_fb_suspend);
@@ -399,6 +439,24 @@ EXPORT_SYMBOL(tca_fb_suspend);
 int tca_fb_resume(struct platform_device *dev)
 {
 	printk("%s:  \n", __FUNCTION__);
+
+	if((system_rev == 0x2004) || (system_rev == 0x2005))
+	{
+		tcafb_clock_set(PWR_CMD_ON);	
+
+		*pRDMABase = pRDMA_BackUp;
+		VIOC_RDMA_SetImageSize(pRDMABase, 0, 0);
+
+		VIOC_RDMA_SetImageEnable(pRDMABase);
+
+		VIOC_WMIX_SetUpdate(pWMIXBase);	
+
+		if (Fb_Lcdc_num)
+			enable_irq(INT_VIOC_DEV1);
+		else
+			enable_irq(INT_VIOC_DEV0);	
+	}	
+	
 	return 0;
 }
 EXPORT_SYMBOL(tca_fb_resume);

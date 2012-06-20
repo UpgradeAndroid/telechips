@@ -2468,11 +2468,13 @@ static void tcc_fb_early_suspend(struct early_suspend *h)
 {
 	printk("%s:  \n", __FUNCTION__);
 	console_lock();
-	fb_power_state = 0;
+	if((system_rev != 0x2004) && (system_rev != 0x2005))
+	{
+		fb_power_state = 0;
 
-	if (lcd_panel->set_power)
-		lcd_panel->set_power(lcd_panel, 0, LCD_LCDC_NUM);
-
+		if (lcd_panel->set_power)
+			lcd_panel->set_power(lcd_panel, 0, LCD_LCDC_NUM);
+	}
 	tca_fb_early_suspend(h);
 	
 	console_unlock();
@@ -2487,11 +2489,14 @@ static void tcc_fb_late_resume(struct early_suspend *h)
 	console_lock();
 
 	tca_fb_late_resume(h);
-
-	if (lcd_panel->set_power)
-		lcd_panel->set_power(lcd_panel, 1, LCD_LCDC_NUM);
+	if((system_rev != 0x2004) && (system_rev != 0x2005))
+	{
+		if (lcd_panel->set_power)
+			lcd_panel->set_power(lcd_panel, 1, LCD_LCDC_NUM);
+		
+		fb_power_state = 1;
+	}
 	
-	fb_power_state = 1;
 	console_unlock();
 	printk("%s: finish \n", __FUNCTION__);
 
@@ -2508,6 +2513,15 @@ static void tcc_fb_later_resume(struct early_suspend *h)
 /* suspend and resume support for the lcd controller */
 static int tccfb_suspend(struct platform_device *dev, pm_message_t state)
 {
+
+	if((system_rev == 0x2004) || (system_rev == 0x2005))
+	{
+		fb_power_state = 0;
+
+		if (lcd_panel->set_power)
+			lcd_panel->set_power(lcd_panel, 0, LCD_LCDC_NUM);
+	}
+
 	tca_fb_suspend(dev, state);
 	return 0;
 }
@@ -2515,6 +2529,14 @@ static int tccfb_suspend(struct platform_device *dev, pm_message_t state)
 static int tccfb_resume(struct platform_device *dev)
 {
 	tca_fb_resume(dev);
+
+	if((system_rev == 0x2004) || (system_rev == 0x2005))
+	{
+		if (lcd_panel->set_power)
+			lcd_panel->set_power(lcd_panel, 1, LCD_LCDC_NUM);
+		
+		fb_power_state = 1;	
+	}
 	return 0;
 }
 
@@ -2682,7 +2704,8 @@ static int __init tccfb_probe(struct platform_device *pdev)
 		fbinfo->fbops			= &tccfb_ops;
 		fbinfo->flags			= FBINFO_FLAG_DEFAULT;
 
-		fbinfo->var.xres		= screen_width;
+		fbinfo->var.rotate = 180;
+		fbinfo->var.xres		= screen_width;
 		fbinfo->var.xres_virtual	= fbinfo->var.xres;
 		fbinfo->var.yres		= screen_height;
 
