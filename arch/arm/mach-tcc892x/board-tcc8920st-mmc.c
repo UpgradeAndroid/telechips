@@ -42,7 +42,7 @@ typedef enum {
 #if defined(CONFIG_STB_BOARD_DONGLE)
 #define TCC_MMC_SDIO_WIFI_USED
 
-#if defined(CONFIG_HDMI_DONGLE_WIFI_REALTEK)
+#if defined(CONFIG_HDMI_DONGLE_WIFI_REALTEK) || defined(CONFIG_HDMI_DONGLE_WIFI_BROADCOM)
 #define WIFI_SDMMC_PORT		3
 #else
 #define WIFI_SDMMC_PORT		4
@@ -85,7 +85,7 @@ static struct mmc_port_config mmc_ports[] = {
 		},
 	#endif
 	
-	#if defined(CONFIG_HDMI_DONGLE_WIFI_REALTEK)
+	#if defined(CONFIG_HDMI_DONGLE_WIFI_REALTEK) || defined(CONFIG_HDMI_DONGLE_WIFI_BROADCOM)
 		[TCC_MMC_TYPE_WIFI] = {
 			.data0	= TCC_GPB(20),
 			.data1	= TCC_GPB(21),
