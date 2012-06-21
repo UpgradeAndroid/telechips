@@ -3130,7 +3130,8 @@ static struct sensor_reg sensor_set_capture_mt9p111[] = {
 { 0x843C, 0xFF 	, BYTE_LEN},// SEQ_STATE_CFG_5_MAX_FRAME_CNT
 { 0x8404, 0x02 	, BYTE_LEN},// SEQ_CMD
 { 0x3170, 0x205C , WORD_LEN}, 	// ANALOG_CONTROL
-    {MT9P111_REG_TERM, MT9P111_VAL_TERM, WORD_LEN}
+{ MT9P111_REG_TERM, 0x012C, WORD_LEN}, 	// DELAY= 300ms
+{ MT9P111_REG_TERM, MT9P111_VAL_TERM, WORD_LEN}
 };
 
  struct sensor_reg* sensor_reg_common_mt9p111[3] =

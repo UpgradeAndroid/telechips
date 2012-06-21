@@ -39,8 +39,11 @@
 #include <linux/spi/tcc_tsif.h>
 #include <mach/tca_spi.h>
 #include "tsdemux/TSDEMUX_sys.h"
-
 #define      SUPPORT_TSIF_BLOCK
+
+#define USE_STATIC_DMA_BUFFER
+#undef  TSIF_DMA_SIZE
+#define TSIF_DMA_SIZE 0x200000
 
 extern int tsif_ex_init(void);
 extern void tsif_ex_exit(void);
@@ -49,13 +52,14 @@ extern int tcc_ex_tsif_release(struct inode *inode, struct file *filp);
 extern int tcc_ex_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
 extern int tcc_ex_tsif_set_external_tsdemux(int (*decoder)(char *p1, int p1_size, char *p2, int p2_size), int max_dec_packet);
 
+static struct tea_dma_buf *g_static_dma;
 static int g_use_tsif_block = 0;
 static char g_use_tsif_export_ioctl = 0;
 
 
 
 static struct clk *gpsb_clk;
-#define TSIF_DMA_SIZE 0x200000
+
 
 struct tca_spi_pri_handle {
     wait_queue_head_t wait_q;
@@ -180,7 +184,6 @@ static int __init tsif_drv_probe(struct platform_device *pdev)
 
 	/* TODO: device_remove_file(&pdev->dev, &dev_attr_tcc_port); */
 	ret = device_create_file(&pdev->dev, &dev_attr_tcc_port);
-	tcc_tsif_init();
 
 	//printk("[%s]%d: init port:%d re:%d\n", pdev->name, gTSIFCH, tsif_pri.gpio_port, ret);
 	return 0;
@@ -190,7 +193,6 @@ static int tsif_drv_suspend(struct platform_device *pdev, pm_message_t state)
 {
     if(tsif_pri.is_suspend == 0)
     {
-        tcc_tsif_deinit();
         tsif_pri.is_suspend = 1;
     }
 	return 0;
@@ -199,7 +201,6 @@ static int tsif_drv_resume(struct platform_device *pdev)
 {
     if(tsif_pri.is_suspend == 1)
     {
-        tcc_tsif_init();
         tsif_pri.is_suspend = 0;
     }
 
@@ -219,6 +220,10 @@ static void tea_free_dma_linux(struct tea_dma_buf *tdma)
 {
 #ifdef      SUPORT_USE_SRAM
 #else    
+    if(g_static_dma){        
+        return;
+    }
+    
     if (tdma) {
         if (tdma->v_addr != 0) {
             dma_free_writecombine(0, tdma->buf_size, tdma->v_addr, tdma->dma_addr);
@@ -241,6 +246,13 @@ static int tea_alloc_dma_linux(struct tea_dma_buf *tdma, unsigned int size)
     return 0;
 #else    
     int ret = -1;
+     if(g_static_dma){        
+        tdma->buf_size = g_static_dma->buf_size;
+        tdma->v_addr = g_static_dma->v_addr;
+        tdma->dma_addr = g_static_dma->dma_addr;
+        return 0;
+    }
+
     if (tdma) {
         tea_free_dma_linux(tdma);
         tdma->buf_size = size;
@@ -584,6 +596,7 @@ static int tcc_tsif_init(void)
     }
     
 	tsif_handle.private_data = (void *)&tsif_pri;
+    init_waitqueue_head(&(tsif_pri.wait_q));
     tsif_handle.clear_fifo_packet(&tsif_handle);
     tsif_handle.dma_stop(&tsif_handle);
 
@@ -630,20 +643,20 @@ static int tcc_tsif_open(struct inode *inode, struct file *filp)
 	}
 	else
 	{
-		clk_enable(gpsb_clk);
-		
-		mutex_lock(&(tsif_pri.mutex));
-		tsif_pri.pcr_pid = 0xFFFF;
-		
 		if (tsif_pri.open_cnt == 0) {
-			tsif_pri.open_cnt++;
-		} else {
-			ret = -EBUSY;
-		}
-		mutex_unlock(&(tsif_pri.mutex));
-		
-		
-		tsif_handle.set_mpegts_pidmode(&tsif_handle, 0);	
+	        tsif_pri.open_cnt++;
+	    }
+	    else {
+	        return -EBUSY;
+	    }
+	   	if(gpsb_clk == NULL)
+	        return -EBUSY;
+
+	    clk_enable(gpsb_clk);
+	    mutex_lock(&(tsif_pri.mutex));
+		tsif_pri.pcr_pid = 0xFFFF;
+	    tcc_tsif_init();
+	    mutex_unlock(&(tsif_pri.mutex));
 	}
 	return ret;
 }
@@ -659,16 +672,20 @@ static int tcc_tsif_release(struct inode *inode, struct file *filp)
 	}
 	else
 	{
-		mutex_lock(&(tsif_pri.mutex));
-		tsif_handle.dma_stop(&tsif_handle);
-		TSDEMUX_Close();
 		if (tsif_pri.open_cnt > 0) {
-			tsif_pri.open_cnt--;
-		}	
-		mutex_unlock(&(tsif_pri.mutex));
-		
-		clk_disable(gpsb_clk);
-		ret = 0;
+	    	tsif_pri.open_cnt--;
+	    }	
+
+	    if (tsif_pri.open_cnt == 0)
+	    {
+	    	mutex_lock(&(tsif_pri.mutex));
+	        tsif_handle.dma_stop(&tsif_handle);
+	        tcc_tsif_deinit();
+		    TSDEMUX_Close();
+	        mutex_unlock(&(tsif_pri.mutex));
+
+	        clk_disable(gpsb_clk);
+	    }
 	}
 	return ret;
 }
@@ -699,6 +716,7 @@ static int __init tsif_init(void)
     }
 #endif
     memset(&tsif_pri, 0, sizeof(struct tca_spi_pri_handle));
+    mutex_init(&(tsif_pri.mutex));
     ret = register_chrdev(0, TSIF_DEV_NAME, &tcc_tsif_fops);
     if (ret < 0) {
         printk("[%s:%d] register_chrdev error !!!!!\n", __func__, __LINE__); 
@@ -706,9 +724,22 @@ static int __init tsif_init(void)
     }
     tsif_pri.drv_major_num = ret;
     printk("[%s:%d] major number = %d\n", __func__, __LINE__, tsif_pri.drv_major_num);
-    
-    init_waitqueue_head(&(tsif_pri.wait_q));
-    mutex_init(&(tsif_pri.mutex));
+    g_static_dma = NULL;
+#ifdef      USE_STATIC_DMA_BUFFER
+     g_static_dma = kmalloc(sizeof(struct tea_dma_buf), GFP_KERNEL);
+     if(g_static_dma)
+     {
+        g_static_dma->buf_size = TSIF_DMA_SIZE;
+        g_static_dma->v_addr = dma_alloc_writecombine(0, g_static_dma->buf_size, &g_static_dma->dma_addr, GFP_KERNEL);
+		printk("tcc-tsif : dma buffer alloc @0x%X(Phy=0x%X), size:%d\n", (unsigned int)g_static_dma->v_addr, (unsigned int)g_static_dma->dma_addr, g_static_dma->buf_size);
+        if(g_static_dma->v_addr == NULL)
+        {
+            kfree(g_static_dma);
+            g_static_dma = NULL;
+        }
+     }
+#endif       
+
     ret = platform_driver_probe(&tsif_platform_driver, tsif_drv_probe);
 
     tsif_class = class_create(THIS_MODULE, TSIF_DEV_NAME);
@@ -727,8 +758,6 @@ static void __exit tsif_exit(void)
         tsif_ex_exit();
         return;
     }
-    if(tsif_pri.is_suspend == 0)
-        tcc_tsif_deinit();
 
 	unregister_chrdev(tsif_pri.drv_major_num, TSIF_DEV_NAME);
     platform_driver_unregister(&tsif_platform_driver);
@@ -737,6 +766,12 @@ static void __exit tsif_exit(void)
 	    clk_disable(gpsb_clk);
     	clk_put(gpsb_clk);
 	}
+	if(g_static_dma)
+    {
+        dma_free_writecombine(0, g_static_dma->buf_size, g_static_dma->v_addr, g_static_dma->dma_addr);
+        kfree(g_static_dma);
+        g_static_dma = NULL;
+    }
 }
 module_init(tsif_init);
 module_exit(tsif_exit);
