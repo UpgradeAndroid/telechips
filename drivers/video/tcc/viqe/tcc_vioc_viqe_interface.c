@@ -348,7 +348,7 @@ void TCC_VIQE_DI_Init60Hz(int lcdCtrlNum, int Lcdc_layer, int useSCALER, unsigne
 
 	VIOC_VIQE_SetControlRegister(pVIQE_60Hz, framebufWidth, framebufHeight, gViqe_fmt_60Hz);
 	VIOC_VIQE_SetDeintlRegister(pVIQE_60Hz, gViqe_fmt_60Hz, top_size_dont_use, framebufWidth, framebufHeight, gDI_mode_60Hz, deintl_dma_base0, deintl_dma_base1, deintl_dma_base2, deintl_dma_base3);
-	VIOC_VIQE_SetDenoise(pVIQE_60Hz, gViqe_fmt_60Hz, framebufWidth, framebufHeight, 1, 0, deintl_dma_base0, deintl_dma_base1); 	//for bypass path on progressive frame
+//	VIOC_VIQE_SetDenoise(pVIQE_60Hz, gViqe_fmt_60Hz, framebufWidth, framebufHeight, 1, 0, deintl_dma_base0, deintl_dma_base1); 	//for bypass path on progressive frame
 	VIOC_VIQE_SetControlEnable(pVIQE_60Hz, OFF, OFF, OFF, OFF, ON);
 //		if(gDI_mode != VIOC_VIQE_DEINTL_MODE_BYPASS)
 	{
@@ -473,6 +473,8 @@ void TCC_VIQE_DI_Run60Hz(int useSCALER, unsigned int addr0, unsigned int addr1, 
 #else
 	if(FrameInfo_Interlace)
 	{
+		VIOC_RDMA_SetImageY2REnable(pRDMABase_60Hz, FALSE);
+		VIOC_RDMA_SetImageY2RMode(pRDMABase_60Hz, 0x02); /* Y2RMode Default 0 (Studio Color) */
 		if(gFrmCnt_60Hz >= 3)
 		{
 			VIOC_VIQE_SetDeintlMode(pVIQE_60Hz, VIOC_VIQE_DEINTL_MODE_3D);
@@ -488,7 +490,9 @@ void TCC_VIQE_DI_Run60Hz(int useSCALER, unsigned int addr0, unsigned int addr1, 
 	}
 	else
 	{	
-		VIOC_VIQE_SetControlMode(pVIQE_60Hz, OFF, OFF, OFF, ON, OFF);
+		VIOC_RDMA_SetImageY2REnable(pRDMABase_60Hz, TRUE);
+		VIOC_RDMA_SetImageY2RMode(pRDMABase_60Hz, 0x02); /* Y2RMode Default 0 (Studio Color) */
+		VIOC_VIQE_SetControlMode(pVIQE_60Hz, OFF, OFF, OFF, OFF, OFF);
 		VIOC_RDMA_SetImageIntl(pRDMABase_60Hz, 0);
 		gFrmCnt_60Hz = 0;
 	}	
