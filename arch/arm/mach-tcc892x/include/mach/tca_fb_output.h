@@ -116,7 +116,7 @@ extern int TCC_OUTPUT_FB_Set3DMode(char enable, char mode);
 extern int TCC_OUTPUT_FB_Get3DMode(char *mode);
 extern void TCC_OUTPUT_FB_Update3D(unsigned int src_wd, unsigned int src_ht, char lcdc_num);
 
-extern void TCC_OUTPUT_FB_AttachOutput(char src_lcdc_num, char output_type, char starer_flag);
+extern void TCC_OUTPUT_FB_AttachOutput(char src_lcdc_num, char output_type, char resolution, char starer_flag);
 extern void TCC_OUTPUT_FB_DetachOutput(char disable_all);
 extern void TCC_OUTPUT_FB_AttachUpdateFlag(char src_lcdc_num);
 extern void TCC_OUTPUT_FB_AttachUpdateScreen(char src_lcdc_num);

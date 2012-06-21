@@ -1413,17 +1413,17 @@ static long tcc_composite_ioctl(struct file *file, unsigned int cmd, void *arg)
 			break;
 
 		case TCC_COMPOSITE_IOCTL_ATTACH:
-			#if defined(CONFIG_TCC_OUTPUT_ATTACH) && (defined(CONFIG_OUTPUT_ATTACH_DUAL) || defined(CONFIG_OUTPUT_ATTACH_DUAL_AUTO))
+			#if defined(CONFIG_TCC_OUTPUT_ATTACH)
 				copy_from_user(&start,arg,sizeof(start));
 				tcc_composite_mode = start.mode;
 
 				TCC_OUTPUT_FB_DetachOutput(0);
-				TCC_OUTPUT_FB_AttachOutput(start.lcdc, TCC_OUTPUT_COMPOSITE, 0);
+				TCC_OUTPUT_FB_AttachOutput(start.lcdc, TCC_OUTPUT_COMPOSITE, tcc_composite_mode, 0);
 			#endif
 			break;
 
 		case TCC_COMPOSITE_IOCTL_DETACH:
-			#if defined(CONFIG_TCC_OUTPUT_ATTACH) && (defined(CONFIG_OUTPUT_ATTACH_DUAL) || defined(CONFIG_OUTPUT_ATTACH_DUAL_AUTO))
+			#if defined(CONFIG_TCC_OUTPUT_ATTACH)
 				TCC_OUTPUT_FB_DetachOutput(0);
 			#endif
 			break;
@@ -1439,22 +1439,22 @@ static long tcc_composite_ioctl(struct file *file, unsigned int cmd, void *arg)
 /*****************************************************************************
  Function Name : tcc_composite_attach()
 ******************************************************************************/
-void tcc_composite_attach(char lcdc_num, char onoff)
+void tcc_composite_attach(char lcdc_num, char mode, char onoff)
 {
 	char composite_mode;
 
-	dprintk("%s, lcdc_num=%d, onoff=%d, mode=%d\n", __func__, lcdc_num, onoff, tcc_composite_mode);
+	dprintk("%s, lcdc_num=%d, onoff=%d, mode=%d\n", __func__, lcdc_num, onoff, mode);
 
 	if(onoff)
 	{
-		if(tcc_composite_mode == COMPOSITE_MAX_M)
+		if(mode >= COMPOSITE_MAX_M)
 			composite_mode = COMPOSITE_NTST_M;
 		else
-			composite_mode = tcc_composite_mode;
+			composite_mode = mode;
 
 		tcc_composite_set_lcdc(lcdc_num);
 		tcc_composite_clock_onoff(TRUE);
-		tcc_composite_start(COMPOSITE_NTST_M);
+		tcc_composite_start(composite_mode);
 	}
 	else
 	{

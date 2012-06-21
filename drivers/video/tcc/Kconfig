@@ -128,9 +128,9 @@ choice
 	default OUTPUT_ATTACH_DUAL
 
 config OUTPUT_ATTACH_DUAL
-	bool 'Normal Mode'
+	bool 'Dual Mode'
 config OUTPUT_ATTACH_DUAL_AUTO
-	bool 'Auto-Detection Mode'
+	bool 'Auto-Dual Mode'
 config OUTPUT_ATTACH_HDMI_CVBS
 	bool 'HDMI/CVBS Mode'
 endchoice

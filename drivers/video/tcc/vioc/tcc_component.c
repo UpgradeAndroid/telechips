@@ -1956,6 +1956,22 @@ static long tcc_component_ioctl(struct file *file, unsigned int cmd, void *arg)
 			#endif
 			break;
 
+		case TCC_COMPONENT_IOCTL_ATTACH:
+			#if defined(CONFIG_TCC_OUTPUT_ATTACH)
+				copy_from_user(&start,arg,sizeof(start));
+				tcc_component_mode = start.mode;
+
+				TCC_OUTPUT_FB_DetachOutput(0);
+				TCC_OUTPUT_FB_AttachOutput(start.lcdc, TCC_OUTPUT_COMPONENT, tcc_component_mode, 0);
+			#endif
+			break;
+
+		case TCC_COMPONENT_IOCTL_DETACH:
+			#if defined(CONFIG_TCC_OUTPUT_ATTACH)
+				TCC_OUTPUT_FB_DetachOutput(0);
+			#endif
+			break;
+			
 		default:
 			printk("%d, Unsupported IOCTL!!!\n", cmd);      
 			break;			
@@ -1967,16 +1983,18 @@ static long tcc_component_ioctl(struct file *file, unsigned int cmd, void *arg)
 /*****************************************************************************
  Function Name : tcc_component_attach()
 ******************************************************************************/
-void tcc_component_attach(char lcdc_num, char onoff)
+void tcc_component_attach(char lcdc_num, char mode, char onoff)
 {
 	char component_mode;
 
+	dprintk("%s, lcdc_num=%d, onoff=%d, mode=%d\n", __func__, lcdc_num, onoff, mode);
+	
 	if(onoff)
 	{
-		if(tcc_component_mode == COMPONENT_MAX)
+		if(mode >= COMPONENT_MAX)
 			component_mode = COMPONENT_720P;
 		else
-			component_mode = tcc_component_mode;
+			component_mode = mode;
 
 		tcc_component_set_lcdc(lcdc_num);
 		tcc_component_clock_onoff(TRUE);

@@ -241,10 +241,10 @@ static char tcc_output_attach_plugin = 0;
 static char tcc_output_attach_state = 1;
 extern struct display_platform_data tcc_display_data;
 #if defined(CONFIG_FB_TCC_COMPOSITE)
-extern void tcc_composite_attach(int lcdc_num, char onoff);
+extern void tcc_composite_attach(int lcdc_num, char mode, char onoff);
 #endif
 #if defined(CONFIG_FB_TCC_COMPONENT)
-extern void tcc_component_attach(int lcdc_num, char onoff);
+extern void tcc_component_attach(int lcdc_num, char mode, char onoff);
 #endif
 
 static irqreturn_t TCC_OUTPUT_LCDC_Handler(int irq, void *dev_id)
@@ -792,22 +792,6 @@ void TCC_OUTPUT_LCDC_OutputEnable(char output_lcdc, unsigned int onoff)
 		VIOC_DISP_TurnOn(pDISP);
 	else
 		VIOC_DISP_TurnOff(pDISP);
-
-	#if defined(CONFIG_TCC_OUTPUT_ATTACH)
-		#if defined(CONFIG_OUTPUT_ATTACH_DUAL) || defined(CONFIG_OUTPUT_ATTACH_DUAL_AUTO)
-			if(TCC_OUTPUT_FB_AttachGetSate())
-			{
-				TCC_OUTPUT_FB_DetachOutput(0);
-				TCC_OUTPUT_FB_AttachOutput(output_lcdc, TCC_OUTPUT_COMPOSITE, 0);
-			}
-		#else !defined(CONFIG_OUTPUT_ATTACH_HDMI_CVBS)
-			TCC_OUTPUT_FB_DetachOutput(0);
-			if(tcc_display_data.output == 3)
-				TCC_OUTPUT_FB_AttachOutput(output_lcdc, TCC_OUTPUT_COMPONENT, 0);
-			else
-				TCC_OUTPUT_FB_AttachOutput(output_lcdc, TCC_OUTPUT_COMPOSITE, 0);
-		#endif
-	#endif
 }
 
 char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int bits_per_pixel, unsigned int addr, unsigned int type)
@@ -1639,7 +1623,7 @@ int TCC_OUTPUT_FB_Get3DMode(char *mode)
 	return output_3d_ui_flag;
 }
 
-void TCC_OUTPUT_FB_AttachOutput(char src_lcdc_num, char dst_output, char starter_flag)
+void TCC_OUTPUT_FB_AttachOutput(char src_lcdc_num, char dst_output, char resolution, char starter_flag)
 {
 	PVIOC_DISP	pDISP;
 	PVIOC_WMIX	pWMIX;
@@ -1712,13 +1696,13 @@ void TCC_OUTPUT_FB_AttachOutput(char src_lcdc_num, char dst_output, char starter
 	if(dst_output == TCC_OUTPUT_COMPOSITE)
 	{
 		#if defined(CONFIG_FB_TCC_COMPOSITE)
-		tcc_composite_attach(dst_lcdc_num, 1);
+		tcc_composite_attach(dst_lcdc_num, resolution, 1);
 		#endif
 	}
 	else
 	{
 		#if defined(CONFIG_FB_TCC_COMPONENT)
-		tcc_component_attach(dst_lcdc_num, 1);
+		tcc_component_attach(dst_lcdc_num, resolution, 1);
 		#endif
 	}
 	
@@ -1794,14 +1778,14 @@ void TCC_OUTPUT_FB_DetachOutput(char disable_all)
 	{
 		#if defined(CONFIG_FB_TCC_COMPOSITE)
 		if(OutputType != TCC_OUTPUT_COMPOSITE)	
-			tcc_composite_attach(tcc_output_attach_lcdc, 0);
+			tcc_composite_attach(tcc_output_attach_lcdc, 0, 0);
 		#endif
 	}
 	else if(tcc_output_attach_output == TCC_OUTPUT_COMPONENT)
 	{
 		#if defined(CONFIG_FB_TCC_COMPONENT)
 		if(OutputType != TCC_OUTPUT_COMPONENT)	
-			tcc_component_attach(tcc_output_attach_lcdc, 0);
+			tcc_component_attach(tcc_output_attach_lcdc, 0, 0);
 		#endif
 	}
 	
