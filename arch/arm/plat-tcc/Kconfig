@@ -215,6 +215,9 @@ config DDR3_IN5CB256M8BN_CG
 config DDR3_NT5CB256M8GN_CG
   bool "Nanya NT5CB256M8GN_CG"
 
+config DDR3_H5TC4G83MFR_H9A
+  bool "Hynix DDR3_H5TC4G83MFR_H9A"
+
 endchoice
 
 choice
