@@ -389,15 +389,9 @@ void TCC_OUTPUT_LCDC_Init(void)
 		scaler_open = tccxxx_scaler_open;
 		scaler_release = tccxxx_scaler_release;
 	#else
-		#if defined(CONFIG_TCC_OUTPUT_3D_UI)
-			scaler_ioctl = tccxxx_scaler2_ioctl;
-			scaler_open = tccxxx_scaler2_open;
-			scaler_release = tccxxx_scaler2_release;
-		#else
-			scaler_ioctl = tccxxx_scaler1_ioctl;
-			scaler_open = tccxxx_scaler1_open;
-			scaler_release = tccxxx_scaler1_release;
-		#endif
+		scaler_ioctl = tccxxx_scaler2_ioctl;
+		scaler_open = tccxxx_scaler2_open;
+		scaler_release = tccxxx_scaler2_release;
 	#endif
 
 	g2d_ioctl = tccxxx_grp_ioctl;
