@@ -2139,7 +2139,31 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 					tccvid_vsync.interlace_bypass_lcdc = 1;
 				}
 			}
+
+#ifdef TCC_VIDEO_DISPLAY_DEINTERLACE_MODE
+			if(tccvid_vsync.deinterlace_mode && !tccvid_vsync.output_toMemory && tccvid_vsync.firstFrameFlag &&!tccvid_vsync.interlace_bypass_lcdc)
+			{
+				int lcdCtrlNum;
+				printk("first TCC_excuteVIQE_60Hz \n") ;
+
+				if((tccvid_vsync.outputMode == TCC_OUTPUT_NONE))
+					lcdCtrlNum = LCD_OUT_LCDC;
+				else
+					lcdCtrlNum = EX_OUT_LCDC;	
+
+				tccvid_vsync.nDeinterProcCount = 0;
+				tccvid_vsync.m2m_mode =  input_image.m2m_mode;
+
+				TCC_VIQE_DI_Init60Hz(lcdCtrlNum, input_image.Lcdc_layer, input_image.on_the_fly, input_image.fmt, 
+										input_image.Frame_width, input_image.Frame_height,	// srcWidth, srcHeight
+										input_image.Image_width, input_image.Image_height,
+										input_image.offset_x, input_image.offset_y,
+										input_image.odd_first_flag);
+			}
+#endif
 			
+			tccvid_vsync.firstFrameFlag = 0;
+
 			if(input_image.output_path)
 			{
 			
@@ -2226,29 +2250,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 				spin_unlock_irq(&vsync_lockDisp) ;
 				goto TCC_VSYNC_PUSH_ERROR;
 			}
-#ifdef TCC_VIDEO_DISPLAY_DEINTERLACE_MODE
-			if(tccvid_vsync.deinterlace_mode && !tccvid_vsync.output_toMemory && tccvid_vsync.firstFrameFlag &&!tccvid_vsync.interlace_bypass_lcdc)
-			{
-				int lcdCtrlNum;
-				printk("first TCC_excuteVIQE_60Hz \n") ;
 
-				if((tccvid_vsync.outputMode == TCC_OUTPUT_NONE))
-					lcdCtrlNum = LCD_OUT_LCDC;
-				else
-					lcdCtrlNum = EX_OUT_LCDC;	
-
-				tccvid_vsync.nDeinterProcCount = 0;
-				tccvid_vsync.m2m_mode =  input_image.m2m_mode;
-
-				TCC_VIQE_DI_Init60Hz(lcdCtrlNum, input_image.Lcdc_layer, input_image.on_the_fly, input_image.fmt, 
-										input_image.Frame_width, input_image.Frame_height,	// srcWidth, srcHeight
-										input_image.Image_width, input_image.Image_height,
-										input_image.offset_x, input_image.offset_y,
-										input_image.odd_first_flag);
-			}
-#endif
-			
-			tccvid_vsync.firstFrameFlag = 0;
 			int curTime = tcc_vsync_get_time();
 
 PUSH_VIDEO_FORCE : 
