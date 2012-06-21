@@ -1683,8 +1683,8 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 						}
 					}
 					#endif//
-					
-  					TCC_HDMI_DISPLAY_UPDATE(EX_OUT_LCDC, (struct tcc_lcdc_image_update *)&ImageInfo);
+
+					TCC_HDMI_DISPLAY_UPDATE(EX_OUT_LCDC, (struct tcc_lcdc_image_update *)&ImageInfo);						
 
 					#ifdef CONFIG_TCC_HDMI_VIDEO_UI_DISABLE
  					if(ImageInfo.Lcdc_layer == 0) // video channel
@@ -2125,6 +2125,8 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 			{
 				dprintk("\nTCC_LCDC_VIDEO_END_VSYNC fb_power_state:%d \n", fb_power_state);
 
+				if(vsync_started==1)
+				{				
 #ifdef USE_VSYNC_TIMER
 				tccfb_vsync_timer_onoff(0);
 #endif
@@ -2138,15 +2140,16 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 
 				SavedOddfirst=-1;
 
-			/*
-				if(Output_SelectMode == TCC_OUTPUT_NONE)
-				{
-					struct tcc_lcdc_image_update ImageInfo;
-					memset(&ImageInfo, 0x00, sizeof(struct tcc_lcdc_image_update));
- 					TCC_HDMI_DISPLAY_UPDATE(LCD_OUT_LCDC, &ImageInfo);
-				}
-			*/
+				struct tcc_lcdc_image_update lcdc_image;
+				memset(&lcdc_image, 0x00, sizeof(struct tcc_lcdc_image_update));
+				lcdc_image.enable = 0;
+				lcdc_image.Lcdc_layer = 0;				
+
+				TCC_HDMI_DISPLAY_UPDATE(EX_OUT_LCDC, &lcdc_image);
+			
 				vsync_started = 0;
+				
+				}
 			}
 			break ;
 

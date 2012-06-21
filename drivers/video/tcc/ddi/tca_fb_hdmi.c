@@ -443,6 +443,8 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 	unsigned int lcd_width = 0, lcd_height = 0, lcd_h_pos = 0, lcd_w_pos = 0, scale_x = 0, scale_y = 0;
 	unsigned int buffer_width = 0, y2r_option = 0, onthefly = 0;
 	unsigned int Image_fmt;
+	int loop=0;
+
 	PLCDC pLCDC;
 	PLCDC_CHANNEL pLCDC_channel;
 
@@ -479,12 +481,29 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 	}
 	
 	if(!ImageInfo->enable)	{
+		
+		if(ISZERO(pLCDC->LCTRL, HwLCTRL_LEN))
+			return ;			
+
+		while(TRUE && (loop < 0x70000000)) //check wheather is lcd video channel on
+		{
+			if(ISSET(pLCDC->LSTATUS, HwLSTATUS_I0EOF))
+				break;
+			
+			loop++;
+		}
+
+		pLCDC_channel->LIS =((ImageInfo->Image_height << 16) | (ImageInfo->Image_width));
+		
 		#if defined(CONFIG_ARCH_TCC92XX)
 		pLCDC_channel->LIC = 0;
-		#else
-		pLCDC_channel->LIC= HwLCT_RU | !HwLIC_IEN;		
+		#else		
+		pLCDC_channel->LIC= HwLCT_RU | !HwLIC_IEN;
 		onthefly_using = 0;		
+		
 		#endif//
+
+		
 		return;
 	}
 
