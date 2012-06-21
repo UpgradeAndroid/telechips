@@ -135,7 +135,7 @@ void VIOC_VIQE_SetControlRegister(VIQE *pVIQE, unsigned int width, unsigned int 
 {
 	dprintk(KERN_INFO "%s\n", __FUNCTION__);
 	VIOC_VIQE_SetImageSize(pVIQE, width, height);
-	VIOC_VIQE_SetControlMisc(pVIQE, ON, OFF, ON, OFF, ON, 0x16);	/* All of variables are the recommended value */
+	VIOC_VIQE_SetControlMisc(pVIQE, OFF, OFF, ON, OFF, ON, 0x16);	/* All of variables are the recommended value */
 	VIOC_VIQE_SetControlDontUse(pVIQE, OFF, OFF, OFF);				/* All of variables are the recommended value */
 	VIOC_VIQE_SetControlClockGate(pVIQE, OFF, OFF, OFF);			/* All of variables are the recommended value */
 }

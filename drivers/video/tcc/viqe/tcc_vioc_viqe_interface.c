@@ -228,6 +228,19 @@ void TCC_VIQE_DI_DeInit(void)
 #endif
 }
 
+/* 
+	//img_fmt
+	TCC_LCDC_IMG_FMT_YUV420SP = 24,	
+	TCC_LCDC_IMG_FMT_YUV422SP = 25, 
+	TCC_LCDC_IMG_FMT_YUYV = 26, 
+	TCC_LCDC_IMG_FMT_YVYU = 27,
+	
+	TCC_LCDC_IMG_FMT_YUV420ITL0 = 28, 
+	TCC_LCDC_IMG_FMT_YUV420ITL1 = 29, 
+	TCC_LCDC_IMG_FMT_YUV422ITL0 = 30, 
+	TCC_LCDC_IMG_FMT_YUV422ITL1 = 31, 
+*/
+
 //////////////////////////////////////////////////////////////////////////////////////////
 void TCC_VIQE_DI_Init60Hz(int lcdCtrlNum, int Lcdc_layer, int useSCALER, unsigned int img_fmt, 
 						unsigned int srcWidth, unsigned int srcHeight,
@@ -242,7 +255,7 @@ void TCC_VIQE_DI_Init60Hz(int lcdCtrlNum, int Lcdc_layer, int useSCALER, unsigne
 
 	gLcdc_layer_60Hz = Lcdc_layer;
 	
-	if(img_fmt == 24)
+	if(img_fmt == 24 || img_fmt == 28 || img_fmt==29)
 		gViqe_fmt_60Hz = VIOC_VIQE_FMT_YUV420;
 	else
 		gViqe_fmt_60Hz = VIOC_VIQE_FMT_YUV422;
