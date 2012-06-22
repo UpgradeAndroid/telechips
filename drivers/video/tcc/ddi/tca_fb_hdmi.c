@@ -485,15 +485,17 @@ void TCC_HDMI_DISPLAY_UPDATE(char hdmi_lcdc, struct tcc_lcdc_image_update *Image
 		if(ISZERO(pLCDC->LCTRL, HwLCTRL_LEN))
 			return ;			
 
+		if(ISZERO(pLCDC_channel, HwLIC_IEN))
+			return ;			
+
 		while(TRUE && (loop < 0x70000000)) //check wheather is lcd video channel on
 		{
 			if(ISSET(pLCDC->LSTATUS, HwLSTATUS_I0EOF))
-				break;
-			
+				break;			
 			loop++;
 		}
-
-		pLCDC_channel->LIS =((ImageInfo->Image_height << 16) | (ImageInfo->Image_width));
+		
+		pLCDC_channel->LIS =0;
 		
 		#if defined(CONFIG_ARCH_TCC92XX)
 		pLCDC_channel->LIC = 0;
