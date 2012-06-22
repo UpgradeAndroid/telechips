@@ -2706,8 +2706,7 @@ static int __init tccfb_probe(struct platform_device *pdev)
 		fbinfo->fbops			= &tccfb_ops;
 		fbinfo->flags			= FBINFO_FLAG_DEFAULT;
 
-		fbinfo->var.rotate = 180;
-		fbinfo->var.xres		= screen_width;
+		fbinfo->var.xres		= screen_width;
 		fbinfo->var.xres_virtual	= fbinfo->var.xres;
 		fbinfo->var.yres		= screen_height;
 
