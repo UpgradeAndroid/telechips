@@ -2660,7 +2660,7 @@ static void tcc_pm_power_off(void)
 		if (system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004 || system_rev == 0x2005) {
 			gpio_set_value(TCC_GPC(0), 0); // LCD_BLCTL
 			gpio_set_value(TCC_GPE(24), 0); // LCD_PWREN
-			//gpio_set_value(TCC_GPE(7), 0);  // SHDN
+			gpio_set_value(TCC_GPC(13), 0);  // PMU_HOLD
 
 		} else {
 			gpio_set_value(TCC_GPD(10), 0); // LCD_BLCTL
