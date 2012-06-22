@@ -281,7 +281,7 @@ static struct power_supply tcc_power_supplies[] = {
 
 static void usb_status_notifier_func(struct notifier_block *self, unsigned long action, void *dev);
 static int g_usb_online;
-static int g_ac_plugin;
+/*static*/ int g_ac_plugin;
 
 static struct notifier_block usb_status_notifier = {
 	.notifier_call = usb_status_notifier_func,
@@ -486,7 +486,7 @@ int charge_status(void)
 #elif defined(CONFIG_REGULATOR_AXP202)
 	return axp202_charge_status();
 #elif defined(CONFIG_REGULATOR_RN5T614)
-        return rn5t614_charge_status();	
+	return rn5t614_charge_status();
 #else
 	return 0;
 #endif
@@ -616,7 +616,8 @@ static unsigned long tcc_read_adc(void)
 	gAvrVoltage[gIndex%BATTVOLSAMPLE] = adcValue;
 	gIndex++;
 #else
-	if (client) { 
+	if (client)
+	{
 		int i;
 		int adc_samples[BATTSAMPLE];
 
@@ -688,7 +689,8 @@ static unsigned long tcc_read_adc(void)
 
 
 #if COMPENSATION_AC
-		if(acin_detect()){
+		if(acin_detect())
+		{
 			//batt_check_times = 12;
 			temp_adc = adcValue;
 			//printk(" original adc = %d \n", temp_adc);
@@ -1156,121 +1158,131 @@ void tcc_ac_charger_detect_process(void)
 	if(machine_is_m801_88() || machine_is_m803()  || machine_is_m805_892x() || machine_is_tcc8920())
 	{
 		unsigned long adcValue = 0;
-		  int i=0;
-	
+		int i=0;
+
 		struct tcc_adc_client *client = tcc_batt_info.client;
 		if(acin_detect())
-	            g_ac_plugin = 1;
-        	else
-            	    g_ac_plugin = 0;
+			g_ac_plugin = 1;
+		else
+			g_ac_plugin = 0;
 
 
-
-	      if( g_ac_plugin ) {
+		if( g_ac_plugin )
+		{
 #if defined(CONFIG_REGULATOR_AXP192) || defined(CONFIG_REGULATOR_AXP202)
-		  if(charge_status() == CHG_OK){
-		  	if( tcc_batt_info.rep.charging_source == CHARGER_AC ){
-		            tcc_cable_status_update(CHARGER_BATTERY);
-				batt_check_times = 1;
-		  	}	
-		  }
-		  else
-		  {
+			if(charge_status() == CHG_OK)
+			{
+				if( tcc_batt_info.rep.charging_source == CHARGER_AC )
+				{
+					tcc_cable_status_update(CHARGER_BATTERY);
+					batt_check_times = 1;
+				}
+			}
+			else
+			{
 #endif		  	
-	        if( tcc_batt_info.rep.charging_source == CHARGER_BATTERY ) {
-	            tcc_cable_status_update(CHARGER_AC);
-//			batt_check_times = 10;	
-			#if 0 // not yet
-			msleep(10000);
-			gIndex = 0;
-			for(i=0;i<BATTWINDOW;i++)
-				tcc_read_adc();
+				if( tcc_batt_info.rep.charging_source == CHARGER_BATTERY )
+				{
+					tcc_cable_status_update(CHARGER_AC);
+					//			batt_check_times = 10;
+					#if 0 // not yet
+					msleep(10000);
+					gIndex = 0;
+					for(i=0;i<BATTWINDOW;i++)
+					tcc_read_adc();
 
-		      tcc_ac_charger_detect_process();
-		      tcc_battery_process();			
-			#endif
-				//if( machine_is_m801() )
-				//	HwGPIOD->GPDAT |= Hw11;
-	        }
+					tcc_ac_charger_detect_process();
+					tcc_battery_process();
+					#endif
+					//if( machine_is_m801() )
+					//	HwGPIOD->GPDAT |= Hw11;
+				}
 #if defined(CONFIG_REGULATOR_AXP192) || defined(CONFIG_REGULATOR_AXP202)
-		  }
+			}
 #endif
-	      } else {
-	        if( tcc_batt_info.rep.charging_source == CHARGER_AC ) {
-	            tcc_cable_status_update(CHARGER_BATTERY);
-			batt_charging_finish = 0;
-//			batt_check_times = 10;
-			#if 0 // not yet
-			msleep(10000);
-			gIndex = 0;
-			for(i=0;i<BATTWINDOW;i++)
+		}
+		else
+		{
+	        if( tcc_batt_info.rep.charging_source == CHARGER_AC )
+			{
+				tcc_cable_status_update(CHARGER_BATTERY);
+				batt_charging_finish = 0;
+				//			batt_check_times = 10;
+				#if 0 // not yet
+				msleep(10000);
+				gIndex = 0;
+				for(i=0;i<BATTWINDOW;i++)
 				tcc_read_adc();
 
-		      tcc_ac_charger_detect_process();
-		      tcc_battery_process();
-			#endif
+				tcc_ac_charger_detect_process();
+				tcc_battery_process();
+				#endif
 				//if( machine_is_m801() )
 				//	HwGPIOD->GPDAT &= ~Hw11;
-	        	}
-	      }
+			}
+		}
 	}
-	else if( machine_is_m57te() ) {
-        static int CHRG_STBY = 0;
-        static int CHRG = 0;
+	else if( machine_is_m57te() )
+	{
+		static int CHRG_STBY = 0;
+		static int CHRG = 0;
 
+		if( gpio_get_value(TCC_GPE(5)) != CHRG_STBY)
+		{
+			CHRG_STBY = gpio_get_value(TCC_GPE(5));
+			printk("CHRG_STBY# 0x%x ", gpio_get_value(TCC_GPE(5)));
+		}
 
-	  if( gpio_get_value(TCC_GPE(5)) != CHRG_STBY){
-	  	CHRG_STBY = gpio_get_value(TCC_GPE(5));
-            printk("CHRG_STBY# 0x%x ", gpio_get_value(TCC_GPE(5)));
-	  }
-
-
-	 if(gpio_get_value(TCC_GPD(9)) != CHRG){
-            CHRG = gpio_get_value(TCC_GPD(9));
-            printk("CHRG# 0x%x ", gpio_get_value(TCC_GPD(9)));        
-        }
-	 
+		if(gpio_get_value(TCC_GPD(9)) != CHRG){
+			CHRG = gpio_get_value(TCC_GPD(9));
+			printk("CHRG# 0x%x ", gpio_get_value(TCC_GPD(9)));
+		}
 
         // check CHRG_STBY# PORT
 
-	    if( (gpio_get_value(TCC_GPE(26))) && (g_ac_plugin == 0) ) {
-            g_ac_plugin = 1;
-            if(g_usb_online)
-	            tcc_cable_status_update(CHARGER_USB);
-            else
-	            tcc_cable_status_update(CHARGER_AC);
+		if( (gpio_get_value(TCC_GPE(26))) && (g_ac_plugin == 0) )
+		{
+			g_ac_plugin = 1;
+			if(g_usb_online)
+				tcc_cable_status_update(CHARGER_USB);
+			else
+				tcc_cable_status_update(CHARGER_AC);
+		}
+		else if( !(gpio_get_value(TCC_GPE(26))) && (g_ac_plugin == 1) )
+		{
+			g_ac_plugin = 0;
+			if(g_usb_online)
+				tcc_cable_status_update(CHARGER_USB);
+			else
+				tcc_cable_status_update(CHARGER_BATTERY);
+		}
+    }
+	else if( machine_is_m801() )
+	{
+		if(HwGPIOE->GPDAT & Hw26)
+			g_ac_plugin = 1;
+		else
+			g_ac_plugin = 0;
 
-	    } else if( !(gpio_get_value(TCC_GPE(26))) && (g_ac_plugin == 1) ) {
-            g_ac_plugin = 0;
-            if(g_usb_online)
-	            tcc_cable_status_update(CHARGER_USB);
-            else
-	            tcc_cable_status_update(CHARGER_BATTERY);
-	    }
-
-
-    } else if( machine_is_m801() ) {
-    
-	    if(HwGPIOE->GPDAT & Hw26)
-	        g_ac_plugin = 1;
-        else 
-            g_ac_plugin = 0;
-
-	    if( g_ac_plugin ) {
-	        if( tcc_batt_info.rep.charging_source == CHARGER_BATTERY ) {
-	            tcc_cable_status_update(CHARGER_AC);
+		if( g_ac_plugin )
+		{
+			if( tcc_batt_info.rep.charging_source == CHARGER_BATTERY )
+			{
+				tcc_cable_status_update(CHARGER_AC);
 				if( machine_is_m801() )
 					gpio_set_value(TCC_GPD(11), 1);
-	        }
-	    } else {
-	        if( tcc_batt_info.rep.charging_source == CHARGER_AC ) {
-	            tcc_cable_status_update(CHARGER_BATTERY);
+			}
+		}
+		else
+		{
+			if( tcc_batt_info.rep.charging_source == CHARGER_AC )
+			{
+				tcc_cable_status_update(CHARGER_BATTERY);
 				if( machine_is_m801() )
 					gpio_set_value(TCC_GPD(11), 0);
-	        }
-	    }
+			}
+		}
 	}
-
 }
 
 #if BATT_SPECIFIC_CUSTOMER
@@ -1475,12 +1487,11 @@ QUICK_RESPOND_FOR_FULL:
 #else
 			if( temp >= (pbattery_vols[0] + OVERCHARGE) - 10)			
 			{
-				if(pbattery_vols[0] + OVERCHARGE <= temp){
-
+				if(pbattery_vols[0] + OVERCHARGE <= temp)
+				{
 					if(charge_status() == CHG_OK){
 						printk("### charge complete ### \n");
 						info_temp = 100;
-
 					}
 					else
 						info_temp = old_batt_per;
@@ -1636,103 +1647,165 @@ QUICK_RESPOND_FOR_FULL:
 	     info.batt_id, info.batt_vol, info.batt_temp, info.batt_current, info.level, info.charging_source, info.charging_enabled, info.full_bat);
 }
 
+//#define TCC_BATTERY_THREAD_MSLEEP	100
+#define TCC_BATTERY_THREAD_MSLEEP	BATT_CHECK_LOOP
 static int tcc_battery_thread(void *v)
 {
-	struct task_struct *tsk = current;	
+	struct task_struct *tsk = current;
 #if BATT_SPECIFIC_CUSTOMER
 	//int adccnt = 0;
 	int now_percentage = 0;
 	//#define ADCCNT 600
 	#define ADCCNT 60
 #endif
+	int i;
+
+	printk("%s entering!~~~~~~~~~~~~~\n", __func__);
+
 	daemonize("tcc-battery");
 	allow_signal(SIGKILL);
 
-	while (!signal_pending(tsk)) {
-
-	if(batt_suspend_status == 0){
-#if BATT_SPECIFIC_CUSTOMER
-		tcc_ac_charger_detect_process();
-		tcc_read_adc();
-		tcc_battery_process();
-		//adccnt = 0;
-		if(now_percentage!= battery_percentage){
-			if(battery_percentage >= 95){
-				charge_current(Charger_Current_Normal);
-			}
-			else if(battery_percentage >= 90){
-				charge_current(Charger_Current_Normal);
-			}
-			else if(battery_percentage >= 70){
-				charge_current(Charger_Current_Normal);
-			}
-			else if(battery_percentage >= 50){
-				charge_current(Charger_Current_Normal);
-			}
-			else if(battery_percentage >= 30){
-				charge_current(Charger_Current_Normal);
-			}
-			else{
-				charge_current(Charger_Current_Normal);
-			}
-		}
-		now_percentage = battery_percentage;
-		msleep(1500);
-		power_supply_changed(&tcc_power_supplies[CHARGER_BATTERY]);
-#else
-       int i;
-
-	if(batt_check_times > 0) batt_check_times--;
-
-	if(batt_check_times == 0){
-
-#if BATT_READ_WINDOW
-		if(gIndex >= (BATTWINDOW-1))
+	while (!signal_pending(tsk))
+	{
+		if(batt_suspend_status == 0)
 		{
-		        gIndex = BATTWINDOW-1;
-			for(i=0;i<BATTWINDOW-1;i++)
-			{
-				gAvrVoltage[i] = gAvrVoltage[i+1];
-			}
+	#if BATT_SPECIFIC_CUSTOMER
+			tcc_ac_charger_detect_process();
+			if(batt_suspend_status)
+				continue;
 			tcc_read_adc();
+			if(batt_suspend_status)
+				continue;
+			tcc_battery_process();
+			//adccnt = 0;
+			if(batt_suspend_status)
+				continue;
+			if(now_percentage!= battery_percentage)
+			{
+				if(battery_percentage >= 95){
+					charge_current(Charger_Current_Normal);
+				}
+				else if(battery_percentage >= 90){
+					charge_current(Charger_Current_Normal);
+				}
+				else if(battery_percentage >= 70){
+					charge_current(Charger_Current_Normal);
+				}
+				else if(battery_percentage >= 50){
+					charge_current(Charger_Current_Normal);
+				}
+				else if(battery_percentage >= 30){
+					charge_current(Charger_Current_Normal);
+				}
+				else{
+					charge_current(Charger_Current_Normal);
+				}
+			}
+			now_percentage = battery_percentage;
+
+			for(i=0; i<BATT_CHECK_LOOP; i+=TCC_BATTERY_THREAD_MSLEEP)
+			{
+				if(batt_suspend_status)
+					break;
+				msleep(TCC_BATTERY_THREAD_MSLEEP);
+			}
+			if(batt_suspend_status)
+				continue;
+			power_supply_changed(&tcc_power_supplies[CHARGER_BATTERY]);
+	#else
+			if(batt_check_times > 0) batt_check_times--;
+
+			if(batt_check_times == 0)
+			{
+		#if BATT_READ_WINDOW
+				if(gIndex >= (BATTWINDOW-1))
+				{
+					gIndex = BATTWINDOW-1;
+					for(i=0;i<BATTWINDOW-1;i++)
+					{
+						gAvrVoltage[i] = gAvrVoltage[i+1];
+					}
+					if(batt_suspend_status)
+						continue;
+					tcc_read_adc();
+				}
+				else
+				{
+					if(batt_suspend_status)
+						continue;
+					tcc_read_adc();
+				}
+		#else
+				gIndex = 0;
+				for(i=0; i<BATTWINDOW; i++)
+				{
+					if(batt_suspend_status)
+						break;
+					tcc_read_adc();
+				}
+				if(batt_suspend_status)
+					continue;
+		#endif
+
+				if(android_system_booting_finished == 1 && once)
+				{
+					gIndex = 0;
+					for(i=0; i<BATTWINDOW; i++)
+					{
+						if(batt_suspend_status)
+							break;
+						tcc_read_adc();
+					}
+					once = 0;
+				}
+
+				if(batt_suspend_status)
+					continue;
+				tcc_ac_charger_detect_process();
+				if(batt_suspend_status)
+					continue;
+				tcc_battery_process();
+			}
+
+			for( i=0; i< 10; i++ ) {
+				if(batt_suspend_status)
+					break;
+				msleep(10);
+				if(batt_suspend_status)
+					break;
+				tcc_ac_charger_detect_process();
+			}
+
+			#if (TCC_BATTERY_THREAD_MSLEEP != BATT_CHECK_LOOP)
+			for(i=0; i<BATT_CHECK_LOOP; i+=TCC_BATTERY_THREAD_MSLEEP)
+			{
+				if(batt_suspend_status)
+					break;
+				msleep(TCC_BATTERY_THREAD_MSLEEP);
+			}
+			#else
+			msleep(BATT_CHECK_LOOP);
+			#endif
+
+			if(batt_suspend_status)
+				continue;
+			power_supply_changed(&tcc_power_supplies[CHARGER_BATTERY]);
+	#endif
 		}
 		else
 		{
-			tcc_read_adc();
+			#if (TCC_BATTERY_THREAD_MSLEEP != BATT_CHECK_LOOP)
+			for(i=0; i<BATT_CHECK_LOOP; i+=TCC_BATTERY_THREAD_MSLEEP)
+			{
+				if(batt_suspend_status)
+					break;
+				msleep(TCC_BATTERY_THREAD_MSLEEP);
+			}
+			#else
+			msleep(BATT_CHECK_LOOP);
+			#endif
 		}
-#else
-		gIndex = 0;
-		for(i=0; i<BATTWINDOW; i++)
-			tcc_read_adc();
-#endif
-
-		if(android_system_booting_finished == 1 && once)
-		{
-			gIndex = 0;
-			for(i=0; i<BATTWINDOW; i++)
-			tcc_read_adc();
-			once = 0;
-		}
-   
-  	     tcc_ac_charger_detect_process();
-	     tcc_battery_process();
 	}
-	
-
-	for( i=0; i< 10; i++ ) {
-      	      msleep(10);
-	      tcc_ac_charger_detect_process();
-      }
-		
-		msleep(BATT_CHECK_LOOP);
-		power_supply_changed(&tcc_power_supplies[CHARGER_BATTERY]);
-#endif
-	}
-	else
-	{
-		msleep(BATT_CHECK_LOOP);
-	}
-    }
 
 	return 0;
 }
@@ -1777,8 +1850,6 @@ static tcc_battery_adc_channel(void)
 			ac_channel = 3;
 		}
 	}
-
-
 }
 
 
@@ -1882,20 +1953,19 @@ static int tcc_battery_probe(struct platform_device *pdev)
 			printk(KERN_ERR "Failed to register power supply (%d)\n", err);
 	}
 
-        #if defined(CONFIG_STB_BOARD_HDB892S) || defined(CONFIG_STB_BOARD_HDB892F)
-        //Do't register usb notifier
-        #else
+	#if defined(CONFIG_STB_BOARD_HDB892S) || defined(CONFIG_STB_BOARD_HDB892F)
+	//Do't register usb notifier
+	#else
 	usb_register_notifier(&usb_status_notifier);
-        #endif
+	#endif
 	/* create tcc detail attributes */
 	tcc_battery_create_attrs(tcc_power_supplies[CHARGER_BATTERY].dev);
 
 	//spin_lock(usb_dev->lock);
 	if( machine_is_m57te() ||machine_is_m801() ) {
-	    if(gpio_get_value(TCC_GPE(26)))			
-	        tcc_batt_info.rep.charging_source = CHARGER_AC;
+		if(gpio_get_value(TCC_GPE(26)))
+			tcc_batt_info.rep.charging_source = CHARGER_AC;
 	}
-
 
 
 	tcc_battery_initial = 1;
@@ -1928,9 +1998,9 @@ static int tcc_battery_probe(struct platform_device *pdev)
 		printk("dc input value = %d\n", tcc_adc_start(client, 4, 0));
 
 		if(acin_detect())
-		        tcc_batt_info.rep.charging_source = CHARGER_AC;
-		}
-	
+			tcc_batt_info.rep.charging_source = CHARGER_AC;
+	}
+
 	// /* get adc raw data */
 	// tcc_adc_start(client, 1, 0);
 	
@@ -1945,25 +2015,25 @@ static int tcc_battery_probe(struct platform_device *pdev)
 	register_early_suspend(&batt_early_suspend);	
 #endif	
 
-      tcc_ac_charger_detect_process();
+	tcc_ac_charger_detect_process();
 
 	for(i=0; i<BATTWINDOW; i++)
-   		tcc_read_adc();	
+		tcc_read_adc();
 
 	tcc_battery_process();
 
 	kernel_thread(tcc_battery_thread, NULL, CLONE_KERNEL);
 
-	tcc_bat_standby_f = 1; // battery driver stanby 
+	tcc_bat_standby_f = 1; // battery driver stanby
 
 	printk("TCC Battery Driver Load\n");
 	return 0;
-	
+
 fail:
 	/* free adc client */
-   	tcc_adc_release(client);
+	tcc_adc_release(client);
 
-    return 0;
+	return 0;
 }
 
 static int tcc_battery_remove(struct platform_device *pdev)

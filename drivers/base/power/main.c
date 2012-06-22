@@ -458,6 +458,7 @@ static int device_resume_noirq(struct device *dev, pm_message_t state)
  * enable device drivers to receive interrupts.
  */
 #if defined(CONFIG_PM_VERBOSE_DPM_SUSPEND)
+//#define CONFIG_PM_VERBOSE_DPM_SUSPEND_FULL
 static int device_resume(struct device *dev, pm_message_t state, bool async);
 #endif
 void dpm_resume_noirq(pm_message_t state)
@@ -668,7 +669,12 @@ void dpm_resume(pm_message_t state)
 			mutex_unlock(&dpm_list_mtx);
 
 			#if defined(CONFIG_PM_VERBOSE_DPM_SUSPEND)
+			#if defined(CONFIG_PM_VERBOSE_DPM_SUSPEND_FULL)
 			printk("dpm [:%s:", dev_name(dev));
+			#else
+			if(dev->driver)
+				printk("dpm [:%s:", dev->driver->name);
+			#endif
 			#endif
 
 			suspend_test_start_dev(TEST_SUSPEND_TIME_LEVEL1);
@@ -676,7 +682,10 @@ void dpm_resume(pm_message_t state)
 			suspend_test_finish_dev(dev, TEST_SUSPEND_TIME_LEVEL1, "device_resume");
 
 			#if defined(CONFIG_PM_VERBOSE_DPM_SUSPEND)
-			printk("]\n");
+			#if !defined(CONFIG_PM_VERBOSE_DPM_SUSPEND_FULL)
+			if(dev->driver)
+			#endif
+				printk("]\n");
 			#endif
 
 			if (error)
@@ -1032,13 +1041,21 @@ int dpm_suspend(pm_message_t state)
 		mutex_unlock(&dpm_list_mtx);
 
 		#if defined(CONFIG_PM_VERBOSE_DPM_SUSPEND)
+		#if defined(CONFIG_PM_VERBOSE_DPM_SUSPEND_FULL)
 		printk("dpm [:%s:", dev_name(dev));
+		#else
+		if(dev->driver)
+			printk("dpm [:%s:", dev->driver->name);
+		#endif
 		#endif
 
 		error = device_suspend(dev);
 
 		#if defined(CONFIG_PM_VERBOSE_DPM_SUSPEND)
-		printk("]\n");
+		#if !defined(CONFIG_PM_VERBOSE_DPM_SUSPEND_FULL)
+		if(dev->driver)
+		#endif
+			printk("]\n");
 		#endif
 
 		mutex_lock(&dpm_list_mtx);

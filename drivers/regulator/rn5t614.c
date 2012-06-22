@@ -169,9 +169,16 @@ int rn5t614_battery_voltage(void)
 	return ret;
 }
 
+extern int g_ac_plugin;
 int rn5t614_acin_detect(void)
 {
 	unsigned char temp;
+
+	if(rn5t614_suspend_status) {
+		dbg("%s(%d)\n", __func__, g_ac_plugin);
+		return g_ac_plugin;
+	}
+
 	temp = i2c_smbus_read_byte_data(rn5t614_i2c_client, RN5T614_CHGMON1_REG);
 	return temp & 0x01;
 }
@@ -193,6 +200,12 @@ void rn5t614_charge_current(unsigned char val)
 int rn5t614_charge_status(void)
 {
 	unsigned char temp;
+
+	if(rn5t614_suspend_status) {
+		dbg("%s\n", __func__);
+		return 0;
+	}
+
 	temp = i2c_smbus_read_byte_data(rn5t614_i2c_client, RN5T614_CHGSTATE_REG);
 	//TODO: 
 
@@ -316,6 +329,9 @@ static int rn5t614_dcdc_set_voltage(struct regulator_dev *rdev, int min_uV, int 
 	dbg("%s: reg:0x%x value:%dmV\n", __func__, reg, dcdc_voltages[i].uV/1000);
 	ret = i2c_smbus_write_byte_data(rn5t614->client, reg, value);
 	udelay(50);
+
+	if(ret != 0)
+		printk("%s(reg:%x, val:%x) - fail(%d)\n", __func__, reg, value, ret);
 
 	return ret;
 }

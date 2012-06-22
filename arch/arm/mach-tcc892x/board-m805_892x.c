@@ -478,12 +478,12 @@ static struct platform_device *tcc8920_devices[] __initdata = {
 #if defined(CONFIG_I2C_TCC_CORE3)
     &tcc8920_i2c_core3_device,
 #endif
-#if defined(CONFIG_TCC_DWC_OTG)  || defined(CONFIG_TCC_DWC_OTG_MODULE)
-	&tcc8920_dwc_otg_device,	
-#endif	
 #if defined(CONFIG_USB_EHCI_TCC)  || defined(CONFIG_USB_EHCI_HCD_MODULE)
 	&ehci_hs_device,
 	&ehci_fs_device,
+#endif
+#if defined(CONFIG_TCC_DWC_OTG)  || defined(CONFIG_TCC_DWC_OTG_MODULE)
+	&tcc8920_dwc_otg_device,
 #endif
 #if defined(CONFIG_SATA_AHCI)
 	&tcc_ahci_device,

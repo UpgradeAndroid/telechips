@@ -443,6 +443,18 @@ static int alarm_suspend(struct platform_device *pdev, pm_message_t state)
 			spin_unlock_irqrestore(&alarm_slock, flags);
 		}
 	}
+
+	#if 0	//forTEST - RTC WakeUp every 10 sec.
+	rtc_read_time(alarm_rtc_dev, &rtc_current_rtc_time);
+	rtc_tm_to_time(&rtc_current_rtc_time, &rtc_current_time);
+
+	rtc_alarm_time = rtc_current_time+10;
+
+	rtc_time_to_tm(rtc_alarm_time, &rtc_alarm.time);
+	rtc_alarm.enabled = 1;
+	rtc_set_alarm(alarm_rtc_dev, &rtc_alarm);
+	#endif
+
 	return err;
 }
 

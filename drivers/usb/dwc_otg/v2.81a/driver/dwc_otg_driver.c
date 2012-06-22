@@ -1521,7 +1521,7 @@ static int dwc_otg_driver_suspend(struct platform_device *pdev, pm_message_t sta
 		msleep_interruptible(200);
 	}
 #else
-	msleep_interruptible(200);
+	msleep_interruptible(500);
 #endif
 	dwc_otg_disable_global_interrupts(dwc_otg_device->core_if);
 

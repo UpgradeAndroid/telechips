@@ -280,9 +280,19 @@ extern int tcc_umh_ehci_module(int flag);
 int tcc_bcmwifi_module(int flag);
 #endif
 
+static unsigned long g_rel_cpu_clock = 0;	//for suspend.resume lock up issue
 int enter_state(suspend_state_t state)
 {
 	int error;
+
+	//Start : for suspend.resume lock up issue
+	unsigned long n_rel_cpu_clock = (cpu_clock(smp_processor_id()) >> 30LL) - g_rel_cpu_clock;
+	if(n_rel_cpu_clock < 3)
+	{
+		//printk("%s(%d->%d)\n", __func__, g_rel_cpu_clock, n_rel_cpu_clock);
+		msleep(1000);
+	}
+	//End
 
 	suspend_test_start_level(TEST_SUSPEND_TIME_TOP);
 #if defined(CONFIG_USB_EHCI_HCD_MODULE)
@@ -335,6 +345,11 @@ int enter_state(suspend_state_t state)
 #endif
 
 	suspend_test_finish_level(TEST_SUSPEND_TIME_TOP, "total transition time of resume");
+
+	//Start : for suspend.resume lock up issue
+	g_rel_cpu_clock = (cpu_clock(smp_processor_id()) >> 30LL);
+	//End
+
 	return error;
 }
 

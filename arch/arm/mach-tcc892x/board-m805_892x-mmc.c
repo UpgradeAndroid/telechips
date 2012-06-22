@@ -128,11 +128,6 @@ int m805_892x_mmc_init(struct device *dev, int id)
 {
 	BUG_ON(id >= tccUsedSDportNum);
 
-	//Start : for EVM - suspend.resume issue
-	if((system_rev >= 0x2000)&&(system_rev <= 0x2005))
-		msleep(600);
-	//End
-
 	if(mmc_ports[id].pwr != TCC_MMC_PORT_NULL)
 		gpio_request(mmc_ports[id].pwr, "sd_power");
 

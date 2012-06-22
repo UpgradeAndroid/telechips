@@ -471,7 +471,7 @@ static int tcc_cpufreq_set_clock_table(struct tcc_freq_table_t *curr_clk_tbl)
 	if (new_core_voltage > curr_core_voltage) {
 		ret = tcc_cpufreq_set_voltage(new_core_voltage);
 		if (ret != 0) {
-			pr_err("cpufreq: regulator_set_voltage failed\n");
+			pr_err("cpufreq: regulator_set_voltage(%d->%d) failed (%d)\n", curr_core_voltage, new_core_voltage, ret);
 			return ret;;
 		}
 	}
