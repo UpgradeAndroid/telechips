@@ -1786,11 +1786,13 @@ int tccxxx_vioc_scaler_set(VIOC_SC *pSC, VIOC_VIN *pVIN, VIOC_WMIX *pWMIX, uint 
 		channel = VIOC_SC3;
 	}
 
+#if !defined(CONFIG_MACH_M805_892X)
 	if(dw == width && dh == height){
 		dprintk("VIOC don't use SC, Because input size and output size is same\n");
 		VIOC_CONFIG_PlugOut(channel);
 		return 0;
 	}
+#endif
 
 #if defined(CONFIG_VIDEO_ATV_SENSOR_TVP5150) // 4:3 ratio.
 	mw = dw + 16;
