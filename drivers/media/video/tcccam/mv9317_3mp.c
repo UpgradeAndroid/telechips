@@ -558,6 +558,9 @@ void sensor_info_init_mv9317(TCC_SENSOR_INFO_TYPE *sensor_info)
 	sensor_info->p_clock_pol 				= NEGATIVE_EDGE;
 	sensor_info->v_sync_pol 				= ACT_LOW;
 	sensor_info->h_sync_pol                 = ACT_HIGH;
+	#if defined(CONFIG_ARCH_TCC892X)
+	sensor_info->de_pol                 = ACT_LOW;
+	#endif
 	sensor_info->format 					= M420_ZERO;
 	sensor_info->capture_skip_frame 		= 3;
 	sensor_info->sensor_sizes 			= sensor_sizes_mv9317;
