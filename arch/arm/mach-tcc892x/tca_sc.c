@@ -31,6 +31,7 @@
 #ifdef CONFIG_HAS_EARLYSUSPEND
 #include <linux/earlysuspend.h>
 #endif
+#include <linux/timer.h>
 
 #include <asm/io.h>
 #include <asm/uaccess.h>
@@ -68,14 +69,20 @@ static struct _sc_io {
 	int	data;
 } sc_io;
 
-/* functions to handle ic card */
-/* 	this function pointers are not used at this time */
-struct _sc_fnt {
-	void (*reset)(int);
-	unsigned (*detect)(void);
-	void (*pwren)(int);
-	void (*set_voltage)(int);
-} sc_fnt;
+#define	SC_DETECT_FILTER_MAX	5
+#define	SC_DETECT_TIME	10
+struct _sc_detect {
+	int	state;
+	int	filter[SC_DETECT_FILTER_MAX];
+	int	filter_idx;
+	struct timer_list sc_timer;
+} sc_detect;
+
+void sc_detect_timer_handler (unsigned long data);
+int sc_detect_get_state (void);
+int tca_sc_enable(void);
+int tca_sc_disable(void);
+int	sc_enable_flag=0;
 
 sDRV_UART gDRV_UART_SC = 
 {
@@ -138,24 +145,46 @@ static int uart_port_map[24][2] = {
 static unsigned short gCWT; //microsecond
 static unsigned short gBWT; //microsecond
 static int iIrqData;
-	
+
+void tca_sc_pwren(int on)
+{
+	if (sc_io.pwren != -1) {
+#if defined(CONFIG_MACH_TCC8920) || defined(CONFIG_MACH_TCC8920ST)
+		//control CMDVCC# for TDA8024
+		if (on) {
+			gpio_direction_output (sc_io.pwren, 0);
+			gpio_set_value (sc_io.pwren, 0);
+		}
+		else	{
+			gpio_direction_output (sc_io.pwren, 1);
+			gpio_set_value (sc_io.pwren, 1);
+		}
+#elif defined(CONFIG_MACH_M805_892X)
+		//control LDO
+		if (on) {
+			gpio_direction_output (sc_io.pwren, 1);
+			gpio_set_value (sc_io.pwren, 1);
+		}
+		else	{
+			gpio_direction_output (sc_io.pwren, 0);
+			gpio_set_value (sc_io.pwren, 0);
+		}
+#endif
+	}
+}
+
 void tca_sc_init_port(void)
 {
 	//init all variables at first.
 	sc_io.rst = sc_io.detect = sc_io.pwren = sc_io.set_volt = sc_io.clk = sc_io.data = -1;
 
 #ifdef CONFIG_MACH_TCC8920
-	sc_io.rst = TCC_GPEXT2(6);
-	sc_io.detect = TCC_GPB(16);
-	sc_io.pwren = TCC_GPEXT2(7);
+	sc_io.rst = TCC_GPEXT2(6);		//active-low
+	sc_io.detect = TCC_GPB(16);		//active-high
+	sc_io.pwren = TCC_GPEXT2(7);		//active-low
 	sc_io.set_volt = -1;
 	sc_io.clk = TCC_GPC(24);
 	sc_io.data = TCC_GPC(23);
-
-	//sc_fnt.reset = tca_sc_make_reset;
-	//sc_fnt.detect = tca_sc_detect_card;
-	//sc_fnt.pwren = tca_sc_pwren;
-	//sc_fnt.set_voltage = tca_sc_select_voltage;
 #elif defined (CONFIG_MACH_TCC8920ST)
 	sc_io.rst = TCC_GPB(27);
 	sc_io.detect = TCC_GPG(16);
@@ -163,24 +192,14 @@ void tca_sc_init_port(void)
 	sc_io.set_volt = -1;
 	sc_io.clk = TCC_GPB(26);
 	sc_io.data = TCC_GPB(25);
-
-	//sc_fnt.reset = tca_sc_make_reset;
-	//sc_fnt.detect = tca_sc_detect_card;
-	//sc_fnt.pwren = tca_sc_pwren;
-	//sc_fnt.set_voltage = tca_sc_select_voltage;
 #elif defined (CONFIG_MACH_M805_892X)
 	if (system_rev == 0x2005) {
-		sc_io.rst = TCC_GPC(12);
-		sc_io.detect = TCC_GPG(4);
-		sc_io.pwren = TCC_GPG(5);
+		sc_io.rst = TCC_GPC(12);	//active-low
+		sc_io.detect = TCC_GPG(4);	//active-high
+		sc_io.pwren = TCC_GPG(5);	//active-high
 		sc_io.set_volt = -1;
 		sc_io.clk = TCC_GPC(11);
 		sc_io.data = TCC_GPC(10);
-
-		//sc_fnt.reset = tca_sc_make_reset;
-		//sc_fnt.detect = tca_sc_detect_card;
-		//sc_fnt.pwren = tca_sc_pwren;
-		//sc_fnt.set_voltage = tca_sc_select_voltage;
 	}
 #endif
 
@@ -190,26 +209,24 @@ void tca_sc_init_port(void)
 	if (sc_io.rst != -1) gpio_request (sc_io.rst, NULL);
 	if (sc_io.detect != -1) gpio_request (sc_io.detect, NULL);
 
-	if (sc_io.data != -1) tcc_gpio_config(sc_io.data, GPIO_FN(0));
-	if (sc_io.pwren != -1) tcc_gpio_config(sc_io.pwren, GPIO_FN(0));
-	if (sc_io.rst != -1) tcc_gpio_config(sc_io.rst, GPIO_FN(0));
-	if (sc_io.detect != -1) tcc_gpio_config(sc_io.detect, GPIO_FN(0));
+	if (sc_io.pwren != -1) {
+	#if defined(CONFIG_MACH_TCC8920) || defined(CONFIG_MACH_TCC8920ST)
+		tcc_gpio_config(sc_io.pwren, GPIO_FN(0)|GPIO_OUTPUT|GPIO_HIGH);
+		gpio_direction_output(sc_io.pwren, 1);
+	#elif defined(CONFIG_MACH_M805_892X)
+		tcc_gpio_config(sc_io.pwren, GPIO_FN(0)|GPIO_OUTPUT|GPIO_LOW);
+	#endif
+	}
 
-	if (sc_io.clk != -1) gpio_direction_output(sc_io.clk, 1);
-	if (sc_io.data != -1) gpio_direction_output(sc_io.data, 1);
-
-#if defined(CONFIG_MACH_TCC8920) || defined(CONFIG_MACH_TCC8920ST)
-	if (sc_io.pwren != -1) gpio_direction_output(sc_io.pwren, 1);
-	if (sc_io.pwren != -1) gpio_set_value(sc_io.pwren, 1);
-#elif defined(CONFIG_MACH_M805_892X)
-	if (sc_io.pwren != -1) gpio_direction_output(sc_io.pwren, 0);
-	if (sc_io.pwren != -1) gpio_set_value(sc_io.pwren, 0);
-#endif
-	if (sc_io.rst != -1) gpio_direction_output(sc_io.rst, 1); 
-	if (sc_io.rst != -1) gpio_set_value(sc_io.rst, 0);
-
-	// Card Detection
-	gpio_direction_input(sc_io.detect);
+	if (sc_io.rst != -1) {
+		tcc_gpio_config(sc_io.rst, GPIO_FN(0)|GPIO_INPUT|GPIO_PULLDOWN);
+	#if defined(CONFIG_MACH_TCC8920) || defined(CONFIG_MACH_TCC8920ST)
+		gpio_direction_input (sc_io.rst);
+	#endif
+	}
+	if (sc_io.detect != -1) tcc_gpio_config(sc_io.detect, GPIO_FN(0)|GPIO_INPUT); 
+	if (sc_io.clk != -1) tcc_gpio_config(sc_io.clk, GPIO_FN(0)|GPIO_INPUT|GPIO_PULLDOWN);
+	if (sc_io.data != -1) tcc_gpio_config(sc_io.data, GPIO_FN(0)|GPIO_INPUT|GPIO_PULLDOWN);
 
 	// VCC Voltage Selection - High:5V, Low:3V
 }
@@ -265,56 +282,32 @@ void tca_sc_make_reset(unsigned uReset)
 {
 	dprintk("%s uReset= %d \n", __func__, uReset);
 
-#if defined(CONFIG_MACH_TCC8920) || defined(CONFIG_MACH_TCC8920ST)
-	if(uReset)
-	{
+	if(uReset) {
 		if (sc_io.rst != -1) {
 			gpio_direction_output (sc_io.rst, 1);
 			gpio_set_value (sc_io.rst, 1);
 		}
-	}
-	else
-	{
-		if (sc_io.pwren != -1) {
-			gpio_direction_output (sc_io.pwren, 1);
-			gpio_set_value (sc_io.pwren, 0);
-		}
+	} else {
 		if (sc_io.rst != -1) {
-			gpio_direction_output (sc_io.rst, 1);
+			gpio_direction_output (sc_io.rst, 0);
 			gpio_set_value (sc_io.rst, 0);
 		}
 	}
-#elif defined(CONFIG_MACH_M805_892X)
-	if (sc_io.rst != -1) {
-		if(uReset) {
-			gpio_direction_output (sc_io.rst, 1);
-			gpio_set_value (sc_io.rst, 1);
-		} else {
-			gpio_direction_output (sc_io.pwren, 1);
-			gpio_set_value (sc_io.pwren, 1);	/***** temporal code *****/
-
-			gpio_direction_output (sc_io.rst, 1);
-			gpio_set_value (sc_io.rst, 0);
-		}
- 	}
-#endif
 }
 
 void tca_sc_make_activate(unsigned uActivate)
 {
 	dprintk("%s, uActivate=%d\n", __func__, uActivate);
-#ifdef CONFIG_MACH_M805_892X
 	if(uActivate)
 	{
-		gpio_direction_output (sc_io.pwren, 1);
-		gpio_direction_output (sc_io.rst, 0);
+		tca_sc_pwren(1);
+		if (sc_io.rst != -1) gpio_direction_output (sc_io.rst, 1);
 	}
 	else
 	{
-		gpio_direction_input (sc_io.rst);
-		gpio_direction_output (sc_io.pwren, 0);
+		if (sc_io.rst != -1) gpio_direction_input (sc_io.rst);
+		tca_sc_pwren(0);
 	}
-#endif
 }
 
 void tca_sc_select_voltage(unsigned uVoloate_3V)
@@ -331,38 +324,24 @@ void tca_sc_select_voltage(unsigned uVoloate_3V)
 
 unsigned tca_sc_detect_card(void)
 {
-	int ret=0;
+	int	ret;
 #if defined(CONFIG_MACH_TCC8920) || defined(CONFIG_MACH_TCC8920ST)
-	ret =gpio_get_value(sc_io.detect);
-
-	dprintk("%s ret = %d\n", __func__, ret);
-
-	if(ret)
-		tca_sc_make_reset(0);	// Reset LOW
-	else {
-		if (sc_io.pwren != -1) gpio_set_value (sc_io.pwren, 1);
+	ret = gpio_get_value (sc_io.detect);
+	if (ret) {
+		sc_detect.state = 1;
+		tca_sc_pwren(1);
+		tca_sc_make_reset(1);
+		tca_sc_enable();
+	} else {
+		sc_detect.state = 0;
+		tca_sc_disable();
+		tca_sc_make_activate(0);
+		tca_sc_pwren(0);
 	}
 #elif defined(CONFIG_MACH_M805_892X)
-	/* detect - active high*/
-	ret = gpio_get_value (sc_io.detect);
-	if (ret) tca_sc_make_reset (0);	
+	ret = sc_detect.state;
 #endif
 	return ret;
-}
-
-unsigned tca_sc_pwren(int on)
-{
-#if defined(CONFIG_MACH_TCC8920) || defined(CONFIG_MACH_TCC8920ST)
-	if (sc_io.pwren != -1) {
-		if (on) gpio_set_value (sc_io.pwren, 0);
-		else	gpio_set_value (sc_io.pwren, 1);
-	}
-#elif defined(CONFIG_MACH_M805_892X)
-	if (sc_io.pwren !=-1) {
-		if (on) gpio_set_value (sc_io.pwren, 1);
-		else	gpio_set_value (sc_io.pwren, 0);
-	}
-#endif
 }
 
 void tca_sc_ctrl_txport(unsigned uPort, unsigned uEnable)
@@ -420,7 +399,9 @@ void tca_sc_get_atr(unsigned char *pATRData, unsigned *pATRLength)
 	//Init Tx/Rx buffer
 	tca_sc_init_buffer(uPort, DRV_UART_BUFFER_TXRX);
 
-	tca_sc_make_reset(1);	// Reset HIGH
+	tca_sc_make_reset(0);
+	msleep(2);
+	tca_sc_make_reset(1);
 
 	//Disable SmartCard TX
 	tca_sc_ctrl_txport(uPort, DISABLE);
@@ -735,15 +716,17 @@ int tca_sc_enable(void)
 	UART *pHwUART;
 	PIC *pHwPIC;
 	GPION *pHwGPIO;
-#if 1
+	
 	volatile PUARTPORTCFG pPORT = (volatile PUARTPORTCFG)tcc_p2v(HwUART_PORTCFG_BASE);
 	unsigned int phy_port;
-#endif
 
 	sDRV_UART *pstDrvSc = &gDRV_UART_SC;
 	uUartCh = pstDrvSc->PORT;
 
 	dprintk("%s uUartCh = %d\n", __func__, uUartCh);
+
+	if (sc_enable_flag) return 0;
+	sc_enable_flag = 1;
 
 	//Set the Base Address
 	pHwUART = (volatile PUART)tcc_p2v(SC_UART_ADDR(uUartCh));
@@ -758,7 +741,7 @@ int tca_sc_enable(void)
 	dprintk("%s SC_UART_ADDR(%d) = 0x%x\n", __func__, uUartCh, SC_UART_ADDR(uUartCh));
 	
 	if (uUartCh> 7)
-		return;
+		return -1;
 
 #if defined(CONFIG_MACH_TCC8920)
 	uUartPort = 11;
@@ -850,7 +833,7 @@ int tca_sc_enable(void)
 			pstDrvSc->SCCLK, uDiv, pstDrvSc->LCR, pstDrvSc->FCR, pstDrvSc->AFT, pstDrvSc->IER);
 	
 	//Set the Interrupt Handler	
-	request_irq(INT_UART0+uUartCh, tca_sc_interrupt_handler, IRQF_SHARED, "tca_sc", &iIrqData);
+	//request_irq(INT_UART0+uUartCh, tca_sc_interrupt_handler, IRQF_SHARED, "tca_sc", &iIrqData);
 	
 	//Init UART Buffer
 	tca_sc_init_buffer(uUartCh, DRV_UART_BUFFER_TXRX);
@@ -883,7 +866,10 @@ int tca_sc_disable(void)
 	sDRV_UART *pstDrvSc = &gDRV_UART_SC;
 
 	dprintk("%s\n", __func__);
-	
+
+	if (!sc_enable_flag)	return 0;
+	sc_enable_flag = 0;
+
 	uUartCh = pstDrvSc->PORT;
 	pHwUART = (volatile PUART)tcc_p2v(SC_UART_ADDR(uUartCh));
 
@@ -895,16 +881,16 @@ int tca_sc_disable(void)
 	tca_sc_init_buffer(uUartCh, DRV_UART_BUFFER_TXRX);
 
 	//DRV_UART_FUNC_SC_CLOSE
-	free_irq(INT_UART0+uUartCh, &iIrqData);
+	//free_irq(INT_UART0+uUartCh, &iIrqData);
 
-	tcc_gpio_config(sc_io.data, GPIO_FN(0)|GPIO_PULL_DISABLE);
-	tcc_gpio_config(sc_io.pwren, GPIO_FN(0)|GPIO_PULL_DISABLE);
-	tcc_gpio_config(sc_io.rst, GPIO_FN(0)|GPIO_PULL_DISABLE);
-	tcc_gpio_config(sc_io.detect, GPIO_FN(0)|GPIO_PULL_DISABLE);
+	if (sc_io.data != -1) tcc_gpio_config(sc_io.data, GPIO_FN(0)|GPIO_INPUT|GPIO_PULLDOWN);
+	if (sc_io.rst != -1) tcc_gpio_config(sc_io.clk, GPIO_FN(0)|GPIO_INPUT|GPIO_PULLDOWN);
+
+	tca_sc_make_activate(0);
 
 	//Disable All UART Interrupts
 	//BITCLR(HwPIC->IEN1, HwINT1_UART);
-		
+
 	//Disable UART Peripheral Clock
 	tca_sc_clock_ctrl(pstDrvSc, DISABLE);
 
@@ -1214,7 +1200,10 @@ int	tca_sc_send_receive_len(char *pSend, unsigned uSendLength, char *pRcv, unsig
 	int	iBWTmsec = (gBWT/1000) + 1;
 
 	dprintk("%s, BWT=%d[msec]\n", __func__, iBWTmsec);
-	
+
+	if (!sc_detect_get_state())
+		return 0;
+
 	// Send Command
 	if(pSend && uSendLength)
 		tca_sc_send_data(pSend, uSendLength);
@@ -1232,31 +1221,110 @@ int	tca_sc_send_receive_len(char *pSend, unsigned uSendLength, char *pRcv, unsig
 	return iRet;
 }
 
+int sc_detect_get_state (void)
+{
+	return sc_detect.state;
+}
+
+#if defined(CONFIG_MACH_M805_892X)
+void sc_detect_init (void)
+{
+	int	i;
+
+	sc_detect.state = 0;
+	sc_detect.filter_idx = 0;
+	for (i=0; i < SC_DETECT_FILTER_MAX; i++)
+		sc_detect.filter[i] = 0;
+}
+void sc_detect_update_filter(int detect_flag)
+{
+	if (sc_detect.filter_idx >= SC_DETECT_FILTER_MAX)
+		sc_detect.filter_idx = 0;
+
+	sc_detect.filter[sc_detect.filter_idx] = (detect_flag ? 1 : 0);
+	sc_detect.filter_idx++;
+}
+int sc_detect_update_state (void)
+{
+	int prev_state, cur_state;
+	int count,filter_sum;
+
+	prev_state = sc_detect.state;
+
+	filter_sum = 0;
+	for (count=0; count < SC_DETECT_FILTER_MAX; count++)
+		filter_sum += sc_detect.filter[count];
+
+	if (filter_sum == SC_DETECT_FILTER_MAX || filter_sum == 0) {	//if all values of filter are same,
+		cur_state = filter_sum ? 1 : 0;
+		if (cur_state != prev_state) {
+			sc_detect.state = cur_state;
+			return 1;
+		}
+	} else {
+		//sc detection signal is now in transition.
+		//do nothing
+	}
+	return 0;
+}
+
+void sc_detect_timer_regist(struct timer_list *ptimer, unsigned int timeover)
+{
+	init_timer (ptimer);
+	ptimer->expires = jiffies+msecs_to_jiffies(timeover);
+	ptimer->data =  (unsigned long)0;
+	ptimer->function = sc_detect_timer_handler;
+
+	add_timer(ptimer);
+}
+
+void sc_detect_timer_handler (unsigned long data)
+{
+	int	detect_val = 0;
+
+	if (sc_io.detect != -1) detect_val = gpio_get_value (sc_io.detect);
+	sc_detect_update_filter(detect_val);
+	if (sc_detect_update_state()) {	//if state changes
+		if (sc_detect_get_state()) {
+			tca_sc_pwren(1);		
+			tca_sc_make_reset(1);
+			tca_sc_enable();
+		} else {
+			tca_sc_disable();
+			tca_sc_make_activate(0);
+			tca_sc_pwren(0);
+		}
+	}
+
+	sc_detect_timer_regist (&sc_detect.sc_timer, SC_DETECT_TIME);
+}
+#endif
+
 int tca_sc_open(struct inode *inode, struct file *filp)
 {
 	dprintk("%s\n", __func__);
 	
 	tca_sc_init_port();
-	tca_sc_make_activate(1);
 
-	//Init Reset Signal
-	tca_sc_make_reset(0);	// Reset LOW
+	sc_enable_flag = 0;
 
-	//Enable Smartcard Interface
-	tca_sc_enable();
-	
+#if defined(CONFIG_MACH_M805_892X)
+	sc_detect_init ();
+	sc_detect_timer_regist (&sc_detect.sc_timer, SC_DETECT_TIME);
+#endif
+
 	return 0;
 }
 int tca_sc_close(struct inode *inode, struct file *file)
 {
 	dprintk("%s\n", __func__);
-	
-	//Disable Smartcard Interface
-	tca_sc_disable();
-	tca_sc_make_activate(0);
 
-	//Init Reset Signal
-	tca_sc_make_reset(0);	// Reset LOW
+	del_timer_sync (&sc_detect.sc_timer);
+
+	//Disable Smartcard Interface
+	if (sc_enable_flag) {
+		tca_sc_disable();
+	}
 
 	return 0;
 }
@@ -1268,6 +1336,9 @@ int tca_sc_init(void)
 	dprintk("%s\n", __func__);
 
 	tca_sc_init_port();
+
+	//set the interrupt handler
+	request_irq(INT_UART0+uPort, tca_sc_interrupt_handler, IRQF_SHARED, "tca_sc", &iIrqData);
 
 	switch(uPort)
 	{
@@ -1305,10 +1376,11 @@ int tca_sc_init(void)
 
 void tca_sc_exit(void)
 {
+	unsigned char uPort = gDRV_UART_SC.PORT;
 	dprintk("%s\n", __func__);
+
+	free_irq(INT_UART0+uPort, &iIrqData);
+
 	clk_put(gSC_clk);
 	return;
 }
-
-
-

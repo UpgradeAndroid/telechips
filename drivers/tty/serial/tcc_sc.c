@@ -113,8 +113,6 @@ int tcc_sc_disable(void)
 int tcc_sc_reset(unsigned char *pATR, unsigned *pATRLength)
 {
 	int iRet = -1;
-	dprintk("%s\n", __func__);
-
 	iRet = tca_sc_reset(pATR, pATRLength);
 
 	return iRet;
