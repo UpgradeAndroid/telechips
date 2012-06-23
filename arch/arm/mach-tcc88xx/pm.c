@@ -1158,6 +1158,31 @@ static void io_restore(void)
 /*===========================================================================
 FUNCTION
 ===========================================================================*/
+static void edi_init(void)
+{
+
+	PEDI pEDI = (PEDI)HwEDI_BASE;
+#if defined(CONFIG_MACH_M801_88) || defined(CONFIG_MACH_M803)
+	BITCSET(pEDI->EDI_RDYCFG,       0x000FFFFF, 0x00011112 );
+	BITCSET(pEDI->EDI_CSNCFG0,      0x00F00FFF, 0x00500876 );
+#else 
+	if(system_rev == 0x0602 || system_rev == 0x0612)
+	{
+		BITCSET(pEDI->EDI_RDYCFG,       0x000FFFFF, 0x00011112 );
+		BITCSET(pEDI->EDI_CSNCFG0,      0x00F00FFF, 0x00500876 );
+	}
+	else
+	{
+		BITCSET(pEDI->EDI_RDYCFG,       0x000FFFFF, 0x00032014 );
+		BITCSET(pEDI->EDI_CSNCFG0,      0x00F00FFF, 0x00500876 );
+	}
+#endif
+}
+
+
+/*===========================================================================
+FUNCTION
+===========================================================================*/
 static void tcc_nfc_suspend(PNFC pBackupNFC, PNFC pHwNFC)
 {
 	pBackupNFC->NFC_CACYC = pHwNFC->NFC_CACYC;
@@ -1173,6 +1198,7 @@ FUNCTION
 ===========================================================================*/
 static void tcc_nfc_resume(PNFC pHwNFC, PNFC pBackupNFC)
 {
+	edi_init();
 	pHwNFC->NFC_CACYC = pBackupNFC->NFC_CACYC;
 	pHwNFC->NFC_WRCYC = pBackupNFC->NFC_WRCYC;
 	pHwNFC->NFC_RECYC = pBackupNFC->NFC_RECYC;
