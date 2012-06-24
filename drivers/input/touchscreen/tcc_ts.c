@@ -77,8 +77,8 @@
 #define ADCTSC_AUTO_ADC4        AUTO_PST_EN
 #define ADCTSC_AUTO_ADC5        AUTO_PST_DIS
 
-#define TOUCH_COLLECT_NR        16  // (TOUCH_COLLECT_NR-TOUCH_VALID_VALUE) must be even
-#define TOUCH_VALID_VALUE       4  // among COLLECT_NR samples, OK should be over
+#define TOUCH_COLLECT_NR        8  // (TOUCH_COLLECT_NR-TOUCH_VALID_VALUE) must be even
+#define TOUCH_VALID_VALUE       2  // among COLLECT_NR samples, OK should be over
 #define TOUCH_TIMER_DELAY       10 // ms
 #define TOUCH_RELEASE_TIME      1500 // ms
 #if defined(CONFIG_ARCH_TCC92XX)
