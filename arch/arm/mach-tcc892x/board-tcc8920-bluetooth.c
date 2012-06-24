@@ -185,6 +185,11 @@ static int tcc_bt_rfkill_set_power(void *data, bool blocked)
 			gpio_set_value(TCC_GPEXT2(4), 0);   /* reset */
 			msleep(500);
 			gpio_set_value(TCC_GPEXT2(4), 1);   /* reset */
+			#elif defined (CONFIG_TCC_BRCM_BCM4330_MODULE_SUPPORT)
+			gpio_set_value(TCC_GPEXT3(2), 1);   /* BT_WAKE Enable , pwr_ctrl*/
+			gpio_set_value(TCC_GPEXT2(4), 0);   /* reset */
+			msleep(500);
+			gpio_set_value(TCC_GPEXT2(4), 1);   /* reset */
 			#elif defined (CONFIG_TCC_RDA_587X_MODULE_SUPPORT)
 			RDA_bt_Power_On();
 			#endif	
@@ -212,6 +217,9 @@ static int tcc_bt_rfkill_set_power(void *data, bool blocked)
 		if (machine_is_tcc8800() || machine_is_tcc8920()) {      // #elif defined (CONFIG_MACH_TCC9300)
 			#if defined (CONFIG_TCC_CSR_BC0406_MODULE_SUPPORT)|| defined(CONFIG_TCC_ATHEROS_AR3002_MODULE_SUPPORT)
 			//gpio_set_value(TCC_GPEXT1(7), 0);   /* BT-ON Disable */
+			gpio_set_value(TCC_GPEXT3(2), 0);   /* BT_WAKE Disable */
+			gpio_set_value(TCC_GPEXT2(4), 0);   /* reset */
+			#elif defined (CONFIG_TCC_BRCM_BCM4330_MODULE_SUPPORT)
 			gpio_set_value(TCC_GPEXT3(2), 0);   /* BT_WAKE Disable */
 			gpio_set_value(TCC_GPEXT2(4), 0);   /* reset */
 			#elif defined (CONFIG_TCC_RDA_587X_MODULE_SUPPORT)

@@ -287,6 +287,8 @@ static int tcc_bt_get_info(tcc_bt_info_t* arg)
         	module_t = 0x12;
 		#elif defined (CONFIG_TCC_RDA_587X_MODULE_SUPPORT)
 	        module_t = 0x56;	
+		#elif defined (CONFIG_TCC_BRCM_BCM4330_MODULE_SUPPORT)
+		module_t = 0x34;	
 		#elif defined (CONFIG_TCC_ATHEROS_AR3002_MODULE_SUPPORT)
 			module_t = 0x78;	
 		#endif

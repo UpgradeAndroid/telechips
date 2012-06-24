@@ -662,6 +662,11 @@ config TCC_BRCM_BCM4325D0_MODULE_SUPPORT
 	  If you say Y here, you can use Broadcom Module BCM4325D0
 	  on the TCC9200S board.
 
+config TCC_BRCM_BCM4330_MODULE_SUPPORT
+	tristate "Broadcom Module BCM4330 Support"
+	default n
+	---help---
+	  If you say Y here, you can use Broadcom Module BCM4330.
 config TCC_RDA_587X_MODULE_SUPPORT
 	tristate "RDA Module 587X Support"
 	default n
