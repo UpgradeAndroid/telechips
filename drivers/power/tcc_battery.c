@@ -446,10 +446,16 @@ int battery_voltage(void)
 #elif defined(CONFIG_REGULATOR_AXP202)
 	return axp202_battery_voltage();
 #elif defined(CONFIG_REGULATOR_RN5T614)
-	if(batt_suspend_status == 0)
-	    return tcc_adc_start(tcc_batt_info.client, adc_channel, 0);// Ricoh pmic doen't support battery voltage level.
+	int voltage;
+	if(batt_suspend_status == 0){
+	    preempt_disable();
+	    voltage = tcc_adc_start(tcc_batt_info.client, adc_channel, 0);// Ricoh pmic doen't support battery voltage level.
+	    preempt_enable();
+	    return voltage;
+	}
 	else
 	    return old_batt_adcValue;
+	
 #else
 	return tcc_adc_start(tcc_batt_info.client, adc_channel, 0);// using internal ADC
 #endif
