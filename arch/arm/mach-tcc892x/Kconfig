@@ -149,7 +149,7 @@ endchoice
 
 choice
 	prompt "TCC892x HDMI Dongle WiFi Chip"
-	default HDMI_DONGLE_WIFI_ARTHEROS
+	default HDMI_DONGLE_WIFI_REALTEK
 	depends on STB_BOARD_DONGLE
 	help
 	  Select WiFi Chip of TCC8925 HDMI Dongle Board.
