@@ -55,6 +55,8 @@ typedef struct {
 	#define PIDTABLE_MAXCNT		32
 	
 	unsigned short pidtable[PIDTABLE_MAXCNT];
+
+	spinlock_t lock;
 } st_p_tsif;
 
 st_p_tsif p_tsif_inst = {
@@ -243,12 +245,13 @@ EXPORT_SYMBOL_GPL(tcc_tsif_p_get_pos);
 
 void tcc_tsif_p_insert_pid(int pid)
 {
+	st_p_tsif *instance = &p_tsif_inst;
+	int i, pos=0;		
+	
+	spin_lock(&instance->lock);
+	
 #ifdef GDMA
 #ifdef SUPPORT_PIDFILTER_INTERNAL
-	st_p_tsif *instance = &p_tsif_inst;
-	
-	int i, pos=0;
-
 	for(i=0; i<PIDTABLE_MAXCNT; i++) {
 		if(instance->pidtable[i] == pid) {
 			printk("[%s] pid table already insert val : %d\n", __func__, pid);
@@ -281,14 +284,11 @@ void tcc_tsif_p_insert_pid(int pid)
 	
 	tsif_regs = (volatile PTSIF)tcc_p2v(((TSIF_CH == 0) ? HwTSIF0_BASE : ((TSIF_CH == 1) ? HwTSIF1_BASE : HwTSIF2_BASE)));
 
-	if((pos % 2) == 0) {
-		if(pos != 0)		idx = (pos / 2);
-		else				idx = pos;
+	idx = pos / 2;
+	if(pos % 2) {
 		tsif_regs->TSPID[idx].nREG &= 0xffff0000;
 		tsif_regs->TSPID[idx].nREG |= (pid & 0x1FFF) | Hw13;
 	} else {
-		if(pos != 1)		idx = (pos / 2) - 1;
-		else				idx = pos - 1;
 		tsif_regs->TSPID[idx].nREG &= 0x0000ffff;
 		tsif_regs->TSPID[idx].nREG |= ((pid & 0x1FFF) << 16) | Hw29;
 	}
@@ -299,10 +299,6 @@ void tcc_tsif_p_insert_pid(int pid)
 	//printk("[%s] pidtable insert : %d-%d\n", __func__, pos, pid);
 #endif
 #else
-	st_p_tsif *instance = &p_tsif_inst;
-	
-	int i, pos=0;
-
 	for(i=0; i<PIDTABLE_MAXCNT; i++) {
 		if(instance->pidtable[i] == pid) {
 			printk("[%s] pid table already insert val : %d\n", __func__, pid);
@@ -321,7 +317,6 @@ void tcc_tsif_p_insert_pid(int pid)
 			return;
 		}
 	}
-
 #if defined(CONFIG_ARCH_TCC88XX)
 #ifdef SUPPORT_PIDFILTER_INTERNAL
 	PTSIF	tsif_regs;
@@ -340,14 +335,11 @@ void tcc_tsif_p_insert_pid(int pid)
 
 	tsif_regs = (volatile PTSIF)tcc_p2v(((TSIF_CH == 0) ? HwTSIF0_BASE : ((TSIF_CH == 1) ? HwTSIF1_BASE : HwTSIF2_BASE)));
 
-	if((pos % 2) == 0) {
-		if(pos != 0)		idx = (pos / 2);
-		else				idx = pos;
+	idx = pos / 2;
+	if(pos % 2) {
 		tsif_regs->TSPID[idx].nREG &= 0xffff0000;
 		tsif_regs->TSPID[idx].nREG |= (pid & 0x1FFF) | Hw13;
 	} else {
-		if(pos != 1)		idx = (pos / 2) - 1;
-		else				idx = pos - 1;
 		tsif_regs->TSPID[idx].nREG &= 0x0000ffff;
 		tsif_regs->TSPID[idx].nREG |= ((pid & 0x1FFF) << 16) | Hw29;
 	}
@@ -362,19 +354,22 @@ void tcc_tsif_p_insert_pid(int pid)
 
 	instance->pidtable[pos] = pid;
 
-//	printk("[%s] pidtable insert : %d-%d\n", __func__, pos, pid);
+	//printk("[%s] pidtable insert : %d-%d\n", __func__, pos, pid);
 #endif
+
+	spin_unlock(&instance->lock);
 }
 EXPORT_SYMBOL_GPL(tcc_tsif_p_insert_pid);
 
 void tcc_tsif_p_remove_pid(int pid)
 {
+	st_p_tsif *instance = &p_tsif_inst;
+	int i, pos=0;		
+	
+	spin_lock(&instance->lock);
+	
 #ifdef GDMA	
 #ifdef SUPPORT_PIDFILTER_INTERNAL
-	st_p_tsif *instance = &p_tsif_inst;
-	
-	int i, pos=0;
-
 	for(i=0; i<PIDTABLE_MAXCNT; i++) {
 		if(instance->pidtable[i] == pid) {
 			pos = i;
@@ -398,13 +393,10 @@ void tcc_tsif_p_remove_pid(int pid)
 	
 	tsif_regs = (volatile PTSIF)tcc_p2v(((TSIF_CH == 0) ? HwTSIF0_BASE : ((TSIF_CH == 1) ? HwTSIF1_BASE : HwTSIF2_BASE)));
 
-	if(!(pos % 2)) {
-		if(pos != 0)		idx = (pos / 2);
-		else				idx = pos;
+	idx = pos / 2;
+	if(pos % 2) {
 		tsif_regs->TSPID[idx].nREG &= 0xffff0000;
 	} else {
-		if(pos != 1)		idx = (pos / 2) - 1;
-		else				idx = pos - 1;
 		tsif_regs->TSPID[idx].nREG &= 0x0000ffff;
 	}
 #endif
@@ -414,10 +406,6 @@ void tcc_tsif_p_remove_pid(int pid)
 	//printk("[%s] pidtable remove : %d-%d\n", __func__, pos, pid);
 #endif
 #else
-	st_p_tsif *instance = &p_tsif_inst;
-	
-	int i, pos=0;
-
 	for(i=0; i<PIDTABLE_MAXCNT; i++) {
 		if(instance->pidtable[i] == pid) {
 			pos = i;
@@ -446,13 +434,10 @@ void tcc_tsif_p_remove_pid(int pid)
 	
 	tsif_regs = (volatile PTSIF)tcc_p2v(((TSIF_CH == 0) ? HwTSIF0_BASE : ((TSIF_CH == 1) ? HwTSIF1_BASE : HwTSIF2_BASE)));
 
-	if(!(pos % 2)) {
-		if(pos != 0)		idx = (pos / 2);
-		else				idx = pos;
+	idx = pos / 2;
+	if(pos % 2) {
 		tsif_regs->TSPID[idx].nREG &= 0xffff0000;
 	} else {
-		if(pos != 1)		idx = (pos / 2) - 1;
-		else				idx = pos - 1;
 		tsif_regs->TSPID[idx].nREG &= 0x0000ffff;
 	}
 #else
@@ -467,8 +452,47 @@ void tcc_tsif_p_remove_pid(int pid)
 
 	//printk("[%s] pidtable remove : %d-%d\n", __func__, pos, pid);
 #endif
+
+	spin_unlock(&instance->lock);
 }
 EXPORT_SYMBOL_GPL(tcc_tsif_p_remove_pid);
+
+void tcc_tsif_p_check_pid(void)
+{
+	st_p_tsif *instance = &p_tsif_inst;
+
+	PTSIF	tsif_regs;
+	int i, pos=0;
+
+	spin_lock(&instance->lock);
+
+	tsif_regs = (volatile PTSIF)tcc_p2v(((TSIF_CH == 0) ? HwTSIF0_BASE : ((TSIF_CH == 1) ? HwTSIF1_BASE : HwTSIF2_BASE)));
+
+	for(i=0; i<PIDTABLE_MAXCNT; i++) {
+		if(instance->pidtable[i] != 0xffff) {
+			pos = i / 2;
+			
+			if(i % 2) {
+				tsif_regs->TSPID[pos].nREG &= 0x0000ffff;
+				tsif_regs->TSPID[pos].nREG |= (Hw13 | instance->pidtable[i]) << 16;
+			} else {
+				tsif_regs->TSPID[pos].nREG &= 0xffff0000;
+				tsif_regs->TSPID[pos].nREG |= (Hw13 | instance->pidtable[i]);
+			}
+		}
+	}
+
+#if 0
+	for(i=0; i<PIDTABLE_MAXCNT; i++) {
+		if(instance->pidtable[i] != 0xffff) {
+			pos = i / 2;
+			printk("[%s] pid[%d] : %4d / 0x%08x : 0x%08x\n", __func__, i, instance->pidtable[i], (int)&tsif_regs->TSPID[pos].nREG, tsif_regs->TSPID[pos].nREG);
+		}
+	}
+#endif
+
+	spin_unlock(&instance->lock);
+}
 
 void tcc_tsif_p_set_packetcnt(int cnt)
 {
@@ -580,7 +604,6 @@ int tcc_tsif_p_debug_thread(void *data)
 		if(debug_time != 0) {
 			if(debug_time == cur_time) {
 				tcc_tsif_p_debug(1);
-
 #if 0			
 				if(debug_cnt++ > 5) {
 					st_p_tsif *instance = &p_tsif_inst;
@@ -598,7 +621,7 @@ int tcc_tsif_p_debug_thread(void *data)
 		}
 
 		debug_time = cur_time;
-		
+
 		set_current_state(TASK_INTERRUPTIBLE);
 		schedule_timeout(CHK_TIME*HZ);
 	}
@@ -634,12 +657,11 @@ int tcc_tsif_p_start(void)
 	tca_ckc_setiopwdn(((TSIF_CH == 0) ? RB_TSIF0 : ((TSIF_CH == 1) ? RB_TSIF1 : RB_TSIF2)), DISABLE);
 #endif
 
-
 //20120319 koo : android tcc880x kernel에서는 module init 후에 tsif & gpsb1을 swret state 및 clk disable 상태로 만들기 때문에 module init 시의 tsif & dma reg 설정 value가 
 //				reset 되기 때문에 start 시 다시 설정.
 	handle->hw_init(handle);
 
-    handle->msb_first		= 0x01;
+	handle->msb_first		= 0x01;
 
 #ifdef GDMA
 	handle->big_endian		= 0x01;		//1:big endian, 0:little endian
@@ -666,6 +688,8 @@ int tcc_tsif_p_start(void)
 	handle->prev_q_pos = (int)handle->rx_dma.v_addr;
 	
 	instance->state = P_TSIF_STATE_START;
+
+	tcc_tsif_p_check_pid();
 
 #ifdef TSIF_DEBUG
 	tcc_tsif_p_debug(0);
@@ -829,6 +853,8 @@ int tcc_tsif_p_init(unsigned char **buffer_addr, unsigned int *real_buffer_size,
 	
 	handle->prev_q_pos = (int)handle->rx_dma.v_addr;
 	instance->state = P_TSIF_STATE_INIT;
+
+	spin_lock_init(&instance->lock);
 
 	return 0;
 
