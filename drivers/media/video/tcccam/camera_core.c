@@ -1220,7 +1220,7 @@ static void tcc92xx_camera_early_suspend(struct early_suspend *h);
 static void tcc92xx_camera_late_resume(struct early_suspend *h);
 #endif
 
-static int __init camera_core_probe(struct platform_device *pdev)
+static int camera_core_probe(struct platform_device *pdev)
 {
 	int	status;
 
