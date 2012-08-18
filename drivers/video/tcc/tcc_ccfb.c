@@ -491,7 +491,7 @@ static struct miscdevice ccfb_misc_device =
 	&tcc_ccfb_fops,
 };
 
-static int __init tcc_ccfb_probe(struct platform_device *pdev)
+static int tcc_ccfb_probe(struct platform_device *pdev)
 {
 	dprintk("==> %s\n", __func__);
 
