@@ -112,12 +112,12 @@ spidev_sync(struct spidev_data *spidev, struct spi_message *message)
 	message->complete = spidev_complete;
 	message->context = &done;
 
-	spin_lock_irq(&spidev->spi_lock);
+//	spin_lock_irq(&spidev->spi_lock);
 	if (spidev->spi == NULL)
 		status = -ESHUTDOWN;
 	else
 		status = spi_async(spidev->spi, message);
-	spin_unlock_irq(&spidev->spi_lock);
+//	spin_unlock_irq(&spidev->spi_lock);
 
 	if (status == 0) {
 		wait_for_completion(&done);

@@ -411,6 +411,20 @@ void i2c_unlock_adapter(struct i2c_adapter *);
 #define I2C_CLASS_DDC		(1<<3)	/* DDC bus on graphics adapters */
 #define I2C_CLASS_SPD		(1<<7)	/* Memory modules */
 
+/* Telechips */
+#define I2C_CLASS_ALL       (UINT_MAX) /* all of the above */
+
+/* i2c_client_address_data is the struct for holding default client
+ * addresses for a driver and for the parameters supplied on the
+ * command line
+ */
+struct i2c_client_address_data {
+	const unsigned short *normal_i2c;
+	const unsigned short *probe;
+	const unsigned short *ignore;
+	const unsigned short * const *forces;
+};
+
 /* Internal numbers to terminate lists */
 #define I2C_CLIENT_END		0xfffeU
 
@@ -517,6 +531,11 @@ struct i2c_msg {
 #define I2C_M_IGNORE_NAK	0x1000	/* if I2C_FUNC_PROTOCOL_MANGLING */
 #define I2C_M_NO_RD_ACK		0x0800	/* if I2C_FUNC_PROTOCOL_MANGLING */
 #define I2C_M_RECV_LEN		0x0400	/* length will be first received byte */
+/* Telechips */
+#define I2C_M_MODE   0x0040  /* if slave is TCC DxB chip */
+#define I2C_M_WR_RD  0x0080  /* if write->read operation */
+#define I2C_M_WM899x_CODEC  0x0100  /* if slave is wm899x codec */
+
 	__u16 len;		/* msg length				*/
 	__u8 *buf;		/* pointer to msg data			*/
 };

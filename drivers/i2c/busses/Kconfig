@@ -877,4 +877,63 @@ config SCx200_ACB
 	  This support is also available as a module.  If so, the module
 	  will be called scx200_acb.
 
+config I2C_TCC
+        bool
+
+config I2C_TCC88XX
+        bool "Telechips TCC88xx I2C block bus driver"
+        depends on ARCH_TCC88XX
+        select I2C_TCC
+        default y
+        help
+          If you say yes to this option, support will be included for the
+          I2C interface on the Telechips System-on-Chip.
+
+config I2C_TCC892X
+        bool "Telechips TCC892x I2C block bus driver"
+        depends on ARCH_TCC892X
+        select I2C_TCC
+        default y
+        help
+          If you say yes to this option, support will be included for the
+          I2C interface on the Telechips System-on-Chip.
+
+config I2C_TCC_CORE0
+        bool "Enable I2C Core0"
+        depends on I2C_TCC
+        default y
+        help
+          If ypu say yes to this option, enable "H/W I2C Core0".
+
+config I2C_TCC_CORE1
+        bool "Enable I2C Core1"
+        depends on I2C_TCC && (ARCH_TCC93XX || ARCH_TCC88XX || ARCH_TCC892X)
+        default y
+        help
+          If ypu say yes to this option, enable "H/W I2C Core1".
+
+config I2C_TCC_CORE2
+        bool "Enable I2C Core2"
+        depends on I2C_TCC && (ARCH_TCC93XX || ARCH_TCC892X)
+        default y
+        help
+          If ypu say yes to this option, enable "H/W I2C Core2".
+
+config I2C_TCC_CORE3
+        bool "Enable I2C Core3"
+        depends on I2C_TCC && ARCH_TCC892X
+        default y
+        help
+          If ypu say yes to this option, enable "H/W I2C Core3".
+
+config I2C_TCC_SMU
+        bool "Enable SMU_I2C"
+        depends on I2C_TCC
+        default y
+        help
+          If ypu say yes to this option, enable "H/W SMU_I2C".
+          The SMU_I2C controller in the TCC93xx has two master controller.
+          The each master can control the dedicated I2C device,
+          master 0 for SATA PHY and master 1 for HDMI PHY.
+
 endmenu

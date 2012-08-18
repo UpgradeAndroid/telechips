@@ -44,6 +44,7 @@ snd-soc-wm8350-objs := wm8350.o
 snd-soc-wm8400-objs := wm8400.o
 snd-soc-wm8510-objs := wm8510.o
 snd-soc-wm8523-objs := wm8523.o
+snd-soc-wm8524-objs := wm8524.o
 snd-soc-wm8580-objs := wm8580.o
 snd-soc-wm8711-objs := wm8711.o
 snd-soc-wm8727-objs := wm8727.o
@@ -81,6 +82,12 @@ snd-soc-wm9712-objs := wm9712.o
 snd-soc-wm9713-objs := wm9713.o
 snd-soc-wm-hubs-objs := wm_hubs.o
 snd-soc-jz4740-codec-objs := jz4740.o
+# Everest
+snd-soc-es8388-objs := es8388.o
+# Realtek
+snd-soc-rt5625-objs := rt5625.o
+snd-soc-rt5633-objs := rt5633.o
+snd-soc-rt5631-objs := rt5631.o
 
 # Amp
 snd-soc-lm4857-objs := lm4857.o
@@ -136,6 +143,7 @@ obj-$(CONFIG_SND_SOC_WM8350)	+= snd-soc-wm8350.o
 obj-$(CONFIG_SND_SOC_WM8400)	+= snd-soc-wm8400.o
 obj-$(CONFIG_SND_SOC_WM8510)	+= snd-soc-wm8510.o
 obj-$(CONFIG_SND_SOC_WM8523)	+= snd-soc-wm8523.o
+obj-$(CONFIG_SND_SOC_WM8524)    += snd-soc-wm8524.o
 obj-$(CONFIG_SND_SOC_WM8580)	+= snd-soc-wm8580.o
 obj-$(CONFIG_SND_SOC_WM8711)	+= snd-soc-wm8711.o
 obj-$(CONFIG_SND_SOC_WM8727)	+= snd-soc-wm8727.o
@@ -172,6 +180,12 @@ obj-$(CONFIG_SND_SOC_WM9705)	+= snd-soc-wm9705.o
 obj-$(CONFIG_SND_SOC_WM9712)	+= snd-soc-wm9712.o
 obj-$(CONFIG_SND_SOC_WM9713)	+= snd-soc-wm9713.o
 obj-$(CONFIG_SND_SOC_WM_HUBS)	+= snd-soc-wm-hubs.o
+# Everest 
+obj-$(CONFIG_SND_SOC_ES8388)	+= snd-soc-es8388.o
+# RealTek
+obj-$(CONFIG_SND_SOC_RT5625)	+= snd-soc-rt5625.o
+obj-$(CONFIG_SND_SOC_RT5633)	+= snd-soc-rt5633.o
+obj-$(CONFIG_SND_SOC_RT5631)	+= snd-soc-rt5631.o
 
 # Amp
 obj-$(CONFIG_SND_SOC_LM4857)	+= snd-soc-lm4857.o
@@ -179,3 +193,4 @@ obj-$(CONFIG_SND_SOC_MAX9877)	+= snd-soc-max9877.o
 obj-$(CONFIG_SND_SOC_TPA6130A2)	+= snd-soc-tpa6130a2.o
 obj-$(CONFIG_SND_SOC_WM2000)	+= snd-soc-wm2000.o
 obj-$(CONFIG_SND_SOC_WM9090)	+= snd-soc-wm9090.o
+

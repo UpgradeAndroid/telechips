@@ -2051,6 +2051,8 @@ menuconfig NETDEV_1000
 
 if NETDEV_1000
 
+source "drivers/net/tcc_gmac/Kconfig"
+
 config ACENIC
 	tristate "Alteon AceNIC/3Com 3C985/NetGear GA620 Gigabit support"
 	depends on PCI

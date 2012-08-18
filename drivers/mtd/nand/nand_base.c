@@ -47,6 +47,7 @@
 #include <linux/bitops.h>
 #include <linux/leds.h>
 #include <linux/io.h>
+#include <plat/nand.h>	// add by telechips
 #include <linux/mtd/partitions.h>
 
 /* Define default oob placement schemes for large and small page devices */
@@ -404,6 +405,8 @@ static int nand_default_block_markbad(struct mtd_info *mtd, loff_t ofs)
 	if (chip->bbt)
 		chip->bbt[block >> 2] |= 0x01 << ((block & 0x03) << 1);
 
+	tcc_nand_lock();
+
 	/* Do we have a flash based bad block table ? */
 	if (chip->options & NAND_USE_FLASH_BBT)
 		ret = nand_update_bbt(mtd, ofs);
@@ -437,6 +440,8 @@ static int nand_default_block_markbad(struct mtd_info *mtd, loff_t ofs)
 	}
 	if (!ret)
 		mtd->ecc_stats.badblocks++;
+
+	tcc_nand_unlock();
 
 	return ret;
 }
@@ -1594,6 +1599,8 @@ static int nand_read(struct mtd_info *mtd, loff_t from, size_t len,
 	if (!len)
 		return 0;
 
+	tcc_nand_lock();
+
 	nand_get_device(chip, mtd, FL_READING);
 
 	chip->ops.len = len;
@@ -1605,6 +1612,7 @@ static int nand_read(struct mtd_info *mtd, loff_t from, size_t len,
 	*retlen = chip->ops.retlen;
 
 	nand_release_device(mtd);
+	tcc_nand_unlock();
 
 	return ret;
 }
@@ -1864,6 +1872,8 @@ static int nand_read_oob(struct mtd_info *mtd, loff_t from,
 		return -EINVAL;
 	}
 
+	tcc_nand_lock();
+
 	nand_get_device(chip, mtd, FL_READING);
 
 	switch (ops->mode) {
@@ -1883,6 +1893,9 @@ static int nand_read_oob(struct mtd_info *mtd, loff_t from,
 
 out:
 	nand_release_device(mtd);
+
+	tcc_nand_unlock();
+
 	return ret;
 }
 
@@ -2319,6 +2332,8 @@ static int nand_write(struct mtd_info *mtd, loff_t to, size_t len,
 	if (!len)
 		return 0;
 
+	tcc_nand_lock();
+
 	nand_get_device(chip, mtd, FL_WRITING);
 
 	chip->ops.len = len;
@@ -2330,6 +2345,8 @@ static int nand_write(struct mtd_info *mtd, loff_t to, size_t len,
 	*retlen = chip->ops.retlen;
 
 	nand_release_device(mtd);
+
+	tcc_nand_unlock();
 
 	return ret;
 }
@@ -2435,6 +2452,8 @@ static int nand_write_oob(struct mtd_info *mtd, loff_t to,
 		return -EINVAL;
 	}
 
+	tcc_nand_lock();
+
 	nand_get_device(chip, mtd, FL_WRITING);
 
 	switch (ops->mode) {
@@ -2454,6 +2473,9 @@ static int nand_write_oob(struct mtd_info *mtd, loff_t to,
 
 out:
 	nand_release_device(mtd);
+
+	tcc_nand_unlock();
+
 	return ret;
 }
 
@@ -2521,12 +2543,17 @@ int nand_erase_nand(struct mtd_info *mtd, struct erase_info *instr,
 	unsigned int bbt_masked_page = 0xffffffff;
 	loff_t len;
 
+	tcc_nand_lock();
+
 	DEBUG(MTD_DEBUG_LEVEL3, "%s: start = 0x%012llx, len = %llu\n",
 				__func__, (unsigned long long)instr->addr,
 				(unsigned long long)instr->len);
 
 	if (check_offs_len(mtd, instr->addr, instr->len))
+	{
+		tcc_nand_unlock();
 		return -EINVAL;
+	}
 
 	instr->fail_addr = MTD_FAIL_ADDR_UNKNOWN;
 
@@ -2654,7 +2681,9 @@ erase_exit:
 	 * selected bad block tables
 	 */
 	if (bbt_masked_page == 0xffffffff || ret)
+		tcc_nand_unlock();
 		return ret;
+	}
 
 	for (chipnr = 0; chipnr < chip->numchips; chipnr++) {
 		if (!rewrite_bbt[chipnr])
@@ -2666,6 +2695,8 @@ erase_exit:
 		nand_update_bbt(mtd, rewrite_bbt[chipnr]);
 	}
 
+	tcc_nand_unlock();
+	
 	/* Return more or less happy */
 	return ret;
 }
@@ -2695,11 +2726,17 @@ static void nand_sync(struct mtd_info *mtd)
  */
 static int nand_block_isbad(struct mtd_info *mtd, loff_t offs)
 {
+	int	res;
 	/* Check for invalid offset */
 	if (offs > mtd->size)
 		return -EINVAL;
+	tcc_nand_lock();
 
-	return nand_block_checkbad(mtd, offs, 1, 0);
+	res = nand_block_checkbad(mtd, offs, 1, 0);
+
+	tcc_nand_unlock();
+
+	return res;
 }
 
 /**

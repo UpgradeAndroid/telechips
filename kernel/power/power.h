@@ -188,9 +188,17 @@ static inline bool valid_state(suspend_state_t state) { return false; }
 /* kernel/power/suspend_test.c */
 extern void suspend_test_start(void);
 extern void suspend_test_finish(const char *label);
+extern void suspend_test_start_level(unsigned int level);
+extern void suspend_test_finish_level(unsigned int level, const char *label);
+extern void suspend_test_start_dev(unsigned int level);
+extern void suspend_test_finish_dev(const struct device *dev, unsigned int level, const char *label);
 #else /* !CONFIG_PM_TEST_SUSPEND */
 static inline void suspend_test_start(void) {}
 static inline void suspend_test_finish(const char *label) {}
+static inline void suspend_test_start_level(unsigned int level) {}
+static inline void suspend_test_finish_level(unsigned int level, const char *label) {}
+static inline void suspend_test_start_dev(unsigned int level) {}
+static inline void suspend_test_finish_dev(const struct device *dev, unsigned int level, const char *label) {}
 #endif /* !CONFIG_PM_TEST_SUSPEND */
 
 #ifdef CONFIG_PM_SLEEP
@@ -204,6 +212,17 @@ int restore_highmem(void);
 static inline unsigned int count_highmem_pages(void) { return 0; }
 static inline int restore_highmem(void) { return 0; }
 #endif
+
+/*
+ * Suspend time test levels
+ */
+enum {
+	TEST_SUSPEND_TIME_TOP,
+	TEST_SUSPEND_TIME_LEVEL1,
+	TEST_SUSPEND_TIME_LEVEL2,
+	TEST_SUSPEND_TIME_LEVEL3,
+	MAX_SUSPEND_TIME_LEVEL
+};
 
 /*
  * Suspend test levels

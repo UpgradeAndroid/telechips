@@ -2879,6 +2879,8 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
 				(udev->config) ? "reset" : "new", speed, type,
 				devnum, udev->bus->controller->driver->name);
 
+	msleep(500);	// telechips, for usb wifi
+
 	/* Set up TT records, if needed  */
 	if (hdev->tt) {
 		udev->tt = hdev->tt;

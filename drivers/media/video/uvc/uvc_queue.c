@@ -23,6 +23,18 @@
 
 #include "uvcvideo.h"
 
+#ifdef USE_RESERVED_PHY_MEM
+#include <plat/pmap.h>
+#include <linux/dma-mapping.h>
+
+static pmap_t pmap_cam;
+
+#define PA_PREVIEW_BASE_ADDR	pmap_cam.base
+#define PREVIEW_MEM_SIZE	pmap_cam.size
+
+void *pRemapped_mem;
+#endif
+
 /* ------------------------------------------------------------------------
  * Video buffers queue management.
  *
@@ -106,7 +118,12 @@ static int __uvc_free_buffers(struct uvc_video_queue *queue)
 	if (queue->count) {
 		uvc_queue_cancel(queue, 0);
 		INIT_LIST_HEAD(&queue->mainqueue);
+	#ifdef USE_RESERVED_PHY_MEM
+		iounmap(queue->mem);
+		pRemapped_mem = NULL;
+	#else
 		vfree(queue->mem);
+	#endif
 		queue->count = 0;
 	}
 
@@ -152,6 +169,20 @@ int uvc_alloc_buffers(struct uvc_video_queue *queue, unsigned int nbuffers,
 	if (nbuffers == 0)
 		goto done;
 
+#ifdef USE_RESERVED_PHY_MEM
+	pmap_get_info("ext_camera", &pmap_cam);
+
+	pRemapped_mem = (void *)ioremap_nocache(PA_PREVIEW_BASE_ADDR, PAGE_ALIGN(PREVIEW_MEM_SIZE/*-PAGE_SIZE*/));
+	if (pRemapped_mem == NULL) {
+		printk(KERN_ALERT "[uvc] can not remap for usbcamera\n");
+		return -EFAULT;
+	}
+	nbuffers = PREVIEW_MEM_SIZE / bufsize;
+	mem = pRemapped_mem;
+
+	if (nbuffers > 10)
+		nbuffers = 10;
+#else
 	/* Decrement the number of buffers until allocation succeeds. */
 	for (; nbuffers > 0; --nbuffers) {
 		mem = vmalloc_32(nbuffers * bufsize);
@@ -163,12 +194,17 @@ int uvc_alloc_buffers(struct uvc_video_queue *queue, unsigned int nbuffers,
 		ret = -ENOMEM;
 		goto done;
 	}
+#endif
 
 	for (i = 0; i < nbuffers; ++i) {
 		memset(&queue->buffer[i], 0, sizeof queue->buffer[i]);
 		queue->buffer[i].buf.index = i;
 		queue->buffer[i].buf.m.offset = i * bufsize;
+#ifdef USE_RESERVED_PHY_MEM
+		queue->buffer[i].buf.length = bufsize;
+#else
 		queue->buffer[i].buf.length = buflength;
+#endif
 		queue->buffer[i].buf.type = queue->type;
 		queue->buffer[i].buf.field = V4L2_FIELD_NONE;
 		queue->buffer[i].buf.memory = V4L2_MEMORY_MMAP;
