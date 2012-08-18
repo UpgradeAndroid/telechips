@@ -993,7 +993,7 @@ static struct miscdevice overlay_misc_device =
 };
 
 extern unsigned int tca_get_lcd_lcdc_num(viod);
-static int __init tcc_overlay_probe(struct platform_device *pdev)
+static int tcc_overlay_probe(struct platform_device *pdev)
 {
 	unsigned int lcd_lcdc_num;
 	lcd_lcdc_num = tca_get_lcd_lcdc_num();
