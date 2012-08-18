@@ -1470,7 +1470,7 @@ static void init_mmc_host(struct tcc_mmc_host *host)
 		host->pdata->init(host->dev, host->id);
 }
 
-static int __init tcc_mmc_probe(struct platform_device *pdev)
+static int tcc_mmc_probe(struct platform_device *pdev)
 {
 	struct tcc_mmc_platform_data *pdata = pdev->dev.platform_data;
 	struct mmc_host *mmc;
