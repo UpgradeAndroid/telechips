@@ -772,7 +772,7 @@ struct file_operations tcc_tsif_ex_fops = {
 };
 
 static struct class *tsif_ex_class;
-int tsif_ex_init(void)
+int __init tsif_ex_init(void)
 {
     int ret = 0;
 
