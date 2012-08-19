@@ -62,7 +62,7 @@
 #define INTR 1
 #define SAMPLE 100
 
-#if BATT_SPECIFIC_CUSTOMER
+#ifdef BATT_SPECIFIC_CUSTOMER
 #define LEDSAMPLE 4
 #define BATTVOLSAMPLE 16
 #define BATTWINDOW BATTVOLSAMPLE
@@ -333,7 +333,7 @@ const int m805_892x_vol1[] = { // for m805 8923 system_rev 2001
 };
 */
 
-#if BATT_SPECIFIC_CUSTOMER
+#ifdef BATT_SPECIFIC_CUSTOMER
 const tcc_batt_vol m801_88_battery_levels[] = {
     // low, high, persent
     { 3751, 4096,  100},
@@ -580,7 +580,7 @@ static unsigned long tcc_read_adc(void)
 	
 	struct tcc_adc_client *client = tcc_batt_info.client;
 	
-#if BATT_SPECIFIC_CUSTOMER
+#ifdef BATT_SPECIFIC_CUSTOMER
 	adcValue = battery_voltage();	
 
 	if(adcValue < EMPTLIMIT)
@@ -780,7 +780,7 @@ void tcc_read_battery(struct battery_info_reply *info)
 {
 	memcpy(info, &tcc_cur_battery_info, sizeof(struct battery_info_reply));
 
-	#if BATT_SPECIFIC_CUSTOMER
+	#ifdef BATT_SPECIFIC_CUSTOMER
 	#else
 	BATT("tcc_read_battery read batt id=%d,voltage=%d, temp=%d, current=%d, level=%d, charging source=%d, charging_enable=%d, full=%d\n", 
 	     info->batt_id, info->batt_vol, info->batt_temp, info->batt_current, info->level, info->charging_source, info->charging_enabled, info->full_bat);
@@ -1277,7 +1277,7 @@ void tcc_ac_charger_detect_process(void)
 
 }
 
-#if BATT_SPECIFIC_CUSTOMER
+#ifdef BATT_SPECIFIC_CUSTOMER
 #else
 static int battery_percentage = 100;
 #endif
@@ -1319,7 +1319,7 @@ void tcc_battery_process(void)
 	int *pbattery_vols;
 	int info_temp;
 	static old_batt_per = 0;
-#if BATT_SPECIFIC_CUSTOMER
+#ifdef BATT_SPECIFIC_CUSTOMER
 	unsigned long MaxBat,MinBat;	
 	static int axp_full_flag;
 	unsigned short axp_reg;
@@ -1331,7 +1331,7 @@ void tcc_battery_process(void)
 	adcValue = 0;
 	temp = 0;
 
-#if BATT_SPECIFIC_CUSTOMER
+#ifdef BATT_SPECIFIC_CUSTOMER
 	axp_reg = charge_status();
 	
 	if(axp_reg == CHG_OK){
@@ -1402,7 +1402,7 @@ QUICK_RESPOND_FOR_FULL:
 	source							= tcc_batt_info.rep.charging_source;
 
 	info.level = 100;
-#if BATT_SPECIFIC_CUSTOMER
+#ifdef BATT_SPECIFIC_CUSTOMER
     if(machine_is_m801_88() || machine_is_m803() || machine_is_m805_892x()){
         battery_level_count = ARRAY_SIZE(m801_88_battery_levels);
         pbattery_levels = m801_88_battery_levels;
@@ -1643,7 +1643,7 @@ QUICK_RESPOND_FOR_FULL:
 static int tcc_battery_thread(void *v)
 {
 	struct task_struct *tsk = current;	
-#if BATT_SPECIFIC_CUSTOMER
+#ifdef BATT_SPECIFIC_CUSTOMER
 	//int adccnt = 0;
 	int now_percentage = 0;
 	//#define ADCCNT 600
@@ -1655,7 +1655,7 @@ static int tcc_battery_thread(void *v)
 	while (!signal_pending(tsk)) {
 
 	if(batt_suspend_status == 0){
-#if BATT_SPECIFIC_CUSTOMER
+#ifdef BATT_SPECIFIC_CUSTOMER
 		tcc_ac_charger_detect_process();
 		tcc_read_adc();
 		tcc_battery_process();
@@ -1805,7 +1805,7 @@ void tcc_battery_late_resume(struct early_suspend *h)
 	charge_current(Charger_Current_Normal);
 #endif
 
-#if BATT_SPECIFIC_CUSTOMER
+#ifdef BATT_SPECIFIC_CUSTOMER
 	gIndex = 0;
 	for(i=0;i<BATTWINDOW;i++)
 		tcc_read_adc();

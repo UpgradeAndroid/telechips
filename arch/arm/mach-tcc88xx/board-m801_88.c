@@ -383,7 +383,7 @@ static struct platform_device usb_mass_storage_device = {
 #endif
 
 
-#if CONFIG_TCC_UART2_DMA
+#ifdef CONFIG_TCC_UART2_DMA
 static struct tcc_uart_platform_data uart2_data = {
     .tx_dma_use     = 0,
     .tx_dma_buf_size= SERIAL_TX_DMA_BUF_SIZE,
@@ -401,7 +401,7 @@ static struct tcc_uart_platform_data uart2_data = {
 };
 #endif
 
-#if CONFIG_TCC_UART3_DMA
+#ifdef CONFIG_TCC_UART3_DMA
 static struct tcc_uart_platform_data uart3_data = {
     .tx_dma_use     = 0,
     .tx_dma_buf_size= SERIAL_TX_DMA_BUF_SIZE,
@@ -419,7 +419,7 @@ static struct tcc_uart_platform_data uart3_data = {
 };
 #endif
 
-#if CONFIG_TCC_BT_DEV
+#ifdef CONFIG_TCC_BT_DEV
 static struct tcc_uart_platform_data uart1_data_bt = {
     .bt_use         = 1,
 
@@ -683,11 +683,11 @@ static void __init tcc8800_init_machine(void)
 #endif
 
 
-#if CONFIG_TCC_UART2_DMA
+#ifdef CONFIG_TCC_UART2_DMA
 	platform_device_add_data(&tcc8800_uart2_device, &uart2_data, sizeof(struct tcc_uart_platform_data));
 #endif
 
-#if CONFIG_TCC_UART3_DMA
+#ifdef CONFIG_TCC_UART3_DMA
 	platform_device_add_data(&tcc8800_uart3_device, &uart3_data, sizeof(struct tcc_uart_platform_data));
 #endif
 

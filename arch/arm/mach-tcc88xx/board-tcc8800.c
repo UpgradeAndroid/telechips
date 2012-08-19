@@ -651,7 +651,7 @@ static void __init tcc8800_init_machine(void)
 	i2c_register_board_info(2, i2c_devices_smu, ARRAY_SIZE(i2c_devices_smu));
 #endif
 
-#if CONFIG_TCC_BT_DEV
+#ifdef CONFIG_TCC_BT_DEV
 	/* BT: use UART1 and TX DMA */
 	platform_device_add_data(&tcc8800_uart1_device, &uart1_data_bt, sizeof(struct tcc_uart_platform_data));
 #endif
@@ -660,11 +660,11 @@ static void __init tcc8800_init_machine(void)
 	tcc_add_bluetooth_device();
 #endif
 
-#if CONFIG_TCC_UART2_DMA
+#ifdef CONFIG_TCC_UART2_DMA
 	platform_device_add_data(&tcc8800_uart2_device, &uart2_data, sizeof(struct tcc_uart_platform_data));
 #endif
 
-#if CONFIG_TCC_UART3_DMA
+#ifdef CONFIG_TCC_UART3_DMA
 	platform_device_add_data(&tcc8800_uart3_device, &uart3_data, sizeof(struct tcc_uart_platform_data));
 #endif
 
