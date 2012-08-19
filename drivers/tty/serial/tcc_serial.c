@@ -180,8 +180,8 @@ extern int gps_k_flag;
 
 #if defined(CONFIG_BT)
 static int bt_used = 0;
-#endif
 EXPORT_SYMBOL(bt_used);
+#endif
 
 static struct clk *ddi_clk;
 static struct clk *mali_clk;
