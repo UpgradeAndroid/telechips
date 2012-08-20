@@ -107,21 +107,21 @@ int tcc_cipher_decrypt(unsigned char *pucSrcAddr, unsigned char *pucDstAddr, uns
 	return 0;
 }
 
-static int tcc_cipher_read(struct file *filp, unsigned int *buf, size_t count, loff_t *f_pos)
+static ssize_t tcc_cipher_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
 {
 	dprintk("%s\n", __func__);
 	return 0;
 }
 
-static int tcc_cipher_write(struct file *filp, unsigned int *buf, size_t count, loff_t *f_pos)
+static ssize_t tcc_cipher_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
 {
 	dprintk("%s\n", __func__);
 	return 0;
 }
 
-static int tcc_cipher_ioctl(struct file *file, unsigned int cmd, void *arg)
+static long tcc_cipher_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
-	dprintk("%s, cmd=%d\n", __func__, cmd);
+	dprintk("%s, cmd=%u\n", __func__, cmd);
 	
 	switch(cmd)
 	{
