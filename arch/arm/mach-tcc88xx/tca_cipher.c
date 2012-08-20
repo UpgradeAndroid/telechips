@@ -60,9 +60,7 @@
 static int debug = 0;
 #define dprintk(msg...)	if(debug) { printk( "tca_cipher: " msg); }
 
-static int iIrqCipher=-1;
 static int iDoneIrqHandled = FALSE;
-static int iPacketIrqHandled = FALSE;
 
 static dma_addr_t SrcDma;	/* physical */
 static u_char *pSrcCpu;		/* virtual */
@@ -150,7 +148,6 @@ void tca_cipher_interrupt_config(unsigned uTxSel, unsigned uDoneIrq, unsigned uP
 void tca_cipher_interrupt_enable(unsigned uEnable)
 {
 	PPIC pHwPIC = (volatile PPIC)tcc_p2v(HwVPIC_BASE);
-	PCIPHER pHwCIPHER = (volatile PCIPHER)tcc_p2v(HwCIPHER_BASE);
 
 	dprintk("%s, Enabel=%d\n", __func__, uEnable);
 
@@ -172,7 +169,6 @@ void tca_cipher_interrupt_enable(unsigned uEnable)
 
 irqreturn_t tca_cipher_interrupt_handler(int irq, void *dev_id)
 {
-	PPIC pHwPIC = (volatile PPIC)tcc_p2v(HwVPIC_BASE);
 	PCIPHER pHwCIPHER = (volatile PCIPHER)tcc_p2v(HwCIPHER_BASE);
 
 	//dprintk("%s\n", __func__);
@@ -596,14 +592,17 @@ int tca_cipher_encrypt(unsigned char *pucSrcAddr, unsigned char *pucDstAddr, uns
 	else
 		tca_cipher_dma_enable(TRUE, TCC_CIPHER_DMA_ENDIAN_LITTLE, TCC_CIPHER_DMA_ADDRMODE_SINGLE, TCC_CIPHER_DMA_ADDRMODE_SINGLE);	
  
-	while(!pHwCIPHER->IRQCTR & HwCIPHER_IRQCTR_DoneIrqStatus);
-	while(pHwCIPHER->DMACTR & HwCIPHER_DMACTR_Enable);
+	while(!(pHwCIPHER->IRQCTR & HwCIPHER_IRQCTR_DoneIrqStatus))
+		;
+
+	while(pHwCIPHER->DMACTR & HwCIPHER_DMACTR_Enable)
+		;
 	
 	/* Copy Cipher Text to Destination Buffer */
 	copy_to_user(pucDstAddr, pDstCpu, uLength);
 
 	tca_cipher_dma_enable_request(FALSE);
-	tca_cipher_dma_enable(FALSE, NULL, NULL, NULL);	
+	tca_cipher_dma_enable(FALSE, 0, 0, 0);	
 
 	#if 0 /* For Debugging */
 	{
@@ -696,11 +695,13 @@ int tca_cipher_decrypt(unsigned char *pucSrcAddr, unsigned char *pucDstAddr, uns
 	else
 		tca_cipher_dma_enable(TRUE, TCC_CIPHER_DMA_ENDIAN_LITTLE, TCC_CIPHER_DMA_ADDRMODE_SINGLE, TCC_CIPHER_DMA_ADDRMODE_SINGLE);	
  
-	while(!pHwCIPHER->IRQCTR & HwCIPHER_IRQCTR_DoneIrqStatus);
-	while(pHwCIPHER->DMACTR & HwCIPHER_DMACTR_Enable);
+	while(!(pHwCIPHER->IRQCTR & HwCIPHER_IRQCTR_DoneIrqStatus))
+		;
+	while(pHwCIPHER->DMACTR & HwCIPHER_DMACTR_Enable)
+		;
 	
 	tca_cipher_dma_enable_request(FALSE);
-	tca_cipher_dma_enable(FALSE, NULL, NULL, NULL);	
+	tca_cipher_dma_enable(FALSE, 0, 0, 0);	
 	
 	/* Copy Plain Text to Destination Buffer */
 //	memcpy(pucDstAddr, pDstCpu, uLength);
