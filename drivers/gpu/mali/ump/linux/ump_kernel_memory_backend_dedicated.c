@@ -185,8 +185,8 @@ static int block_allocator_allocate(void* ctx, ump_dd_mem * mem)
 	//search for first-fit
 	{
 		int i, j;
-		unsigned int temp1, temp2;
-		unsigned int *temp3, *temp4;
+		block_info *temp1, *temp2;
+		struct block_info *temp3, *temp4;
 		int check;
 
 		for(i=0; i< allocator->num_blocks -1; i++)
@@ -295,8 +295,8 @@ static void block_allocator_release(void * ctx, ump_dd_mem * handle)
 {
 	block_allocator * allocator;
 	block_info * block, * next;
-	unsigned int temp1, temp2, temp3;
-	unsigned int *temp4;
+	unsigned int temp1, temp2;
+	block_info *temp3, *temp4;
 	int i;
 
 	BUG_ON(!ctx);
@@ -329,7 +329,7 @@ static void block_allocator_release(void * ctx, ump_dd_mem * handle)
 		}
 		else
 		{
-			block->next = temp1;
+			block->next = (block_info*)temp1;
 			if(allocator->first_free_start != temp2)
 				allocator->first_free = block;
 		}
@@ -345,12 +345,12 @@ static void block_allocator_release(void * ctx, ump_dd_mem * handle)
 		if(temp3 + 4 == temp4)
 		{
 			allocator->first_free = &allocator->all_blocks[i];
-			DBG_MSG(5, ("test %d temp3:0x%08x, temp4:0x%08x\n",i, temp3, temp4));
+			DBG_MSG(5, ("test %d temp3:%p, temp4:%p\n",i, temp3, temp4));
 			break;
 		}
 	}
 	
-	DBG_MSG(3, ("ID:%d, %d blocks free after release call, block:0x%08x\n", handle->secure_id, allocator->num_free, allocator->first_free));
+	DBG_MSG(3, ("ID:%d, %d blocks free after release call, block:0x%p\n", handle->secure_id, allocator->num_free, allocator->first_free));
 	up(&allocator->mutex);
 
 	vfree(handle->block_array);

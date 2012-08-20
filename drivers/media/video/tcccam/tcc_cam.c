@@ -305,7 +305,7 @@ static void cif_data_init(void *priv)
 	data->cif_cfg.zoom_step			= 0;
 	
 	#if (1) //20111209 ysseung   test...
-	data->cif_cfg.base_buf			= NULL;
+	data->cif_cfg.base_buf			= 0;
 	#else
 	data->cif_cfg.base_buf			= hardware_data.cif_buf.addr;
 	#endif

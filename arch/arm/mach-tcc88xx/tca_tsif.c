@@ -549,7 +549,7 @@ int tca_tsif_init(struct tcc_tsif_handle *h,
 	
 	if(regs)
 	{   
-		h->regs = (volatile struct tca_spi_regs *)tcc_p2v((regs));
+		h->regs = (volatile struct tcc_tsif_regs *)tcc_p2v((regs));
 		h->dma_controller	= dma_controller;
 		h->id 				= tsif_ch;
 		h->dma_ch			= dma_ch;

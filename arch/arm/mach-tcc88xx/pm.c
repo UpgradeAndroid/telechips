@@ -3903,13 +3903,13 @@ static uint32_t restart_reason = 0x776655AA;
 /*===========================================================================
 FUNCTION
 ===========================================================================*/
-static void tcc_pm_restart(char str)
+static void tcc_pm_restart(char str, const char *cmd)
 {
 	/* store restart_reason to USTS register */
 	if (restart_reason != 0x776655AA)
 		writel((readl(PMU_CONFIG1) & 0xFFFFFF00) | (restart_reason & 0xFF), PMU_CONFIG1);
 
-	arch_reset(str, NULL);
+	arch_reset(str, cmd);
 }
 
 /*===========================================================================

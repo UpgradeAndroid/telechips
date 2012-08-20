@@ -1475,11 +1475,11 @@ void __exit tcc_composite_cleanup(void)
 
 	unregister_chrdev(MAJOR_ID, DEVICE_NAME);
 
-	if(composite_lcdc0_clk =! NULL)
+	if(composite_lcdc0_clk != NULL)
 		clk_put(composite_lcdc0_clk);
-	if(composite_lcdc1_clk =! NULL)
+	if(composite_lcdc1_clk != NULL)
 		clk_put(composite_lcdc1_clk);
-	if(composite_dac_clk =! NULL)
+	if(composite_dac_clk != NULL)
 		clk_put(composite_dac_clk);
 
 	return;

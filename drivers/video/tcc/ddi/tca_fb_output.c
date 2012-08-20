@@ -858,16 +858,16 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 		unsigned int pmap_size = FB_SCALE_MAX_WIDTH*FB_SCALE_MAX_HEIGHT*2;
 		unsigned int src_addr, dst_addr; 
 
-		pmap_cpu = (unsigned)ioremap_nocache(fb_g2d_pbuf0, pmap_size);
-		memset((char *)pmap_cpu, 0x00, pmap_size);
+		pmap_cpu = (char*)ioremap_nocache(fb_g2d_pbuf0, pmap_size);
+		memset(pmap_cpu, 0x00, pmap_size);
 		iounmap(pmap_cpu);
 
-		src_addr = fb_g2d_pbuf0;
+		src_addr = (unsigned int)fb_g2d_pbuf0;
 
 		if(buf_index)
-			dst_addr = fb_scaler_pbuf0;
+			dst_addr = (unsigned int)fb_scaler_pbuf0;
 		else
-			dst_addr = fb_scaler_pbuf1;
+			dst_addr = (unsigned int)fb_scaler_pbuf1;
 				
 		TCC_FB_G2D_FmtConvert(FB_SCALE_MAX_WIDTH, FB_SCALE_MAX_HEIGHT, NOOP, TCC_LCDC_IMG_FMT_RGB565, TCC_LCDC_IMG_FMT_YUV422SQ, src_addr, dst_addr);
 		
@@ -903,9 +903,9 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 		#endif
 		{
 			if(buf_index)
-				taddr = fb_g2d_pbuf0;	// destination image address
+				taddr = (unsigned int)fb_g2d_pbuf0;	// destination image address
 			else
-				taddr = fb_g2d_pbuf1;	// destination image address
+				taddr = (unsigned int)fb_g2d_pbuf1;	// destination image address
 		}
 
 		TCC_FB_G2D_FmtConvert(width, height, rotate, ifmt, TCC_LCDC_IMG_FMT_YUV422SQ, addr, taddr );
@@ -1118,7 +1118,7 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 			#endif//
 		}
 
-		FBimg_buf_addr = fbscaler.dest_Yaddr;
+		FBimg_buf_addr = (unsigned int)fbscaler.dest_Yaddr;
 
 			
 	}
@@ -3119,9 +3119,9 @@ int TCC_OUTPUT_FB_MouseMove(unsigned int width, unsigned int height, tcc_mouse *
 		pLCDC_OUTPUT[type]->LI3S = (mouse_cursor_height << 16) | mouse_cursor_width;
 
 	if( MouseBufIdx )
-		pLCDC_OUTPUT[type]->LI3BA0 = pMouseBuffer1;
+		pLCDC_OUTPUT[type]->LI3BA0 = (unsigned int)pMouseBuffer1;
 	else
-		pLCDC_OUTPUT[type]->LI3BA0 = pMouseBuffer2;
+		pLCDC_OUTPUT[type]->LI3BA0 = (unsigned int)pMouseBuffer2;
 
 	pLCDC_OUTPUT[type]->LI3O = mouse_cursor_width * 4;
 	

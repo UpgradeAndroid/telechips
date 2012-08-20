@@ -392,7 +392,7 @@ static void tcc_check_interlace_output(int output_mode)
 	else if( (output_mode == TCC_OUTPUT_COMPONENT) || (output_mode == TCC_OUTPUT_COMPOSITE) )
 		pLCDC = (volatile PLCDC *)tcc_p2v(HwLCDC1_BASE);
 #else
-	pLCDC = (volatile PLCDC *)tcc_p2v(HwLCDC0_BASE);
+	pLCDC = (PLCDC)tcc_p2v(HwLCDC0_BASE);
 #endif /* CONFIG_MACH_TCC9300ST */
 	
 	if(ISZERO(pLCDC->LCTRL, HwLCTRL_NI))

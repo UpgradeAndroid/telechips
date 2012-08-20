@@ -296,9 +296,9 @@ void tca_cipher_set_baseaddr(unsigned uTxRx, unsigned char *pBaseAddr)
 	dprintk("%s\n", __func__);
 
 	if(uTxRx == TCC_CIPHER_BASEADDR_TX)
-		pHwCIPHER->TXBASE = pBaseAddr;
+		pHwCIPHER->TXBASE = (unsigned int)pBaseAddr;
 	else
-		pHwCIPHER->RXBASE = pBaseAddr;
+		pHwCIPHER->RXBASE = (unsigned int)pBaseAddr;
 }
 
 void tca_cipher_set_packet(unsigned uCount, unsigned uSize)

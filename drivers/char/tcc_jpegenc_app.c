@@ -2386,7 +2386,7 @@ int JPEG_Make_ExifHeader(TCCXXX_JPEG_ENC_EXIF_DATA *thumb_info, unsigned int vir
 			memcpy(gEncodeOption.GpsInfo.Processing_Method, "ASCII", 0x05);
 			memcpy(gEncodeOption.GpsInfo.Processing_Method+0x08, thumb_info->gps_info.Processing_Method, strlen(thumb_info->gps_info.Processing_Method)+1);
 		} else {
-			*gEncodeOption.GpsInfo.Processing_Method = NULL;
+			*gEncodeOption.GpsInfo.Processing_Method = '\0';
 		}
 	}
 	thumb_info->header_size = TCCXXX_JPEG_Make_Header((uint32)pVirt_BaseAddr, &gEncodeOption, &gJpegHeaderExifRsp);
@@ -2595,7 +2595,7 @@ unsigned int Make_Thumbnail_Enc_Info(unsigned int jpeg_BufferAddr, unsigned int 
 	memcpy(Jpeg_Thumbnail_Enc_Info, &Sos_Info, sizeof(Sos_Info));
 	Jpeg_Thumbnail_Enc_Info += sizeof(Sos_Info);
 
-	Thumbnail_Enc_Info_Size = Jpeg_Thumbnail_Enc_Info - thumbnail_startAdd;
+	Thumbnail_Enc_Info_Size = (uint32)Jpeg_Thumbnail_Enc_Info - thumbnail_startAdd;
 
 	return Thumbnail_Enc_Info_Size;
 }

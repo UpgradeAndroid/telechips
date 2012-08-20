@@ -280,7 +280,7 @@ void set_aeskey_to_reg(unsigned char *pkey)
  * On 3rd authentication process, we have to read Ri' within 1 frame period. @n
  * Because of that, we process 3rd auth process by using linux work queue.
  */
-static void hdcp_work(void *arg)
+static void hdcp_work(struct work_struct *work)
 {
     int matched;
     unsigned int result;
