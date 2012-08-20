@@ -165,7 +165,7 @@ const struct tcc_freq_table_t gtHSIONormalClockLimitTable = {
 	       0,      0,      0,      0,      0,      0,      0,      0, 122000,      0	// Core 1.00V
 };
 
-const struct tcc_freq_table_t gtVoipClockLimitTable = {
+const struct tcc_freq_table_t gtVoipClockLimitTable[] = {
 	{ 600000,      0, 300000,      0, 148000,      0,      0, 100000,      0,      0 },	// Core 1.10V
 	{ 996000,      0, 400000,      0, 250000,      0,      0, 100000,      0,      0 },	// Core 1.32V
 };
