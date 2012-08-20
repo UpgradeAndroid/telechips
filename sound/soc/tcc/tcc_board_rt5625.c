@@ -235,7 +235,7 @@ static int tcc_set_jack(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value
 {
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
 
-    alsa_dbg("%s() tcc_jack_func=%d, ucontrol->value.integer.value[0]=%d\n", __func__, tcc_jack_func, ucontrol->value.integer.value[0]);
+    alsa_dbg("%s() tcc_jack_func=%d, ucontrol->value.integer.value[0]=%ld\n", __func__, tcc_jack_func, ucontrol->value.integer.value[0]);
 
 	//if (tcc_jack_func == ucontrol->value.integer.value[0])
 	//	return 0;

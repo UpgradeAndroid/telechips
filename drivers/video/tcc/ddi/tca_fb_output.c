@@ -1318,7 +1318,7 @@ void TCC_OUTPUT_FB_WaitVsyncInterrupt(unsigned int type)
 
 int TCC_OUTPUT_SetOutputResizeMode(tcc_display_resize mode)
 {
-	printk("%s : mode = %d\n", __func__, mode);
+	printk("%s : mode = %dx%d\n", __func__, mode.resize_x, mode.resize_y);
 	
 	uiOutputResizeMode = mode;
 }

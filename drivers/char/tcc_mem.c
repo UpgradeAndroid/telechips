@@ -199,12 +199,12 @@ int range_is_allowed(unsigned long pfn, unsigned long size)
 
 	request_start = pfn << PAGE_SHIFT;
 	request_end = request_start + size;
-	dprintk("Req: 0x%x - 0x%x, 0x%x \n", request_start, request_end, size);
+	dprintk("Req: 0x%lx - 0x%lx, 0x%lx \n", request_start, request_end, size);
 
 //to check reserved physical memory.
 	if((pmap_total.base <= request_start) && ((pmap_total.base+pmap_total.size) >= request_end))
 	{
-		dprintk("Allowed Reserved Physical mem : 0x%x <= 0x%x && 0x%x >= 0x%x \n", pmap_total.base, request_start, (pmap_total.base+pmap_total.size), request_end);
+		dprintk("Allowed Reserved Physical mem : 0x%x <= 0x%lx && 0x%x >= 0x%lx \n", pmap_total.base, request_start, (pmap_total.base+pmap_total.size), request_end);
 		return 1;
 	}
 
@@ -212,12 +212,12 @@ int range_is_allowed(unsigned long pfn, unsigned long size)
 	{
 		if((AllowRegion[i].start <= request_start) && ((AllowRegion[i].start+AllowRegion[i].len) >= request_end))
 		{
-			dprintk("Allowed : 0x%x <= 0x%x && 0x%x >= 0x%x \n", AllowRegion[i].start, request_start, (AllowRegion[i].start+AllowRegion[i].len), request_end);
+			dprintk("Allowed : 0x%lx <= 0x%lx && 0x%lx >= 0x%lx \n", AllowRegion[i].start, request_start, (AllowRegion[i].start+AllowRegion[i].len), request_end);
 			return 1;
 		}
 	}
 
-	printk("Can't allow to mmap : size %d, 0x%x ~ 0x%x \n", size, request_start, request_end);
+	printk("Can't allow to mmap : size %lu, 0x%lx ~ 0x%lx \n", size, request_start, request_end);
 	
 	return -1;
 }

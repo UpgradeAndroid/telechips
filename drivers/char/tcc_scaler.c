@@ -546,7 +546,7 @@ static irqreturn_t tccxxx_scaler_handler(int irq, void *client_data/*, struct pt
 	}
 	else 	{
 		scaler_ended  = 3;
-		printk("unknown interrupt:: 0x%x!!!\n", IFlag);
+		printk("unknown interrupt:: 0x%lx!!!\n", IFlag);
 	}
 
 	BITCSET(pM2MSCALER->MSCCTR, 0xffffffff, 0x00000000);

@@ -1929,7 +1929,7 @@ static int tcc_battery_probe(struct platform_device *pdev)
 	tcc_batt_info.rep.level = 100;
 
 	if( machine_is_m801_88() || machine_is_m803() || machine_is_m805_892x()){
-		printk("dc input value = %d\n", tcc_adc_start(client, 4, 0));
+		printk("dc input value = %lu\n", tcc_adc_start(client, 4, 0));
 
 		if(acin_detect())
 		        tcc_batt_info.rep.charging_source = CHARGER_AC;

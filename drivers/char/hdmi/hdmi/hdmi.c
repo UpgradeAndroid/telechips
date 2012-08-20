@@ -2776,7 +2776,7 @@ int hdmi_suspend(struct platform_device *dev, pm_message_t state)
 {
 	gHdmiPwrInfo.status = PWR_STATUS_OFF ;
 	
-	printk(KERN_INFO "%s  state:%d \n", __FUNCTION__, state);
+	printk(KERN_INFO "%s  state:%d \n", __FUNCTION__, state.event);
 
 	return 0;
 }
