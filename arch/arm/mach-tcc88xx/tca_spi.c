@@ -387,7 +387,7 @@ int tca_spi_register_pids(tca_spi_handle_t *h, unsigned int *pids, unsigned int 
                 PIDT = (volatile unsigned long *)tcc_p2v(HwGPSB_PIDT(i));
                 *PIDT = pids[i] & 0x1FFFFFFF;
                 BITSET(*PIDT, (gpsb_channel == 0) ? HwGPSB_PIDT_CH0 : HwGPSB_PIDT_CH1);
-                printk("PIDT 0x%08X : 0x%08X\n", PIDT, *PIDT);
+                printk("PIDT 0x%p : 0x%08lx\n", PIDT, *PIDT);
 
             }
             h->set_mpegts_pidmode(h, 1);
