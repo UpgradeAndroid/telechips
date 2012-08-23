@@ -136,7 +136,6 @@ static int tccxxx_scaler_mmap(struct file *file, struct vm_area_struct *vma)
 }
 
 extern unsigned int scaler_ended;
-static unsigned int check_status_intr;
 char M2M_Scaler_Ctrl_Detail(SCALER_TYPE *scale_img)
 {
 	int ret = 0;
@@ -397,7 +396,7 @@ char M2M_Scaler_Ctrl_Detail(SCALER_TYPE *scale_img)
 //	printk("0xF0210050 : %8x, %8x, %8x, %8x \n",pM2MSCALER->DSTSLINE, pM2MSCALER->DSTCLINE, pM2MSCALER->CLIP0, pM2MSCALER->CLIP1);	
 //	printk("0xF0210060 : %8x, --------, --------, --------\n\n",pM2MSCALER->VSTROBE);
 
-//	scaler_ended = check_status_intr = 0;
+//	scaler_ended = 0;
 
 	if(scale_img->viqe_onthefly& 0x01)
 	{

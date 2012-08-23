@@ -919,11 +919,9 @@ int MEM_SCALER1_POLLING_CHECK(void)
 
 unsigned int DEV_M2M_Wait_signal_disable(char scaler)
 {
-	unsigned int loop = 0, reg = 0;
+	unsigned int loop = 0;
 	PM2MSCALER pM2MSCALER;
-	PPMU pPMU = (PPMU)tcc_p2v(HwPMU_BASE); 
 	PDDICONFIG pDDI_CONFIG = (PDDICONFIG)tcc_p2v(HwDDI_CONFIG_BASE); 
-
 
 	#ifdef CONFIG_ARCH_TCC93XX
 	if(tca_ckc_getpmupwroff(PMU_DDIBUS) == 1)
@@ -931,6 +929,7 @@ unsigned int DEV_M2M_Wait_signal_disable(char scaler)
 	#elif CONFIG_ARCH_TCC88XX
 		// to do 
 	#else
+	PPMU pPMU = (PPMU)tcc_p2v(HwPMU_BASE); 
 	if(ISSET(pPMU->PWROFF, HwPMU_PWROFF_DB))
 		return FALSE;
 	#endif//
