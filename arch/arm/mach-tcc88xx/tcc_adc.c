@@ -132,7 +132,7 @@ unsigned long tcc_adc_start(struct tcc_adc_client *client,
                unsigned int channel, unsigned int nr_samples)
 {
 	struct adc_device *adc = adc_dev;
-	unsigned long flags;
+//	unsigned long flags;
 #if 0
 	unsigned long key;
 	unsigned long bat;

@@ -36,7 +36,6 @@
 /************************************************************************************************
 * Global Variable define
 ************************************************************************************************/
-static PGPIO  pGPIO;
 static PTSADC pTSADC;
 
 
@@ -72,7 +71,7 @@ unsigned int    tca_adc_adcinitialize(unsigned int devAddress, void* param )
 unsigned int    tca_adc_portinitialize(unsigned int devAddress, void* param)
 {
     unsigned int    ret = 0;
-//    pGPIO = (PGPIO)devAddress;
+//    PGPIO pGPIO = (PGPIO)devAddress;
 //    BITCSET(pGPIO->GPEFN3 , 0xFFFF0000, Hw30|Hw26|Hw22|Hw18 );  // Function AIN[0-3]
 //    BITCLR(pGPIO->GPEEN, Hw32-Hw28);// 0xF0000000); // Port as Input
     // ADD for BAT, KEYPAD
@@ -463,9 +462,9 @@ unsigned int    tca_adc_tsread(int* x, int* y, int *xp, int *ym)
 		pTSADC->ADCCLRINT = CLEAR_ADC_INT;
 		pTSADC->ADCCLRUPDN = CLEAR_ADCWK_INT;
 		pTSADC->ADCTSC = ADCTSC_WAIT_PENDOWN;
-
-		return 1;
 	}
+
+	return 1;
 }
 
 unsigned int    tca_adc_powerdown(void)
