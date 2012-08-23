@@ -1504,7 +1504,9 @@ int tcc_change_pmu(unsigned int src, unsigned int onoff)
 //	printk("OK\n");
 	return 0;
 
+#if defined(CONFIG_MACH_TCC8800ST)
 err_chgpmu_chiprev:
+#endif
 //	printk(".3.");
 //err_chgpmu_beforeinit:
 //	printk(".2.");
