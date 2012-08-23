@@ -36,6 +36,8 @@ int tcc_v5p_init(struct tcc_power_ctrl *power)
 	else	{
 		power->port =  GPIO_V_5P0_EN;
 	}
+
+	return 0;
 }
 
 static struct tcc_power_ctrl tcc_powers[TCC_POWER_MAX] = {

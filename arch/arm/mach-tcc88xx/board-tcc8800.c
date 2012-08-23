@@ -75,6 +75,7 @@ static struct spi_board_info tcc8800_spi0_board_info[] = {
 	},
 };
 
+#if 0
 static struct spi_board_info tcc8800_spi1_board_info[] = {
 	{
 		.modalias = "spidev",
@@ -85,6 +86,7 @@ static struct spi_board_info tcc8800_spi1_board_info[] = {
 		.mode = 0						// default 0, you can choose [SPI_CPOL|SPI_CPHA|SPI_CS_HIGH|SPI_LSB_FIRST]
 	},
 };
+#endif
 
 #if defined(CONFIG_SENSORS_AK8975)
 static struct akm8975_platform_data akm8975_data = {
