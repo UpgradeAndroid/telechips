@@ -1069,6 +1069,8 @@ int tca_ckc_setpmupwroff( unsigned int periname , unsigned int isenable)
         pPMU->PWROFF |= (retVal);
     else
         pPMU->PWROFF &= ~(retVal);
+
+    return 0;
 }
 /****************************************************************************************
 * FUNCTION :void tca_ckc_getpmupwroff( unsigned int pmuoffname)
