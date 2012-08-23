@@ -3866,14 +3866,14 @@ FUNCTION
 ===========================================================================*/
 static void tcc_pm_power_off(void)
 {
-#ifdef CONFIG_RTC_DISABLE_ALARM_FOR_PWROFF_STATE		//Disable the RTC Alarm during the power off state
-	extern volatile void tca_alarm_disable(unsigned int rtcbaseaddresss);
+	extern void tca_alarm_disable(unsigned int rtcbaseaddresss);
+	extern void axp192_power_off(void);
 
+#ifdef CONFIG_RTC_DISABLE_ALARM_FOR_PWROFF_STATE		//Disable the RTC Alarm during the power off state
 	tca_alarm_disable(tcc_p2v(HwRTC_BASE));
 #endif
 
 #if defined(CONFIG_REGULATOR_AXP192)
-	extern void axp192_power_off(void);
 	axp192_power_off();
 #endif
 
