@@ -81,7 +81,7 @@ static unsigned int intr_poll(struct file *filp, poll_table *wait)
 	}
 }
 
-static int intr_ioctl(struct inode *inode, struct file *filp, unsigned int cmd, unsigned long arg)
+static long intr_ioctl(struct inode *inode, struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	unsigned long data;
 	tcc_intr_data_t *tcc_intr = (tcc_intr_data_t *)filp->private_data;
