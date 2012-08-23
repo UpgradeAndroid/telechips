@@ -439,7 +439,6 @@ void DQT_Set_Value(int q_value)
 	int i, j, val;
 	int Wdata = 0;
 	volatile PJPEGENCODER pJPEGENC = (PJPEGENCODER)tcc_p2v(HwJPEGENCODER_BASE);
-	unsigned int *temp;
 
 	// ======== Y Component ======== //
 	for(i=0; i < 64; i++)
