@@ -397,12 +397,10 @@ Gre2d_src_ctrl
 -------------------------------------------------------------------*/
 void Gre2d_src_ctrl(G2D_SRC_CTRL reg)
 {
-    unsigned int sf_ctrl_reg = 0, sa_ctrl_reg = 0,ctrl_reg = 0;
-	POVERLAYMIXER pHwOVERLAYMIXER;
-	pHwOVERLAYMIXER  = (volatile POVERLAYMIXER)tcc_p2v(HwOVERLAYMIXER_BASE);
-
+	POVERLAYMIXER pHwOVERLAYMIXER = (volatile POVERLAYMIXER)tcc_p2v(HwOVERLAYMIXER_BASE);
 
 #if defined(CONFIG_ARCH_TCC892X)
+    unsigned int sf_ctrl_reg = 0, sa_ctrl_reg = 0,ctrl_reg = 0;
 
 // source YUV to RGB converter enable 	sf_ctrl
     sf_ctrl_reg |= (((reg.src0_y2r.src_y2r <<24) & Hw2D_SFCTRL_S0_Y2REN) | 
@@ -426,6 +424,7 @@ void Gre2d_src_ctrl(G2D_SRC_CTRL reg)
 	BITCSET(pHwOVERLAYMIXER->SF_CTRL.nREG, 0x0FFFFFFF, sf_ctrl_reg); 
 	BITCSET(pHwOVERLAYMIXER->SA_CTRL.nREG, 0x0FFFFFFF, sa_ctrl_reg); 
 #else
+    unsigned int ctrl_reg = 0;
 
 // source arithmetic mode 
     ctrl_reg |= (((reg.src0_arith<<19) & Hw2D_SCTRL_S0_ARITHMODE) | 
@@ -449,7 +448,6 @@ void Gre2d_src_ctrl(G2D_SRC_CTRL reg)
 
 	BITCSET(pHwOVERLAYMIXER->S_CTRL, 0x0FFFFFFF, ctrl_reg); 
 #endif
-
 }
 
 

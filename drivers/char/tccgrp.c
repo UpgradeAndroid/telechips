@@ -666,7 +666,7 @@ tccxxx_grp_write(struct file *filp, const char __user *buffer, size_t count, lof
 }
 
 static ssize_t
-tccxxx_grp_read(struct file *file, const char __user *buffer, size_t count, loff_t *ppos)
+tccxxx_grp_read(struct file *file, char __user *buffer, size_t count, loff_t *ppos)
 {
 	return 0;  
 }
@@ -760,7 +760,7 @@ static irqreturn_t tccxxx_grp_handler(int irq, void *dev)
 }
 
 
-int tccxxx_grp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+long tccxxx_grp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	int iRet = 0, ret = 0;
 	intr_data_t *g2d_data = (intr_data_t *)file->private_data;
