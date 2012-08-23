@@ -139,5 +139,7 @@ int tca_tco_pwm_ctrl(unsigned tco_ch, unsigned uGPIO, unsigned int max_cnt, unsi
 		uFGPIO = IO_TCO_GetGpioFunc(tco_ch, uGPIO);
 		tcc_gpio_config(uGPIO,  uFGPIO);
 	}
+
+	return 0;
 }
 
