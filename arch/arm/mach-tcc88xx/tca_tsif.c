@@ -32,8 +32,6 @@ static void tcc_tsif_clearfifopacket(struct tcc_tsif_handle *h)
 
 static int tca_tsif_set_port(struct tcc_tsif_handle *h)
 {
-	volatile PGPIO gpio_regs = (volatile PGPIO)tcc_p2v(HwGPIO_BASE);
-    volatile unsigned long* TSIFPORT = (volatile unsigned long *)tcc_p2v(HwTSIF_PORTSEL_BASE);
 	int ret = 0;
     /*gpio_port is not gpio port such as A, B, C, D
      * It is tsif port number
@@ -76,7 +74,6 @@ static int tca_tsif_set_port(struct tcc_tsif_handle *h)
 
 static void tcc_tsif_release_port(struct tcc_tsif_handle *h)
 {
-	volatile PGPIO gpio_regs = (volatile PGPIO)tcc_p2v(HwGPIO_BASE);
     volatile unsigned long* TSIFPORT = (volatile unsigned long *)tcc_p2v(HwTSIF_PORTSEL_BASE);
 
 	switch (h->gpio_port)
