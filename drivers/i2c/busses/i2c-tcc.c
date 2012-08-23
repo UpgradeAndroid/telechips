@@ -244,8 +244,8 @@ static int tcc_i2c_doxfer(struct tcc_i2c *i2c, struct i2c_msg *msgs, int num)
 static int tcc_i2c_xfer(struct i2c_adapter *adap, struct i2c_msg *msgs, int num)
 {
 	struct tcc_i2c *i2c = (struct tcc_i2c *)adap->algo_data;
+	int ret = 0;
 	int retry;
-	int ret;
 
 	for (retry = 0; retry < adap->retries; retry++) {
 		
