@@ -165,7 +165,7 @@ static inline void tcc_key_convert(void)
 static void tcc_key_poll_callback(struct input_polled_dev *dev)
 {
     int     key = -1;
-	unsigned int value;
+	unsigned int value = 0;
 	struct tcc_adc_client *client = tcc_private->client;
 	
 	if (client) {
@@ -216,9 +216,9 @@ static void tcc_keypad_convert(unsigned int d0, unsigned int d1)
 }
 static int __devinit tcc_key_probe(struct platform_device *pdev)
 {
+    struct tcc_adc_client *client = NULL;
     struct input_polled_dev *poll_dev; 
     struct input_dev *input_dev;
-	struct tcc_adc_client *client;
 	
     int error;
     int  i;
