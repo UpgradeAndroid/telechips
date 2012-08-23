@@ -112,7 +112,7 @@ static int cec_open(struct inode *inode, struct file *file);
 static int cec_release(struct inode *inode, struct file *file);
 static ssize_t cec_read(struct file *file, char __user *buffer, size_t count, loff_t *ppos);
 static ssize_t cec_write(struct file *file, const char __user *buffer, size_t count, loff_t *ppos);
-static int cec_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
+static long cec_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 static unsigned int cec_poll(struct file *file, poll_table *wait);
 
 static irqreturn_t cec_irq_handler(int irq, void *dev_id);
@@ -329,7 +329,7 @@ void cec_stop(void)
 
 }
 
-int cec_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+long cec_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
     unsigned int laddr;
 	unsigned int uiData;
@@ -551,6 +551,8 @@ static int cec_remove(struct platform_device *pdev)
     misc_deregister(&cec_misc_device);
 
     kfree(cec_rx_struct.buffer);
+
+    return 0;
 }
 
 /**

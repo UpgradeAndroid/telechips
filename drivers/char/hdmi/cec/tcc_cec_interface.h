@@ -225,7 +225,7 @@
 
 #define CEC_USER_CONTROL_F1						0x71
 #define CEC_USER_CONTROL_F2						0x72
-#define CEC_USER_CONTROL_F3						0x73
+//#define CEC_USER_CONTROL_F3						0x73
 #define CEC_USER_CONTROL_F3						0x74
 
 #define CEC_POWER_STATUS_ON						0x00

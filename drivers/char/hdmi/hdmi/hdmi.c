@@ -1013,7 +1013,6 @@ int hdmi_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		case HDMI_IOC_GET_RI_REG:
 		{
 			int ret;
-			unsigned int result;
 			unsigned char ri0,ri1;
 	
 			// get ri from TX
@@ -1279,7 +1278,7 @@ int hdmi_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
  */
 static irqreturn_t hdmi_handler(int irq, void *dev_id)
 {
-    unsigned char flag, status;
+    unsigned char flag;
     unsigned int event = 0;
 	unsigned int tmp_event = 0;
 
@@ -1719,7 +1718,7 @@ void tcc_hdmi_power_off(void)
 	memset(&gHdmiVideoParms, 0, sizeof(struct HDMIVideoParameter));
  }
 
-extern unsigned int tca_get_output_lcdc_num(viod);
+extern unsigned int tca_get_output_lcdc_num(void);
 
 static int hdmi_probe(struct platform_device *pdev)
 {
@@ -2612,7 +2611,6 @@ int hdmi_set_spd_infoframe(struct HDMIVideoFormatCtrl VideoFormatCtrl)
  */
 void hdmi_phy_reset(void)
 {
-	unsigned int  regl;
 	unsigned char phy_status;
 	unsigned int phy_chk_cnt = 0;
 

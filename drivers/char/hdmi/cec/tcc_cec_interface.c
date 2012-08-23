@@ -186,19 +186,19 @@ int TccCECInterface_GetKeyCode(unsigned short kc)
 **************************************************************************/
 int TccCECInterface_SendData(unsigned int uiOpcode, unsigned int uiData)
 {
-	DPRINTK(KERN_INFO "%s\n", __FUNCTION__);
-	
     struct input_dev *dev = rem->dev;
 	int nRem;
 	unsigned int	uiKeyCode;
 
+	DPRINTK(KERN_INFO "%s\n", __FUNCTION__);
+	
 	uiKeyCode = TccCECInterface_ConvertKeyCode(uiOpcode, uiData);
 
 	DPRINTK(KERN_INFO "uiKeyCode = 0x%x\n", uiKeyCode);
 	
 	nRem = TccCECInterface_GetKeyCode(uiKeyCode);
 	if(nRem == -1)
-		return;
+		return 0;
 
 	DPRINTK(KERN_INFO "nRem = 0x%x\n", nRem);
 
@@ -229,7 +229,7 @@ int TccCECInterface_SendData(unsigned int uiOpcode, unsigned int uiData)
 **************************************************************************/
 unsigned int TccCECInterface_ConvertKeyCode(unsigned int uiOpcode, unsigned int uiData)
 {
-	unsigned int uiKeyCode;
+	unsigned int uiKeyCode = 0;
 
 	if( uiOpcode == CEC_OPCODE_PLAY)
 	{

@@ -54,7 +54,7 @@ static int audio_release(struct inode *inode, struct file *file);
 static irqreturn_t audio_spdif_handler(int irq, void *dev_id);
 static ssize_t audio_read(struct file *file, char __user *buffer, size_t count, loff_t *ppos);
 static ssize_t audio_write(struct file *file, const char __user *buffer, size_t count, loff_t *ppos);
-static int audio_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
+static long audio_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 
 int setAudioInputPort(enum HDMIAudioPort port);
 int setCUVSampleFreq(enum SamplingFreq freq);
@@ -124,7 +124,7 @@ static int audio_open(struct inode *inode, struct file *file)
 static int audio_release(struct inode *inode, struct file *file)
 {
     // mask SPDIF INT
-    unsigned char reg;
+    //unsigned char reg;
     DPRINTK(KERN_INFO "%s\n", __FUNCTION__);
 #if 0
     reg = readb(HDMI_SS_INTC_CON);
@@ -161,7 +161,7 @@ ssize_t audio_write(struct file *file, const char __user *buffer, size_t count, 
 }
 
 
-int audio_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+long audio_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
     DPRINTK(KERN_INFO "%s\n", __FUNCTION__);
     switch (cmd)
@@ -958,7 +958,6 @@ int setCUVSampleFreq(enum SamplingFreq freq)
 int setSPDIFSampleFreq(enum SamplingFreq freq)
 {
     int ret = 1;
-    unsigned char reg;
 	unsigned int  audio_freq;
 	
     DPRINTK(KERN_INFO "%s freq:%d \n", __FUNCTION__, freq);

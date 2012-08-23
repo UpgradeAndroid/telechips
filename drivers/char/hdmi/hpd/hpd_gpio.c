@@ -62,9 +62,8 @@ static struct hpd_struct hpd_struct;
 static int hpd_open(struct inode *inode, struct file *file);
 static int hpd_release(struct inode *inode, struct file *file);
 static ssize_t hpd_read(struct file *file, char __user *buffer, size_t count, loff_t *ppos);
-static int hpd_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
-static unsigned int hpd_poll(struct file *file, poll_table *wait);
-static irqreturn_t hpd_irq_handler(int irq, void *dev_id);
+static long hpd_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
+//static unsigned int hpd_poll(struct file *file, poll_table *wait);
 static int hpd_start(void);
 static int hpd_stop(void);
 
@@ -131,6 +130,7 @@ ssize_t hpd_read(struct file *file, char __user *buffer, size_t count, loff_t *p
     return retval;
 }
 
+#if 0
 unsigned int hpd_poll(struct file *file, poll_table *wait)
 {
     DPRINTK(KERN_INFO "%s \n", __FUNCTION__);
@@ -142,6 +142,7 @@ unsigned int hpd_poll(struct file *file, poll_table *wait)
 
     return 0;
 }
+#endif
 
 int hpd_start(void)
 {
@@ -167,7 +168,7 @@ int hpd_stop(void)
     return 0;
 }
 
-int hpd_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+long hpd_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
     DPRINTK(KERN_INFO "%s\n", __FUNCTION__);
 
@@ -184,18 +185,6 @@ int hpd_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 	return 0;
 }
-
-/**
- * @brief HPD interrupt handler
- *
- * Handles interrupt requests from HPD hardware. \n
- * Handler changes value of internal variable and notifies waiting thread.
- */
-static irqreturn_t hpd_irq_handler(int irq, void *dev_id)
-{
-     return IRQ_HANDLED;
-}
-
 
 static int hpd_probe(struct platform_device *pdev)
 {
