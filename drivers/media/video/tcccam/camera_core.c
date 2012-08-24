@@ -838,13 +838,13 @@ static long camera_core_do_ioctl(struct file *file, unsigned int cmd, void *arg)
 		}
 
 		case VIDIOC_USER_GET_MAX_RESOLUTION:
-			return sensor_if_get_max_resolution((int *)arg);
+			return sensor_if_get_max_resolution((unsigned int)arg);
 
 		case VIDIOC_USER_GET_SENSOR_FRAMERATE:
 			return sensor_if_get_sensor_framerate((int *)arg);
 
 		case VIDIOC_USER_GET_ZOOM_SUPPORT:
-			return tcc_videobuf_get_zoom_support((int *)arg);
+			return tcc_videobuf_get_zoom_support((unsigned int)arg);
 
 		case VIDIOC_USER_SET_CAMERA_ADDR:
 			return tcc_videobuf_set_camera_addr((struct v4l2_requestbuffers *)arg);
@@ -1318,12 +1318,14 @@ static struct platform_driver camera_core_driver = {
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static void tcc92xx_camera_early_suspend(struct early_suspend *h)
 {
-	camera_core_driver.suspend;
+	//FIXME these are never called, () are missing
+	//camera_core_driver.suspend;
 }
 
 static void tcc92xx_camera_late_resume(struct early_suspend *h)
 {
-	camera_core_driver.resume;
+	//FIXME this is never called, () are missing
+	//camera_core_driver.resume;
 }
 #endif
 

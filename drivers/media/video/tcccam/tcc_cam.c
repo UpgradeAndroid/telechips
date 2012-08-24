@@ -707,7 +707,7 @@ static irqreturn_t cif_cam_isr(int irq, void *client_data/*, struct pt_regs *reg
 				next_buf = list_entry(data->list.next->next, struct tccxxx_cif_buffer, buf_list);	
 				next_num = next_buf->v4lbuf.index;
 
-				if(next_buf != &data->list && curr_buf != next_buf)
+				if(((struct list_head*)next_buf) != &data->list && curr_buf != next_buf)
 				{
 					//exception process!!
 					if(curr_num != curr_buf->v4lbuf.index)
@@ -2094,7 +2094,7 @@ int tccxxx_cif_buffer_set(struct v4l2_requestbuffers *req)
 	struct TCCxxxCIF *data = (struct TCCxxxCIF *) &hardware_data;
 	struct tccxxx_cif_buffer *buf = NULL;
 	unsigned int y_offset = 0, uv_offset = 0, stride = 0;
-	unsigned int buff_size;
+	unsigned int buff_size = 0;
 
 	if(req->count == 0) {
 		data->cif_cfg.now_frame_num = 0;
@@ -2301,8 +2301,6 @@ int tccxxx_cif_cam_restart(struct v4l2_pix_format *pix, unsigned long xclk)
 {
 	struct TCCxxxCIF *data = (struct TCCxxxCIF *) &hardware_data;
 	struct tccxxx_cif_buffer *cif_buf;
-	unsigned int stride = 0, y_offset = 0, uv_offset = 0;
-
 	dprintk("%s Start!! \n", __FUNCTION__);
 
 	tccxxx_cif_stop_stream();
@@ -2340,10 +2338,13 @@ int tccxxx_cif_cam_restart(struct v4l2_pix_format *pix, unsigned long xclk)
 	#endif
 
 	#if defined(FEATURE_ANDROID_ICS)
+	{
+	unsigned int stride = 0, y_offset = 0, uv_offset = 0;
 	stride = ALIGNED_BUFF(data->cif_cfg.main_set.target_x, 16);
 	y_offset = stride * data->cif_cfg.main_set.target_y;
 	uv_offset = ALIGNED_BUFF((stride/2), 16) * (data->cif_cfg.main_set.target_y/2);
 	ISP_SetPreviewH_Size(y_offset, uv_offset, uv_offset);
+	}
 	if(data->cif_cfg.fmt == M420_ZERO) 	ISP_SetPreviewH_Format(ISP_FORMAT_YUV422);
 	else 								ISP_SetPreviewH_Format(ISP_FORMAT_YUV420);
 	#else // FEATURE_ANDROID_ICS
@@ -2381,7 +2382,6 @@ int tccxxx_cif_start_stream(void)
 	unchar	bUseSimpleDeIntl;
 	#endif
 	struct TCCxxxCIF *data = (struct TCCxxxCIF *) &hardware_data;
-	unsigned int stride = 0, y_offset = 0, uv_offset = 0;
 
 	dprintk("%s Start!! \n", __FUNCTION__);
 	dprintk("cif_cfg.main_set:  src_x = %d, src_y = %d. \n", data->cif_cfg.main_set.source_x, data->cif_cfg.main_set.source_y);
@@ -2418,10 +2418,13 @@ int tccxxx_cif_start_stream(void)
 	}
 	
 	#if defined(FEATURE_ANDROID_ICS)
+	{
+	unsigned int stride = 0, y_offset = 0, uv_offset = 0;
 	stride = ALIGNED_BUFF(data->cif_cfg.main_set.target_x, 16);
 	y_offset = stride * data->cif_cfg.main_set.target_y;
 	uv_offset = ALIGNED_BUFF((stride/2), 16) * (data->cif_cfg.main_set.target_y/2);
 	ISP_SetPreviewH_Size(y_offset, uv_offset, uv_offset);
+	}
 	if(data->cif_cfg.fmt == M420_ZERO) 	ISP_SetPreviewH_Format(ISP_FORMAT_YUV422);
 	else 								ISP_SetPreviewH_Format(ISP_FORMAT_YUV420);
 	#else // FEATURE_ANDROID_ICS
@@ -2532,7 +2535,6 @@ int tccxxx_cif_start_stream(void)
 
 int tccxxx_cif_stop_stream(void)
 {	
-	int nCnt;
 	struct TCCxxxCIF *data = (struct TCCxxxCIF *) &hardware_data;
 
 	dprintk("%s Start!! \n", __FUNCTION__);
@@ -2681,7 +2683,7 @@ int tccxxx_cif_capture(int quality)
 	struct TCCxxxCIF *data = (struct TCCxxxCIF *) &hardware_data;
 	unsigned int target_width, target_height;
 	unsigned int ens_addr;
-	int skip_frame = 0, nCnt;
+	int skip_frame = 0;
 #if	defined(CONFIG_ARCH_TCC892X)
 	uint sc_plug_in0;
 #endif

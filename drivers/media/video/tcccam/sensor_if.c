@@ -11,6 +11,8 @@
  * kind, whether express or implied.
  */
 
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #include <linux/errno.h>
 #include <linux/i2c.h>
 #include <linux/videodev2.h>
@@ -51,9 +53,7 @@ struct regulator *vdd_cam_af;
 struct regulator *vdd_cam_io;
 #endif
 
-
-static int debug	   = 0;
-#define dprintk(msg...)	if (debug) { printk( "Sensor_if: " msg); }
+#define dprintk(msg...)	pr_debug(msg)
 
 static int enabled = 0;
 
@@ -609,7 +609,7 @@ int sensor_if_configure(struct v4l2_pix_format *pix, unsigned long xclk)
  */
 int sensor_if_init(struct v4l2_pix_format *pix)
 {
- 	int ret, gpio_ret;
+ 	int ret;
 
 	// set to initialize normal gpio that power, power_down(or stand-by) and reset of sensor.
 	#if defined(CONFIG_ARCH_TCC92XX)

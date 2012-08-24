@@ -497,7 +497,7 @@ static int write_regs_ov7690(const struct sensor_reg reglist[])
 	int err_cnt = 0;	
 	unsigned char data[132];
 	unsigned char bytes;
-	struct sensor_reg *next = reglist;
+	const struct sensor_reg *next = reglist;
 	
 	while (!((next->reg == REG_TERM) && (next->val == VAL_TERM)))
 	{
