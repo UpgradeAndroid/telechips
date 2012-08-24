@@ -49,7 +49,7 @@
 /*****************************************************************************
 * Function Name : tca_rtc_gettime()
 ******************************************************************************/
-volatile void tca_rtc_gettime(unsigned int devbaseaddresss,rtctime *pTime)
+void tca_rtc_gettime(unsigned int devbaseaddresss, rtctime *pTime)
 {
 	unsigned int data;
 	unsigned short seconds;
@@ -97,7 +97,7 @@ volatile void tca_rtc_gettime(unsigned int devbaseaddresss,rtctime *pTime)
 /*****************************************************************************
 * Function Name : tca_rtc_settime()
 ******************************************************************************/
-volatile void tca_rtc_settime(unsigned int devbaseaddresss, rtctime *pTime)
+void tca_rtc_settime(unsigned int devbaseaddresss, rtctime *pTime)
 {
 	PRTC	pRTC = (PRTC)devbaseaddresss;
 	
@@ -132,7 +132,7 @@ volatile void tca_rtc_settime(unsigned int devbaseaddresss, rtctime *pTime)
 /*****************************************************************************
 * Function Name : tca_rtc_checkvalidtime()
 ******************************************************************************/
-volatile  unsigned int	tca_rtc_checkvalidtime(unsigned int devbaseaddresss)
+unsigned int	tca_rtc_checkvalidtime(unsigned int devbaseaddresss)
 {
 	unsigned	IsNeedMending;
 	rtctime		pTimeTest;

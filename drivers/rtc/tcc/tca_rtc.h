@@ -75,9 +75,9 @@ extern
 #endif
 
 #include <mach/bsp.h>
-volatile void tca_rtc_gettime(unsigned int devbaseaddresss,rtctime *pTime);
-volatile void tca_rtc_settime(unsigned int devbaseaddresss,rtctime *pTime);
-volatile unsigned int	tca_rtc_checkvalidtime(unsigned int devbaseaddresss);
+void tca_rtc_gettime(unsigned int devbaseaddresss,rtctime *pTime);
+void tca_rtc_settime(unsigned int devbaseaddresss,rtctime *pTime);
+unsigned int tca_rtc_checkvalidtime(unsigned int devbaseaddresss);
 
 #ifdef __cplusplus
  } 
