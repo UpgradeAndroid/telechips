@@ -237,7 +237,6 @@ int TSDEMUX_UpdatePCR (unsigned int uiPCR)
 int TSDEMUX_MakeSTC (unsigned char *pucTS, unsigned int uiTSSize, unsigned int uiPCR)
 {
 	int i;
-	unsigned int uiSTC;
 	unsigned int uiPcr;
 	MpegTsHeader tsHeader;
 	for(i=0; i < uiTSSize; i += MPEGSYS_TS_PACKETSIZE)

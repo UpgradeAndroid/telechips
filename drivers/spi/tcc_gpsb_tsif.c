@@ -49,7 +49,7 @@ extern int tsif_ex_init(void);
 extern void tsif_ex_exit(void);
 extern int tcc_ex_tsif_open(struct inode *inode, struct file *filp);
 extern int tcc_ex_tsif_release(struct inode *inode, struct file *filp);
-extern int tcc_ex_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
+extern long tcc_ex_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
 extern int tcc_ex_tsif_set_external_tsdemux(int (*decoder)(char *p1, int p1_size, char *p2, int p2_size), int max_dec_packet);
 
 static struct tea_dma_buf *g_static_dma;
@@ -87,8 +87,8 @@ typedef struct
     int is_active; //0:don't use external demuxer, 1:use external decoder
     int index;
     int call_decoder_index;
-    int (*tsdemux_decoder)(char *p1, int p1_size, char *p2, int p2_size)
-}tsdemux_extern_t;
+    int (*tsdemux_decoder)(char *p1, int p1_size, char *p2, int p2_size);
+} tsdemux_extern_t;
 static tsdemux_extern_t tsdemux_extern_handle;
 static int tsif_get_readable_cnt(tca_spi_handle_t *H);
 
@@ -422,7 +422,7 @@ static unsigned int tcc_tsif_poll(struct file *filp, struct poll_table_struct *w
     return 0;
 }
 
-static ssize_t tcc_tsif_copy_from_user(void *dest, void *src, size_t copy_size)
+static ssize_t tcc_tsif_copy_from_user(void *dest, const void *src, size_t copy_size)
 {
 	int ret = 0;
 	if(is_use_tsif_export_ioctl() == 1) {
@@ -445,7 +445,7 @@ static ssize_t tcc_tsif_copy_to_user(void *dest, void *src, size_t copy_size)
 }
 
 
-static int tcc_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+static long tcc_tsif_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
     int ret = 0;
 //	printk("%s::%d::0x%X\n", __func__, __LINE__, cmd);	
