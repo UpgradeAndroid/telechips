@@ -131,7 +131,6 @@ unsigned long   gIndex = 0;
 #define TRACE_BATT 0 
 
 static struct wake_lock vbus_wake_lock;
-static struct work_struct batt_work;
 
 #if TRACE_BATT
 #define BATT(x...) printk(KERN_INFO "[BATT] " x)
@@ -209,7 +208,7 @@ extern int axp202_get_batt_charge_current(void);
 #endif
 // XXX
 
-tcc_battery_charging_status(void);
+int tcc_battery_charging_status(void);
 void tcc_battery_process(void) ;
 
 void usb_register_notifier(struct notifier_block *nb);
@@ -279,7 +278,7 @@ static struct power_supply tcc_power_supplies[] = {
 	},
 };
 
-static void usb_status_notifier_func(struct notifier_block *self, unsigned long action, void *dev);
+static int usb_status_notifier_func(struct notifier_block *self, unsigned long action, void *dev);
 static int g_usb_online;
 int g_ac_plugin;
 
@@ -545,12 +544,6 @@ static void tcc_set_charge_enable(int onoff) {
     }
 }
 
-static void tcc_is_full_charge(int onoff) {
-    if( machine_is_m57te() ) {
-        return !(gpio_get_value(TCC_GPE(5)));
-    }
-}
-
 void bubblesort(unsigned int Number[],unsigned int num)
 {
 	int i,j;
@@ -572,8 +565,7 @@ void bubblesort(unsigned int Number[],unsigned int num)
 static unsigned long tcc_read_adc(void)
 {
 	unsigned long adcValue = 0;
-	int i=0;
-	int *pbattery_vols;
+	const int *pbattery_vols;
 	int temp_adc, adjustResume;
 	struct clk *cpu_clk;
 	struct clk *ddi_clk;
@@ -761,8 +753,6 @@ static unsigned long tcc_read_adc(void)
 	return 0;
 }
 
-static int test = 25;
-
 struct battery_info_reply tcc_cur_battery_info =
 {
 	.batt_id = 0,			/* Battery ID from ADC */
@@ -776,7 +766,7 @@ struct battery_info_reply tcc_cur_battery_info =
 };
 
 /* ADC raw data Update to Android framework */
-void tcc_read_battery(struct battery_info_reply *info)
+static void tcc_read_battery(struct battery_info_reply *info)
 {
 	memcpy(info, &tcc_cur_battery_info, sizeof(struct battery_info_reply));
 
@@ -785,8 +775,6 @@ void tcc_read_battery(struct battery_info_reply *info)
 	BATT("tcc_read_battery read batt id=%d,voltage=%d, temp=%d, current=%d, level=%d, charging source=%d, charging_enable=%d, full=%d\n", 
 	     info->batt_id, info->batt_vol, info->batt_temp, info->batt_current, info->level, info->charging_source, info->charging_enabled, info->full_bat);
 	#endif
-	
-	return 0;
 }
 
 int tcc_cable_status_update(int status)
@@ -882,7 +870,7 @@ int tcc_cable_status_update(int status)
 /* A9 reports USB charging when helf AC cable in and China AC charger. */
 /* Work arround: notify userspace AC charging first,
 and notify USB charging again when receiving usb connected notificaiton from usb driver. */
-static void usb_status_notifier_func(struct notifier_block *self, unsigned long action, void *dev)
+static int usb_status_notifier_func(struct notifier_block *self, unsigned long action, void *dev)
 {
 	mutex_lock(&tcc_batt_info.lock);
 
@@ -925,7 +913,6 @@ static void usb_status_notifier_func(struct notifier_block *self, unsigned long 
 static int tcc_get_battery_info(struct battery_info_reply *buffer)
 {
 	struct battery_info_reply info;
-	int rc;
 
 	if (buffer == NULL) 
 		return -EINVAL;
@@ -1080,7 +1067,7 @@ enum {
 
 static int tcc_battery_create_attrs(struct device * dev)
 {
-	int i, j, rc;
+	int i, rc;
 	for (i = 0; i < ARRAY_SIZE(tcc_battery_attrs); i++) {
 		rc = device_create_file(dev, &tcc_battery_attrs[i]);
 		if (rc)
@@ -1159,16 +1146,10 @@ void tcc_ac_charger_detect_process(void)
 {
 	if(machine_is_m801_88() || machine_is_m803()  || machine_is_m805_892x() || machine_is_tcc8920())
 	{
-		unsigned long adcValue = 0;
-		  int i=0;
-	
-		struct tcc_adc_client *client = tcc_batt_info.client;
 		if(acin_detect())
 	            g_ac_plugin = 1;
         	else
             	    g_ac_plugin = 0;
-
-
 
 	      if( g_ac_plugin ) {
 #if defined(CONFIG_REGULATOR_AXP192) || defined(CONFIG_REGULATOR_AXP202)
@@ -1309,21 +1290,22 @@ int tcc_battery_charging_status(void)
 void tcc_battery_process(void) 
 {
 	unsigned long adcValue;
-	unsigned long BattVoltage;
+	unsigned long BattVoltage = 0;
 	int temp;
-	int i, source, level, count;
+	int i, source;
 	struct battery_info_reply info;
 	unsigned int battery_changed_flag = 0;
-    int battery_level_count = 0;
-    tcc_batt_vol *pbattery_levels;
-	int *pbattery_vols;
+	const int *pbattery_vols;
 	int info_temp;
-	static old_batt_per = 0;
+	static int old_batt_per = 0;
 #ifdef BATT_SPECIFIC_CUSTOMER
+	tcc_batt_vol *pbattery_levels;
+	int battery_level_count = 0;
 	unsigned long MaxBat,MinBat;	
 	static int axp_full_flag;
 	unsigned short axp_reg;
 	unsigned char plugin;
+	int count;
 	#define IRQ_CHR_ING 0x08
 	#define IRQ_CHR_OK  0x04
 #endif
@@ -1753,12 +1735,12 @@ int tcc_adc_battery_standby(void) // check battery driver loading
 }
 EXPORT_SYMBOL(tcc_adc_battery_standby);
 
-void batt_conv(void)
+void batt_conv(unsigned int d0, unsigned int d1)
 {
 	/* dummy */
 }
 
-static tcc_battery_adc_channel(void)
+static void tcc_battery_adc_channel(void)
 {
 	BATT("%s\n",__func__);
 
@@ -1781,8 +1763,6 @@ static tcc_battery_adc_channel(void)
 			ac_channel = 3;
 		}
 	}
-
-
 }
 
 
@@ -1799,19 +1779,21 @@ void tcc_battery_early_suspend(struct early_suspend *h)
 
 void tcc_battery_late_resume(struct early_suspend *h)
 {
-	int i;
 	printk("%s in\n", __func__);
 #if defined(CONFIG_REGULATOR_AXP192) || defined(CONFIG_REGULATOR_AXP202)
 	charge_current(Charger_Current_Normal);
 #endif
 
 #ifdef BATT_SPECIFIC_CUSTOMER
+	{
+	int i;
 	gIndex = 0;
 	for(i=0;i<BATTWINDOW;i++)
 		tcc_read_adc();
 
 	tcc_ac_charger_detect_process();
 	tcc_battery_process();
+	}
 #endif
   	in_suspend = 0;
 	printk("%s out\n", __func__);	
@@ -1858,7 +1840,6 @@ static int tcc_battery_resume(struct platform_device *dev)
 static int tcc_battery_probe(struct platform_device *pdev)
 {
 	int i, err, ret;
-	unsigned short adc_data;
    	struct tcc_adc_client *client;
 
 
@@ -1962,18 +1943,6 @@ static int tcc_battery_probe(struct platform_device *pdev)
 
 	printk("TCC Battery Driver Load\n");
 	return 0;
-	
-fail:
-	/* free adc client */
-   	tcc_adc_release(client);
-
-    return 0;
-}
-
-static int tcc_battery_remove(struct platform_device *pdev)
-{
-	/* dummy */
-	return 0;
 }
 
 static struct platform_driver tcc_battery_driver = {
@@ -1984,7 +1953,7 @@ static struct platform_driver tcc_battery_driver = {
 	.resume			= tcc_battery_resume,
 };
 
-static tcc_battery_port_init(void)
+static void tcc_battery_port_init(void)
 {
 	if(machine_is_m801_88()) {
 		gpio_request(TCC_GPF(15), "LED0");
@@ -2042,13 +2011,10 @@ static tcc_battery_port_init(void)
 
 #endif
 	}	
-
 }
 
 static int __init tcc_battery_init(void)
 {
-	struct clk *clk;
-
 	printk("%s\n", __func__);
 
 	wake_lock_init(&vbus_wake_lock, WAKE_LOCK_SUSPEND, "vbus_present");
@@ -2056,7 +2022,6 @@ static int __init tcc_battery_init(void)
 	mutex_init(&tcc_batt_info.lock);
 
 	tcc_battery_port_init();
-
 
 	return platform_driver_register(&tcc_battery_driver);
 }
