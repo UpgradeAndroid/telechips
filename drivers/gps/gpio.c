@@ -126,7 +126,7 @@ static int gps_gpio_release (struct inode *inode, struct file *filp)
 //  ************************************************************ //
 //static int gps_gpio_ioctl (struct inode *inode, struct file *filp,
 //                           unsigned int cmd, unsigned long arg)  
-static long gps_gpio_ioctl (struct file *filp, unsigned int cmd, void *arg)  
+static long gps_gpio_ioctl (struct file *filp, unsigned int cmd, unsigned long arg)  
 {
     gps_dbg("gps_gpio_ioctl\n");
     switch( cmd )  
