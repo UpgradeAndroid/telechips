@@ -72,22 +72,22 @@ static int tcc_spk_func;
 
 
 
-static void spk_mute()
+static void spk_mute(void)
 {
 //	gpio_set_value(TCC_GPG(6), 0);
 }
 
-static void spk_un_mute()
+static void spk_un_mute(void)
 {
 //	gpio_set_value(TCC_GPG(6), 1);
 }
 
-static void hp_mute()
+static void hp_mute(void)
 {
 //	gpio_set_value(TCC_GPD(11), 0);
 }
 
-static void hp_un_mute()
+static void hp_un_mute(void)
 {
 //	gpio_set_value(TCC_GPD(11), 1);
 }
@@ -97,6 +97,7 @@ int tcc_hp_is_valid(void)
 printk("%s() \n", __func__);
     // gpio_get_value is ==> 0: disconnect, 1: connect
 //    return gpio_get_value(TCC_GPD(10));
+    return 0;
 }
 
 int tcc_hp_hw_mute(int flag)
@@ -106,6 +107,8 @@ printk("%s() %d\n", __func__, flag);
         hp_mute();
     else
         hp_un_mute();
+
+    return 0;
 }
 
 int tcc_spk_hw_mute(int flag)
@@ -115,6 +118,8 @@ printk("%s() %d\n", __func__, flag);
         spk_mute();
     else
         spk_un_mute();
+
+    return 0;
 }
 
 
@@ -332,7 +337,7 @@ static const struct snd_kcontrol_new rt5625_tcc_controls[] = {
  */
 static int tcc_rt5625_init(struct snd_soc_pcm_runtime *rtd)
 {
-	int i, err;
+	int err;
 	struct snd_soc_codec *codec = rtd->codec;
 	struct snd_soc_dapm_context *dapm = &codec->dapm;
 
@@ -363,7 +368,7 @@ static int tcc_rt5625_init(struct snd_soc_pcm_runtime *rtd)
 
 extern struct snd_soc_platform tcc_soc_platform;
 
-static int tcc_iec958_dummy_init(struct snd_soc_codec *codec)
+static int tcc_iec958_dummy_init(struct snd_soc_pcm_runtime *rtd)
 {
     return 0;
 }

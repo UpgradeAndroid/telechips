@@ -313,7 +313,6 @@ unsigned int tca_dma_setdestaddr(void *pADMABaseAddr, unsigned int DADINum, unsi
 unsigned int tca_dma_control(void *pADMABaseAddr, void *pADMADAIBaseAddr, unsigned int nMode, unsigned int nDmanum, unsigned int nInMode)				
 {  
 	ADMA *pStrADMABaseReg = (ADMA *)pADMABaseAddr;
-	ADMADAI *pStrADMADAIBaseReg = (ADMADAI *)pADMADAIBaseAddr; 
 	
     if(nMode) 
 	{ //run

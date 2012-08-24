@@ -985,7 +985,7 @@ static void tcc_pcm_free_dma_buffers(struct snd_pcm *pcm)
     mutex_init(&(tcc_alsa_info.mutex));
 }
 
-static u64 tcc_pcm_dmamask = DMA_32BIT_MASK;
+static u64 tcc_pcm_dmamask = DMA_BIT_MASK(32);
 
 int tcc_pcm_new(struct snd_card *card, struct snd_soc_dai *dai, struct snd_pcm *pcm)
 {
@@ -1000,7 +1000,7 @@ int tcc_pcm_new(struct snd_card *card, struct snd_soc_dai *dai, struct snd_pcm *
         card->dev->dma_mask = &tcc_pcm_dmamask;
     }
     if (!card->dev->coherent_dma_mask) {
-        card->dev->coherent_dma_mask = DMA_32BIT_MASK;
+        card->dev->coherent_dma_mask = DMA_BIT_MASK(32);
     }
     if (dai->driver->playback.channels_min) {
         ret = tcc_pcm_preallocate_dma_buffer(pcm, SNDRV_PCM_STREAM_PLAYBACK);

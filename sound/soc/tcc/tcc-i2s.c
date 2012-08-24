@@ -273,7 +273,6 @@ static int tcc_i2s_init(void)
     clk_enable(tcc_adma0_clk);
 #else
 	volatile PADMADAI pADMA_DAI = (volatile PADMADAI)tcc_p2v(BASE_ADDR_DAI);
-	volatile PPIC pPIC = (volatile PPIC)tcc_p2v(BASE_ADDR_PIC);
 
     alsa_dbg(" %s \n", __func__);
 
