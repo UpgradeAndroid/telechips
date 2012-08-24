@@ -81,7 +81,7 @@ static unsigned int intr_poll(struct file *filp, poll_table *wait)
 	}
 }
 
-static long intr_ioctl(struct inode *inode, struct file *filp, unsigned int cmd, unsigned long arg)
+static long intr_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	unsigned long data;
 	tcc_intr_data_t *tcc_intr = (tcc_intr_data_t *)filp->private_data;
@@ -99,9 +99,8 @@ static long intr_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 				return -EFAULT;
 			break;
 		default:
-			printk("tcc_intr(%d): unrecognized ioctl (0x%x)\n", MINOR(inode->i_rdev), cmd);
+			printk("tcc_intr(%p): unrecognized ioctl (0x%x)\n", filp, cmd);
 			return -EINVAL;
-			break;
 	}
 
 	return 0;
