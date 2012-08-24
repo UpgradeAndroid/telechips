@@ -2,6 +2,8 @@
  * tcc_scaler.c
  */
 
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/errno.h>
@@ -28,20 +30,15 @@
 #include "tcc_scaler.h"
 #include <mach/tcc_scaler_ctrl.h>
 
-#if 0
-static int debug	   = 1;
-#else
-static int debug	   = 0;
-#endif
-
-static unsigned int scaler_ended = 0;
-
-#define dprintk(msg...)	if (debug) { printk( "tcc_scaler1: " msg); }
+#define dprintk(msg...)	pr_debug(msg)
 
 #define DEVICE_NAME			"scaler1"
 #define MAJOR_ID			201
 #define MINOR_ID			1
 //#define SCALER_USE_INTERRUPT
+#ifdef SCALER_USE_INTERRUPT
+static unsigned int scaler_ended = 0;
+#endif
 
 typedef struct _intr_data_t {
 	//wait for Poll!!  
@@ -141,6 +138,7 @@ void tcc_scaler_Disable(M2M_CHANNEL ch)
 	}while(uiMscStatus & HwMSC_STATUS_BUSY );
 
 #endif
+	{
 	volatile PDDICONFIG pDDICONFIG;
 
 	pDDICONFIG = (volatile PDDICONFIG)tcc_p2v(HwDDI_CONFIG_BASE);
@@ -156,6 +154,7 @@ void tcc_scaler_Disable(M2M_CHANNEL ch)
 		BITSET(pDDICONFIG->SWRESET, HwDDIC_SWRESET_MSCL1);
 		BITSET(pDDICONFIG->PWDN, HwDDIC_PWDN_MSCL1);
 		BITCLR(pDDICONFIG->SWRESET, HwDDIC_SWRESET_MSCL1);
+	}
 	}
 }
 
@@ -191,9 +190,7 @@ void tcc_scaler_Enable(M2M_CHANNEL ch)
 
 void tcc_scaler_SWReset(M2M_CHANNEL ch)
 {
-	volatile PDDICONFIG pDDICONFIG;
-
-	pDDICONFIG = (volatile PDDICONFIG)tcc_p2v(HwDDI_CONFIG_BASE);
+	volatile PDDICONFIG pDDICONFIG = (volatile PDDICONFIG)tcc_p2v(HwDDI_CONFIG_BASE);
 #if 1
 	volatile PM2MSCALER pM2MScaler;
 	unsigned int uiMscStatus = 0, delay_cnt = 0;
@@ -521,7 +518,7 @@ unsigned int tcc_scaler_finalize(M2M_CHANNEL ch)
 	return ret;
 	#else
 	volatile unsigned int	IsM2MScalerEnd, Cnt = 0;
-	unsigned int IFlag;
+	unsigned int IFlag = 0;
 	volatile PM2MSCALER pM2MScaler;
 
 	if(ch == MSCL0)

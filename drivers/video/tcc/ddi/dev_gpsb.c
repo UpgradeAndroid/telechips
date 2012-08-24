@@ -50,8 +50,8 @@ GPSB *IO_GPSB_GetBaseAddr(unsigned uCH)
 **************************************************************************/
 void IO_GPSB_InitSWReset(unsigned uCH)
 {
-	PIOBUSCFG	pIOBUSCFG = (PIOBUSCFG)tcc_p2v(HwIOBUSCFG_BASE);
 #if defined(CONFIG_ARCH_TCC92XX)	
+	PIOBUSCFG	pIOBUSCFG = (PIOBUSCFG)tcc_p2v(HwIOBUSCFG_BASE);
 	BITSET(pIOBUSCFG->HRSTEN0, (HwIOBUSCFG_GPSB0 << uCH));
 #elif defined(CONFIG_ARCH_TCC93XX)
 	//..
@@ -432,30 +432,25 @@ void IO_GPSB_InitPORT(unsigned uCH, unsigned uPort, unsigned uSDOSDI, unsigned u
 
 void IO_CKC_EnableBUS(unsigned int X)
 {
-	PIOBUSCFG pHwIOBUSCFG = (PIOBUSCFG)tcc_p2v(HwIOBUSCFG_BASE);
-	
 #if defined(CONFIG_ARCH_TCC92XX)        
+	PIOBUSCFG pHwIOBUSCFG = (PIOBUSCFG)tcc_p2v(HwIOBUSCFG_BASE);
 	BITSET(pHwIOBUSCFG->HCLKEN0, (X));
 #elif defined(CONFIG_ARCH_TCC93XX)
 	//..
 #else // ..
-
 #endif
 }
 
 void IO_CKC_DisableBUS(unsigned int X)
 {
-	PIOBUSCFG pHwIOBUSCFG = (PIOBUSCFG)tcc_p2v(HwIOBUSCFG_BASE);
-
 #if defined(CONFIG_ARCH_TCC92XX)        
+	PIOBUSCFG pHwIOBUSCFG = (PIOBUSCFG)tcc_p2v(HwIOBUSCFG_BASE);
 	BITCLR(pHwIOBUSCFG->HCLKEN0, (X));
 	BITCLR(pHwIOBUSCFG->HCLKEN0, (X));
 #elif defined(CONFIG_ARCH_TCC93XX)
         //..
 #else // ..
-
 #endif
-
 }
 
 
@@ -463,7 +458,9 @@ void IO_GPSB_InitChannel(unsigned uCH, unsigned uPort, unsigned uMode, unsigned 
 {
 //	sGPSBPORT	*pPORT;
  	sHwGPSB 	*pHwGPSB;
+	#ifdef CONFIG_ARCH_TCC92XX
 	PIOBUSCFG	pIOBUSCFG = (PIOBUSCFG)tcc_p2v(HwIOBUSCFG_BASE);
+	#endif
 		
 	//Set the Port Information
 	IO_GPSB_InitPORT(uCH, uPort, uSDOSDI, uSwCtrl);

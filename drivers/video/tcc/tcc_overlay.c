@@ -321,7 +321,7 @@ void tccxxx_overlay_check_priority(void)
 		else
 		{
 			// 2 > 1 > 0			
-			dprintk(" CH_priority :: (2 > 1 > 0) %d x %d < %d x %d \n", Output_SelectMode, 
+			dprintk(" CH_priority :%d: (2 > 1 > 0) %d x %d < %d x %d \n", Output_SelectMode, 
 						(pLCD->LI0S&0xFFFF), ((pLCD->LI0S >> 16)&0xFFFF), (pLCD->LI1S&0xFFFF), ((pLCD->LI1S >> 16)&0xFFFF));
 			BITCSET (pLCD->LCTRL, HwLCTRL_OVP, 0x5<<1);
 		}
@@ -992,7 +992,7 @@ static struct miscdevice overlay_misc_device =
     &tcc_overlay_fops,
 };
 
-extern unsigned int tca_get_lcd_lcdc_num(viod);
+extern unsigned int tca_get_lcd_lcdc_num(void);
 static int tcc_overlay_probe(struct platform_device *pdev)
 {
 	unsigned int lcd_lcdc_num;

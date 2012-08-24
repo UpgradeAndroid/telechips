@@ -332,6 +332,7 @@ static irqreturn_t TCC_OUTPUT_LCDC_Handler(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
+#ifdef CONFIG_TCC_OUTPUT_DUAL_UI
 static irqreturn_t TCC_OUTPUT_LCDC0_Handler(int irq, void *dev_id)
 {
 	unsigned int LCDCstatus;
@@ -369,6 +370,7 @@ static irqreturn_t TCC_OUTPUT_LCDC1_Handler(int irq, void *dev_id)
 
 	return IRQ_HANDLED;
 }
+#endif
 
 void TCC_OUTPUT_LCDC_Init(void)
 {
@@ -503,7 +505,7 @@ void TCC_OUTPUT_UPDATE_OnOff(char onoff)
 #ifdef CONFIG_CPU_FREQ
 extern struct tcc_freq_table_t gtHdmiClockLimitTable;
 #endif//CONFIG_CPU_FREQ
-void TCC_OUTPUT_LCDC_OnOff(char output_type, char output_lcdc_num, char onoff)
+void TCC_OUTPUT_LCDC_OnOff(int output_type, char output_lcdc_num, char onoff)
 {
 	int i;
 	dprintk(" %s output_type:%d lcdc_reg:0x%08x output_lcdc_num:%d onoff:%d  \n", __func__, output_type, pLCDC_OUTPUT[output_type], output_lcdc_num, onoff);
@@ -639,7 +641,7 @@ void TCC_OUTPUT_LCDC_OnOff(char output_type, char output_lcdc_num, char onoff)
 	memset((void *)output_layer_ctrl, 0x00, sizeof(output_layer_ctrl));
 }
 
-void TCC_OUTPUT_LCDC_CtrlLayer(char output_type, char interlace, char format)
+void TCC_OUTPUT_LCDC_CtrlLayer(int output_type, char interlace, char format)
 {
 	dprintk(" %s interlace:%d format:%d  \n", __func__, interlace, format);
 	
@@ -713,7 +715,7 @@ char TCC_FB_G2D_FmtConvert(unsigned int width, unsigned int height, unsigned int
 	#if defined(CONFIG_TCC_EXCLUSIVE_UI_LAYER)
 		grp_rotate_ctrl(&g2d_p);
 	#else
-		g2d_ioctl((struct file *)&g2d_filp, TCC_GRP_ROTATE_IOCTRL_KERNEL, &g2d_p);
+		g2d_ioctl((struct file *)&g2d_filp, TCC_GRP_ROTATE_IOCTRL_KERNEL, (unsigned long)&g2d_p);
 	#endif
 
 	return 1;
@@ -721,17 +723,15 @@ char TCC_FB_G2D_FmtConvert(unsigned int width, unsigned int height, unsigned int
 
 void tcc_disable_external_display(unsigned int type, unsigned int disable)
 {
-	if((type == TCC_OUTPUT_NONE) || (pLCDC_OUTPUT[type] == NULL)){
-		return 0;
-}
+	if((type == TCC_OUTPUT_NONE) || (pLCDC_OUTPUT[type] == NULL))
+		return;
 
-	if(disable){
+	if(disable) {
 		/* Disable : CH2 of LCDC0 */
 		pLCDC_OUTPUT[type]->LI2C &= ~HwLIC_IEN;
 	#ifndef CONFIG_ARCH_TCC92XX
 		pLCDC_OUTPUT[type]->LI2C |= HwLCT_RU;
 	#endif	
-		return 0;
 	}
 }
 
@@ -858,7 +858,7 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 		unsigned int pmap_size = FB_SCALE_MAX_WIDTH*FB_SCALE_MAX_HEIGHT*2;
 		unsigned int src_addr, dst_addr; 
 
-		pmap_cpu = (char*)ioremap_nocache(fb_g2d_pbuf0, pmap_size);
+		pmap_cpu = (char*)ioremap_nocache((unsigned long)fb_g2d_pbuf0, pmap_size);
 		memset(pmap_cpu, 0x00, pmap_size);
 		iounmap(pmap_cpu);
 
@@ -1108,7 +1108,7 @@ char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int 
 			#endif//
 			
 			#ifdef TCC_SCALER_TEST
-				scaler_ioctl((struct file *)&scaler_filp, TCC_SCALER_IOCTRL_KERENL, &fbscaler);
+				scaler_ioctl((struct file *)&scaler_filp, TCC_SCALER_IOCTRL_KERENL, (unsigned long)&fbscaler);
 			#else
 				#ifdef FB_UPSCALE_SCALER0
 				M2M_Scaler_Ctrl_Detail(&fbscaler);
@@ -1321,9 +1321,11 @@ int TCC_OUTPUT_SetOutputResizeMode(tcc_display_resize mode)
 	printk("%s : mode = %dx%d\n", __func__, mode.resize_x, mode.resize_y);
 	
 	uiOutputResizeMode = mode;
+
+	return 0;
 }
 
-int TCC_OUTPUT_FB_BackupVideoImg(char output_type)
+int TCC_OUTPUT_FB_BackupVideoImg(int output_type)
 {
 	PLCDC_CHANNEL pLCDC_CH;
 	
@@ -1351,7 +1353,7 @@ int TCC_OUTPUT_FB_BackupVideoImg(char output_type)
 	return 0;
 }
 
-int TCC_OUTPUT_FB_RestoreVideoImg(char output_type)
+int TCC_OUTPUT_FB_RestoreVideoImg(int output_type)
 {
 	PLCDC_CHANNEL pLCDC_CH;
 	unsigned int lcd_width, lcd_height, lcd_interlace;
@@ -3114,7 +3116,7 @@ int TCC_OUTPUT_FB_MouseMove(unsigned int width, unsigned int height, tcc_mouse *
 	mouse_y = (unsigned int)(lcd_height *mouse->y / height);
 
 	if( mouse_x > lcd_width - mouse_cursor_width )
-		pLCDC_OUTPUT[type]->LI3S = (mouse_cursor_height << 16) | lcd_width - mouse_x;
+		pLCDC_OUTPUT[type]->LI3S = (mouse_cursor_height << 16) | (lcd_width - mouse_x);
 	else
 		pLCDC_OUTPUT[type]->LI3S = (mouse_cursor_height << 16) | mouse_cursor_width;
 

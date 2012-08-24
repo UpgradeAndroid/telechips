@@ -440,7 +440,6 @@ static u_int   fb_mem_size [CONFIG_FB_TCC_DEVS]= {0,};
 
 void tcc92xxfb_hdmi_starter(char hdmi_lcdc_num, struct lcdc_timimg_parms_t *lcdc_timing)
 {
-	PLCDC pLCDC0, pLCDC1;
 	PLCDC pHDMI_LCDC, pLCD_LCDC;
 	struct clk *lcdc_clk;
 	
@@ -649,7 +648,7 @@ static int tccfb_set_par(struct fb_info *info)
 }
 
 #ifdef TCC_VIDEO_DISPLAY_BY_VSYNC_INT
-static int testToggleBit=0;
+//static int testToggleBit=0;
 inline static int tcc_vsync_get_time(void);
 inline static void tcc_vsync_set_time(int time);
 static void DisplayUpdate(void)
@@ -1374,7 +1373,6 @@ unsigned int tcc_vsync_get_timer_clock(void)
 {
 	int timer_tick;
 	int msec_time;
-	int add_count;
 	
 	PTIMER pTIMER_reg = (volatile PTIMER)tcc_p2v(HwTMR_BASE);
 
@@ -1727,12 +1725,14 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 				tcc_vsync_viqe_deinitialize();
 				#endif /* TCC_VIDEO_DISPLAY_DEINTERLACE_MODE */
 
+				{
 				struct tcc_lcdc_image_update lcdc_image;
 				lcdc_image.enable = 0;
 				lcdc_image.Lcdc_layer = 0;				
 				lcdc_image.fmt = TCC_LCDC_IMG_FMT_RGB555;
 
 				TCC_HDMI_DISPLAY_UPDATE(EX_OUT_LCDC, &lcdc_image);
+				}
 
 				TCC_OUTPUT_LCDC_OnOff(TCC_OUTPUT_HDMI, EX_OUT_LCDC, 0);
 
@@ -1946,7 +1946,9 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 
 		case TCC_LCDC_SET_OUTPUT_RESIZE_MODE:
 			{
-				struct tccfb_info *fbi =(struct tccfb_info *) info->par;
+				#ifndef CONFIG_TCC_OUTPUT_AUTO_DETECTION
+				//struct tccfb_info *fbi =(struct tccfb_info *) info->par;
+				#endif
 				tcc_display_resize mode;
 				printk("%s : TCC_LCDC_SET_OUTPUT_RESIZE_MODE\n", __func__);
 
@@ -2140,12 +2142,13 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 
 				SavedOddfirst=-1;
 
+				{
 				struct tcc_lcdc_image_update lcdc_image;
 				memset(&lcdc_image, 0x00, sizeof(struct tcc_lcdc_image_update));
 				lcdc_image.enable = 0;
-				lcdc_image.Lcdc_layer = 0;				
-
+				lcdc_image.Lcdc_layer = 0;
 				TCC_HDMI_DISPLAY_UPDATE(EX_OUT_LCDC, &lcdc_image);
+				}
 			
 				vsync_started = 0;
 				
@@ -2165,7 +2168,7 @@ static int tccfb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 		case TCC_LCDC_VIDEO_DEINTERLACE_SET:
 			{
 				int iRet;
-				if(copy_from_user(&viqe_param, arg, sizeof(tcc_viqe_param_t)))
+				if(copy_from_user(&viqe_param, (const void*)arg, sizeof(tcc_viqe_param_t)))
 					return -EINVAL;
 
 				printk("### TCC_LCDC_VIDEO_DEINTERLACE_SET %d %d %d %d %d\n", viqe_param.mode, viqe_param.region, viqe_param.strength1, viqe_param.strength2, viqe_param.modeparam);

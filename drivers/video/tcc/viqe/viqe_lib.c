@@ -562,7 +562,7 @@ int viqe_init( viqe_t *viqe )
 
 	viqe_OnTheFly_OnOff(viqe->cfg->directpath_en, viqe->cfg->directpath_op);
 	
-	viqe_set_state(&viqe_state);
+	viqe_set_state((int*)&viqe_state);
 	return 1;
 }
 
@@ -903,7 +903,6 @@ void viqe_set_deintl_default_conf( int odd_first)
 	int pd_thres_pulldown_cnts = 500;
 	int pd_thres_weight = 1;
 	int pd_thres_user_val_disable = 1;
-	int pd_user_checkout = 0;
 	int pd_cnts_thres_pulldown_checkout = 0;
 	int pd_cnts_zero_prevent = 1;
 	int pd_thres_pulldown_0 = 15;
@@ -918,11 +917,6 @@ void viqe_set_deintl_default_conf( int odd_first)
 	int pd_judder_thres_two_lbufs = 88;
 	int pd_not_cnt_judder_stati = 1;
 	int pd_mul_dm_thres = 4;
-	int region_idx_x_start = 0;
-	int region_idx_x_end = 0;
-	int region_enable = 0;
-	int region_idx_y_start = 0;
-	int region_idx_y_end = 0;
 
 	dprintk(KERN_INFO "%s\n", __FUNCTION__);
 
@@ -1703,8 +1697,7 @@ void cal_d2d_lpf_coeff_simple( int strength )
 				{
 					nReg = *nDst & 0xffffff00;
 					*nDst++ = nReg | *nSrc++;
-					*nDst++;
-					*nDst++;
+					nDst+=2;
 				}
 				else
 				{
@@ -1734,7 +1727,7 @@ void cal_d2d_hpf_coeff_simple( int strengthY, int strengthC )
 		{
 			pLUMSrc = &(d2d_hpf_luma_coeff_list[i].coeff0);
 
-			*pLUMDst++;
+			pLUMDst++;
 			nReg = *pLUMDst & 0xff;
 			*pLUMDst++ = nReg | *pLUMSrc++;
 
@@ -1745,7 +1738,7 @@ void cal_d2d_hpf_coeff_simple( int strengthY, int strengthC )
 		if (d2d_hpf_chroma_coeff_list[i].strength == strengthC)
 		{
 			pCROMASrc = &(d2d_hpf_chroma_coeff_list[i].coeff0);
-			*pCROMADst++;
+			pCROMADst++;
 			nReg = *pCROMADst & 0xff;
 			*pCROMADst++ = nReg | *pCROMASrc++;
 

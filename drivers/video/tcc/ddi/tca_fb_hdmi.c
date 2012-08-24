@@ -97,8 +97,8 @@ void TCC_HDMI_LCDC_Timing(char hdmi_lcdc, struct lcdc_timimg_parms_t *mode)
     volatile unsigned int regl;
 	unsigned int lcdc_id;
 	volatile PLCDC	pLCDC;
-	PDDICONFIG pHwDDICACHE_CONFIG  = (volatile PDDICONFIG)tcc_p2v(HwDDI_CONFIG_BASE);
-	PCKC	pCKC = (volatile PCKC *)tcc_p2v(HwCKC_BASE);
+	PDDICONFIG pHwDDICACHE_CONFIG  = (PDDICONFIG)tcc_p2v(HwDDI_CONFIG_BASE);
+	PCKC	pCKC = (PCKC)tcc_p2v(HwCKC_BASE);
 
 	dprintk(" %s lcdc:[%d]  %d %d %d %d \n", __func__, hdmi_lcdc, mode->id, mode->iv, mode->ih, mode->lpw);
 
@@ -337,7 +337,6 @@ void TCC_HDMI_DISPLAY_UPDATE_OnTheFly(char hdmi_lcdc, struct tcc_lcdc_image_upda
 	unsigned int img_width, img_height, img_offset_x, img_offset_y;
 	unsigned int output_width, output_height;
 	unsigned int scaler_num;
-	unsigned int scale_limit_wd, scale_limit_ht, scale_limit_total;
 	SCALER_TYPE fbscaler;
 	PLCDC pLCDC;
 	PLCDC_CHANNEL pLCDC_channel;

@@ -763,7 +763,7 @@ static struct miscdevice overlay1_misc_device =
     &tcc_overlay1_fops,
 };
 
-extern unsigned int tca_get_lcd_lcdc_num(viod);
+extern unsigned int tca_get_lcd_lcdc_num(void);
 static int tcc_overlay1_probe(struct platform_device *pdev)
 {
 	unsigned int lcd_lcdc_num;

@@ -557,8 +557,8 @@ void tca_fb_earlier_suspend(struct early_suspend *h)
 EXPORT_SYMBOL(tca_fb_earlier_suspend);
 
 
-static volatile LCDC_CHANNEL LCDC_FB_BackUp;
-static volatile lcdc_gamma_params LCDC_Gamma_BackUp;
+static LCDC_CHANNEL LCDC_FB_BackUp;
+static lcdc_gamma_params LCDC_Gamma_BackUp;
 
 extern unsigned int tcc_LCDC_set_gamma(lcdc_gamma_params *gamma);
 extern unsigned int tcc_LCDC_get_gamma(lcdc_gamma_params *gamma);
@@ -744,7 +744,6 @@ EXPORT_SYMBOL(tcc_lcd_interrupt_reg);
 
 int tca_fb_init(void)
 {
-	struct lcd_panel *lcd_info;
 	pmap_t pmap_fb_video;
 
 	printk(KERN_INFO " tcc92xx %s (built %s %s)\n", __func__, __DATE__, __TIME__);

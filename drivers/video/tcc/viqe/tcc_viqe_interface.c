@@ -186,6 +186,8 @@ void tcc_lcdc_SetConfig(int lcdController, int lcdChannel, int width, int height
 			pstLCDC_channel->LIO = (buffer_width << 16)| (buffer_width);
 			y2r_option = HwLIC_Y2R;
 			break;
+		default:
+			break;
 
 	}
 
@@ -1175,6 +1177,8 @@ int TCC_ConfigVIQEParamSet(int mode, int region, int strength1, int strength2, i
 	}
 
 	g_viqe_modeparam = modeparam;
+
+	return 0;
 }
 
 int TCC_ConfigVIQE(int mode, int region, int strength1, int strength2, int modeparam)
@@ -1512,9 +1516,11 @@ void TCC_InitalizeVIQE_60Hz(int scalerCh, unsigned int *address,			// address[0:
 	}
 
 	//set mode
+	{
 	int viqe_state = VIQE_STATE_RUN;
 	tcc_viqe_ctrl(IOCTL_VIQE_SET_STATE, &viqe_state);
 	printk("[%s] process first frm\n", __func__);
+	}
 
 	tcc_scaler_Start(scalerCh); // Scaler Start
 	tcc_lcdc_ChOnOff(lcdCtrlNo, 0, 1); // LCD controller , ch0, enable

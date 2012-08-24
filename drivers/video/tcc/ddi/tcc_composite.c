@@ -382,6 +382,8 @@ int tcc_composite_connect_lcdc(int lcdc_num)
 	{
 		pHwDDICFG->NTSCPAL_SEL &= ~Hw0;	// LCDC0
 	}
+
+	return 0;
 }
 
 /*****************************************************************************
@@ -453,6 +455,8 @@ void tcc_composite_get_spec(COMPOSITE_MODE_TYPE mode, COMPOSITE_SPEC_TYPE *spec)
 			spec->composite_FLC2 = 576 - 1;					// frmae line count is the number of lines in each frmae on the screen
 			spec->composite_FSWC2 = 44 - 1;					// frmae start wait cycle is the number of lines to insert at the end each frame
 			spec->composite_FEWC2 = 4 - 1; 					// frame start wait cycle is the number of lines to insert at the begining each frame
+			break;
+		default:
 			break;
 	}
 }
@@ -633,6 +637,8 @@ COMPOSITE_LCDC_IMG_FMT_TYPE tcc_composite_change_formattype(TCC_COMPOSITE_FORMAT
 		case GE_ARGB8888:
 			LCDC_fmt = COMPOSITE_LCDC_IMG_FMT_RGB888;
 			break;
+		default:
+			break;
 	}
 
 	return LCDC_fmt;
@@ -718,6 +724,9 @@ void tcc_composite_get_offset(COMPOSITE_LCDC_IMG_FMT_TYPE fmt, unsigned int widt
 		case COMPOSITE_LCDC_IMG_FMT_YUV422ITL1:
 			*offset0 = width;
 			*offset1 = width;
+			break;
+
+		default:
 			break;
 	}
 }
@@ -947,7 +956,7 @@ void tcc_composite_update(struct tcc_lcdc_image_update *update)
 			update->Image_width, update->Image_height, lcd_w, lcd_h, update->offset_x, update->offset_y);
 
 	// Set LCD Image channel 0 
-	memset((void*)&ImgCtrl, NULL, sizeof(COMPOSITE_LCDC_IMG_CTRL_TYPE));
+	memset((void*)&ImgCtrl, 0, sizeof(COMPOSITE_LCDC_IMG_CTRL_TYPE));
 
 	#if defined(CONFIG_TCC_EXCLUSIVE_UI_LAYER)
 		if(composite_exclusive_ui_param.interlace && !TCC_OUTPUT_EXCLUSIVE_UI_GetBypass())
@@ -961,7 +970,7 @@ void tcc_composite_update(struct tcc_lcdc_image_update *update)
 	ImgCtrl.IEN = update->enable;
 	ImgCtrl.FMT = update->fmt;
 
-	if(ImgCtrl.FMT >= TCC_LCDC_IMG_FMT_YUV420SP)
+	if(ImgCtrl.FMT >= (int)TCC_LCDC_IMG_FMT_YUV420SP)
 		ImgCtrl.Y2R = TRUE;
 	else
 		ImgCtrl.Y2R = FALSE;
@@ -1228,8 +1237,9 @@ TCC_COMPOSITE_MODE_TYPE tcc_composite_get_mode(void)
 ******************************************************************************/
 int tcc_composite_enabled(void)
 {
+#if defined(CONFIG_ARCH_TCC92XX) || defined(CONFIG_ARCH_TCC93XX)
 	volatile PPMU 		pHwPMU = (volatile PPMU)tcc_p2v(HwPMU_BASE);
-	volatile PNTSCPAL 	pHwTVE = (volatile PNTSCPAL)tcc_p2v(HwTVE_BASE);
+#endif
 	volatile PNTSCPALOP pHwTVE_VEN = (volatile PNTSCPALOP)tcc_p2v(HwTVE_VEN_BASE);
 	int iEnabled = 0;
 	
@@ -1318,10 +1328,9 @@ void tcc_composite_clock_onoff(char OnOff)
 /*****************************************************************************
  Function Name : tcc_composite_ioctl()
 ******************************************************************************/
-static long tcc_composite_ioctl(struct file *file, unsigned int cmd, void *arg)
+static long tcc_composite_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	TCC_COMPOSITE_START_TYPE start;
-	TCC_COMPOSITE_MODE_TYPE type;
 	struct tcc_lcdc_image_update update;			
 	
 	dprintk("composite_ioctl IOCTRL[%d], lcdc_num=%d\n", cmd, Composite_LCDC_Num);
@@ -1329,7 +1338,7 @@ static long tcc_composite_ioctl(struct file *file, unsigned int cmd, void *arg)
 	switch(cmd)
 	{
 		case TCC_COMPOSITE_IOCTL_START:
-			copy_from_user(&start,arg,sizeof(start));
+			copy_from_user(&start,(const void*)arg,sizeof(start));
 			#if !defined(CONFIG_ARCH_TCC93XX) && !defined(CONFIG_ARCH_TCC88XX) && !defined(CONFIG_TCC_OUTPUT_STARTER)
 				if(start.lcdc == COMPOSITE_LCDC_0)
 					TCC_FB_LCDC_NumSet(1, TRUE);
@@ -1353,7 +1362,7 @@ static long tcc_composite_ioctl(struct file *file, unsigned int cmd, void *arg)
 			break;
 
 		case TCC_COMPOSITE_IOCTL_UPDATE:
-			copy_from_user(&update,arg,sizeof(update));
+			copy_from_user(&update,(const void*)arg,sizeof(update));
 			tcc_composite_update(&update);									
 			break;
 			
@@ -1379,9 +1388,9 @@ static long tcc_composite_ioctl(struct file *file, unsigned int cmd, void *arg)
 
 		case TCC_COMPOSITE_IOCTL_PROCESS:
 			#if defined(CONFIG_TCC_EXCLUSIVE_UI_LAYER)
-				copy_from_user(&update,arg,sizeof(update));
+				copy_from_user(&update,(const void*)arg,sizeof(update));
 				tcc_composite_process(&update, 0);
-				copy_to_user(arg,&update,sizeof(update));
+				copy_to_user((void *)arg,&update,sizeof(update));
 			#endif
 			break;
 

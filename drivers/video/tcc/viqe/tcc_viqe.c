@@ -311,7 +311,7 @@ int tcc_viqe_ctrl(unsigned int cmd, void *arg)
 			break;
 
 		case IOCTL_VIQE_DEINT_BYPASS:
-			viqe_set_deintl_bypass((int*)arg);
+			viqe_set_deintl_bypass((int)arg);
 			break;
 
 		default:

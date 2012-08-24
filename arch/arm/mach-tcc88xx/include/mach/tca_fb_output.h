@@ -84,8 +84,8 @@ typedef enum{
 ******************************************************************************/
 
 extern void TCC_OUTPUT_LCDC_Init(void);
-extern void TCC_OUTPUT_LCDC_OnOff(char output_type, char output_lcdc_num, char onoff);
-extern void TCC_OUTPUT_LCDC_CtrlLayer(char output_type, char interlace, char format);
+extern void TCC_OUTPUT_LCDC_OnOff(int output_type, char output_lcdc_num, char onoff);
+extern void TCC_OUTPUT_LCDC_CtrlLayer(int output_type, char interlace, char format);
 extern void TCC_OUTPUT_LCDC_CtrlChroma(lcdc_chroma_params lcdc_chroma);
 extern char TCC_OUTPUT_FB_Update(unsigned int width, unsigned int height, unsigned int bits_per_pixel, unsigned int addr, unsigned int type);
 extern void TCC_OUTPUT_FB_UpdateSync(unsigned int type);
@@ -94,8 +94,8 @@ extern char TCC_OUTPUT_FB_Update_Video(struct tcc_lcdc_image_update *ImageInfo, 
 extern void TCC_OUTPUT_FB_WaitVsyncInterrupt(unsigned int type);
 extern int TCC_OUTPUT_SetOutputResizeMode(tcc_display_resize mode);
 
-extern int TCC_OUTPUT_FB_BackupVideoImg(char output_type);
-extern int TCC_OUTPUT_FB_RestoreVideoImg(char output_type);
+extern int TCC_OUTPUT_FB_BackupVideoImg(int output_type);
+extern int TCC_OUTPUT_FB_RestoreVideoImg(int output_type);
 
 extern int TCC_OUTPUT_FB_Set3DMode(char enable, char mode);
 extern int TCC_OUTPUT_FB_Get3DMode(char *mode);
