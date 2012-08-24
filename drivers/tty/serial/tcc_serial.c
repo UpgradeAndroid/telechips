@@ -67,9 +67,8 @@
 
 //struct timer_list  *timer;
 //static int rx_dma_tail=0;
-void *kerneltimer_timeover(void *arg );
+void *kerneltimer_timeover(void *arg);
 //static int timer_state=0;
-static DECLARE_WORK(work_queue, kerneltimer_timeover);
 //static unsigned long start_value;
 
 #define TCC_GPS_UART 3
@@ -482,8 +481,8 @@ static void tcc_serial_start_tx(struct uart_port *port)
 
 static void tcc_serial_stop_rx(struct uart_port *port)
 {
-	dbg("%s  line[%d] irq[%d]\n", __func__, port->line, port->irq);
     u32 ier;
+	dbg("%s  line[%d] irq[%d]\n", __func__, port->line, port->irq);
 
     if (rx_enabled(port)) {
         ier = rd_regl(port, OFFSET_IER);
@@ -736,11 +735,12 @@ static int tcc_serial_startup(struct uart_port *port)
 
     /* Rx DMA */
     if(tcc_port->rx_dma_use) {
+	int cur_addr;
     	#if ! defined(CONFIG_ARCH_TCC92XX)
 	    clk_enable(ddi_clk);
 	#endif
 	clk_enable(mali_clk);
-        int cur_addr = tca_dma_dmacurrentaddress(tcc_port->rx_dma_buffer.dma_ch, (unsigned long *)tcc_port->rx_dma_buffer.dma_core);
+        cur_addr = tca_dma_dmacurrentaddress(tcc_port->rx_dma_buffer.dma_ch, (unsigned long *)tcc_port->rx_dma_buffer.dma_core);
 
         dbg("rx_dma_tail : %x\n",tcc_port->rx_dma_tail);
 
