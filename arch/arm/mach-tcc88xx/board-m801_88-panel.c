@@ -53,6 +53,15 @@ static struct platform_device at070tn93_lcd = {
 };
 #endif//CONFIG_LCD_AT070TN93
 
+#ifdef CONFIG_LCD_LB070WV6
+static struct platform_device lb080wv6_lcd = {
+	.name	= "lb080wv6_lcd",
+	.dev	= {
+		.platform_data = &lcd_pdata,
+	},
+};
+#endif//CONFIG_LCD_LB070WV6
+
 static void m801_88_brightness_set(struct led_classdev *led_cdev, enum led_brightness value)
 {
 	struct lcd_panel *lcd_panel = tccfb_get_panel();
@@ -125,6 +134,12 @@ int __init m801_88_init_panel(void)
 			break;
 		#endif
 	
+		#ifdef CONFIG_LCD_LB070WV6
+		case PANEL_ID_LB070WV6:
+			platform_device_register(&lb080wv6_lcd);
+			break;
+		#endif
+
 		default:
 			pr_err("Not supported LCD panel type %d\n", tcc_panel_id);
 			return -EINVAL;
