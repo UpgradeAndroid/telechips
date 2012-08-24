@@ -131,7 +131,7 @@ static int hdmi_release(struct inode *inode, struct file *file);
 static irqreturn_t hdmi_handler(int irq, void *dev_id);
 static ssize_t hdmi_read(struct file *file, char __user *buffer, size_t count, loff_t *ppos);
 static ssize_t hdmi_write(struct file *file, const char __user *buffer, size_t count, loff_t *ppos);
-static int hdmi_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
+static long hdmi_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 
 static void hdcp_reset(void);
 static void hdcp_enable(unsigned char enable);
@@ -406,7 +406,7 @@ ssize_t hdmi_write(struct file *file, const char __user *buffer, size_t count, l
     return 0;
 }
 
-int hdmi_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+long hdmi_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
     switch (cmd)
     {
