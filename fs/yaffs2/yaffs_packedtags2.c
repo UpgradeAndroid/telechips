@@ -38,6 +38,8 @@
 #define EXTRA_OBJECT_TYPE_SHIFT (28)
 #define EXTRA_OBJECT_TYPE_MASK  ((0x0F) << EXTRA_OBJECT_TYPE_SHIFT)
 
+#define YAFFS_IGNORE_TAGS_ECC 1
+
 static void yaffs_dump_packed_tags2_tags_only(const struct
 					      yaffs_packed_tags2_tags_only *ptt)
 {
@@ -97,6 +99,8 @@ void yaffs_pack_tags2(struct yaffs_packed_tags2 *pt,
 		      const struct yaffs_ext_tags *t, int tags_ecc)
 {
 	yaffs_pack_tags2_tags_only(&pt->t, t);
+
+	memset(&pt->ecc , 0xFF , 12);
 
 	if (tags_ecc)
 		yaffs_ecc_calc_other((unsigned char *)&pt->t,

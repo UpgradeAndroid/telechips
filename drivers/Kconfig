@@ -128,4 +128,8 @@ source "drivers/hwspinlock/Kconfig"
 
 source "drivers/clocksource/Kconfig"
 
+source "drivers/i-tv/Kconfig"
+
+source "drivers/gps/Kconfig"
+
 endmenu

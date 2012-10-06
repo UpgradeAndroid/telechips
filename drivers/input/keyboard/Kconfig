@@ -563,4 +563,13 @@ config KEYBOARD_W90P910
 	  To compile this driver as a module, choose M here: the
 	  module will be called w90p910_keypad.
 
+config KEYPAD_TCC_ADC
+	tristate "Telechips ADC Keypad support"
+	depends on ARCH_TCC
+	help
+	  Say Y here if you want to use the TCC keypad.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called tcc-keys.
+
 endif

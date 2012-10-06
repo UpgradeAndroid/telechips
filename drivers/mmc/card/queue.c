@@ -20,7 +20,11 @@
 #include <linux/mmc/host.h>
 #include "queue.h"
 
-#define MMC_QUEUE_BOUNCESZ	65536
+#if defined(CONFIG_TCC_SDHC_SPEED_UP)
+#define MMC_QUEUE_BOUNCESZ	(512<<10)
+#else
+#define MMC_QUEUE_BOUNCESZ	(64<<10)
+#endif
 
 #define MMC_QUEUE_SUSPENDED	(1 << 0)
 

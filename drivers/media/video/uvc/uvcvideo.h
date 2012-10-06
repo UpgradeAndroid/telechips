@@ -4,6 +4,9 @@
 #include <linux/kernel.h>
 #include <linux/videodev2.h>
 
+#define USE_RESERVED_PHY_MEM //ZzaU :: to use reserved camera memory!!
+#define USE_PERFORMANCE_CLK //ZzaU :: to use max-clock!!
+
 #ifndef __KERNEL__
 /*
  * This header provides binary compatibility with applications using the private

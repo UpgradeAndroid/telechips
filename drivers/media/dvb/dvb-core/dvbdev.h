@@ -28,7 +28,7 @@
 #include <linux/fs.h>
 #include <linux/list.h>
 
-#define DVB_MAJOR 212
+#define DVB_MAJOR 214 //212
 
 #if defined(CONFIG_DVB_MAX_ADAPTERS) && CONFIG_DVB_MAX_ADAPTERS > 0
   #define DVB_MAX_ADAPTERS CONFIG_DVB_MAX_ADAPTERS

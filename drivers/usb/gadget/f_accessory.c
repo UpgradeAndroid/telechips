@@ -51,6 +51,14 @@
 #define TX_REQ_MAX 4
 #define RX_REQ_MAX 2
 
+#ifdef CONFIG_ARCH_TCC
+#if defined(CONFIG_TCC_DWC_HS_ELECT_TST)
+#undef DMA_MODE
+#else
+#define DMA_MODE
+#endif
+#endif
+
 struct acc_hid_dev {
 	struct list_head	list;
 	struct hid_device *hid;
@@ -206,7 +214,11 @@ static struct usb_request *acc_request_new(struct usb_ep *ep, int buffer_size)
 		return NULL;
 
 	/* now allocate buffers for the requests */
+#ifdef DMA_MODE
+	req->buf = dma_alloc_coherent(NULL, ADB_BULK_BUFFER_SIZE, &req->dma, GFP_KERNEL|GFP_DMA); 
+#else	
 	req->buf = kmalloc(buffer_size, GFP_KERNEL);
+#endif	
 	if (!req->buf) {
 		usb_ep_free_request(ep, req);
 		return NULL;
@@ -218,7 +230,11 @@ static struct usb_request *acc_request_new(struct usb_ep *ep, int buffer_size)
 static void acc_request_free(struct usb_request *req, struct usb_ep *ep)
 {
 	if (req) {
+#ifdef DMA_MODE
+		dma_free_coherent(NULL, ADB_BULK_BUFFER_SIZE, req->buf, req->dma);
+#else	
 		kfree(req->buf);
+#endif		
 		usb_ep_free_request(ep, req);
 	}
 }

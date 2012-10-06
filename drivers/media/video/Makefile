@@ -133,6 +133,11 @@ obj-$(CONFIG_VIDEO_VIA_CAMERA) += via-camera.o
 
 obj-$(CONFIG_VIDEO_OMAP3)	+= omap3isp/
 
+#
+# Telechips Camera Driver Compile Path
+#
+obj-$(CONFIG_VIDEO_TCCXX_CAMERA) += tcccam/
+
 obj-$(CONFIG_USB_ZR364XX)       += zr364xx.o
 obj-$(CONFIG_USB_STKWEBCAM)     += stkwebcam.o
 

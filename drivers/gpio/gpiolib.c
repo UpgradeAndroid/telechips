@@ -1556,7 +1556,7 @@ int __gpio_get_value(unsigned gpio)
 	int value;
 
 	chip = gpio_to_chip(gpio);
-	WARN_ON(chip->can_sleep);
+	//WARN_ON(chip->can_sleep);
 	value = chip->get ? chip->get(chip, gpio - chip->base) : 0;
 	trace_gpio_value(gpio, 1, value);
 	return value;
@@ -1577,7 +1577,7 @@ void __gpio_set_value(unsigned gpio, int value)
 	struct gpio_chip	*chip;
 
 	chip = gpio_to_chip(gpio);
-	WARN_ON(chip->can_sleep);
+	//WARN_ON(chip->can_sleep);
 	trace_gpio_value(gpio, 0, value);
 	chip->set(chip, gpio - chip->base, value);
 }

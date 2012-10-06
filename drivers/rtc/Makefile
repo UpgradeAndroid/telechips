@@ -110,3 +110,5 @@ obj-$(CONFIG_RTC_DRV_VT8500)	+= rtc-vt8500.o
 obj-$(CONFIG_RTC_DRV_WM831X)	+= rtc-wm831x.o
 obj-$(CONFIG_RTC_DRV_WM8350)	+= rtc-wm8350.o
 obj-$(CONFIG_RTC_DRV_X1205)	+= rtc-x1205.o
+obj-$(CONFIG_RTC_DRV_TCC8800)   += tcc/ rtc-tcc8800.o
+obj-$(CONFIG_RTC_DRV_TCC8920)   += tcc/ rtc-tcc8920.o

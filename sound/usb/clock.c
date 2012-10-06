@@ -228,14 +228,18 @@ static int set_sample_rate_v1(struct snd_usb_audio *chip, int iface,
 		return err;
 	}
 
-	if ((err = snd_usb_ctl_msg(dev, usb_rcvctrlpipe(dev, 0), UAC_GET_CUR,
+/* some devices don't support reading */
+/* it makes system lock when a certain uac and uvc are working at the same time. by shmin.
+/*    
+    if ((err = snd_usb_ctl_msg(dev, usb_rcvctrlpipe(dev, 0), UAC_GET_CUR,
 				   USB_TYPE_CLASS | USB_RECIP_ENDPOINT | USB_DIR_IN,
 				   UAC_EP_CS_ATTR_SAMPLE_RATE << 8, ep,
 				   data, sizeof(data), 1000)) < 0) {
 		snd_printk(KERN_WARNING "%d:%d:%d: cannot get freq at ep %#x\n",
 			   dev->devnum, iface, fmt->altsetting, ep);
-		return 0; /* some devices don't support reading */
+		return 0; 
 	}
+*/
 
 	crate = data[0] | (data[1] << 8) | (data[2] << 16);
 	if (crate != rate) {

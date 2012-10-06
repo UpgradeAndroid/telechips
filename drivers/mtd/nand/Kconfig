@@ -257,6 +257,21 @@ config MTD_NAND_S3C2410_CLKSTOP
 	  when the is NAND chip selected or released, but will save
 	  approximately 5mA of power when there is nothing happening.
 
+config MTD_NAND_TCC
+	tristate
+
+config MTD_NAND_TCC88XX
+	tristate "NAND Flash support for TCC88xx SoC"
+	depends on ARCH_TCC88XX
+	select MTD_NAND_TCC
+	help
+	  This enables the NAND flash controller on the TCC88xx
+	  SoCs
+
+	  No board specific support is done by this driver, each board
+	  must advertise a platform_device for the driver to attach.
+
+
 config MTD_NAND_BCM_UMI
 	tristate "NAND Flash support for BCM Reference Boards"
 	depends on ARCH_BCMRING
