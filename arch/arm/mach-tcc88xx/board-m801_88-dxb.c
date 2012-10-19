@@ -21,6 +21,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#if CONFIG_TCC_DXB_CTRL
+
 #include <asm/mach-types.h>
 #include <linux/delay.h>
 #include <linux/gpio.h>
@@ -263,3 +265,4 @@ static int __init m801_init_tcc_dxb_ctrl(void)
 	return 0;
 }
 device_initcall(m801_init_tcc_dxb_ctrl);
+#endif /* CONFIG_TCC_DXB_CTRL */
