@@ -628,6 +628,12 @@ config TCC_USER_INTR
 	  If you say Y here, you can use H/W interrupt source.
 	  Telechips User-level interrupt driver.
 
+config TCC_DXB_CTRL
+	bool "Telechips DXB Control"
+	default n
+	help
+	  If you say Y here, you can control the DXB hardware.
+
 menuconfig TCC_BT_DEV
 	tristate "TCC Bluetooth dev Control power"
 	default y
