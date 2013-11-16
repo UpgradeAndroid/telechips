@@ -103,6 +103,11 @@ const SCANCODE stScanCodeMapping_8801[] = {
 	{0xC00, 0xE8F, KEY_BACK},
 };
 
+const SCANCODE stScanCodeMapping_m801_88[] = {
+	{0x20C, 0x2D4, KEY_MENU},
+	{0x108, 0x1AC, KEY_HOME},
+	{0x402, 0xFD2, KEY_BACK},
+};
 
 /*****************************************************************************
 * Function Name : tca_keypad_getscancode(void)
@@ -182,6 +187,11 @@ int tca_keypad_getkeycodebyscancode(unsigned int adcdata)
 		for (i = 0; i < sizeof(stScanCodeMapping_9300)/sizeof(SCANCODE); i++) {
 			if ((adcdata >= stScanCodeMapping_9300[i].StartVal) && (adcdata <= stScanCodeMapping_9300[i].EndVal))
 				key = stScanCodeMapping_9300[i].KeyCode;
+		}
+	} else if (machine_is_m801_88()){
+		for (i = 0; i < sizeof(stScanCodeMapping_m801_88)/sizeof(SCANCODE); i++) {
+			if ((adcdata >= stScanCodeMapping_m801_88[i].StartVal) && (adcdata <= stScanCodeMapping_m801_88[i].EndVal))
+				key = stScanCodeMapping_m801_88[i].KeyCode;
 		}
 	}
 

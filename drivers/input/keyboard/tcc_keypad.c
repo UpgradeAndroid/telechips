@@ -131,6 +131,12 @@ static struct tcc_button tcc8801_buttons[] = {
 	{0xC00, 0xE8F, KEY_BACK},
 };
 
+static struct tcc_button m801_88_buttons[] = {
+	{ 0, 0, KEY_HOME },
+	{ 0, 0, KEY_MENU },
+	{ 0, 0, KEY_BACK },
+};
+
 struct tcc_private
 {
     struct input_dev *input_dev;
@@ -175,11 +181,13 @@ static void tcc_key_poll_callback(struct input_polled_dev *dev)
 			value = (unsigned int)tcc_adc_start(client, 4, 7);
 		else if (machine_is_tcc9300cm())
 			value = (unsigned int)tcc_adc_start(client, 4, 7);
-	}	
+		else if (machine_is_m801_88())
+			value = (unsigned int)tcc_adc_start(client, 10, 7);
+	}
 
 	key = tca_keypad_getkeycodebyscancode(value);
 
-//    printk("key=%d/ status=%d/ old_key=%d, value=%d\n", key, tcc_private->status, tcc_private->old_key, value);
+    //printk("key=%d/ status=%d/ old_key=%d, value=%d\n", key, tcc_private->status, tcc_private->old_key, value);
 
     if(key >= 0){
         if(tcc_private->old_key == key){
@@ -270,6 +278,11 @@ static int __devinit tcc_key_probe(struct platform_device *pdev)
 	    for (i = 0; i < ARRAY_SIZE(tcc9300cm_buttons); i++)
 	        set_bit(tcc9300cm_buttons[i].vkcode & KEY_MAX, input_dev->keybit);
 	}
+	else if (machine_is_m801_88()) {
+	    for (i = 0; i < ARRAY_SIZE(m801_88_buttons); i++)
+	        set_bit(m801_88_buttons[i].vkcode & KEY_MAX, input_dev->keybit);
+	}
+	   
 
     tcc_private->poll_dev    = poll_dev;
     tcc_private->key_pressed = -1;
@@ -285,6 +298,8 @@ static int __devinit tcc_key_probe(struct platform_device *pdev)
 		tcc_adc_start(client, 4, 7);
 	else if (machine_is_tcc9300cm())
 		tcc_adc_start(client, 4, 7);
+	else if (machine_is_m801_88())
+		tcc_adc_start(client, 10, 7);
 	
     return 0;
     
@@ -337,7 +352,7 @@ int __init tcc_key_init(void)
 {
 	int res;
 
-	if (!machine_is_tcc8900() && !machine_is_tcc9200() && !machine_is_tcc9201() && !machine_is_tcc8800() && !machine_is_tcc9300cm() )
+	if (!machine_is_tcc8900() && !machine_is_tcc9200() && !machine_is_tcc9201() && !machine_is_tcc8800() && !machine_is_tcc9300cm() && !machine_is_m801_88())
 		return -ENODEV;
 
     printk(KERN_INFO "Telechips ADC Keypad Driver\n");
