@@ -583,6 +583,10 @@ config SENSOR_BMA250  # sensor_bma250.c
     bool "BMA250"
     depends on I2C
 
+config SENSOR_MMA7660
+    bool "MMA7660FC"
+    depends on I2C
+
 #config TUNNING_BMA220   # demo target, sensor_bma220_demo.c, m801_88(with ak8975), m57te
 #    bool "TUNNING_BMA220"
 #    depends on I2C    
