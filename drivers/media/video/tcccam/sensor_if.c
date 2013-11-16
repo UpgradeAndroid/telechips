@@ -323,7 +323,8 @@ static enum image_size sensor_find_size(unsigned int width, unsigned int height)
 		}
 	}
 	#if defined(CONFIG_VIDEO_ATV_SENSOR_TVP5150) || defined(CONFIG_VIDEO_ATV_SENSOR_RDA5888) \
-	|| defined(CONFIG_VIDEO_CAMERA_SENSOR_OV7690) || defined(CONFIG_VIDEO_CAMERA_SENSOR_SIV100B)
+	|| defined(CONFIG_VIDEO_CAMERA_SENSOR_OV7690) || defined(CONFIG_VIDEO_CAMERA_SENSOR_SIV100B) \
+	|| defined(CONFIG_VIDEO_CAMERA_SENSOR_HI704)
 	return VGA;
 	#else
 	return SXGA;

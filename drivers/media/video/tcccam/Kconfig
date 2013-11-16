@@ -94,7 +94,13 @@ config VIDEO_SINGLE_CAMERA_SUPPORT
 	depends on VIDEO_CAMERA_SENSOR
 	help
 	   tcc dual-camera suport
-	   
+
+config VIDEO_CAMERA_SENSOR_HI704
+	tristate "HI704 VGA-sensor support"
+	depends on VIDEO_SINGLE_CAMERA_SUPPORT
+	help
+	  HI704 VGA-sensor support.
+  
 config VIDEO_CAMERA_SENSOR_MT9D112
 	tristate "MT9D112 2MP-sensor support"
 	depends on VIDEO_SINGLE_CAMERA_SUPPORT

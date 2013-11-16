@@ -148,7 +148,11 @@ typedef struct tcc_sensor_info
 #include "siv100b_vga.h"
 #endif
 #else // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
-#if defined(CONFIG_VIDEO_CAMERA_SENSOR_AIT848_ISP)
+#if defined(CONFIG_VIDEO_CAMERA_SENSOR_HI704)
+#define SENSOR_VGA
+#define USING_HW_I2C
+#include "hi704_vga.h"
+#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_AIT848_ISP)
 #define SENSOR_5M
 #define USE_SENSOR_ZOOM_IF
 #define USE_SENSOR_EFFECT_IF
