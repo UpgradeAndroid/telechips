@@ -156,6 +156,17 @@ config TOUCHSCREEN_DYNAPRO
 	  To compile this driver as a module, choose M here: the
 	  module will be called dynapro.
 
+config TOUCHSCREEN_EGALAX
+	tristate "EGALAX touchscreen input driver"
+	depends on I2C
+	help
+	  Say Y here if you have an EGALAX touchscreen I2C chip in your device.
+
+	  If unsure, say N.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called egalax_i2c.
+
 config TOUCHSCREEN_HAMPSHIRE
 	tristate "Hampshire serial touchscreen"
 	select SERIO
@@ -189,6 +200,15 @@ config TOUCHSCREEN_FUJITSU
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called fujitsu-ts.
+
+config TOUCHSCREEN_SIS
+	tristate "SiS 92xx/81x I2C touchscreen support"
+	depends on I2C
+	help
+	  Say Y here to enable support for I2C connected SiS touch panels.
+
+	  To compile this driver as module, choose M here: the
+	  module will be called sis_i2c.
 
 config TOUCHSCREEN_S3C2410
 	tristate "Samsung S3C2410/generic touchscreen input driver"
