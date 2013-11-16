@@ -28,10 +28,10 @@
 #define DEFAULT_BACKLIGHT_BRIGHTNESS	102
 
 static struct lcd_platform_data lcd_pdata = {
-	.power_on	= GPIO_LCD_ON,
-	.display_on	= GPIO_LCD_DISPLAY,
-	.bl_on		= GPIO_LCD_BL,
-	.reset		= GPIO_LCD_RESET,
+	.power_on	= TCC_GPG(2), //GPIO_LCD_ON,
+	.display_on	= -1, //GPIO_LCD_DISPLAY,
+	.bl_on		= TCC_GPA(4), //GPIO_LCD_BL,
+	.reset		= TCC_GPC(29), //GPIO_LCD_RESET,
 };
 
 
@@ -53,6 +53,33 @@ static struct platform_device at070tn93_lcd = {
 };
 #endif//CONFIG_LCD_AT070TN93
 
+#ifdef CONFIG_LCD_LB070WV6
+static struct platform_device lb080wv6_lcd = {
+	.name  = "lb080wv6_lcd",
+	.dev  = {
+		.platform_data = &lcd_pdata,
+	},
+};
+#endif//CONFIG_LCD_LB070WV6
+
+#ifdef CONFIG_LCD_HSD1126XA01A
+static struct platform_device hsd1126xa01a_lcd = {
+	.name  = "hsd1126xa01a_lcd",
+	.dev  = {
+		.platform_data = &lcd_pdata,
+	},
+};
+#endif//CONFIG_LCD_HSD1126XA01A
+
+#ifdef CONFIG_LCD_SETKR101
+static struct platform_device setkr101_lcd = {
+	.name  = "setkr101_lcd",
+	.dev  = {
+		.platform_data = &lcd_pdata,
+	},
+};
+#endif//CONFIG_LCD_SETKR101
+
 static void m801_88_brightness_set(struct led_classdev *led_cdev, enum led_brightness value)
 {
 	struct lcd_panel *lcd_panel = tccfb_get_panel();
@@ -72,6 +99,7 @@ static struct led_classdev m801_88_backlight_led = {
 #define M801_88_GPIO_LCD_BL			TCC_GPA(4)
 static int m801_88_backlight_probe(struct platform_device *pdev)
 {
+/*
 	tcc_gpio_config(M801_88_GPIO_LCD_ON, GPIO_FN(0)); 	//gpio_d 21
 	tcc_gpio_config(M801_88_GPIO_LCD_BL, GPIO_FN(0));	//gpio a 4
 	tcc_gpio_config(M801_88_GPIO_LCD_RESET, GPIO_FN(0));	//gpio c 28
@@ -79,8 +107,8 @@ static int m801_88_backlight_probe(struct platform_device *pdev)
 	gpio_request(M801_88_GPIO_LCD_ON,		"lcd_on");
 	gpio_request(M801_88_GPIO_LCD_BL,	 	"lcd_bl");
 	gpio_request(M801_88_GPIO_LCD_RESET, 	"lcd_reset");
-
 	
+*/
 	return led_classdev_register(&pdev->dev, &m801_88_backlight_led);
 }
 
@@ -124,7 +152,25 @@ int __init m801_88_init_panel(void)
 			platform_device_register(&at070tn93_lcd);
 			break;
 		#endif
+
+		#ifdef CONFIG_LCD_LB070WV6
+		case PANEL_ID_LB070WV6:
+			platform_device_register(&lb080wv6_lcd);
+			break;
+		#endif
 	
+		#ifdef CONFIG_LCD_HSD1126XA01A
+		case PANEL_ID_HSD1126XA01A:
+			platform_device_register(&hsd1126xa01a_lcd);
+			break;
+		#endif
+
+		#ifdef CONFIG_LCD_SETKR101
+		case PANEL_ID_SETKR101:
+			platform_device_register(&setkr101_lcd);
+			break;
+		#endif
+
 		default:
 			pr_err("Not supported LCD panel type %d\n", tcc_panel_id);
 			return -EINVAL;
