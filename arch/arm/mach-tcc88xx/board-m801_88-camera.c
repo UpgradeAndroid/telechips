@@ -52,6 +52,8 @@
 #define SENSOR_I2C_SLAVE_ID 		(0xC4>>1)
 #elif defined(CONFIG_VIDEO_CAMERA_NEXTCHIP_TEST)
 #define SENSOR_I2C_SLAVE_ID 		(0x50>>1)
+#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_HI704)
+#define SENSOR_I2C_SLAVE_ID		(0x60>>1)
 #endif
 #endif // defined(CONFIG_VIDEO_TCCXX_CAMERA)
 
