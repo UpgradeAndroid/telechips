@@ -111,7 +111,7 @@ void tcc_ddi_cache_setting(void)
 	PDDICACHE pCsh = (PDDICACHE)pCache;
 	SDDICACHE Cache;
 	
-//	memset( &Cache, 0, sizeof(Cache));
+	memset( &Cache, 0, sizeof(Cache));
 
 	#ifdef LCDC_AXI_BUS
     Cache.uDDICCFG00.B.sel00 = DDIC_MSCL0_DMA_0;
