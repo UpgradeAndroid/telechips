@@ -213,8 +213,8 @@ tcc88xx_osmr0_set_next_event(unsigned long delta, struct clock_event_device *c)
 
 	gEvent_cnt++;
 	if (gInt_cnt >= 500) {
-		printk("\nMin Delta: %x \t Max Delta: %x\n", gdelta_min, gdelta_max);
-		printk("%s(%d) .. jiffies[%lu, %lu], int[%4d] event[%4d] delta[%08x] next[%08x]oscr[%08x]\n",
+		printk("\nMin Delta: %lu \t Max Delta: %lu\n", gdelta_min, gdelta_max);
+		printk("%s(%d) .. jiffies[%lu, %lu], int[%4d] event[%4d] delta[%08lx] next[%08lx]oscr[%08lx]\n",
 		       __func__,
 		       gEvent_over_cnt,
 		       jiffies,
