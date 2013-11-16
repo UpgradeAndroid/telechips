@@ -248,6 +248,14 @@ config LCD_HV070WSA
 	bool "COBY BOE 1024 * 600 LVDS support"
 	depends on FB_TCC
 
+config LCD_HSD1126XA01A
+	bool "HSD1126XA01A 1024 * 768 LVDS support"
+        depends on FB_TCC
+
+config LCD_SETKR101
+	bool "SETKR101 1024 * 600 LVDS support"
+	depends on FB_TCC
+
 config LCD_LCDC0_USE
 	bool "platform LCDC is use LCD control 0"
 	depends on FB_TCC

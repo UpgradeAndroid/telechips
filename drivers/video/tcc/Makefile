@@ -19,5 +19,7 @@ obj-$(CONFIG_LCD_ED090NA) 	+= lcd_ED090NA.o
 obj-$(CONFIG_LCD_KR080PA2S) += lcd_kr080pa2s.o
 obj-$(CONFIG_LCD_CLAA070NP01) += lcd_claa070np01.o
 obj-$(CONFIG_LCD_HV070WSA) += lcd_hv070wsa.o
+obj-$(CONFIG_LCD_HSD1126XA01A) += lcd_hsd1126xa01a.o
+obj-$(CONFIG_LCD_SETKR101) += lcd_setkr101.o
 obj-$(CONFIG_TCC_VIDEO_DISPLAY_DEINTERLACE_MODE)	+= viqe/
 EXTRA_CFLAGS += -Idrivers/video/tcc/viqe
