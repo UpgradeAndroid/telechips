@@ -150,8 +150,10 @@ int nval_get(const char *xb, int xb_size, const YCHAR * name, char *buf,
 		if (size <= bsize) {
 			memcpy(buf, xb + pos, size);
 			return size;
+		} else if (bsize == 0) {
+			/* Fake it, as we're not really interested in the data */
+			return size;
 		}
-
 	}
 	if (pos >= 0)
 		return -ERANGE;
