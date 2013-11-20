@@ -1,4 +1,4 @@
-//#define DEBUG
+#define DEBUG
 
 #include <linux/module.h>
 #include <linux/delay.h>
@@ -39,7 +39,6 @@ struct sis_i2c_driver_data {
 	struct i2c_client *client;
 	struct input_dev *input_dev;
 	int is_ts_pendown;
-	int button_down;	//if key0 pendown ,button_down = 0.... if no key pendown button_down = -1;
 	struct work_struct work;
 	struct early_suspend early_suspend;
 };
@@ -140,7 +139,6 @@ static void sis_tpinfo_clear(struct sis_touch_state *touch_state, int max)
 
 static void report_penup(unsigned long data)
 {
-	struct sis_touch_keys_button *buttons = pdata->buttons;
 	struct sis_i2c_driver_data *ts = (struct sis_i2c_driver_data *)data;
 	int ret;
 
@@ -152,16 +150,9 @@ static void report_penup(unsigned long data)
 			input_report_abs(ts->input_dev, ABS_MT_PRESSURE, 0);
 			input_sync(ts->input_dev);
 		}
-		if (ts->button_down >= 0 && ts->button_down < 4) {
-			dev_dbg(&ts->client->dev, "report penup key:%d \n",ts->button_down);
-			input_report_key(ts->input_dev,
-					 buttons[ts->button_down].code, 0);
-			input_sync(ts->input_dev);
-			ts->button_down = -1;
-		}
 		return;
 	}
-	mod_timer(kbd_timer, jiffies + msecs_to_jiffies(5));
+	mod_timer(kbd_timer, jiffies + msecs_to_jiffies(10));
 }
 
 static int btoi(uint8_t a)
@@ -177,9 +168,7 @@ static void sis_ts_work_func(struct work_struct *work)
 	uint8_t buf[64] = { 0 };
 	uint8_t i = 0, fingers = 0;
 	uint8_t px = 0, py = 0, pstatus = 0;
-	struct sis_touch_keys_button *buttons = NULL;
 
-	buttons = pdata->buttons;
 	ret = sis_read_packet(ts->client, SIS_CMD_NORMAL, buf);
 	if (ret < 0) {
 		enable_irq(client->irq);
@@ -187,40 +176,6 @@ static void sis_ts_work_func(struct work_struct *work)
 	}
 
 	sis_tpinfo_clear(touch_state, MAX_FINGERS);
-
-	if (buf[1] == 0x70) {
-		if (btoi(buf[2]) == -1) {	//data err
-			enable_irq(client->irq);
-			return;
-		}
-
-		if (ts->button_down >= 0 && ts->button_down < 4
-		    && (ts->button_down != btoi(buf[2]))) {
-			//already has a ts->button_down
-			dev_dbg(&client->dev, "report penup key:%d \n",ts->button_down);
-			input_report_key(ts->input_dev,
-					 buttons[ts->button_down].code, 0);
-			input_sync(ts->input_dev);
-			ts->button_down = -1;
-		}
-		if (ts->button_down == -1) {
-			//interrupt for this key down first time
-			ts->button_down = btoi(buf[2]);
-			dev_dbg(&client->dev, "report pendown key:%d\n",ts->button_down);
-			mod_timer(kbd_timer, jiffies + msecs_to_jiffies(5));
-			input_report_key(ts->input_dev,
-					 buttons[ts->button_down].code, 1);
-			input_sync(ts->input_dev);
-			msleep(10);
-			enable_irq(client->irq);
-			return;
-		}
-	}
-
-	if (ts->is_ts_pendown == 0) {
-		ts->is_ts_pendown = 1;
-		mod_timer(kbd_timer, jiffies + msecs_to_jiffies(5));
-	}
 
 	fingers = (buf[1] & MSK_TOUCHNUM);
 	touch_state->fingers = fingers = (fingers > MAX_FINGERS ? 0 : fingers);
@@ -251,10 +206,10 @@ static void sis_ts_work_func(struct work_struct *work)
 		input_mt_sync(ts->input_dev);
 	}
 	input_sync(ts->input_dev);
-//	msleep(10);
-	enable_irq(client->irq);
 
-	return;
+	mod_timer(kbd_timer, jiffies + msecs_to_jiffies(10));
+
+	enable_irq(client->irq);
 }
 
 static irqreturn_t sis_ts_irq_handler(int irq, void *dev_id)
@@ -262,6 +217,9 @@ static irqreturn_t sis_ts_irq_handler(int irq, void *dev_id)
 	struct sis_i2c_driver_data *ts = dev_id;
 	struct i2c_client *client = ts->client;
 	int ret;
+
+	del_timer(kbd_timer);
+	ts->is_ts_pendown = 1;
 
 	if (!work_pending(&ts->work)) {
 		disable_irq_nosync(client->irq);
@@ -306,8 +264,6 @@ static int sis_ts_probe(struct i2c_client *client,
 {
 	struct sis_i2c_driver_data *ts = NULL;
 	int ret = 0;
-	struct sis_touch_keys_button *buttons = NULL;	//pdata->buttons;
-	int nbuttons = 0;	//pdata->nbuttons;
 	int i;
 
 	touch_state = kzalloc(sizeof(struct sis_touch_state), GFP_KERNEL);
@@ -343,18 +299,6 @@ static int sis_ts_probe(struct i2c_client *client,
 
 	set_bit(EV_ABS, ts->input_dev->evbit);
 
-	buttons = pdata->buttons;
-	nbuttons = pdata->nbuttons;
-
-	if (nbuttons) {
-		set_bit(EV_KEY, ts->input_dev->evbit);
-		for (i = 0; i < nbuttons; i++) {
-			if (buttons[i].code)
-				set_bit(buttons[i].code, ts->input_dev->keybit);
-		}
-	}
-	//set_bit(KEY_BACK, ts->input_dev->keybit);
-
 	set_bit(ABS_MT_PRESSURE, ts->input_dev->absbit);
 	set_bit(ABS_MT_POSITION_X, ts->input_dev->absbit);
 	set_bit(ABS_MT_POSITION_Y, ts->input_dev->absbit);
@@ -368,7 +312,6 @@ static int sis_ts_probe(struct i2c_client *client,
 		dev_err(&client->dev, "Unable to register %s input device\n", ts->input_dev->name);
 		goto err_input_register_device_failed;
 	}
-
 	gpio_direction_input(pdata->intr);
 	if (client->irq) {
 		ret =
@@ -379,8 +322,8 @@ static int sis_ts_probe(struct i2c_client *client,
 			goto err_request_irq;
 		}
 	}
+
 	ts->is_ts_pendown = 0;
-	ts->button_down = -1;
 
 	kbd_timer = kzalloc(sizeof(struct timer_list), GFP_KERNEL);
 	if (!kbd_timer)
