@@ -17,18 +17,41 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <mach/gpio.h>
+#include <mach/bsp.h>
+#include <mach/irqs.h>
 #include <linux/i2c.h>
+#include <linux/io.h>
 #include "board-m801_88.h"
 #include <asm/mach-types.h>
 
 static struct board_gpio_irq_config m801_88_gpio_irqs[] = {
-	{ -1, -1 },
+	/* Power Key */
+	{
+		.gpio = TCC_GPA(3),
+		.irq = INT_TSD, /* is really INT_EI3 */
+	/* Touchscreen IC pen down interrupt/GPIO */
+	}, {
+		.gpio = TCC_GPB(31),
+		.irq = INT_EI2,
+	}, {
+		.gpio = -1,
+		.irq = -1,
+	},
 };
+
 
 void __init m801_88_init_gpio(void)
 {
+	volatile PGPIO pGPIO = (volatile PGPIO)tcc_p2v(HwGPIO_BASE);
+	volatile PPIC pPIC = (volatile PPIC)tcc_p2v(HwVPIC_BASE);
+
 	if (!machine_is_m801_88())
 		return;
+
+	pr_info("EI37SEL: %08x\n", pPIC->EI37SEL);
+	BITCSET(pGPIO->EINTSEL0, HwEINTSEL0_EINT2_MASK, HwEINTSEL0_EINT2(SEL_GPIOB31));
+	BITCSET(pGPIO->EINTSEL0, HwEINTSEL0_EINT3_MASK, HwEINTSEL0_EINT3(SEL_GPIOA3));
+	BITCSET(pPIC->EI37SEL, (1 << 3), (1 << 3)); /* 0 for TS demux, 1 for Ext. INT 3 */
 
 	board_gpio_irqs = m801_88_gpio_irqs;
 	printk(KERN_INFO "M801_88 GPIO initialized\n");
