@@ -19,7 +19,6 @@ struct sis_point {
 	int id;
 	unsigned short x, y;
 	bool pressure;
-	bool width;
 	bool touch, pre;
 };
 
@@ -32,14 +31,13 @@ struct sis_touch_state {
 
 struct sis_touch_state *touch_state = NULL;
 static struct workqueue_struct *sis_wq;
-static struct timer_list *kbd_timer;
 struct sis_i2c_driver_data *ts_bak = 0;
 
 struct sis_i2c_driver_data {
 	struct i2c_client *client;
 	struct input_dev *input_dev;
-	int is_ts_pendown;
 	struct work_struct work;
+	struct delayed_work wakeup_work;
 	struct early_suspend early_suspend;
 };
 
@@ -128,36 +126,18 @@ static void sis_tpinfo_clear(struct sis_touch_state *touch_state, int max)
 
 	for (i = 0; i < max; i++) {
 		touch_state->pt[i].id = -1;
-		touch_state->pt[i].touch = -1;
 		touch_state->pt[i].x = 0;
 		touch_state->pt[i].y = 0;
-		touch_state->pt[i].pressure = 0;
-		touch_state->pt[i].width = 0;
+		touch_state->pt[i].pressure = false;
 	}
 	touch_state->crc = 0x0;
 }
 
-static void report_penup(unsigned long data)
+static void sis_ts_wakeup_func(struct delayed_work *work)
 {
-	struct sis_i2c_driver_data *ts = (struct sis_i2c_driver_data *)data;
-	int ret;
-
-	ret = gpio_get_value(pdata->intr);
-	if (ret) {		/* charge to high level,pendown irq stoped */
-		if (ts->is_ts_pendown == 1) {
-			dev_dbg(&ts->client->dev, "Reported pen up\n");
-			ts->is_ts_pendown = 0;
-			input_report_abs(ts->input_dev, ABS_MT_PRESSURE, 0);
-			input_sync(ts->input_dev);
-		}
-		return;
-	}
-	mod_timer(kbd_timer, jiffies + msecs_to_jiffies(10));
-}
-
-static int btoi(uint8_t a)
-{
-	return a & 1 ? 0 : (a & 2 ? 1 : (a & 4 ? 2 : (a & 8 ? 3 : -1)));
+	struct sis_i2c_driver_data *ts = container_of(work, struct sis_i2c_driver_data, wakeup_work);
+	i2c_smbus_write_byte_data(ts->client, 0xF1, 1);
+	queue_delayed_work(sis_wq, &ts->wakeup_work, 500/*jiffies*/);
 }
 
 static void sis_ts_work_func(struct work_struct *work)
@@ -168,6 +148,7 @@ static void sis_ts_work_func(struct work_struct *work)
 	uint8_t buf[64] = { 0 };
 	uint8_t i = 0, fingers = 0;
 	uint8_t px = 0, py = 0, pstatus = 0;
+	bool allup = true;
 
 	ret = sis_read_packet(ts->client, SIS_CMD_NORMAL, buf);
 	if (ret < 0) {
@@ -186,8 +167,6 @@ static void sis_ts_work_func(struct work_struct *work)
 		py = px + 2;
 		touch_state->pt[i].pressure =
 		    (buf[pstatus] & MSK_PSTATE) == TOUCHDOWN ? 1 : 0;
-		touch_state->pt[i].width =
-		    (buf[pstatus] & MSK_PSTATE) == TOUCHDOWN ? 1 : 0;
 		touch_state->pt[i].id = (buf[pstatus] & MSK_PID) >> 4;
 		touch_state->pt[i].x =
 		    (((buf[px] & 0xff) << 8) | (buf[px + 1] & 0xff));
@@ -197,17 +176,24 @@ static void sis_ts_work_func(struct work_struct *work)
 		touch_state->pt[i].y = 4096 - touch_state->pt[i].y; //FIXME calibration hack
 		dev_dbg(&client->dev, "touch_state->pt[i].pressure = %d, touch_state->pt[i].id = %d, touch_state->pt[i].x = %d, touch_state->pt[i].y = %d\n",
 		       touch_state->pt[i].pressure,touch_state->pt[i].id,touch_state->pt[i].x,touch_state->pt[i].y);
-		input_report_abs(ts->input_dev, ABS_MT_PRESSURE,
-				 touch_state->pt[i].pressure);
-		input_report_abs(ts->input_dev, ABS_MT_POSITION_X,
-				 touch_state->pt[i].x);
-		input_report_abs(ts->input_dev, ABS_MT_POSITION_Y,
-				 touch_state->pt[i].y);
-		input_mt_sync(ts->input_dev);
+		if (touch_state->pt[i].pressure) {
+			input_report_abs(ts->input_dev, ABS_MT_PRESSURE,
+					 touch_state->pt[i].pressure);
+			input_report_abs(ts->input_dev, ABS_MT_POSITION_X,
+					 touch_state->pt[i].x);
+			input_report_abs(ts->input_dev, ABS_MT_POSITION_Y,
+					 touch_state->pt[i].y);
+			input_report_abs(ts->input_dev, ABS_MT_TRACKING_ID,
+					touch_state->pt[i].id);
+			input_mt_sync(ts->input_dev);
+			allup = false;
+		}
 	}
-	input_sync(ts->input_dev);
 
-	mod_timer(kbd_timer, jiffies + msecs_to_jiffies(10));
+	if (allup)
+		input_mt_sync(ts->input_dev);
+
+	input_sync(ts->input_dev);
 
 	enable_irq(client->irq);
 }
@@ -217,9 +203,6 @@ static irqreturn_t sis_ts_irq_handler(int irq, void *dev_id)
 	struct sis_i2c_driver_data *ts = dev_id;
 	struct i2c_client *client = ts->client;
 	int ret;
-
-	del_timer(kbd_timer);
-	ts->is_ts_pendown = 1;
 
 	if (!work_pending(&ts->work)) {
 		disable_irq_nosync(client->irq);
@@ -264,7 +247,6 @@ static int sis_ts_probe(struct i2c_client *client,
 {
 	struct sis_i2c_driver_data *ts = NULL;
 	int ret = 0;
-	int i;
 
 	touch_state = kzalloc(sizeof(struct sis_touch_state), GFP_KERNEL);
 	if (touch_state == NULL) {
@@ -284,6 +266,7 @@ static int sis_ts_probe(struct i2c_client *client,
 	start_ts();
 	//workqueue
 	INIT_WORK(&ts->work, sis_ts_work_func);
+	INIT_DELAYED_WORK(&ts->wakeup_work, sis_ts_wakeup_func);
 	sis_wq = create_singlethread_workqueue("sis_wq");
 	if (!sis_wq) {
 		ret = -ESRCH;
@@ -323,13 +306,6 @@ static int sis_ts_probe(struct i2c_client *client,
 		}
 	}
 
-	ts->is_ts_pendown = 0;
-
-	kbd_timer = kzalloc(sizeof(struct timer_list), GFP_KERNEL);
-	if (!kbd_timer)
-		goto exit_timer_list_failed;
-	setup_timer(kbd_timer, report_penup, (unsigned long)ts);
-
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	ts->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;
 	ts->early_suspend.suspend = sis_ts_early_suspend;
@@ -339,9 +315,10 @@ static int sis_ts_probe(struct i2c_client *client,
 
 	dev_info(&client->dev, "Start touchscreen %s\n", ts->input_dev->name);
 
+	queue_delayed_work(sis_wq, &ts->wakeup_work, 500/*jiffies*/);
+
 	return 0;
 
-exit_timer_list_failed:
 err_request_irq:
 err_input_register_device_failed:
 	input_free_device(ts->input_dev);
@@ -387,7 +364,6 @@ static int sis_ts_suspend(struct i2c_client *client, pm_message_t mesg)
 static int sis_ts_resume(struct i2c_client *client)
 {
 	start_ts();
-	enable_irq(client->irq);
 	return 0;
 }
 
