@@ -51,7 +51,8 @@
      defined(CONFIG_MACH_TCC8800ST)|| defined(CONFIG_MACH_TCC8900) || \
      defined(CONFIG_MACH_TCC9200S) || defined(CONFIG_MACH_TCC9201) || \
      defined(CONFIG_MACH_TCC8923)  || defined(CONFIG_MACH_TCC8924) || \
-     defined(CONFIG_MACH_TCC8920ST) || defined(CONFIG_MACH_M805_892X)
+     defined(CONFIG_MACH_TCC8920ST) || defined(CONFIG_MACH_M805_892X) || \
+     defined(CONFIG_MACH_M801_88)
 struct ckc_ioctl{
 	stckcioctl  in_ckc;
 	stckcinfo   out_ckc;
