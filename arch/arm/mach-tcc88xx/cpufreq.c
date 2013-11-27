@@ -309,14 +309,14 @@ static int tcc_cpufreq_set_voltage_by_gpio(tcc_core_type core, int uV)
 				gpio_set_value(TCC_GPEXT2(10), 1);
 		}
 		else if (machine_is_m801_88() || machine_is_m803()) {
-			#if 0
+			#if 1
 			if (uV <= 1100000) {
 				gpio_set_value(TCC_GPF(0), 0);
 				gpio_set_value(TCC_GPF(1), 0);
 			}
 			else
 			#endif
-			if (uV <= 1200000) {
+			if (uV <= 1250000) {
 				gpio_set_value(TCC_GPF(0), 0);
 				gpio_set_value(TCC_GPF(1), 1);
 			}
