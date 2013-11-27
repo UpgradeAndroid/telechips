@@ -19,11 +19,14 @@
 #include <linux/input.h>
 #include <linux/i2c.h>
 #include <linux/i2c/pca953x.h>
+#include <linux/i2c/sis_i2c.h>
+#include <linux/i2c/egalax_i2c.h>
 #include <linux/akm8975.h>
 //#include <linux/usb/android_composite.h>
 #include <linux/spi/spi.h>
 #include <linux/regulator/machine.h>
 #include <linux/regulator/axp192.h>
+#include <linux/proc_fs.h>
 
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
@@ -64,6 +67,7 @@ extern void __init tcc_init_irq(void);
 extern void __init tcc_map_common_io(void);
 extern void __init tcc_reserve_sdram(void);
 
+#if defined(CONFIG_SPI_TCCXXXX_MASTER)
 static struct spi_board_info m801_88_spi0_board_info[] = {
 	{
 		.modalias = "spidev",
@@ -74,6 +78,7 @@ static struct spi_board_info m801_88_spi0_board_info[] = {
 		.mode = 0						// default 0, you can choose [SPI_CPOL|SPI_CPHA|SPI_CS_HIGH|SPI_LSB_FIRST]
 	},
 };
+#endif
 #if 0
 static struct spi_board_info m801_88_spi1_board_info[] = {
 	{
@@ -141,9 +146,11 @@ static struct platform_device m801_touchscreen_device = {
 };
 #endif
 
+#if defined(CONFIG_SENSORS_AK8975)
 static struct akm8975_platform_data akm8975_data = {
     .gpio_DRDY = 0,
 };
+#endif
 
 #if defined(CONFIG_REGULATOR_AXP192)
 static struct regulator_consumer_supply axp192_consumer_a = {
@@ -217,11 +224,13 @@ static struct cs4954_i2c_platform_data  ths8200_i2c_data = {
 #endif
 #if defined(CONFIG_I2C_TCC_CORE0)
 static struct i2c_board_info __initdata i2c_devices0[] = {
+#if defined(CONFIG_SENSORS_AK8975)
     {
         I2C_BOARD_INFO("akm8975", 0x0F),
         .irq           = COMPASS_IRQ,
         .platform_data = &akm8975_data,
     },
+#endif
 #if defined(CONFIG_REGULATOR_AXP192)
 	{
 		I2C_BOARD_INFO("axp192", 0x34),
@@ -256,6 +265,9 @@ static struct i2c_board_info __initdata i2c_devices1[] = {
 		.platform_data = NULL,
 	},
 #endif
+	{
+		I2C_BOARD_INFO("tcc-accel-sensor", 0x4c),
+	},
 };
 #endif
 
@@ -647,6 +659,7 @@ static struct platform_device *m801_88_devices[] __initdata = {
 #endif
 };
 
+
 static int __init board_serialno_setup(char *serialno)
 {
 	//android_usb_pdata.serial_number = serialno;
@@ -714,6 +727,98 @@ static void __init tcc8800_init_machine(void)
 	platform_add_devices(m801_88_devices, ARRAY_SIZE(m801_88_devices));
 }
 
+#if defined(CONFIG_TOUCHSCREEN_SIS)
+/* SiS 81x family touchscreens */
+struct sis_ts_platform_data sis_i2c_pdata = {
+	.intr = TCC_GPB(31),
+	.wakeup = -1,
+	.power = -1,
+	.buttons = NULL,
+	.nbuttons = 0,
+};
+
+static struct i2c_board_info __initdata sis_ts_board_info[] = {
+	{
+		I2C_BOARD_INFO("sis_i2c_ts", 0x05),
+		.irq = INT_EI2,
+		.platform_data = &sis_i2c_pdata,
+	},
+};
+
+static unsigned short const sis_ts_addrs[] = { 0x05, I2C_CLIENT_END };
+#endif /* CONFIG_TOUCHSCREEN_SIS */
+
+#if defined(CONFIG_TOUCHSCREEN_EGALAX)
+/* eGalax touchscreens */
+struct egalax_i2c_platform_data egalax_i2c_pdata = {
+	.gpio_int = TCC_GPB(31),
+	.gpio_en = -1,
+	.gpio_rst = -1,
+};
+
+static struct i2c_board_info __initdata egalax_ts_board_info[] = {
+	{
+		I2C_BOARD_INFO("egalax_i2c", 0x04),
+		.irq = INT_EI2,
+		.platform_data = &egalax_i2c_pdata,
+	},
+};
+
+static unsigned short const egalax_ts_addrs0[] = { 0x04, I2C_CLIENT_END };
+static unsigned short const egalax_ts_addrs1[] = { 0x04, 0x05, I2C_CLIENT_END };
+#endif /* CONFIG_TOUCHSCREEN_EGALAX */
+
+static int
+i2c_ts_probe(struct i2c_adapter *adap, unsigned short addr)
+{
+	char buf = 0xe0; /* random data */
+	static struct i2c_msg msg;
+	int res;
+
+	msg.addr = addr;
+	msg.flags = 0;
+	msg.len = 1;
+	msg.buf = &buf;
+
+	/* XXX does not work, always returns 1 */
+	res = i2c_transfer(adap, &msg, 1);
+	pr_info("res: %d addr: %d\n", res, addr);
+	return res == 1;
+}
+
+static int
+touchscreen_detect(void)
+{
+	struct i2c_client *touch_chip = NULL;
+	struct i2c_adapter *i2c0 = i2c_get_adapter(0);
+	struct i2c_adapter *i2c1 = i2c_get_adapter(1);
+	pr_info("i2c0: %p, i2c1: %p\n", i2c0, i2c1);
+
+#if defined(CONFIG_TOUCHSCREEN_SIS)
+	if (touch_chip == NULL && i2c1) {
+		touch_chip = i2c_new_probed_device(i2c1,
+	                      sis_ts_board_info, sis_ts_addrs, i2c_ts_probe);
+		if (touch_chip != NULL)
+			pr_info("SiS 81x family touchscreen detected!\n");
+	}
+#endif
+#if defined(CONFIG_TOUCHSCREEN_EGALAX)
+	if (touch_chip == NULL && i2c0) {
+		touch_chip = i2c_new_probed_device(i2c0,
+	                      egalax_ts_board_info, egalax_ts_addrs0, i2c_ts_probe);
+	}
+
+	if (touch_chip == NULL && i2c1) {
+		touch_chip = i2c_new_probed_device(i2c1,
+                             egalax_ts_board_info, egalax_ts_addrs1, i2c_ts_probe);
+	}
+#endif
+	if (touch_chip == NULL) {
+		pr_warn("No touchscreen chips detected!\n");
+	}
+	return 0;
+}
+late_initcall(touchscreen_detect);
 
 static void __init tcc8800_map_io(void)
 {
