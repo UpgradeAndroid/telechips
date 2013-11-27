@@ -28,8 +28,13 @@
 
 struct tcc_ptbl_entry {
 	char name[TCC_PART_NAME_LEN];
+#ifdef NEW_BOOTLOADER
 	__u64 offset;
 	__u64 size;
+#else
+	__u32 offset;
+	__u32 size;
+#endif
 	__u32 flags;
 };
 
