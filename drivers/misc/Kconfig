@@ -2,6 +2,10 @@
 # Misc strange devices
 #
 
+config TCCDUMP
+	tristate "Dump TCC SoC registers"
+	default m
+
 # This one has to live outside of the MISC_DEVICES conditional,
 # because it may be selected by drivers/platform/x86/hp_accel.
 config SENSORS_LIS3LV02D
