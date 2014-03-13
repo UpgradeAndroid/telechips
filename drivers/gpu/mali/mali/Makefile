@@ -178,8 +178,8 @@ EXTRA_CFLAGS += $(DEFINES) -I$(src) -I$(src)/include -I$(src)/common -I$(src)/li
 # For customer releases the Linux Device Drivers will be provided as ARM proprietary and GPL releases:
 # The ARM proprietary product will only include the license/proprietary directory
 # The GPL product will only include the license/gpl directory
-ifeq ($(wildcard $(src)/linux/license/gpl/*),)
-EXTRA_CFLAGS += -I$(src)/linux/license/proprietary
+ifeq ($(wildcard $(srctree)/$(src)/linux/license/gpl/*),)
+EXTRA_CFLAGS += -I$(srctree)/$(src)/linux/license/proprietary
 # Disable profiling for proprietary
 override USING_PROFILING := 0
 $(warning "USING_PROFILING not supported, disabling.")
@@ -255,17 +255,17 @@ ifeq ($(CONFIG_GPU_BUS_SCALING),y)
 SRC += \
 	platform/$(TARGET_PLATFORM)/mali_platform_dvfs.c
 endif
-ifneq ($(call submodule_enabled, $(src), MALI400PP),0)
+ifneq ($(call submodule_enabled, $(srctree)/$(src), MALI400PP),0)
 	# Mali-400 PP in use
 	EXTRA_CFLAGS += -DUSING_MALI400
 endif
 
-ifneq ($(call submodule_enabled, $(src), MALI300PP),0)
+ifneq ($(call submodule_enabled, $(srctree)/$(src), MALI300PP),0)
 	# Mali-400 PP in use
 	EXTRA_CFLAGS += -DUSING_MALI400
 endif
 
-ifneq ($(call submodule_enabled, $(src), MALI200),0)
+ifneq ($(call submodule_enabled, $(srctree)/$(src), MALI200),0)
 	# Mali200 in use
 	EXTRA_CFLAGS += -DUSING_MALI200
 endif

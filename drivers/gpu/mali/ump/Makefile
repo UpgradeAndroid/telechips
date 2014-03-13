@@ -29,10 +29,10 @@ EXTRA_CFLAGS += -DDEBUG -DMALI_STATE_TRACKING=0
 # The ARM proprietary product will only include the license/proprietary directory
 # The GPL product will only include the license/gpl directory
 
-ifeq ($(wildcard $(src)/linux/license/gpl/*),)
-EXTRA_CFLAGS += -I$(src)/linux/license/proprietary
+ifeq ($(wildcard $(srctree)/$(src)/linux/license/gpl/*),)
+EXTRA_CFLAGS += -I$(srctree)/$(src)/linux/license/proprietary
 else
-EXTRA_CFLAGS += -I$(src)/linux/license/gpl
+EXTRA_CFLAGS += -I$(srctree)/$(src)/linux/license/gpl
 endif
 
 SRC +=	$(UMP_FILE_PREFIX)common/ump_kernel_common.c \
