@@ -766,6 +766,13 @@ config TOUCHSCREEN_TCC_GOODIX_CAP
 	  say Y here if you have a touchscreen interface using the
 	  i2c device.
 
+config TCC_I2C_GOODIX_1_CHIP
+	tristate "Multi Touch Controller for Goodix/Guitar"
+	depends on I2C
+	default n
+	help
+	  say Y here if you have a device using the Goodix/Guitar touchscreen interface.
+
 config TOUCHSCREEN_TCC_SITRONIX
 	tristate "Multi Touch Controller SITRONIX for COBY MID"
 	select TCC_TCH_CORE
