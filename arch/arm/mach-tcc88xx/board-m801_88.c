@@ -21,6 +21,7 @@
 #include <linux/i2c/pca953x.h>
 #include <linux/i2c/sis_i2c.h>
 #include <linux/i2c/egalax_i2c.h>
+#include <linux/goodix_touch.h>
 #include <linux/akm8975.h>
 //#include <linux/usb/android_composite.h>
 #include <linux/spi/spi.h>
@@ -265,9 +266,15 @@ static struct i2c_board_info __initdata i2c_devices1[] = {
 		.platform_data = NULL,
 	},
 #endif
+#ifdef CONFIG_SENSORS_MMA7660
+	{
+		I2C_BOARD_INFO("mma7660", 0x4c),
+	},
+#else
 	{
 		I2C_BOARD_INFO("tcc-accel-sensor", 0x4c),
 	},
+#endif
 };
 #endif
 
@@ -282,7 +289,7 @@ static struct tcc_i2c_platform_data m801_88_core0_platform_data = {
     .core_clk_name      = "i2c0",
     .smu_i2c_flag       = 0,
     .i2c_ch_clk_rate[0] = 400,      /* SCL clock rate : 400kHz */
-    .i2c_ch_clk_rate[1] = 400,      /* SCL clock rate : 400kHz */
+    .i2c_ch_clk_rate[1] = 100,      /* SCL clock rate : 100kHz */
 };
 
 static struct tcc_i2c_platform_data m801_88_core1_platform_data = {
@@ -727,6 +734,37 @@ static void __init tcc8800_init_machine(void)
 	platform_add_devices(m801_88_devices, ARRAY_SIZE(m801_88_devices));
 }
 
+#if defined(CONFIG_TCC_I2C_GOODIX_1_CHIP)
+static u8 goodix_config[] = {
+	0x30, 0x0f, 0x05, 0x08, 0x28, 0x02, 0x14, 0x14, 0x10, 0x2d, 0xba,
+	0x01, 0xe0, 0x03, 0x20, 0x01, 0x23, 0x45, 0x67, 0x89, 0xab,
+	0xcd, 0xe0, 0x00, 0x00, 0x37, 0x2e, 0x4d, 0xcf, 0x20, 0x01,
+	0x01, 0x83, 0x3c, 0x3c, 0x1e, 0xb4, 0x10, 0x34, 0x2c,
+	0x01, 0xec, 0x28, 0x37, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+};
+
+/* Goodix/Guitar GT80x touchscreen */
+static struct goodix_i2c_rmi_platform_data goodix_i2c_pdata = {
+	.gpio_shutdown = TCC_GPB(18),
+	.gpio_irq = TCC_GPB(31),
+	.irq_edge = 1, //rising
+	.xmax = 800,
+	.ymax = 480,
+	.config_info = goodix_config,
+	.config_info_len = sizeof(goodix_config),
+};
+
+static struct i2c_board_info __initdata goodix_ts_board_info[] = {
+	{
+		I2C_BOARD_INFO("Goodix-TS", 0x55),
+		.irq = INT_EI2,
+		.platform_data = &goodix_i2c_pdata,
+	},
+};
+
+static unsigned short const goodix_ts_addrs[] = { 0x55, I2C_CLIENT_END };
+#endif /* CONFIG_TCC_I2C_GOODIX_1_CHIP */
+
 #if defined(CONFIG_TOUCHSCREEN_SIS)
 /* SiS 81x family touchscreens */
 struct sis_ts_platform_data sis_i2c_pdata = {
@@ -813,9 +851,22 @@ touchscreen_detect(void)
                              egalax_ts_board_info, egalax_ts_addrs1, i2c_ts_probe);
 	}
 #endif
+#if defined(CONFIG_TCC_I2C_GOODIX_1_CHIP)
+	if (touch_chip == NULL && i2c1) {
+		tcc_gpio_config(TCC_GPB(26), GPIO_FN(0)|GPIO_PULL_DISABLE);
+		tcc_gpio_config(TCC_GPB(18), GPIO_FN(0)|GPIO_PULL_DISABLE);
+		tcc_gpio_config(TCC_GPB(31), GPIO_FN(0)|GPIO_PULL_DISABLE);
+		touch_chip = i2c_new_device(i2c1, goodix_ts_board_info);
+	}
+#endif
+
 	if (touch_chip == NULL) {
 		pr_warn("No touchscreen chips detected!\n");
 	}
+
+	if (i2c0) i2c_put_adapter(i2c0);
+	if (i2c1) i2c_put_adapter(i2c1);
+
 	return 0;
 }
 late_initcall(touchscreen_detect);

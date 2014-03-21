@@ -55,5 +55,4 @@ void __init m801_88_init_gpio(void)
 
 	board_gpio_irqs = m801_88_gpio_irqs;
 	printk(KERN_INFO "M801_88 GPIO initialized\n");
-	return;
 }
