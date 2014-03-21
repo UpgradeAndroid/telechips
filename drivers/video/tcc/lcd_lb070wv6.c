@@ -34,7 +34,7 @@ static unsigned int lcd_bl_level = 255;
 static char bl_pwr_state;
 
 static volatile PTIMER pTIMER;
-static char pwm_timer_inited;
+static char pwminitflag = 0;
 
 extern void lcdc_initialize(struct lcd_panel *lcd_spec, unsigned int lcdc_num);
 
@@ -63,11 +63,12 @@ lcd_power_seton(int on)
 void
 backlight_pwminit(void)
 {
-	pr_info("%s\n", __func__);
-	if (pwm_timer_inited)
+	if (pwminitflag)
 		return;
 
-	pwm_timer_inited = 1;
+	pr_info("%s\n", __func__);
+
+	pwminitflag = 1;
 
 	pTIMER = (volatile PTIMER)tcc_p2v(HwTMR_BASE);
 	pTIMER->TCFG0	= 0x0105;
@@ -80,17 +81,17 @@ backlight_pwminit(void)
 	gpio_request(TCC_GPG(2), "bl_power");
 	gpio_request(TCC_GPC(28), "lcd_reset");
 */
-	tcc_gpio_config(TCC_GPA(4), GPIO_FN(2));
+	tcc_gpio_config(TCC_GPA(4), GPIO_FN(2) | GPIO_CD(3));
 }
 
 void
 backlight_pwmenable(int on)
 {
-	pr_info("%s\n", __func__);
+	pr_info("%s %d\n", __func__, on);
 	if (on) {
 		gpio_direction_output(TCC_GPG(2), 1);
 		msleep(5);
-		tcc_gpio_config(TCC_GPA(4), GPIO_FN(2));
+		tcc_gpio_config(TCC_GPA(4), GPIO_FN(2) | GPIO_CD(3));
 		msleep(20);
 	} else {
 		tcc_gpio_config(TCC_GPA(4), GPIO_FN(0));
@@ -102,13 +103,14 @@ void
 backlight_setpwm(unsigned int level)
 {
 	unsigned int val = (level * 100) / 255;
-	pr_info("%s\n", __func__);
 	backlight_pwminit();
 
 	if (val > 5)
-		val = (val + 60) << 1;
+		val += 175;
 	else
-		val = 150;
+		val = 180;
+
+	pr_info("%s %u (val=%u)\n", __func__, level, val);
 
 	pTIMER->TMREF0 = val;
 }
@@ -117,7 +119,7 @@ void
 backlight_step_pwm(unsigned int level_start, unsigned int level_end)
 {
 	unsigned int i;
-	pr_info("%s\n", __func__);
+	pr_info("%s %u %u\n", __func__, level_start, level_end);
 
 	if (level_end == 0) {
 		/* We're fading out */
@@ -133,11 +135,9 @@ backlight_step_pwm(unsigned int level_start, unsigned int level_end)
 			mdelay(1);
 		}
 	} else {
-		if (level_start > 7) {
-			for (i=2; i != 200 && i < level_end; i++) {
-				backlight_setpwm(i);
-				mdelay(1);
-			}
+		for (i=2; i != 200 && i < level_end; i++) {
+			backlight_setpwm(i);
+			mdelay(1);
 		}
 	}
 
@@ -153,7 +153,7 @@ static int lb080wv6_panel_init(struct lcd_panel *panel)
 
 static int lb080wv6_set_power(struct lcd_panel *panel, int on, unsigned int lcdc_num)
 {
-	pr_info("%s\n", __func__);
+	pr_info("%s %d [%u]\n", __func__, on, lcdc_num);
 	mutex_lock(&panel_lock);
 	lcd_pwr_state = on;
 
@@ -186,7 +186,7 @@ static int lb080wv6_set_power(struct lcd_panel *panel, int on, unsigned int lcdc
 
 static int lb080wv6_set_backlight_level(struct lcd_panel *panel, int level)
 {
-	pr_info("%s\n", __func__);
+	pr_info("%s %d\n", __func__, level);
 	mutex_lock(&panel_lock);
 
 	if (lcd_pwr_state) {
@@ -197,6 +197,7 @@ static int lb080wv6_set_backlight_level(struct lcd_panel *panel, int level)
 		if (level <= 7) {
 			/* backlight too low, disable pwm */
 			backlight_pwmenable(0);
+			bl_pwr_state = 0;
 		} else {
 			if (bl_pwr_state != 0) {
 				/* backlight pwm was already on; just set */
@@ -205,7 +206,7 @@ static int lb080wv6_set_backlight_level(struct lcd_panel *panel, int level)
 				/* backlight was off; gently turn it on */
 				backlight_setpwm(0);
 				backlight_pwmenable(1);
-				backlight_step_pwm(level,1);
+				backlight_step_pwm(1,level);
 				bl_pwr_state = 1;
 			}
 		}
@@ -242,7 +243,7 @@ static struct lcd_panel lb080wv6_panel = {
 	.flc2		= 480,
 	.fswc2		= 31,
 	.fewc2		= 10,
-	.sync_invert	= IV_INVERT | IH_INVERT,
+	.sync_invert	= 0,
 	.init		= lb080wv6_panel_init,
 	.set_power	= lb080wv6_set_power,
 	.set_backlight_level = lb080wv6_set_backlight_level,
@@ -253,6 +254,7 @@ static int lb080wv6_probe(struct platform_device *pdev)
 	pr_info("%s\n", __func__);
 	mutex_init(&panel_lock);
 
+	lcd_pwr_state = 1;
 	lb080wv6_panel.dev = &pdev->dev;
 	tccfb_register_panel(&lb080wv6_panel);
 
