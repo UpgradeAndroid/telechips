@@ -12,7 +12,7 @@
  * GNU General Public License for more details.
  */
 
-#include <linux/kernel.h>
+#include <linux/module.h>
 #include <linux/init.h>
 #include <linux/string.h>
 #include <linux/proc_fs.h>
@@ -32,6 +32,9 @@ static struct proc_dir_entry *pmap_proc_entry;
 int pmap_get_info(const char *name, pmap_t *mem)
 {
 	int i;
+
+	if (strcmp(name, "ump_reserved") == 0)
+		name = "temp";
 
 	for (i = 0; i < num_pmaps; i++) {
 		if (strcmp(name, pmap_table[i].name) == 0) {
