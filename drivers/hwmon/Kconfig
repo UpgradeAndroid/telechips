@@ -769,7 +769,7 @@ config SENSORS_MAX6650
 	  will be called max6650.
 
 config SENSORS_MMA7660
-	tristate " 3-Axis Orientation/Motion detection sensor"
+	tristate "3-Axis Orientation/Motion detection sensor"
 	depends on I2C
 	help
 	    3-Axis Orientation/Motion detection sensor.
