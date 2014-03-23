@@ -80,6 +80,15 @@ static struct platform_device setkr101_lcd = {
 };
 #endif//CONFIG_LCD_SETKR101
 
+#ifdef CONFIG_LCD_TM080SDH03
+static struct platform_device tm080sdh03_lcd = {
+	.name  = "tm080sdh03_lcd",
+	.dev  = {
+		.platform_data = &lcd_pdata,
+	},
+};
+#endif//CONFIG_LCD_TM080SDH03
+
 static void m801_88_brightness_set(struct led_classdev *led_cdev, enum led_brightness value)
 {
 	struct lcd_panel *lcd_panel = tccfb_get_panel();
@@ -168,6 +177,12 @@ int __init m801_88_init_panel(void)
 		#ifdef CONFIG_LCD_SETKR101
 		case PANEL_ID_SETKR101:
 			platform_device_register(&setkr101_lcd);
+			break;
+		#endif
+
+		#ifdef CONFIG_LCD_TM080SDH03
+		case PANEL_ID_TM080SDH03:
+			platform_device_register(&tm080sdh03_lcd);
 			break;
 		#endif
 

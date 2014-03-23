@@ -256,6 +256,10 @@ config LCD_SETKR101
 	bool "SETKR101 1024 * 600 LVDS support"
 	depends on FB_TCC
 
+config LCD_TM080SDH03
+	bool "TM080SDH03 800 * 600 support"
+	depends on FB_TCC
+
 config LCD_LCDC0_USE
 	bool "platform LCDC is use LCD control 0"
 	depends on FB_TCC

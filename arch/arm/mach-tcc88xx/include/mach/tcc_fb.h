@@ -34,6 +34,7 @@ enum {
 	PANEL_ID_CLAA102NA0DCW,
 	PANEL_ID_HSD1126XA01A,	//IRA added: breaks numbering!!
 	PANEL_ID_SETKR101,	//IRA added: breaks numbering!!
+	PANEL_ID_TM080SDH03,	//IRA added: breaks numbering!!
 	PANEL_ID_ED090NA,	
 	PANEL_ID_KR080PA2S,	
 	PANEL_ID_HDMI	
