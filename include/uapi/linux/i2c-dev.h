@@ -42,6 +42,12 @@
 #define I2C_SLAVE	0x0703	/* Use this slave address */
 #define I2C_SLAVE_FORCE	0x0706	/* Use this slave address, even if it
 				   is already in use by a driver! */
+/* S: telechips */
+#define I2C_SLAVE_TCC	0x0730	/* Use TCC DxB slave address
+				   for TCC DxB sub board */
+#define I2C_WR_RD	0x0731  /* for TCC protocol */
+/* E: telechips */
+
 #define I2C_TENBIT	0x0704	/* 0 for 7 bit addrs, != 0 for 10 bit */
 
 #define I2C_FUNCS	0x0705	/* Get the adapter functionality mask */

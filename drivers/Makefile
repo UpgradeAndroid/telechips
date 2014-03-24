@@ -153,3 +153,6 @@ obj-$(CONFIG_IIO)		+= iio/
 obj-$(CONFIG_VME_BUS)		+= vme/
 obj-$(CONFIG_IPACK_BUS)		+= ipack/
 obj-$(CONFIG_NTB)		+= ntb/
+
+obj-$(CONFIG_iTV_CORE)		+= i-tv/
+obj-$(CONFIG_GPS_JGR_SC3_S)	+= gps/

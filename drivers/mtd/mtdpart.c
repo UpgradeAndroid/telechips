@@ -115,6 +115,7 @@ static int part_read_oob(struct mtd_info *mtd, loff_t from,
 	if (ops->datbuf && from + ops->len > mtd->size)
 		return -EINVAL;
 
+#if 0   // temparary comments... by B100044.
 	/*
 	 * If OOB is also requested, make sure that we do not read past the end
 	 * of this partition.
@@ -131,6 +132,7 @@ static int part_read_oob(struct mtd_info *mtd, loff_t from,
 		if (ops->ooboffs + ops->ooblen > pages * len)
 			return -EINVAL;
 	}
+#endif
 
 	res = part->master->_read_oob(part->master, from + part->offset, ops);
 	if (unlikely(res)) {
@@ -360,7 +362,7 @@ static struct mtd_part *allocate_partition(struct mtd_info *master,
 	/* set up the MTD object for this partition */
 	slave->mtd.type = master->type;
 	slave->mtd.flags = master->flags & ~part->mask_flags;
-	slave->mtd.size = part->size;
+	slave->mtd.size = (unsigned long long)part->size;
 	slave->mtd.writesize = master->writesize;
 	slave->mtd.writebufsize = master->writebufsize;
 	slave->mtd.oobsize = master->oobsize;
@@ -470,7 +472,7 @@ static struct mtd_part *allocate_partition(struct mtd_info *master,
 	}
 	if (slave->offset + slave->mtd.size > master->size) {
 		slave->mtd.size = master->size - slave->offset;
-		printk(KERN_WARNING"mtd: partition \"%s\" extends beyond the end of device \"%s\" -- size truncated to %#llx\n",
+		printk(KERN_WARNING"mtd: partition \"%s\" extends beyond the end of device \"%s\ " "\-- size truncated to %#llx\n",
 			part->name, master->name, (unsigned long long)slave->mtd.size);
 	}
 	if (master->numeraseregions > 1) {

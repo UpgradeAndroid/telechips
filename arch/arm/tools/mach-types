@@ -558,15 +558,27 @@ armadillo800eva		MACH_ARMADILLO800EVA	ARMADILLO800EVA		3863
 mx53_umobo		MACH_MX53_UMOBO		MX53_UMOBO		3927
 mt4			MACH_MT4		MT4			3981
 u8520			MACH_U8520		U8520			3990
+#tcc start
+tcc8900                 MACH_TCC8900            TCC8900                 4000
+tcc9100                 MACH_TCC9100            TCC9100                 4001
+tcc9200s                MACH_TCC9200S           TCC9200S                4002
+tcc9200                 MACH_TCC9200            TCC9200                 4003
+tcc9201                 MACH_TCC9201            TCC9201                 4004
+tcc9300st               MACH_TCC9300ST          TCC9300ST               4005
+tcc8800                 MACH_TCC8800            TCC8800                 4006
+tcc8920                 MACH_TCC8920            TCC8920                 4007
+tcc8920st               MACH_TCC8920ST          TCC8920ST               4008
+m805_892x               MACH_M805_892X          M805_892X               4009
+m57te                   MACH_M57TE              M57TE                   4100
+m801                    MACH_M801               M801                    4101
+m801_88                 MACH_M801_88            M801_88                 4102
+tcc9300cm               MACH_TCC9300CM          TCC9300CM               4103
+tcc9300                 MACH_TCC9300            TCC9300                 4104
+tcc8800st               MACH_TCC8800ST          TCC8800ST               4105
+m803                    MACH_M803               M803                    4106
+#tcc end
 chupacabra		MACH_CHUPACABRA		CHUPACABRA		4098
 scorpion		MACH_SCORPION		SCORPION		4099
-davinci_he_hmi10	MACH_DAVINCI_HE_HMI10	DAVINCI_HE_HMI10	4100
-topkick			MACH_TOPKICK		TOPKICK			4101
-m3_auguestrush		MACH_M3_AUGUESTRUSH	M3_AUGUESTRUSH		4102
-ipc335x			MACH_IPC335X		IPC335X			4103
-sun4i			MACH_SUN4I		SUN4I			4104
-imx233_olinuxino	MACH_IMX233_OLINUXINO	IMX233_OLINUXINO	4105
-k2_wl			MACH_K2_WL		K2_WL			4106
 k2_ul			MACH_K2_UL		K2_UL			4107
 k2_cl			MACH_K2_CL		K2_CL			4108
 minbari_w		MACH_MINBARI_W		MINBARI_W		4109

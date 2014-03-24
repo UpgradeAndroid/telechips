@@ -143,6 +143,23 @@ struct kobject *get_governor_parent_kobj(struct cpufreq_policy *policy)
 }
 EXPORT_SYMBOL_GPL(get_governor_parent_kobj);
 
+#if defined(CONFIG_ARCH_TCC)
+static int cpufreq_performance_governor_flag = 0;
+static void cpufreq_set_performance_governor_flag(int enabled)
+{
+	if (enabled)
+		cpufreq_performance_governor_flag = 1;
+	else
+		cpufreq_performance_governor_flag = 0;
+}
+
+int cpufreq_is_performace_governor(void)
+{
+	return cpufreq_performance_governor_flag;
+}
+EXPORT_SYMBOL_GPL(cpufreq_is_performace_governor);
+#endif
+
 static struct cpufreq_policy *__cpufreq_cpu_get(unsigned int cpu, bool sysfs)
 {
 	struct cpufreq_policy *data;
@@ -159,7 +176,6 @@ static struct cpufreq_policy *__cpufreq_cpu_get(unsigned int cpu, bool sysfs)
 
 	if (!try_module_get(cpufreq_driver->owner))
 		goto err_out_unlock;
-
 
 	/* get the CPU */
 	data = per_cpu(cpufreq_cpu_data, cpu);
@@ -1773,6 +1789,22 @@ static int __cpufreq_set_policy(struct cpufreq_policy *data,
 				goto error_out;
 			}
 			/* might be a policy change, too, so fall through */
+
+#if defined(CONFIG_ARCH_TCC)
+			if (strcmp(data->governor->name, "ondemand")==0) {
+				pr_debug("############# governor changed to ondemand #############\n");
+				cpufreq_set_performance_governor_flag(0);
+			}
+			else if (strcmp(data->governor->name, "performance")==0) {
+				pr_debug("############# governor changed to performance #############\n");
+				cpufreq_set_performance_governor_flag(1);
+			}
+			else {
+				pr_debug("############# %s is undefined governor #############\n", data->governor->name);
+				cpufreq_set_performance_governor_flag(0);
+			}
+#endif
+
 		}
 		pr_debug("governor: change or update limits\n");
 		__cpufreq_governor(data, CPUFREQ_GOV_LIMITS);

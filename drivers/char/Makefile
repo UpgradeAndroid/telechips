@@ -49,6 +49,22 @@ obj-$(CONFIG_NSC_GPIO)		+= nsc_gpio.o
 obj-$(CONFIG_GPIO_TB0219)	+= tb0219.o
 obj-$(CONFIG_TELCLOCK)		+= tlclk.o
 
+obj-$(CONFIG_TCC_GRAPHIC)	+= tccgrp.o tcc_Gre2d.o tcc_Gre2d_api.o
+ifeq ($(CONFIG_ARCH_TCC892X), y)
+    obj-$(CONFIG_TCC_MEMSCALER) 	+= tcc_scaler.o 
+    obj-$(CONFIG_TCC_MEMSCALER1) 	+= tcc_scaler1.o 
+    obj-$(CONFIG_TCC_MEMSCALER2) 	+= tcc_scaler2.o 
+    obj-$(CONFIG_TCC_WMIXER) 		+= tcc_wmixer.o 
+else
+    obj-$(CONFIG_TCC_MEMSCALER)	 += tcc_scaler.o tcc_scaler_ctrl.o
+    obj-$(CONFIG_TCC_MEMSCALER1) += tcc_scaler1.o
+endif
+obj-$(CONFIG_TCC_HW_JPEG_ENC)	+= tcc_jpegenc.o tcc_jpegenc_app.o
+obj-$(CONFIG_TCC_HW_JPEG_DEC)	+= tcc_jpegdec.o tcc_jpegdec_app.o
+obj-$(CONFIG_TCC_VPU)		+= tcc_vpu.o
+obj-$(CONFIG_TCC_CIPHER)    += tcc_cipher.o
+obj-$(CONFIG_TCC_MEM)		+= tcc_mem.o
+
 obj-$(CONFIG_MWAVE)		+= mwave/
 obj-$(CONFIG_AGP)		+= agp/
 obj-$(CONFIG_PCMCIA)		+= pcmcia/
@@ -63,3 +79,25 @@ obj-$(CONFIG_JS_RTC)		+= js-rtc.o
 js-rtc-y = rtc.o
 
 obj-$(CONFIG_TILE_SROM)		+= tile-srom.o
+
+obj-$(CONFIG_ARCH_TCC)    += tcc_dxb_ctrl/ 
+obj-$(CONFIG_TCC_USER_INTR) += tcc_intr.o
+obj-$(CONFIG_TCC_BT_DEV)       += tcc_bt_dev.o
+obj-$(CONFIG_TCC_HDMI_DRIVER)	+= hdmi/
+
+obj-$(CONFIG_SATA_TCC)		+= tcc_ll.o
+
+obj-$(CONFIG_TCC_OUTPUT_STARTER)    += tcc_output_starter.o
+
+# For Android Framework
+obj-$(CONFIG_CPU_FREQ)		+= tcc_clockctrl.o
+
+# S: telechips
+obj-$(CONFIG_SENSOR_BMA150)		+= sensor_bma150.o
+obj-$(CONFIG_SENSOR_BMA220)		+= sensor_bma220.o
+obj-$(CONFIG_SENSOR_BMA023)		+= sensor_bma023.o
+obj-$(CONFIG_SENSOR_BMA250)		+= sensor_bma250.o
+
+obj-$(CONFIG_WIFI_PWR_CTL)		+= wifi_pwr/
+obj-$(CONFIG_WPS_PBC)		+= wps_pbc/
+# E: telechips

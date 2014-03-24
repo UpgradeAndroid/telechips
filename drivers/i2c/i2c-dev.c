@@ -175,6 +175,10 @@ static ssize_t i2cdev_write(struct file *file, const char __user *buf,
 		iminor(file_inode(file)), count);
 
 	ret = i2c_master_send(client, tmp, count);
+	/* telechips: for TCC DxB module */
+	if (client->flags & I2C_M_WR_RD)
+		client->flags &= ~I2C_M_WR_RD;
+
 	kfree(tmp);
 	return ret;
 }
@@ -420,6 +424,8 @@ static long i2cdev_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	switch (cmd) {
 	case I2C_SLAVE:
 	case I2C_SLAVE_FORCE:
+	/* telechips: for TCC DxB module */
+	case I2C_SLAVE_TCC:
 		/* NOTE:  devices set up to work with "new style" drivers
 		 * can't use I2C_SLAVE, even when the device node is not
 		 * bound to a driver.  Only I2C_SLAVE_FORCE will work.
@@ -437,7 +443,14 @@ static long i2cdev_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			return -EBUSY;
 		/* REVISIT: address could become busy later */
 		client->addr = arg;
+		/* telechips: for TCC DxB module */
+		if (cmd == I2C_SLAVE_TCC)
+			client->flags |= I2C_M_MODE;
 		return 0;
+	/* telechips: for TCC DxB module */
+	case I2C_WR_RD:
+		client->flags |= I2C_M_WR_RD;
+		break;
 	case I2C_TENBIT:
 		if (arg)
 			client->flags |= I2C_M_TEN;

@@ -1,6 +1,9 @@
 #ifndef _USB_VIDEO_H_
 #define _USB_VIDEO_H_
 
+#define USE_RESERVED_PHY_MEM //ZzaU :: to use reserved camera memory!!
+#define USE_PERFORMANCE_CLK //ZzaU :: to use max-clock!!
+
 #ifndef __KERNEL__
 #error "The uvcvideo.h header is deprecated, use linux/uvcvideo.h instead."
 #endif /* __KERNEL__ */

@@ -1099,6 +1099,11 @@ MODULE_LICENSE ("GPL");
 #define PCI_DRIVER		ohci_pci_driver
 #endif
 
+#if defined(CONFIG_ARCH_TCC)
+#include "ohci-tcc.c"
+#define PLATFORM_DRIVER     ohci_hcd_tcc_driver
+#endif
+
 #if defined(CONFIG_ARCH_SA1100) && defined(CONFIG_SA1111)
 #include "ohci-sa1111.c"
 #define SA1111_DRIVER		ohci_hcd_sa1111_driver
@@ -1209,6 +1214,7 @@ MODULE_LICENSE ("GPL");
 	!defined(AT91_PLATFORM_DRIVER) && \
 	!defined(NXP_PLATFORM_DRIVER) && \
 	!defined(DAVINCI_PLATFORM_DRIVER) && \
+	!defined(CONFIG_ARCH_TCC88XX) && \
 	!defined(SPEAR_PLATFORM_DRIVER)
 #error "missing bus glue for ohci-hcd"
 #endif

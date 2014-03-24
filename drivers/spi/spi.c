@@ -388,6 +388,7 @@ int spi_add_device(struct spi_device *spi)
 	if (master->cs_gpios)
 		spi->cs_gpio = master->cs_gpios[spi->chip_select];
 
+#if 0
 	/* Drivers may modify this initial i/o setup, but will
 	 * normally rely on the device being setup.  Devices
 	 * using SPI_CS_HIGH can't coexist well otherwise...
@@ -398,7 +399,7 @@ int spi_add_device(struct spi_device *spi)
 				dev_name(&spi->dev), status);
 		goto done;
 	}
-
+#endif
 	/* Device may be bound to an active driver when this returns */
 	status = device_add(&spi->dev);
 	if (status < 0)
@@ -1429,14 +1430,14 @@ int spi_async(struct spi_device *spi, struct spi_message *message)
 	int ret;
 	unsigned long flags;
 
-	spin_lock_irqsave(&master->bus_lock_spinlock, flags);
+//	spin_lock_irqsave(&master->bus_lock_spinlock, flags);
 
 	if (master->bus_lock_flag)
 		ret = -EBUSY;
 	else
 		ret = __spi_async(spi, message);
 
-	spin_unlock_irqrestore(&master->bus_lock_spinlock, flags);
+//	spin_unlock_irqrestore(&master->bus_lock_spinlock, flags);
 
 	return ret;
 }

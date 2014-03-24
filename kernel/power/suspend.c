@@ -218,14 +218,20 @@ static int suspend_enter(suspend_state_t state, bool *wakeup)
 	arch_suspend_disable_irqs();
 	BUG_ON(!irqs_disabled());
 
+	suspend_test_start_level(TEST_SUSPEND_TIME_LEVEL2);
 	error = syscore_suspend();
+	suspend_test_finish_level(TEST_SUSPEND_TIME_LEVEL2, "syscore_suspend");
 	if (!error) {
+		suspend_test_finish_level(TEST_SUSPEND_TIME_TOP, "total transition time of suspend");
 		*wakeup = pm_wakeup_pending();
 		if (!(suspend_test(TEST_CORE) || *wakeup)) {
 			error = suspend_ops->enter(state);
 			events_check_enabled = false;
 		}
+		suspend_test_start_level(TEST_SUSPEND_TIME_TOP);
+		suspend_test_start_level(TEST_SUSPEND_TIME_LEVEL2);
 		syscore_resume();
+		suspend_test_finish_level(TEST_SUSPEND_TIME_LEVEL2, "syscore_resume");
 	}
 
 	arch_suspend_enable_irqs();
@@ -321,9 +327,34 @@ static void suspend_finish(void)
  * Fail if that's not the case.  Otherwise, prepare for system suspend, make the
  * system enter the given sleep state and clean up after wakeup.
  */
+#if defined(CONFIG_USB_EHCI_HCD_MODULE)
+extern int tcc_umh_ehci_module(int flag);
+#endif
+
+#if defined(CONFIG_BROADCOM_WIFI)
+int tcc_bcmwifi_module(int flag);
+#endif
+
+static unsigned long g_rel_cpu_clock = 0;	//for suspend.resume lock up issue
 static int enter_state(suspend_state_t state)
 {
 	int error;
+
+	//Start : for suspend.resume lock up issue
+	unsigned long n_rel_cpu_clock = (cpu_clock(smp_processor_id()) >> 30LL) - g_rel_cpu_clock;
+	if(n_rel_cpu_clock < 3)
+	{
+		//printk("%s(%d->%d)\n", __func__, g_rel_cpu_clock, n_rel_cpu_clock);
+		msleep(1000);
+	}
+	//End
+	suspend_test_start_level(TEST_SUSPEND_TIME_TOP);
+#if defined(CONFIG_USB_EHCI_HCD_MODULE)
+	tcc_umh_ehci_module(0);
+#endif
+#if defined(CONFIG_BROADCOM_WIFI)
+	tcc_bcmwifi_module(0);
+#endif
 
 	if (!valid_state(state))
 		return -ENODEV;
@@ -356,6 +387,22 @@ static int enter_state(suspend_state_t state)
 	suspend_finish();
  Unlock:
 	mutex_unlock(&pm_mutex);
+
+ End:
+#if defined(CONFIG_USB_EHCI_HCD_MODULE)
+	tcc_umh_ehci_module(1);
+#endif
+
+#if defined(CONFIG_BROADCOM_WIFI)
+	tcc_bcmwifi_module(1);
+#endif
+
+	suspend_test_finish_level(TEST_SUSPEND_TIME_TOP, "total transition time of resume");
+
+	//Start : for suspend.resume lock up issue
+	g_rel_cpu_clock = (cpu_clock(smp_processor_id()) >> 30LL);
+	//End
+
 	return error;
 }
 
@@ -397,3 +444,82 @@ int pm_suspend(suspend_state_t state)
 	return error;
 }
 EXPORT_SYMBOL(pm_suspend);
+
+#if defined(CONFIG_USB_EHCI_HCD_MODULE)
+int tcc_umh_ehci_module(int flag)
+{
+	int retval = 0;
+
+/* Only considered for TCC88xx */
+#if defined(CONFIG_ARCH_TCC88XX) || defined(CONFIG_ARCH_TCC892X)
+	struct subprocess_info *sub_info_hs, *sub_info_fs;
+	static char *envp[] = {NULL};
+	char *argv_hs[] = {
+		flag ? "/system/bin/insmod" : "/system/bin/rmmod",
+		flag ? "/lib/modules/ehci-hcd.ko" : "ehci_hcd",
+		NULL};
+	char *argv_fs[] = {
+		flag ? "/system/bin/insmod" : "/system/bin/rmmod",
+		flag ? "/lib/modules/ohci-hcd.ko" : "ohci_hcd",
+		NULL};
+
+	sub_info_hs = call_usermodehelper_setup( argv_hs[0], argv_hs, envp, GFP_ATOMIC );
+	sub_info_fs = call_usermodehelper_setup( argv_fs[0], argv_fs, envp, GFP_ATOMIC );
+	if (sub_info_hs == NULL || sub_info_fs == NULL) {
+	printk("-> [%s:%d] ERROR-hs:0x%p, fs:0x%p\n", __func__, __LINE__, sub_info_hs, sub_info_fs);
+		if(sub_info_hs) call_usermodehelper_freeinfo(sub_info_hs);
+		if(sub_info_fs) call_usermodehelper_freeinfo(sub_info_fs);
+		retval = -ENOMEM;
+		goto End;
+	}
+
+	if (flag) {
+		retval = call_usermodehelper_exec(sub_info_hs, UMH_WAIT_PROC);
+		if(retval) printk("-> [%s:%d] retval:%d\n", __func__, __LINE__, retval);
+		retval |= call_usermodehelper_exec(sub_info_fs, UMH_WAIT_PROC);
+		if(retval) printk("-> [%s:%d] retval:%d\n", __func__, __LINE__, retval);
+	} else {
+		retval = call_usermodehelper_exec(sub_info_fs, UMH_WAIT_PROC);
+		if(retval) printk("-> [%s:%d] retval:%d\n", __func__, __LINE__, retval);
+		retval |= call_usermodehelper_exec(sub_info_hs, UMH_WAIT_PROC);
+		if(retval) printk("-> [%s:%d] retval:%d\n", __func__, __LINE__, retval);
+	}
+#endif /* CONFIG_ARCH_TCC88XX */
+
+End:
+	return retval;
+}
+EXPORT_SYMBOL(tcc_umh_ehci_module);
+#endif
+
+#if defined(CONFIG_BROADCOM_WIFI)
+int tcc_bcmwifi_module(int flag)
+{
+	int retval = 0;
+	struct subprocess_info *sub_info_hs;
+	static char *envp[] = {NULL};
+	char *argv_hs[] = {
+		flag ? "/system/bin/insmod" : "/system/bin/rmmod",
+		flag ? "/system/wifi/bcm4330.ko" : "bcmdhd",
+		NULL};
+
+	sub_info_hs = call_usermodehelper_setup( argv_hs[0], argv_hs, envp, GFP_ATOMIC );
+	if (sub_info_hs == NULL) {
+	printk("-> [%s:%d] ERROR-hs:0x%p", __func__, __LINE__, sub_info_hs);
+		if(sub_info_hs) call_usermodehelper_freeinfo(sub_info_hs);
+		retval = -ENOMEM;
+		goto End;
+	}
+
+	if (flag) {
+		retval = call_usermodehelper_exec(sub_info_hs, UMH_WAIT_PROC);
+		if(retval) printk("-> [%s:%d] retval:%d\n", __func__, __LINE__, retval);
+	} else {
+		retval |= call_usermodehelper_exec(sub_info_hs, UMH_WAIT_PROC);
+		if(retval) printk("-> [%s:%d] retval:%d\n", __func__, __LINE__, retval);
+	}
+End:
+	return retval;
+}
+EXPORT_SYMBOL(tcc_bcmwifi_module);
+#endif

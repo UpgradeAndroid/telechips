@@ -24,6 +24,18 @@
 
 #include "uvcvideo.h"
 
+#ifdef USE_RESERVED_PHY_MEM
+#include <plat/pmap.h>
+#include <linux/dma-mapping.h>
+
+static pmap_t pmap_cam;
+
+#define PA_PREVIEW_BASE_ADDR	pmap_cam.base
+#define PREVIEW_MEM_SIZE	pmap_cam.size
+
+void *pRemapped_mem;
+#endif
+
 /* ------------------------------------------------------------------------
  * Video buffers queue management.
  *
@@ -172,7 +184,22 @@ int uvc_alloc_buffers(struct uvc_video_queue *queue,
 	int ret;
 
 	mutex_lock(&queue->mutex);
+#ifdef USE_RESERVED_PHY_MEM
+	pmap_get_info("ext_camera", &pmap_cam);
+
+	pRemapped_mem = (void *)ioremap_nocache(PA_PREVIEW_BASE_ADDR, PAGE_ALIGN(PREVIEW_MEM_SIZE/*-PAGE_SIZE*/));
+	if (pRemapped_mem == NULL) {
+		printk(KERN_ALERT "[uvc] can not remap for usbcamera\n");
+		return -EFAULT;
+	}
+	nbuffers = PREVIEW_MEM_SIZE / bufsize;
+	mem = pRemapped_mem;
+
+	if (nbuffers > 10)
+		nbuffers = 10;
+#else
 	ret = vb2_reqbufs(&queue->queue, rb);
+#endif
 	mutex_unlock(&queue->mutex);
 
 	return ret ? ret : rb->count;
@@ -181,7 +208,12 @@ int uvc_alloc_buffers(struct uvc_video_queue *queue,
 void uvc_free_buffers(struct uvc_video_queue *queue)
 {
 	mutex_lock(&queue->mutex);
+	#ifdef USE_RESERVED_PHY_MEM
+		iounmap(queue->mem);
+		pRemapped_mem = NULL;
+	#else
 	vb2_queue_release(&queue->queue);
+	#endif
 	mutex_unlock(&queue->mutex);
 }
 

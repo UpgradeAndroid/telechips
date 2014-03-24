@@ -12,4 +12,6 @@ usbcore-y += port.o
 usbcore-$(CONFIG_PCI)		+= hcd-pci.o
 usbcore-$(CONFIG_ACPI)		+= usb-acpi.o
 
+usbcore-$(CONFIG_USB_OTG_TCC)	+= usbctrl.o
+
 obj-$(CONFIG_USB)		+= usbcore.o

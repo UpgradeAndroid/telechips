@@ -29,6 +29,7 @@ obj-$(CONFIG_VXLAN) += vxlan.o
 obj-$(CONFIG_ARCNET) += arcnet/
 obj-$(CONFIG_DEV_APPLETALK) += appletalk/
 obj-$(CONFIG_CAIF) += caif/
+obj-$(CONFIG_TCC_GMAC) += tcc_gmac/
 obj-$(CONFIG_CAN) += can/
 obj-$(CONFIG_ETRAX_ETHERNET) += cris/
 obj-$(CONFIG_NET_DSA) += dsa/

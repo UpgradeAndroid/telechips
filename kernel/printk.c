@@ -60,7 +60,11 @@ extern void printascii(char *);
 
 /* We show everything that is MORE important than this.. */
 #define MINIMUM_CONSOLE_LOGLEVEL 1 /* Minimum loglevel we let people use */
+#ifdef CONFIG_PM_VERBOSE
+#define DEFAULT_CONSOLE_LOGLEVEL 8 /* anything MORE serious than KERN_DEBUG */
+#else
 #define DEFAULT_CONSOLE_LOGLEVEL 7 /* anything MORE serious than KERN_DEBUG */
+#endif
 
 int console_printk[4] = {
 	DEFAULT_CONSOLE_LOGLEVEL,	/* console_loglevel */
@@ -1880,7 +1884,11 @@ int update_console_cmdline(char *name, int idx, char *name_new, int idx_new, cha
 	return -1;
 }
 
+#ifdef CONFIG_PM_CONSOLE_NOT_SUSPEND
+bool console_suspend_enabled = 0;
+#else
 bool console_suspend_enabled = 1;
+#endif
 EXPORT_SYMBOL(console_suspend_enabled);
 
 static int __init console_suspend_disable(char *str)

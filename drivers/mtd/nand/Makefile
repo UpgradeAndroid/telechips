@@ -2,6 +2,10 @@
 # linux/drivers/nand/Makefile
 #
 
+ifeq ($(CONFIG_ARCH_TCC),y)
+EXTRA_CFLAGS += -D_LINUX_
+endif
+
 obj-$(CONFIG_MTD_NAND)			+= nand.o
 obj-$(CONFIG_MTD_NAND_ECC)		+= nand_ecc.o
 obj-$(CONFIG_MTD_NAND_BCH)		+= nand_bch.o

@@ -178,6 +178,49 @@ config REGULATOR_MAX1586
 	  regulator via I2C bus. The provided regulator is suitable
 	  for PXA27x chips to control VCC_CORE and VCC_USIM voltages.
 
+config REGULATOR_AXP192
+	tristate "KrossPower AXP192 Power System Management IC"
+	depends on I2C
+	help
+	  This driver supports the voltage regulators.
+
+config REGULATOR_AXP192_PEK
+	tristate "AXP192 PMIC PEK Power Key USE"
+	depends on (REGULATOR_AXP192 && (MACH_M801_88 || MACH_M803 || MACH_M805_892X))
+
+config REGULATOR_AXP192_DCDC12_CONTROLLING_TOGETHER
+	tristate "AXP192 DCDC1/2 controlling together"
+	depends on (REGULATOR_AXP192 && ARCH_TCC892X)
+
+config REGULATOR_AXP202
+	tristate "KrossPower AXP202 Power System Management IC"
+	depends on I2C
+	help
+	  This driver supports the voltage regulators.
+
+config REGULATOR_AXP202_PEK
+	tristate "AXP202 PMIC PEK Power Key USE"
+	depends on (REGULATOR_AXP202)
+
+config REGULATOR_ACT8810
+	tristate "Active-Semi Eight Channel ActivePath Power Managemant IC"
+	depends on I2C
+	help
+	  This driver supports the voltage regulators.
+
+config REGULATOR_RN5T614
+	tristate "RICOH RN5T614 power management system device"
+	depends on I2C
+	help
+	  This driver supports the voltage regulators.
+
+config TCC_CORE_VOLTAGE_OFFSET
+	int "TCC Core Voltage Offset"
+	default 0
+	depends on (REGULATOR_AXP192 || REGULATOR_ACT8810 || REGULATOR_RN5T614 || REGULATOR_AXP202)
+	----help---
+	    Core voltage offset value.  unit(mA)
+
 config REGULATOR_MAX8649
 	tristate "Maxim 8649 voltage regulator"
 	depends on I2C

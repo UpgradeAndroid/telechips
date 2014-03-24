@@ -358,6 +358,9 @@ static inline int mtd_can_have_bb(const struct mtd_info *mtd)
 
 	/* Kernel-side ioctl definitions */
 
+extern int add_mtd_device(struct mtd_info *mtd);
+extern int del_mtd_device (struct mtd_info *mtd);
+
 struct mtd_partition;
 struct mtd_part_parser_data;
 

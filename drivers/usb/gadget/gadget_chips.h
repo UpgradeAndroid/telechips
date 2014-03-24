@@ -34,6 +34,12 @@
 #define gadget_is_pxa(g)		(!strcmp("pxa25x_udc", (g)->name))
 #define gadget_is_pxa27x(g)		(!strcmp("pxa27x_udc", (g)->name))
 
+#ifdef CONFIG_USB_GADGET_OTG_TCC
+#define gadget_is_dwc_otg_pcd(g)	(!strcmp("dwc_otg_pcd", (g)->name))
+#else
+#define gadget_is_dwc_otg_pcd(g)	0
+#endif
+
 /**
  * gadget_supports_altsettings - return true if altsettings work
  * @gadget: the gadget in question
@@ -47,6 +53,12 @@ static inline bool gadget_supports_altsettings(struct usb_gadget *gadget)
 	/* PXA 27x and 3xx have *broken* altsetting support */
 	if (gadget_is_pxa27x(gadget))
 		return false;
+
+#if 0
+	if (gadget_is_dwc_otg_pcd(gadget))
+		return false;
+#endif
+
 
 	/* Everything else is *presumably* fine ... */
 	return true;

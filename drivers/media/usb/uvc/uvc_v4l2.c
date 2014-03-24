@@ -31,6 +31,11 @@
 
 #include "uvcvideo.h"
 
+#if defined(CONFIG_CPU_FREQ) && defined(USE_PERFORMANCE_CLK)
+#include <linux/cpufreq.h>
+extern struct tcc_freq_table_t gtJpegMaxClockLimitTable;
+#endif
+
 /* ------------------------------------------------------------------------
  * UVC ioctls
  */
@@ -170,6 +175,8 @@ static int uvc_v4l2_try_format(struct uvc_streaming *stream,
 	 */
 	for (i = 0; i < stream->nformats; ++i) {
 		format = &stream->format[i];
+		fcc = (__u8 *)&format->fcc;
+		printk(" supported format (%c%c%c%c) \n", fcc[0], fcc[1], fcc[2], fcc[3]);
 		if (format->fcc == fmt->fmt.pix.pixelformat)
 			break;
 	}
@@ -310,10 +317,12 @@ static int uvc_v4l2_set_format(struct uvc_streaming *stream,
 
 	mutex_lock(&stream->mutex);
 
+#if 0 //ZzaU :: to solve capture-problem!!
 	if (uvc_queue_allocated(&stream->queue)) {
 		ret = -EBUSY;
 		goto done;
 	}
+#endif
 
 	stream->ctrl = probe;
 	stream->cur_format = format;
@@ -515,6 +524,10 @@ static int uvc_v4l2_open(struct file *file)
 	handle->state = UVC_HANDLE_PASSIVE;
 	file->private_data = handle;
 
+#if defined(CONFIG_CPU_FREQ) && defined(USE_PERFORMANCE_CLK)
+	tcc_cpufreq_set_limit_table(&gtJpegMaxClockLimitTable, TCC_FREQ_LIMIT_CAMERA, 1);
+#endif
+
 	return 0;
 }
 
@@ -542,6 +555,11 @@ static int uvc_v4l2_release(struct file *file)
 		uvc_status_stop(stream->dev);
 
 	usb_autopm_put_interface(stream->dev->intf);
+
+#if defined(CONFIG_CPU_FREQ) && defined(USE_PERFORMANCE_CLK)
+	tcc_cpufreq_set_limit_table(&gtJpegMaxClockLimitTable, TCC_FREQ_LIMIT_CAMERA, 0);
+#endif
+
 	return 0;
 }
 
@@ -1314,6 +1332,28 @@ static ssize_t uvc_v4l2_read(struct file *file, char __user *data,
 	return -EINVAL;
 }
 
+#ifdef USE_RESERVED_PHY_MEM
+extern int range_is_allowed(unsigned long pfn, unsigned long size);
+static int uvc_v4l2_mmap(struct file *file, struct vm_area_struct *vma)
+{
+	if(range_is_allowed(vma->vm_pgoff, vma->vm_end - vma->vm_start) < 0){
+		printk(KERN_ERR  "uvc: this address is not allowed \n");
+		return -EAGAIN;
+	}
+
+	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+	if(remap_pfn_range(vma,vma->vm_start, vma->vm_pgoff , vma->vm_end - vma->vm_start, vma->vm_page_prot))
+	{
+		return -EAGAIN;
+	}
+
+	vma->vm_ops		= NULL;
+	vma->vm_flags 	|= VM_IO;
+	vma->vm_flags 	|= VM_RESERVED;
+
+	return 0;
+}
+#else
 static int uvc_v4l2_mmap(struct file *file, struct vm_area_struct *vma)
 {
 	struct uvc_fh *handle = file->private_data;
@@ -1323,6 +1363,7 @@ static int uvc_v4l2_mmap(struct file *file, struct vm_area_struct *vma)
 
 	return uvc_queue_mmap(&stream->queue, vma);
 }
+#endif
 
 static unsigned int uvc_v4l2_poll(struct file *file, poll_table *wait)
 {

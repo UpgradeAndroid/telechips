@@ -864,6 +864,11 @@ config ARCH_OMAP1
 	help
 	  Support for older TI OMAP1 (omap7xx, omap15xx or omap16xx)
 
+config ARCH_TCC
+	bool "Telechips TCC-based"
+	help
+	  Support for Telechips TCC based systems.
+
 endchoice
 
 menu "Multiple platform selection"
@@ -993,6 +998,11 @@ source "arch/arm/mach-s3c24xx/Kconfig"
 
 if ARCH_S3C64XX
 source "arch/arm/mach-s3c64xx/Kconfig"
+endif
+
+if ARCH_TCC
+source "arch/arm/mach-tcc892x/Kconfig"
+source "arch/arm/mach-tcc88xx/Kconfig"
 endif
 
 source "arch/arm/mach-s5p64x0/Kconfig"

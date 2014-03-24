@@ -19,12 +19,26 @@
 #include <linux/hrtimer.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
+#if defined(CONFIG_PM)
+#include <linux/workqueue.h>
+#include <linux/gpio.h>
+#include <mach/bsp.h>
+#include <mach/io.h>
+#include <asm/mach-types.h>
+#endif
 
 struct gpio_event {
 	struct gpio_event_input_devs *input_devs;
 	const struct gpio_event_platform_data *info;
 	void *state[0];
 };
+
+#if defined(CONFIG_PM)
+static void event_work_func(struct work_struct *work);
+static DECLARE_DELAYED_WORK(work, event_work_func);
+static struct workqueue_struct *event_wq;
+static struct input_dev *event_dev;
+#endif
 
 static int gpio_input_event(
 	struct input_dev *dev, unsigned int type, unsigned int code, int value)
@@ -99,19 +113,25 @@ err_no_func:
 	return ret;
 }
 
-static void __maybe_unused gpio_event_suspend(struct gpio_event *ip)
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static void __maybe_unused gpio_event_early_suspend(struct early_suspend *h)
 {
+	struct gpio_event *ip;
+	ip = container_of(h, struct gpio_event, early_suspend);
 	gpio_event_call_all_func(ip, GPIO_EVENT_FUNC_SUSPEND);
 	if (ip->info->power)
 		ip->info->power(ip->info, 0);
 }
 
-static void __maybe_unused gpio_event_resume(struct gpio_event *ip)
+static void __maybe_unused gpio_event_late_resume(struct early_suspend *h)
 {
+	struct gpio_event *ip;
+	ip = container_of(h, struct gpio_event, early_suspend);
 	if (ip->info->power)
 		ip->info->power(ip->info, 1);
 	gpio_event_call_all_func(ip, GPIO_EVENT_FUNC_RESUME);
 }
+#endif
 
 static int gpio_event_probe(struct platform_device *pdev)
 {
@@ -147,6 +167,11 @@ static int gpio_event_probe(struct platform_device *pdev)
 	ip->input_devs = (void*)&ip->state[event_info->info_count];
 	platform_set_drvdata(pdev, ip);
 
+#if defined(CONFIG_PM)
+	if (event_wq != NULL)
+		event_wq = create_singlethread_workqueue("event_wq");
+#endif
+
 	for (i = 0; i < dev_count; i++) {
 		struct input_dev *input_dev = input_allocate_device();
 		if (input_dev == NULL) {
@@ -160,6 +185,13 @@ static int gpio_event_probe(struct platform_device *pdev)
 					event_info->name : event_info->names[i];
 		input_dev->event = gpio_input_event;
 		ip->input_devs->dev[i] = input_dev;
+
+#if defined(CONFIG_PM)
+		if (strcmp(input_dev->name, "tcc-gpiokey") == 0)
+			event_dev = input_dev;
+		else
+			event_dev = NULL;
+#endif
 	}
 	ip->input_devs->count = dev_count;
 	ip->info = event_info;
@@ -213,9 +245,82 @@ static int gpio_event_remove(struct platform_device *pdev)
 	return 0;
 }
 
+#if defined(CONFIG_PM)
+static int gpio_event_suspend(struct platform_device *pdev, pm_message_t state)
+{
+	return 0;
+}
+
+static int gpio_event_resume(struct platform_device *pdev)
+{
+#if 0	//Often does not wakeup in user mode. so, has commented. - 120303, hjbae
+	int is_wakeup_by_powerkey = 0;
+	PPMU pPMU = (PPMU)tcc_p2v(HwPMU_BASE);
+
+#if defined(CONFIG_REGULATOR_AXP192_PEK) || defined(CONFIG_REGULATOR_AXP202_PEK)
+	return 0;
+#endif
+
+	// WKUP from PowerKey & PowerKey is not pressed.
+#if defined(CONFIG_MACH_M805_892X)
+	if (system_rev == 0x2002 || system_rev == 0x2003 || system_rev == 0x2004 || system_rev == 0x2005)
+	{
+		if((pPMU->PMU_WKSTS1.bREG.GPIO_E15)&&(gpio_get_value(TCC_GPE(15))))
+			is_wakeup_by_powerkey = 1;
+	}
+	else
+	{
+		if((pPMU->PMU_WKSTS0.bREG.GPIO_D09)&&(gpio_get_value(TCC_GPD(9))))
+			is_wakeup_by_powerkey = 1;
+	}
+#elif defined(CONFIG_MACH_TCC8920ST)
+	if((pPMU->PMU_WKSTS0.bREG.GPIO_D14)&&(gpio_get_value(TCC_GPD(14))))
+		is_wakeup_by_powerkey = 1;
+#elif defined(CONFIG_ARCH_TCC892X)
+	if(system_rev == 0x1005 || system_rev == 0x1007 || system_rev == 0x1008)
+	{
+		if((pPMU->PMU_WKSTS1.bREG.GPIO_E30)&&(gpio_get_value(TCC_GPE(30))))
+			is_wakeup_by_powerkey = 1;
+	}
+	else if(system_rev == 0x1006)
+	{
+		if((pPMU->PMU_WKSTS1.bREG.GPIO_E24)&&(gpio_get_value(TCC_GPE(24))))
+			is_wakeup_by_powerkey = 1;
+	}
+	else
+	{
+		if((pPMU->PMU_WKSTS0.bREG.GPIO_G16)&&(gpio_get_value(TCC_GPG(16))))
+			is_wakeup_by_powerkey = 1;
+	}
+#endif
+
+	if (is_wakeup_by_powerkey == 1) {
+		cancel_delayed_work(&work);
+		if (event_dev)
+			input_report_key(event_dev, KEY_POWER, 1);	//KEY_END
+		queue_delayed_work(event_wq, &work, msecs_to_jiffies(100));
+
+		printk("[Wakeup by Short PowerKey!!!]\n");
+	}
+#endif
+
+	return 0;
+}
+
+static void event_work_func(struct work_struct *work)
+{
+	if (event_dev)
+		input_report_key(event_dev, KEY_POWER, 0);	//KEY_END
+}
+#endif
+
 static struct platform_driver gpio_event_driver = {
 	.probe		= gpio_event_probe,
 	.remove		= gpio_event_remove,
+#if defined(CONFIG_PM)
+	.suspend	= gpio_event_suspend,
+	.resume		= gpio_event_resume,
+#endif
 	.driver		= {
 		.name	= GPIO_EVENT_DEV_NAME,
 	},

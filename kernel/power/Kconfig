@@ -7,6 +7,31 @@ config SUSPEND
 	  powered and thus its contents are preserved, such as the
 	  suspend-to-RAM state (e.g. the ACPI S3 state).
 
+choice
+	prompt "Suspend mode"
+	depends on SUSPEND && (ARCH_TCC93XX || ARCH_TCC892X)
+	default SHUTDOWN_MODE
+	help
+	  If you select "shut-down mode", the current consumption will be reduced.
+	  But you can't use wake-up by the remocon.
+	  In other words, If you want to use wake-up by the remocon, you must select "sleep mode".
+
+config SHUTDOWN_MODE
+	bool "Shut-down mode"
+	help
+	  If you select "shut-down mode", the current consumption will be reduced.
+	  But you can't use wake-up by the remocon.
+	  In other words, If you want to use wake-up by the remocon, you must select "sleep mode".
+
+config SLEEP_MODE
+	bool "Sleep mode"
+	help
+	  If you select "shut-down mode", the current consumption will be reduced.
+	  But you can't use wake-up by the remocon.
+	  In other words, If you want to use wake-up by the remocon, you must select "sleep mode".
+
+endchoice
+
 config SUSPEND_FREEZER
 	bool "Enable freezer for suspend to RAM/standby" \
 		if ARCH_WANTS_FREEZER_CONTROL || BROKEN
@@ -25,6 +50,14 @@ config HAS_WAKELOCK
 config WAKELOCK
 	bool
 	default y
+
+config EARLY_SUSPEND_ONLY
+	bool "Early suspend only"
+	depends on SUSPEND && HAS_EARLYSUSPEND
+	default n
+	---help---
+	  This makes system call only early suspend handlers when the user requested power state changes.
+	  If this is enabled, system will not enter to suspend state.
 
 config HIBERNATE_CALLBACKS
 	bool
@@ -183,6 +216,70 @@ config PM_TEST_SUSPEND
 	You probably want to have your system's RTC driver statically
 	linked, ensuring that it's available when this test runs.
 
+choice
+	prompt "Measurement Level"
+	depends on PM_TEST_SUSPEND
+	default PM_TEST_SUSPEND_LEVEL_1
+	help
+	  Select measurement level about PM transition.
+	  In case of level 0, measure the total excution time it takes to PM transition.
+	  In case of level 1, include level 0, measure the excution time it takes to PM transition of each callbacks about non-sysdev devices.
+	  In case of level 2, include level 1, measure the total excution time it takes to PM transition of sysdev devices. 
+		In case of level 3, it is reserved.
+
+config PM_TEST_SUSPEND_LEVEL_0
+	bool "level 0"
+	help
+
+config PM_TEST_SUSPEND_LEVEL_1
+	bool "level 1"
+	help
+
+config PM_TEST_SUSPEND_LEVEL_2
+	bool "level 2"
+	help
+
+config PM_TEST_SUSPEND_LEVEL_3
+	bool "level 3"
+	help
+
+endchoice
+
+config PM_VERBOSE
+	bool "Verbose Power Management debugging"
+	depends on PM_DEBUG
+	default n
+	---help---
+	This option enables verbose messages from the Power Management code.
+
+config PM_VERBOSE_WAKELOCK
+	bool "Verbose Wake lock debugging"
+	depends on PM_DEBUG
+	default n
+	---help---
+	This option enables verbose messages from the wake lock code.
+
+config PM_VERBOSE_EARLYSUSPEND
+	bool "Verbose early suspend/late resume debugging"
+	depends on PM_DEBUG
+	default n
+	---help---
+	This option enables verbose messages from the early suspend/late resume code.
+
+config PM_CONSOLE_NOT_SUSPEND
+	bool "Prevent suspending console"
+	depends on PM_DEBUG
+	default n
+	---help---
+	This option prevent suspending the console driver.
+
+config PM_VERBOSE_DPM_SUSPEND
+	bool "Verbose DPM suspend/resume debugging"
+	depends on PM_CONSOLE_NOT_SUSPEND
+	default n
+	---help---
+	This option enables verbose messages from the dpm suspend/resume code.
+
 config PM_SLEEP_DEBUG
 	def_bool y
 	depends on PM_DEBUG && PM_SLEEP
@@ -278,6 +375,10 @@ config PM_GENERIC_DOMAINS_SLEEP
 config PM_GENERIC_DOMAINS_RUNTIME
 	def_bool y
 	depends on PM_RUNTIME && PM_GENERIC_DOMAINS
+
+config CPU_PM
+	bool
+	depends on SUSPEND || CPU_IDLE
 
 config CPU_PM
 	bool

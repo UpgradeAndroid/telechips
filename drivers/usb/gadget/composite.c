@@ -17,9 +17,18 @@
 #include <linux/module.h>
 #include <linux/device.h>
 #include <linux/utsname.h>
+#include <linux/dma-mapping.h>
 
 #include <linux/usb/composite.h>
 #include <asm/unaligned.h>
+
+#ifdef CONFIG_ARCH_TCC
+#if defined(CONFIG_TCC_DWC_HS_ELECT_TST)
+#undef DMA_MODE
+#else
+#define DMA_MODE
+#endif
+#endif
 
 /*
  * The code in this file is utility code, used to build a gadget driver
@@ -1592,7 +1601,11 @@ int composite_dev_prepare(struct usb_composite_driver *composite,
 	if (!cdev->req)
 		return -ENOMEM;
 
+#ifdef DMA_MODE
+	cdev->req->buf = dma_alloc_coherent(NULL, USB_BUFSIZ, &cdev->req->dma, GFP_KERNEL|GFP_DMA);
+#else
 	cdev->req->buf = kmalloc(USB_COMP_EP0_BUFSIZ, GFP_KERNEL);
+#endif
 	if (!cdev->req->buf)
 		goto fail;
 
@@ -1636,7 +1649,11 @@ void composite_dev_cleanup(struct usb_composite_dev *cdev)
 		kfree(uc);
 	}
 	if (cdev->req) {
+#ifdef DMA_MODE
+		dma_free_coherent(NULL, USB_BUFSIZ, cdev->req->buf, cdev->req->dma);
+#else
 		kfree(cdev->req->buf);
+#endif
 		usb_ep_free_request(cdev->gadget->ep0, cdev->req);
 	}
 	cdev->next_string_id = 0;

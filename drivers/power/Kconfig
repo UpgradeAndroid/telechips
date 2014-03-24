@@ -364,6 +364,18 @@ config BATTERY_GOLDFISH
 
 source "drivers/power/reset/Kconfig"
 
+
+config BATTERY_TCC
+	tristate "Telechips battery / charger driver"
+	help
+	  Say Y here to enable support for the battery on Telechips evaluation board.
+
+config BATTERY_COBY
+	tristate "Coby battery /charger driver"
+	depends on BATTERY_TCC
+	help
+	  Say Y here to enable support for the battery on Coby Device.
+
 endif # POWER_SUPPLY
 
 source "drivers/power/avs/Kconfig"

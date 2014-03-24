@@ -474,6 +474,20 @@ void i2c_unlock_adapter(struct i2c_adapter *);
 #define I2C_CLASS_DDC		(1<<3)	/* DDC bus on graphics adapters */
 #define I2C_CLASS_SPD		(1<<7)	/* Memory modules */
 
+/* Telechips */
+#define I2C_CLASS_ALL       (UINT_MAX) /* all of the above */
+
+/* i2c_client_address_data is the struct for holding default client
+ * addresses for a driver and for the parameters supplied on the
+ * command line
+ */
+struct i2c_client_address_data {
+	const unsigned short *normal_i2c;
+	const unsigned short *probe;
+	const unsigned short *ignore;
+	const unsigned short * const *forces;
+};
+
 /* Internal numbers to terminate lists */
 #define I2C_CLIENT_END		0xfffeU
 

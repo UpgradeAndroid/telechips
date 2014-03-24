@@ -1147,6 +1147,24 @@ config RTC_DRV_MPC5121
 	  This driver can also be built as a module. If so, the module
 	  will be called rtc-mpc5121.
 
+config RTC_DRV_TCC8800
+	tristate "Telechips RTC"
+	depends on ARCH_TCC88XX
+	help
+	  RTC (Realtime Clock) driver for the clock inbuilt into the
+	  Telechips TCC SoCs.
+	  This driver can also be build as a module. If so, the module
+	  will be called rtc-tcc.
+
+config RTC_DRV_TCC8920
+	tristate "Telechips RTC"
+	depends on ARCH_TCC892X
+	help
+	  RTC (Realtime Clock) driver for the clock inbuilt into the
+	  Telechips TCC SoCs.
+	  This driver can also be build as a module. If so, the module
+	  will be called rtc-tcc.
+
 config RTC_DRV_JZ4740
 	tristate "Ingenic JZ4740 SoC"
 	depends on MACH_JZ4740
@@ -1248,5 +1266,14 @@ config RTC_DRV_HID_SENSOR_TIME
 	  If this driver is compiled as a module, it will be named
 	  rtc-hid-sensor-time.
 
+
+config RTC_DISABLE_ALARM_FOR_PWROFF_STATE
+	bool "Disable the RTC Alarm during the power-off state"
+	default y
+	depends on RTC_DRV_TCC9200 || RTC_DRV_TCC9300 || RTC_DRV_TCC8800 || RTC_DRV_TCC8920
+	help
+	  Android platform has not considered about power-off.
+	  So, Disable the RTC Alarm during the power off state.
+	  pm.c -> tcc_pm_power_off()
 
 endif # RTC_CLASS

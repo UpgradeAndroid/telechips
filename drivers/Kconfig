@@ -168,4 +168,8 @@ source "drivers/ipack/Kconfig"
 
 source "drivers/reset/Kconfig"
 
+source "drivers/i-tv/Kconfig"
+
+source "drivers/gps/Kconfig"
+
 endmenu

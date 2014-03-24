@@ -196,8 +196,14 @@ static int mmc_decode_scr(struct mmc_card *card)
 	scr->sda_vsn = UNSTUFF_BITS(resp, 56, 4);
 	scr->bus_widths = UNSTUFF_BITS(resp, 48, 4);
 	if (scr->sda_vsn == SCR_SPEC_VER_2)
+	{
 		/* Check if Physical Layer Spec v3.0 is supported */
+		#if 1	//Not yet, TCC is not support the SD3. - 120302, hjbae
+		scr->sda_spec3 = 0;
+		#else
 		scr->sda_spec3 = UNSTUFF_BITS(resp, 47, 1);
+		#endif
+	}
 
 	if (UNSTUFF_BITS(resp, 55, 1))
 		card->erased_byte = 0xFF;
@@ -995,11 +1001,19 @@ static int mmc_sd_init_card(struct mmc_host *host, u32 ocr,
 		/*
 		 * Attempt to change to high-speed (if supported)
 		 */
-		err = mmc_sd_switch_hs(card);
-		if (err > 0)
-			mmc_sd_go_highspeed(card);
-		else if (err)
-			goto free_card;
+		/*Telechips patch
+		 * Do not make a highspeed mode if card is low capacity(Currently < 2048(2GB))
+		*/
+		#if 1
+		if( ((card->csd.capacity << (card->csd.read_blkbits - 9)) >>11) > 2048 )
+		#endif
+		{
+			err = mmc_sd_switch_hs(card);
+			if (err > 0)
+				mmc_sd_go_highspeed(card);
+			else if (err)
+				goto free_card;
+		}
 
 		/*
 		 * Set bus speed.

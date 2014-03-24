@@ -44,6 +44,7 @@
 #include <linux/bitops.h>
 #include <linux/leds.h>
 #include <linux/io.h>
+#include <plat/nand.h>	// add by telechips
 #include <linux/mtd/partitions.h>
 
 /* Define default oob placement schemes for large and small page devices */
@@ -373,6 +374,8 @@ static int nand_default_block_markbad(struct mtd_info *mtd, loff_t ofs)
 	if (chip->bbt)
 		chip->bbt[block >> 2] |= 0x01 << ((block & 0x03) << 1);
 
+	tcc_nand_lock();
+
 	/* Write bad block marker to OOB */
 	if (write_oob) {
 		struct mtd_oob_ops ops;
@@ -415,6 +418,8 @@ static int nand_default_block_markbad(struct mtd_info *mtd, loff_t ofs)
 
 	if (!ret)
 		mtd->ecc_stats.badblocks++;
+
+	tcc_nand_unlock();
 
 	return ret;
 }
@@ -996,6 +1001,7 @@ int nand_lock(struct mtd_info *mtd, loff_t ofs, uint64_t len)
 out:
 	chip->select_chip(mtd, -1);
 	nand_release_device(mtd);
+	tcc_nand_unlock();
 
 	return ret;
 }
@@ -1570,6 +1576,8 @@ static int nand_read(struct mtd_info *mtd, loff_t from, size_t len,
 	struct mtd_oob_ops ops;
 	int ret;
 
+	tcc_nand_lock();
+
 	nand_get_device(mtd, FL_READING);
 	ops.len = len;
 	ops.datbuf = buf;
@@ -1836,6 +1844,8 @@ static int nand_read_oob(struct mtd_info *mtd, loff_t from,
 		return -EINVAL;
 	}
 
+	tcc_nand_lock();
+
 	nand_get_device(mtd, FL_READING);
 
 	switch (ops->mode) {
@@ -1855,6 +1865,9 @@ static int nand_read_oob(struct mtd_info *mtd, loff_t from,
 
 out:
 	nand_release_device(mtd);
+
+	tcc_nand_unlock();
+
 	return ret;
 }
 
@@ -2378,6 +2391,7 @@ static int nand_write(struct mtd_info *mtd, loff_t to, size_t len,
 	struct mtd_oob_ops ops;
 	int ret;
 
+	tcc_nand_lock();
 	nand_get_device(mtd, FL_WRITING);
 	ops.len = len;
 	ops.datbuf = (uint8_t *)buf;
@@ -2386,6 +2400,7 @@ static int nand_write(struct mtd_info *mtd, loff_t to, size_t len,
 	ret = nand_do_write_ops(mtd, to, &ops);
 	*retlen = ops.retlen;
 	nand_release_device(mtd);
+	tcc_nand_unlock();
 	return ret;
 }
 
@@ -2495,6 +2510,7 @@ static int nand_write_oob(struct mtd_info *mtd, loff_t to,
 		return -EINVAL;
 	}
 
+	tcc_nand_lock();
 	nand_get_device(mtd, FL_WRITING);
 
 	switch (ops->mode) {
@@ -2514,6 +2530,9 @@ static int nand_write_oob(struct mtd_info *mtd, loff_t to,
 
 out:
 	nand_release_device(mtd);
+
+	tcc_nand_unlock();
+
 	return ret;
 }
 
@@ -2559,12 +2578,16 @@ int nand_erase_nand(struct mtd_info *mtd, struct erase_info *instr,
 	struct nand_chip *chip = mtd->priv;
 	loff_t len;
 
+	tcc_nand_lock();
+
 	pr_debug("%s: start = 0x%012llx, len = %llu\n",
 			__func__, (unsigned long long)instr->addr,
 			(unsigned long long)instr->len);
 
-	if (check_offs_len(mtd, instr->addr, instr->len))
+	if (check_offs_len(mtd, instr->addr, instr->len)) {
+		tcc_nand_unlock();
 		return -EINVAL;
+	}
 
 	/* Grab the lock and see if the device is available */
 	nand_get_device(mtd, FL_ERASING);
@@ -2657,6 +2680,8 @@ erase_exit:
 	if (!ret)
 		mtd_erase_callback(instr);
 
+	tcc_nand_unlock();
+	
 	/* Return more or less happy */
 	return ret;
 }
@@ -2684,7 +2709,11 @@ static void nand_sync(struct mtd_info *mtd)
  */
 static int nand_block_isbad(struct mtd_info *mtd, loff_t offs)
 {
-	return nand_block_checkbad(mtd, offs, 1, 0);
+	int res;
+	tcc_nand_lock();
+	res = nand_block_checkbad(mtd, offs, 1, 0);
+	tcc_nand_unlock();
+	return res;
 }
 
 /**
