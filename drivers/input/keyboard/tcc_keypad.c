@@ -37,6 +37,7 @@
 #include <asm/io.h>
 #include <asm/irq.h>
 #include <linux/platform_device.h>
+#include <asm/system_info.h>
 #include <asm/mach-types.h>
 
 #include <mach/bsp.h>
@@ -214,7 +215,7 @@ static void tcc_keypad_convert(unsigned int d0, unsigned int d1)
 {
 	
 }
-static int __devinit tcc_key_probe(struct platform_device *pdev)
+static int tcc_key_probe(struct platform_device *pdev)
 {
     struct input_polled_dev *poll_dev; 
     struct input_dev *input_dev;
@@ -295,7 +296,7 @@ fail:
     return 0;
 }
 
-static int __devexit tcc_key_remove(struct platform_device *pdev)
+static int tcc_key_remove(struct platform_device *pdev)
 {
     input_unregister_polled_device(tcc_private->poll_dev);
     kfree(tcc_private);

@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  */
 
-#include <linux/kernel.h>
-#include <linux/init.h>
+#include <linux/module.h>
 #include <linux/cpufreq.h>
 #include <linux/delay.h>
 #include <linux/clk.h>
@@ -720,7 +719,7 @@ static int tcc_cpufreq_target(struct cpufreq_policy *policy,
 	freqs.new = tcc_freq_curr_limit_table.cpu_freq;
 	freqs.cpu = 0;
 
-	cpufreq_notify_transition(&freqs, CPUFREQ_PRECHANGE);
+	cpufreq_notify_transition(policy, &freqs, CPUFREQ_PRECHANGE);
 
 	pr_debug("cpufreq: changing clk to %u; target = %u, oldfreq = %u, mem = %u, mask = 0x%x\n",
 		freqs.new, target_freq, freqs.old, tcc_freq_curr_limit_table.mem_freq, limit_tbl_flag);
@@ -731,7 +730,7 @@ static int tcc_cpufreq_target(struct cpufreq_policy *policy,
 
 	startup_cpufreq = 1;
 
-	cpufreq_notify_transition(&freqs, CPUFREQ_POSTCHANGE);
+	cpufreq_notify_transition(policy, &freqs, CPUFREQ_POSTCHANGE);
 
 	return ret;
 }

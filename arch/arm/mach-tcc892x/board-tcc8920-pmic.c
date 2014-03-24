@@ -22,6 +22,8 @@
 #include "devices.h"
 #include "board-tcc8920.h"
 
+#include <linux/regulator/machine.h>
+
 #if defined(CONFIG_REGULATOR_AXP192)
 #include <linux/regulator/axp192.h>
 

@@ -15,10 +15,9 @@
 #include <linux/platform_device.h>
 
 #include <linux/err.h>
-#if defined(CONFIG_REGULATOR)
 #include <linux/regulator/machine.h>
 #include <linux/regulator/consumer.h>
-#endif 
+#include <asm/system_info.h>
 #include "board-tcc8920.h"
 
 tcc_hdmi_power_s hdmipwr;

@@ -19,8 +19,11 @@
 #include <mach/gpio.h>
 #include <mach/bsp.h>
 #include <asm/mach-types.h>
+#include <linux/regulator/machine.h>
 #include "devices.h"
 #include "board-tcc8920.h"
+
+#include <asm/system_info.h>
 
 #if defined(CONFIG_REGULATOR_AXP192)
 #include <linux/regulator/axp192.h>

@@ -186,7 +186,7 @@ static char *tcc_mmc_kmap_atomic(struct scatterlist *sg, unsigned long *flags)
 	}
 
 	local_irq_save(*flags);
-	return kmap_atomic(sg_page(sg), KM_BIO_SRC_IRQ) + sg->offset;
+	return kmap_atomic(sg_page(sg)) + sg->offset;
 }
 
 static void tcc_mmc_kunmap_atomic(void *buffer, unsigned long *flags)
@@ -196,7 +196,7 @@ static void tcc_mmc_kunmap_atomic(void *buffer, unsigned long *flags)
 		return;
 	}
 
-	kunmap_atomic(buffer, KM_BIO_SRC_IRQ);
+	kunmap_atomic(buffer);
 	local_irq_restore(*flags);
 }
 

@@ -304,7 +304,7 @@ extern void dwc_otg_pcd_initiate_srp(dwc_otg_pcd_t * pcd);
 extern void dwc_otg_pcd_remote_wakeup(dwc_otg_pcd_t * pcd, int set);
 
 /** This function returns whether device is dualspeed.*/
-extern uint32_t dwc_otg_pcd_is_dualspeed(dwc_otg_pcd_t * pcd);
+extern uint32_t dwc_otg_pcd_get_maxspeed(dwc_otg_pcd_t * pcd);
 
 /** This function returns whether device is otg. */
 extern uint32_t dwc_otg_pcd_is_otg(dwc_otg_pcd_t * pcd);

@@ -8,8 +8,8 @@
 
 #include <mach/mmc.h>
 #include <mach/gpio.h>
-//#include <mach/bsp.h>
 #include <mach/bsp.h>
+#include <asm/system_info.h>
 #include <asm/mach-types.h>
 
 #include "devices.h"

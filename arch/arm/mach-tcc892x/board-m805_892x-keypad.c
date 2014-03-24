@@ -15,6 +15,7 @@
 #include <linux/platform_device.h>
 #include <linux/input.h>
 #include <linux/gpio_event.h>
+#include <asm/system_info.h>
 #include <asm/gpio.h>
 #include <asm/mach-types.h>
 #include <mach/bsp.h>
@@ -48,8 +49,8 @@ static struct gpio_event_input_info m805_892x_gpio_key_input_info = {
 	.info.func = gpio_event_input_func,
 	.keymap = m805_892x_gpio_keymap,
 	.keymap_size = ARRAY_SIZE(m805_892x_gpio_keymap),
-	.poll_time.tv.nsec = 20 * NSEC_PER_MSEC,
-	.debounce_time.tv.nsec = 20 * NSEC_PER_MSEC,
+	.poll_time.tv64 = 20 * NSEC_PER_MSEC,
+	.debounce_time.tv64 = 20 * NSEC_PER_MSEC,
 	//.flags = 0 /*GPIOEDF_PRINT_KEYS*/,
 	.type = EV_KEY,
 };

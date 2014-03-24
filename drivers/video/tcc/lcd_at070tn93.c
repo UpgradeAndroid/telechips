@@ -14,8 +14,7 @@
  *
  */
 
-#include <linux/kernel.h>
-#include <linux/init.h>
+#include <linux/module.h>
 #include <linux/delay.h>
 #include <linux/platform_device.h>
 #include <linux/gpio.h>
@@ -31,6 +30,8 @@
 #include <mach/tca_lcdc.h>
 #include <mach/tca_tco.h>
 #include <mach/TCC_LCD_Interface.h>
+
+#include <asm/system_info.h>
 
 #if defined(CONFIG_ARCH_TCC892X)
 #include <mach/reg_physical.h>

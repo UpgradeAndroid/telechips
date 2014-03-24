@@ -17,7 +17,7 @@
 #include <mach/tca_ckc.h>
 #include <mach/tca_i2c.h>
 #include <mach/gpio.h>
-
+#include <asm/system_info.h>
 
 /*****************************************************************************
 * Function Name : tca_i2c_setgpio(int ch)

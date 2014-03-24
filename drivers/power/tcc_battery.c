@@ -22,7 +22,11 @@
 #include <asm/io.h>
 #include <mach/tcc_adc.h>
 #include <asm/mach-types.h>
+#include <asm/system_info.h>
+
+#if defined(CONFIG_HAS_EARLYSUSPEND)
 #include <linux/earlysuspend.h>
+#endif
 
 #if defined(CONFIG_REGULATOR_AXP192)
 #include <linux/regulator/axp192.h>
@@ -183,7 +187,10 @@ struct tcc_battery_info {
 
 struct mutex batt_lock;
 struct task_struct	*batt_thread_task;
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
 struct early_suspend batt_early_suspend;
+#endif
 
 #if 0
 static int batt_charging_increase = 0;
@@ -1649,7 +1656,8 @@ static int tcc_battery_thread(void *v)
 	//#define ADCCNT 600
 	#define ADCCNT 60
 #endif
-	daemonize("tcc-battery");
+	//daemonize("tcc-battery");
+	//see: http://www.gossamer-threads.com/lists/linux/kernel/1419343
 	allow_signal(SIGKILL);
 
 	while (!signal_pending(tsk)) {
@@ -1942,7 +1950,7 @@ static int tcc_battery_probe(struct platform_device *pdev)
 
 	gIndex = 0;
 
-#if 1
+#ifdef CONFIG_HAS_EALRYSUSPEND
 	batt_early_suspend.suspend = tcc_battery_early_suspend;
 	batt_early_suspend.resume = tcc_battery_late_resume;
 	batt_early_suspend.level = EARLY_SUSPEND_LEVEL_DISABLE_FB - 2;

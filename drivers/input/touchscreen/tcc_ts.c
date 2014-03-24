@@ -427,6 +427,7 @@ static void tcc_touch_convert(unsigned int selected)
 {
 }
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
 static void tcc_ts_early_suspend(struct early_suspend *h)
 {
         int updown;
@@ -453,10 +454,12 @@ static void tcc_ts_late_resume(struct early_suspend *h)
 
 	enable_irq(IRQ_NO);
 }
+#endif
+
 /*
  * The functions for inserting/removing us as a module.
  */
-static int __devinit tcc_ts_probe(struct platform_device *pdev)
+static int tcc_ts_probe(struct platform_device *pdev)
 {
 	struct input_dev *input_dev;
 	static struct tcc_ts *ts;
@@ -541,11 +544,12 @@ static int __devinit tcc_ts_probe(struct platform_device *pdev)
 	tca_tch_poweroff();
 
 	printk(KERN_INFO "%s got loaded successfully.\n", tcc_ts_name);
-
+#ifdef CONFIG_HAS_EARLYSUSPEND
 	ts->early_suspend.suspend = tcc_ts_early_suspend;
 	ts->early_suspend.resume = tcc_ts_late_resume;
 	ts->early_suspend.level = EARLY_SUSPEND_LEVEL_STOP_DRAWING;
 	register_early_suspend(&ts->early_suspend);
+#endif
 	/* All went ok, so register to the input system */
 	err = input_register_device(ts->dev);
 	if (err)

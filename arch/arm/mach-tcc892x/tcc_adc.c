@@ -25,9 +25,10 @@
 #include <linux/delay.h>
 #include <linux/notifier.h>
 #include <linux/spinlock.h>
-#include <asm/io.h>
+#include <linux/io.h>
 #include <mach/bsp.h>
 
+#include <asm/system_info.h>
 #include <mach/tca_adconv.h>
 
 
@@ -349,7 +350,7 @@ static struct platform_driver tcc_adc_driver = {
 	     .owner  = THIS_MODULE,
 	},
 	.probe          = tcc_adc_probe,
-	.remove         = __devexit_p(tcc_adc_remove),
+	.remove         = tcc_adc_remove,
 	.suspend        = tcc_adc_suspend,
 	.resume         = tcc_adc_resume,
 };

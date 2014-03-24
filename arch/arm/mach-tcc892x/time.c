@@ -34,6 +34,7 @@
 
 #include <linux/kernel.h>
 #include <linux/init.h>
+#include <linux/err.h>
 #include <linux/delay.h>
 #include <linux/interrupt.h>
 #include <linux/sched.h>
@@ -41,16 +42,15 @@
 #include <linux/spinlock.h>
 #include <linux/irq.h>	/* for setup_irq() */
 #include <linux/mm.h>	/* for PAGE_ALIGN */
-#ifdef CONFIG_GENERIC_TIME
 #include <linux/clk.h>
 #include <linux/clocksource.h>
 #include <linux/clockchips.h>
-#endif
 #include <linux/mutex.h>
 
-#include <asm/io.h>
-#include <asm/leds.h>
+#include <linux/io.h>
+#include <linux/leds.h>
 #include <asm/mach/time.h>
+#include <asm/sched_clock.h>
 #include <mach/bsp.h>
 
 #define TCC_TIMER_FREQ (12000000L) /* 12M */
@@ -64,6 +64,7 @@
 // Global
 static volatile PTIMER pTIMER;
 static volatile PPIC pPIC;
+static struct clk *pTimerClk;
 
 #undef TICKLESS_DEBUG_TCC
 
@@ -80,131 +81,39 @@ static unsigned long gdelta_min = 0xFFFFFF;
 static unsigned long gdelta_max = 0;
 #endif
 
-#ifndef CONFIG_GENERIC_TIME
-/*
- * Returns elapsed usecs since last system timer interrupt
- */
-static unsigned long tcc892x_timer_gettimeoffset(void)
-{
-	unsigned long ret = PRESCALE_TO_MICROSEC(pTIMER->TC32PCNT.nREG);
-	if (pPIC->IRQ0 & Hw1) {
-		/* Timer intrrupt occured. But the jiffies was not updated at now.  */
-		/* So, it returns the time of a jiffies */
-		return (USEC_PER_SEC / HZ);
-	}
-	return ret;
-}
 
-static irqreturn_t tcc892x_timer_interrupt(int irq, void *dev_id)
-{
-	timer_tick();
 
-	pPIC->CLR.nREG |= (0x1 << irq);
 
-	if (pTIMER->TC32IRQ.bREG.IRQCLR)
-		pTIMER->TC32IRQ.bREG.IRQCLR = 1;
 
-	return IRQ_HANDLED;
-}
 
-static struct irqaction tcc892x_timer_irq = {
-	.name		= "TC1_timer",
-	.flags		= IRQF_DISABLED | IRQF_TIMER,
-	.handler	= tcc892x_timer_interrupt,
-};
-
-/*
- * Scheduler clock - returns current time in nanosec units.
- */
-unsigned long long sched_clock(void)
-{
-	return ((unsigned long long)jiffies) * (1000000000llu / HZ);
-}
-
-/*
- * Timer Initialization
- */
-static void __init tcc892x_timer_init(void)
-{
-	mutex_init(&mutex_tccnfc);
-	init_pwm_list();
-
-	pTIMER	= (volatile PTIMER)tcc_p2v(HwTMR_BASE);
-	pPIC	= (volatile PPIC)tcc_p2v(HwPIC_BASE);
-
-	pTIMER->TC32EN.bREG.EN = 0;
-	pTIMER->TC32EN.nREG = (TCC_TIMER_FREQ / HZ) - 1;
-	pTIMER->TC32LDV.nREG = 0;
-	pTIMER->TC32IRQ.bREG.IRQEN3 = 1;	// Enable Interrupt at the end of pre-scale count.
-	pTIMER->TC32EN.bREG.EN = 1;
-
-	pPIC->SEL.bREG.TC1 = 1;
-	pPIC->IEN.bREG.TC1 = 1;
-	pPIC->INTMSK.bREG.TC1 = 1;
-	pPIC->MODEA.bREG.TC1 = 1;
-
-	setup_irq(IRQ_TC32, &tcc892x_timer_irq);
-}
-
-struct sys_timer tcc892x_timer = {
-	.init	= tcc892x_timer_init,
-	.offset	= tcc892x_timer_gettimeoffset,
-};
-
-#else	/* CONFIG_GENERIC_TIME, second version from sa1100 */
-/*************************************************************************************************
- * Tickless Part
- *************************************************************************************************/
 #define MIN_OSCR_DELTA 2
-static irqreturn_t tcc892x_ost0_interrupt(int irq, void *dev_id)
+
+
+static int tcc892x_timer_set_next_event(unsigned long cycles, struct clock_event_device *evt)
 {
-	struct clock_event_device *c = dev_id;
-
-	pTIMER->TC32IRQ.bREG.IRQEN0 = 0;			/* Disable interrupt when the counter value matched with CMP0 */
-	if (irq >= 32) {
-		pPIC->CLR1.nREG |= (1 << (irq-32));		/* Interrupt clear */
-	}
-	else {
-		pPIC->CLR0.nREG |= (1 << irq);		/* Interrupt clear */
-	}
-	if (pTIMER->TC32IRQ.bREG.IRQCLR)			/* IRQ clear */
-		pTIMER->TC32IRQ.bREG.IRQCLR = 1;
-
-	c->event_handler(c);
-
-#if defined(TICKLESS_DEBUG_TCC)
-	gInt_cnt++;
-#endif
-
-	return IRQ_HANDLED;
-}
-
-static int
-tcc892x_osmr0_set_next_event(unsigned long delta, struct clock_event_device *c)
-{
-	unsigned long flags, next, oscr;
+	u32 flags, next, oscr;
 
 #if defined(TICKLESS_DEBUG_TCC)
 	static unsigned long jiffies_old;
 #endif
 
-	raw_local_irq_save(flags);
+    raw_local_irq_save(flags);
 
-	pTIMER->TC32IRQ.bREG.IRQEN0 = 1;			/* Enable interrupt at the end of count */
-	next = pTIMER->TC32MCNT.nREG + delta;
+	next = pTIMER->TC32MCNT.nREG + cycles;
 	pTIMER->TC32CMP0.nREG = next;				/* Load counter value */
 	oscr = pTIMER->TC32MCNT.nREG;
+	pTIMER->TC32IRQ.bREG.IRQEN0 = 1;			/* Enable interrupt at the end of count */
 
-	raw_local_irq_restore(flags);
+    raw_local_irq_restore(flags);
 
 #if defined(TICKLESS_DEBUG_TCC)
-	if (delta > 0xEA00)	/* 10ms == 0xEA60 */
+	if (cycles > 0xEA00)	/* 10ms == 0xEA60 */
 		gEvent_over_cnt++;
 
-	if (gdelta_min > delta)
-		gdelta_min = delta;
-	if (gdelta_max < delta)
-		gdelta_max = delta;
+	if (gdelta_min > cycles)
+		gdelta_min = cycles;
+	if (gdelta_max < cycles)
+		gdelta_max = cycles;
 
 	gEvent_cnt++;
 	if (gInt_cnt >= 5000) {
@@ -216,7 +125,7 @@ tcc892x_osmr0_set_next_event(unsigned long delta, struct clock_event_device *c)
 		       jiffies - jiffies_old,
 		       gInt_cnt,
 		       gEvent_cnt,
-		       delta,
+		       cycles,
 		       next,
 		       oscr);
 		jiffies_old = jiffies;
@@ -231,11 +140,10 @@ tcc892x_osmr0_set_next_event(unsigned long delta, struct clock_event_device *c)
 	return (signed)(next - oscr) <= MIN_OSCR_DELTA ? -ETIME : 0;
 }
 
-
-static void
-tcc892x_osmr0_set_mode(enum clock_event_mode mode, struct clock_event_device *c)
+static void tcc892x_timer_set_mode(enum clock_event_mode mode, struct clock_event_device *evt)
 {
-	unsigned long flags;
+	u32 flags;
+    u32 period;
 
 #if defined(TICKLESS_DEBUG_TCC)
 	printk("%s: mode %s... %d\n", __func__,
@@ -248,128 +156,133 @@ tcc892x_osmr0_set_mode(enum clock_event_mode mode, struct clock_event_device *c)
 #endif
 
 	switch (mode) {
-	case CLOCK_EVT_MODE_ONESHOT:
 	case CLOCK_EVT_MODE_UNUSED:
 	case CLOCK_EVT_MODE_SHUTDOWN:
-		raw_local_irq_save(flags);
-		pTIMER->TC32IRQ.bREG.IRQEN0 = 0;		/* Disable interrupt when the counter value matched with CMP0 */
-		pPIC->CLR0.bREG.TC1 = 1;					/* PIC Interrupt clear */
-		if (pTIMER->TC32IRQ.bREG.IRQCLR)		/* IRQ clear */
+	case CLOCK_EVT_MODE_ONESHOT:
+        raw_local_irq_save(flags);
+		pTIMER->TC32IRQ.bREG.IRQEN0 = 0;        /* Disable interrupt when the counter value matched with CMP0 */
+		pPIC->CLR0.bREG.TC1 = 1;                /* PIC Interrupt clear */
+		if (pTIMER->TC32IRQ.bREG.IRQCLR)        /* IRQ clear */
 			pTIMER->TC32IRQ.bREG.IRQCLR = 1;
-		raw_local_irq_restore(flags);
+        raw_local_irq_restore(flags);
 		break;
-
-	case CLOCK_EVT_MODE_RESUME:
 	case CLOCK_EVT_MODE_PERIODIC:
+	case CLOCK_EVT_MODE_RESUME:
 		break;
 	}
+
 }
 
-static struct clock_event_device ckevt_tcc892x_osmr0 = {
-	.name		= "osmr0",
+static struct clock_event_device tcc892x_clockevent = {
+	.name		= "timer0",
 	.features	= CLOCK_EVT_FEAT_ONESHOT,
 	.shift		= 32,
 	.rating		= 250,
-	.set_next_event	= tcc892x_osmr0_set_next_event,
-	.set_mode	= tcc892x_osmr0_set_mode,
+	.set_next_event	= tcc892x_timer_set_next_event,
+	.set_mode	= tcc892x_timer_set_mode,
 };
 
-static cycle_t tcc892x_read_oscr(struct clocksource *cs)
+
+/*
+ * clocksource
+ */
+
+static cycle_t tcc892x_read_cycles(struct clocksource *cs)
 {
 	return pTIMER->TC32MCNT.nREG;
 }
 
-static struct clocksource cksrc_tcc892x_oscr = {
-	.name		= "oscr",
+static struct clocksource tcc892x_clocksource = {
+	.name		= "timer0",
 	.rating		= 300,
-	.read		= tcc892x_read_oscr,
+	.read		= tcc892x_read_cycles,
 	.mask		= CLOCKSOURCE_MASK(32),
 	.shift		= 20,
 	.flags		= CLOCK_SOURCE_IS_CONTINUOUS,
 };
 
+static int clock_valid = 0;
+static u32 notrace tcc892x_update_sched_clock(void)
+{
+    u32 cyc = 0;
+    if (likely(clock_valid))
+        cyc = pTIMER->TC32MCNT.nREG;
+    return cyc;
+}
+
+static irqreturn_t tcc892x_timer_interrupt(int irq, void *dev_id)
+{
+	struct clock_event_device *c = dev_id;
+
+	pTIMER->TC32IRQ.bREG.IRQEN0 = 0;			/* Disable interrupt when the counter value matched with CMP0 */
+	if (pTIMER->TC32IRQ.bREG.IRQCLR)			/* IRQ clear */
+		pTIMER->TC32IRQ.bREG.IRQCLR = 1;
+
+	if (irq >= 32) {
+		pPIC->CLR1.nREG |= (1 << (irq-32));		/* Interrupt clear */
+	}
+	else {
+		pPIC->CLR0.nREG |= (1 << irq);		/* Interrupt clear */
+	}
+
+	c->event_handler(c);
+
+#if defined(TICKLESS_DEBUG_TCC)
+	gInt_cnt++;
+#endif
+
+	return IRQ_HANDLED;
+}
+
+
 static struct irqaction tcc892x_timer_irq = {
-	.name		= "ost0",
+	.name		= "timer1",
+    .irq        = INT_TC32,
 	.flags		= IRQF_DISABLED | IRQF_TIMER | IRQF_IRQPOLL,
-	.handler	= tcc892x_ost0_interrupt,
-	.dev_id		= &ckevt_tcc892x_osmr0,
+	.handler	= tcc892x_timer_interrupt,
+	.dev_id		= &tcc892x_clockevent,
 };
 
-#define OSCR2NS_SCALE_FACTOR 8
-
-static unsigned long oscr2ns_scale;
-
-/*
- * Scheduler clock - returns current time in nanosec units.
- */
-static int clock_valid = 0;
-unsigned long long sched_clock(void)
-{
-	struct clocksource *cs = &cksrc_tcc892x_oscr;
-	unsigned long long v;
-
-	if (!clock_valid)
-		return 0ULL;
-
-	v = cnt32_to_63(cs->read(cs));
-	return (v * oscr2ns_scale) >> OSCR2NS_SCALE_FACTOR;
-}
-
-static struct timer_list cnt32_to_63_keepwarm_timer;
-
-static void cnt32_to_63_keepwarm(unsigned long data)
-{
-	mod_timer(&cnt32_to_63_keepwarm_timer, round_jiffies(jiffies + data));
-	(void) sched_clock();
-}
-
-static void __init setup_sched_clock(unsigned long oscr_rate)
-{
-	unsigned long long v;
-	unsigned long data;
-
-	v = NSEC_PER_SEC;
-	v <<= OSCR2NS_SCALE_FACTOR;
-	v += oscr_rate/2;
-	do_div(v, oscr_rate);
-	/*
-	 * We want an even value to automatically clear the top bit
-	 * returned by cnt32_to_63() without an additional run time
-	 * instruction. So if the LSB is 1 then round it up.
-	 */
-	if (v & 1)
-		v++;
-	oscr2ns_scale = v;
-
-	data = (0xffffffffUL / oscr_rate / 2 - 2) * HZ;
-	setup_timer(&cnt32_to_63_keepwarm_timer, cnt32_to_63_keepwarm, data);
-	mod_timer(&cnt32_to_63_keepwarm_timer, round_jiffies(jiffies + data));
-}
-
-static void __init tcc892x_timer_init(void)
+void __init tcc_init_time(void)
 {
 	unsigned long	rate;
-
+	int ret;
 	rate = TCC_TIMER_FREQ;
 
 	pTIMER	= (volatile PTIMER) tcc_p2v(HwTMR_BASE);
 	pPIC	= (volatile PPIC) tcc_p2v(HwPIC_BASE);
 
-	pTIMER->TC32EN.nREG = 1;			/* Timer disable, Prescale is one */
-	pTIMER->TC32EN.bREG.EN = 1;			/* Timer Enable */
-	if (pTIMER->TC32IRQ.bREG.IRQCLR)	/* IRQ clear */
-		pTIMER->TC32IRQ.bREG.IRQCLR = 1;
+    /*
+     * Enable timer clock
+     */
+	pTimerClk = clk_get(NULL, "timerz");
+	BUG_ON(IS_ERR(pTimerClk));
+	clk_enable(pTimerClk);
+    clk_set_rate(pTimerClk, TCC_TIMER_FREQ);
 
-	ckevt_tcc892x_osmr0.mult =
-		div_sc(CLOCK_TICK_RATE, NSEC_PER_SEC, ckevt_tcc892x_osmr0.shift);
-	ckevt_tcc892x_osmr0.max_delta_ns =
-		clockevent_delta2ns(0x7fffffff, &ckevt_tcc892x_osmr0);
-	ckevt_tcc892x_osmr0.min_delta_ns =
-		clockevent_delta2ns(4, &ckevt_tcc892x_osmr0) + 1;
-	ckevt_tcc892x_osmr0.cpumask = cpumask_of(0);
+    /* Initialize the timer */
+    pTIMER->TC32EN.nREG = 1;            /* Timer Disable, Prescale is one */
+    pTIMER->TC32EN.bREG.EN = 1;         /* Timer Enable */
+    if (pTIMER->TC32IRQ.bREG.IRQCLR)    /* Timer IRQ Clear */
+        pTIMER->TC32IRQ.bREG.IRQCLR = 1;
 
-	cksrc_tcc892x_oscr.mult =
-		clocksource_hz2mult(CLOCK_TICK_RATE, cksrc_tcc892x_oscr.shift);
+    /*
+     * Initialize the clocksource device 
+     */
+    pr_info("Initialize the clocksource device.... rate[%d]", CLOCK_TICK_RATE);
+	setup_sched_clock(tcc892x_update_sched_clock, 32, CLOCK_TICK_RATE);
+	//tcc892x_clocksource.mult = clocksource_hz2mult(CLOCK_TICK_RATE, tcc892x_clocksource.shift);
+
+    clocksource_register_hz(&tcc892x_clocksource, CLOCK_TICK_RATE);
+
+	tcc892x_clockevent.mult =
+		div_sc(CLOCK_TICK_RATE, NSEC_PER_SEC, tcc892x_clockevent.shift);
+	tcc892x_clockevent.max_delta_ns =
+		clockevent_delta2ns(0x7fffffff, &tcc892x_clockevent);
+	tcc892x_clockevent.min_delta_ns =
+		clockevent_delta2ns(4, &tcc892x_clockevent) + 1;
+	tcc892x_clockevent.cpumask = cpumask_of(0);
+	tcc892x_clockevent.irq = tcc892x_timer_irq.irq;
 
 	pPIC->SEL0.bREG.TC1 = 1;
 	pPIC->IEN0.bREG.TC1 = 1;
@@ -378,19 +291,12 @@ static void __init tcc892x_timer_init(void)
 
 	setup_irq(INT_TC32, &tcc892x_timer_irq);
 
-	clocksource_register(&cksrc_tcc892x_oscr);
-	clockevents_register_device(&ckevt_tcc892x_osmr0);
+	clockevents_register_device(&tcc892x_clockevent);
 
 	/*
 	 * Set scale and timer for sched_clock
 	 */
-	setup_sched_clock(CLOCK_TICK_RATE);
+	//setup_sched_clock(CLOCK_TICK_RATE);
 
 	clock_valid = 1;
 }
-
-struct sys_timer tcc_timer = {
-	.init		= tcc892x_timer_init,
-};
-
-#endif	/* #ifndef CONFIG_GENERIC_TIME	*/

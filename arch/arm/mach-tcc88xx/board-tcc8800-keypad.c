@@ -15,7 +15,8 @@
 #include <linux/platform_device.h>
 #include <linux/input.h>
 #include <linux/gpio_event.h>
-#include <asm/gpio.h>
+#include <linux/gpio.h>
+#include <asm/system_info.h>
 #include <asm/mach-types.h>
 #include "board-tcc8800.h"
 
@@ -30,8 +31,8 @@ static struct gpio_event_input_info tcc8800_gpio_key_input_info = {
 	.info.func = gpio_event_input_func,
 	.keymap = tcc88xx_gpio_keymap,
 	.keymap_size = ARRAY_SIZE(tcc88xx_gpio_keymap),
-	.poll_time.tv.nsec = 20 * NSEC_PER_MSEC,
-	.debounce_time.tv.nsec = 20 * NSEC_PER_MSEC,
+	.poll_time.tv64 = 20 * NSEC_PER_MSEC,
+	.debounce_time.tv64 = 20 * NSEC_PER_MSEC,
 	//.flags = 0 /*GPIOEDF_PRINT_KEYS*/,
 	.flags = GPIOEDF_ACTIVE_HIGH ,
 	.type = EV_KEY,
@@ -59,8 +60,8 @@ static struct gpio_event_input_info tcc8801_gpio_key_input_info = {
 	.info.func = gpio_event_input_func,
 	.keymap = tcc88xx_gpio_keymap,
 	.keymap_size = ARRAY_SIZE(tcc88xx_gpio_keymap),
-	.poll_time.tv.nsec = 20 * NSEC_PER_MSEC,
-	.debounce_time.tv.nsec = 20 * NSEC_PER_MSEC,
+	.poll_time.tv64 = 20 * NSEC_PER_MSEC,
+	.debounce_time.tv64 = 20 * NSEC_PER_MSEC,
 	//.flags = 0 /*GPIOEDF_PRINT_KEYS*/,
 	.type = EV_KEY,
 };
@@ -96,8 +97,8 @@ static struct gpio_event_input_info tcc8803_2cs_gpio_key_input_info = {
 	.info.func = gpio_event_input_func,
 	.keymap = tcc8803_2cs_gpio_keymap,
 	.keymap_size = ARRAY_SIZE(tcc8803_2cs_gpio_keymap),
-	.poll_time.tv.nsec = 20 * NSEC_PER_MSEC,
-	.debounce_time.tv.nsec = 20 * NSEC_PER_MSEC,
+	.poll_time.tv64 = 20 * NSEC_PER_MSEC,
+	.debounce_time.tv64 = 20 * NSEC_PER_MSEC,
 	//.flags = 0 /*GPIOEDF_PRINT_KEYS*/,
 	.type = EV_KEY,
 };
@@ -148,9 +149,9 @@ static struct gpio_event_matrix_info tcc8801_keymap_info = {
 	.input_gpios = tcc8801_row_gpios,
 	.noutputs = ARRAY_SIZE(tcc8801_col_gpios),
 	.ninputs = ARRAY_SIZE(tcc8801_row_gpios),
-	.settle_time.tv.nsec = 40 * NSEC_PER_USEC,
-	.poll_time.tv.nsec = 20 * NSEC_PER_MSEC,
-	.debounce_delay.tv.nsec = 50 * NSEC_PER_MSEC,
+	.settle_time.tv64 = 40 * NSEC_PER_USEC,
+	.poll_time.tv64 = 20 * NSEC_PER_MSEC,
+	.debounce_delay.tv64 = 50 * NSEC_PER_MSEC,
 #if 1 // XXX: disable interrupt for now
 	.flags = GPIOKPF_DRIVE_INACTIVE /*| GPIOKPF_PRINT_UNMAPPED_KEYS | GPIOKPF_PRINT_MAPPED_KEYS*/,
 #else
@@ -202,9 +203,9 @@ static struct gpio_event_matrix_info tcc8803_2cs_keymap_info = {
 	.input_gpios = tcc8803_2cs_row_gpios,
 	.noutputs = ARRAY_SIZE(tcc8803_2cs_col_gpios),
 	.ninputs = ARRAY_SIZE(tcc8803_2cs_row_gpios),
-	.settle_time.tv.nsec = 40 * NSEC_PER_USEC,
-	.poll_time.tv.nsec = 20 * NSEC_PER_MSEC,
-	.debounce_delay.tv.nsec = 50 * NSEC_PER_MSEC,
+	.settle_time.tv64 = 40 * NSEC_PER_USEC,
+	.poll_time.tv64 = 20 * NSEC_PER_MSEC,
+	.debounce_delay.tv64 = 50 * NSEC_PER_MSEC,
 #if 1 // XXX: disable interrupt for now
 	.flags = GPIOKPF_DRIVE_INACTIVE /*| GPIOKPF_PRINT_UNMAPPED_KEYS | GPIOKPF_PRINT_MAPPED_KEYS*/,
 #else

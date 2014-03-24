@@ -19,8 +19,6 @@
 #include <linux/input.h>
 #include <linux/i2c.h>
 #include <linux/i2c/pca953x.h>
-#include <linux/akm8975.h>
-//#include <linux/usb/android_composite.h>
 #include <linux/spi/spi.h>
 #include <linux/regulator/machine.h>
 #include <linux/regulator/axp192.h>
@@ -63,6 +61,7 @@ void __cpu_early_init(void);
 extern void __init tcc_init_irq(void);
 extern void __init tcc_map_common_io(void);
 extern void __init tcc_reserve_sdram(void);
+extern void __init tcc_init_time(void);
 
 static struct spi_board_info m801_88_spi0_board_info[] = {
 	{
@@ -141,9 +140,11 @@ static struct platform_device m801_touchscreen_device = {
 };
 #endif
 
+#ifdef CONFIG_SENSORS_AK8975
 static struct akm8975_platform_data akm8975_data = {
     .gpio_DRDY = 0,
 };
+#endif
 
 #if defined(CONFIG_REGULATOR_AXP192)
 static struct regulator_consumer_supply axp192_consumer_a = {
@@ -217,11 +218,13 @@ static struct cs4954_i2c_platform_data  ths8200_i2c_data = {
 #endif
 #if defined(CONFIG_I2C_TCC_CORE0)
 static struct i2c_board_info __initdata i2c_devices0[] = {
+#if defined(CONFIG_SENSORS_AK8975)
     {
         I2C_BOARD_INFO("akm8975", 0x0F),
         .irq           = COMPASS_IRQ,
         .platform_data = &akm8975_data,
     },
+#endif
 #if defined(CONFIG_REGULATOR_AXP192)
 	{
 		I2C_BOARD_INFO("axp192", 0x34),
@@ -724,16 +727,13 @@ static void __init tcc8800_mem_reserve(void)
 {
     tcc_reserve_sdram();
 }
-extern struct sys_timer tcc_timer;
 
 MACHINE_START(M801_88, "m801_88")
 	/* Maintainer: Telechips Linux BSP Team <linux@telechips.com> */
-	//.phys_io        = 0xf0000000,
-	//.io_pg_offst    = ((0xf0000000) >> 18) & 0xfffc,
-	.boot_params    = PHYS_OFFSET + 0x00000100,
+	.atag_offset    = 0x100,
 	.reserve        = tcc8800_mem_reserve,
 	.map_io         = tcc8800_map_io,
 	.init_irq       = tcc8800_init_irq,
 	.init_machine   = tcc8800_init_machine,
-	.timer          = &tcc_timer,
+	.init_time      = tcc_init_time,
 MACHINE_END

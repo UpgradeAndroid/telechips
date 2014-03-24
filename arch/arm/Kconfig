@@ -1000,10 +1000,7 @@ if ARCH_S3C64XX
 source "arch/arm/mach-s3c64xx/Kconfig"
 endif
 
-if ARCH_TCC
-source "arch/arm/mach-tcc892x/Kconfig"
-source "arch/arm/mach-tcc88xx/Kconfig"
-endif
+source "arch/arm/plat-tcc/Kconfig"
 
 source "arch/arm/mach-s5p64x0/Kconfig"
 

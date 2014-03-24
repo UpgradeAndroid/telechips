@@ -42,16 +42,15 @@
 #include <linux/spinlock.h>
 #include <linux/irq.h>	/* for setup_irq() */
 #include <linux/mm.h>	/* for PAGE_ALIGN */
-#ifdef CONFIG_GENERIC_TIME
 #include <linux/clk.h>
 #include <linux/clocksource.h>
 #include <linux/clockchips.h>
-#endif
 #include <linux/mutex.h>
 
-#include <asm/io.h>
-#include <asm/leds.h>
+#include <linux/io.h>
+#include <linux/leds.h>
 #include <asm/mach/time.h>
+#include <asm/sched_clock.h>
 #include <mach/bsp.h>
 
 #include <linux/tcc_ll.h>
@@ -83,86 +82,7 @@ static unsigned long gdelta_min = 0xFFFFFF;
 static unsigned long gdelta_max = 0;
 #endif
 
-#ifndef CONFIG_GENERIC_TIME
 
-#ifdef CONFIG_ARCH_USES_GETTIMEOFFSET
-/*
- * Returns elapsed usecs since last system timer interrupt
- */
-static unsigned long tcc88xx_timer_gettimeoffset(void)
-{
-	unsigned long ret = PRESCALE_TO_MICROSEC(pTIMER->TC32PCNT);
-	if (pPIC->IRQ0 & Hw1) {
-		/* Timer intrrupt occured. But the jiffies was not updated at now.  */
-		/* So, it returns the time of a jiffies */
-		return (USEC_PER_SEC / HZ);
-	}
-	return ret;
-}
-#endif
-
-static irqreturn_t tcc88xx_timer_interrupt(int irq, void *dev_id)
-{
-#ifndef CONFIG_GENERIC_CLOCKEVENTS
-	timer_tick();
-#endif
-
-	BITSET(pPIC->CLR0, TCC_ENABLE_BIT(irq));
-	if(pTIMER->TC32IRQ & Hw31)
-		BITSET(pTIMER->TC32IRQ, Hw31);
-
-	return IRQ_HANDLED;
-}
-
-static struct irqaction tcc88xx_timer_irq = {
-	.name		= "TC1_timer",
-	.flags		= IRQF_DISABLED | IRQF_TIMER,
-	.handler	= tcc88xx_timer_interrupt,
-};
-
-/*
- * Scheduler clock - returns current time in nanosec units.
- */
-unsigned long long sched_clock(void)
-{
-	return ((unsigned long long)jiffies) * (1000000000llu / HZ);
-}
-
-/*
- * Timer Initialization
- */
-static void __init tcc88xx_timer_init(void)
-{
-	//mutex_init(&mutex_tccnfc);
-#ifdef CONFIG_SATA_TCC
-	init_pwm_list();
-#endif
-
-	pTIMER	= (volatile PTIMER)tcc_p2v(HwTMR_BASE);
-	pPIC	= (volatile PPIC)tcc_p2v(HwPIC_BASE);
-
-	BITCLR(pTIMER->TC32EN, Hw24);
-	pTIMER->TC32EN = (TCC_TIMER_FREQ / HZ) - 1;
-	pTIMER->TC32LDV = 0;
-	BITSET(pTIMER->TC32IRQ, Hw19);
-	BITSET(pTIMER->TC32EN, Hw24);
-
-	BITSET(pPIC->SEL0, TCC_ENABLE_BIT(INT_TC32));
-	BITSET(pPIC->IEN0, TCC_ENABLE_BIT(INT_TC32));
-	BITSET(pPIC->INTMSK0, TCC_ENABLE_BIT(INT_TC32));
-	BITSET(pPIC->MODEA0, TCC_ENABLE_BIT(INT_TC32));
-
-	setup_irq(INT_TC32, &tcc88xx_timer_irq);
-}
-
-struct sys_timer tcc88xx_timer = {
-	.init	= tcc88xx_timer_init,
-#ifdef CONFIG_ARCH_USES_GETTIMEOFFSET
-	.offset	= tcc88xx_timer_gettimeoffset,
-#endif
-};
-
-#else	/* CONFIG_GENERIC_TIME, second version from sa1100 */
 /*************************************************************************************************
  * Tickless Part
  *************************************************************************************************/
@@ -308,16 +228,12 @@ static unsigned long oscr2ns_scale;
  * Scheduler clock - returns current time in nanosec units.
  */
 static int clock_valid = 0;
-unsigned long long sched_clock(void)
+static u32 tcc_read_sched_clock(void)
 {
 	struct clocksource *cs = &cksrc_tcc88xx_oscr;
-	unsigned long long v;
-
 	if (!clock_valid)
 		return 0ULL;
-
-	v = cnt32_to_63(cs->read(cs));
-	return (v * oscr2ns_scale) >> OSCR2NS_SCALE_FACTOR;
+	return cs->read(cs);
 }
 
 static struct timer_list cnt32_to_63_keepwarm_timer;
@@ -328,7 +244,7 @@ static void cnt32_to_63_keepwarm(unsigned long data)
 	(void) sched_clock();
 }
 
-static void __init setup_sched_clock(unsigned long oscr_rate)
+static void __init tcc_setup_sched_clock(unsigned long oscr_rate)
 {
 	unsigned long long v;
 	unsigned long data;
@@ -349,9 +265,10 @@ static void __init setup_sched_clock(unsigned long oscr_rate)
 	data = (0xffffffffUL / oscr_rate / 2 - 2) * HZ;
 	setup_timer(&cnt32_to_63_keepwarm_timer, cnt32_to_63_keepwarm, data);
 	mod_timer(&cnt32_to_63_keepwarm_timer, round_jiffies(jiffies + data));
+	setup_sched_clock(tcc_read_sched_clock, 32, oscr_rate);
 }
 
-static void __init tcc88xx_timer_init(void)
+void __init tcc_init_time(void)
 {
 	unsigned long	rate;
 
@@ -389,13 +306,7 @@ static void __init tcc88xx_timer_init(void)
 	/*
 	 * Set scale and timer for sched_clock
 	 */
-	setup_sched_clock(CLOCK_TICK_RATE);
+	tcc_setup_sched_clock(CLOCK_TICK_RATE);
 
 	clock_valid = 1;
 }
-
-struct sys_timer tcc_timer = {
-	.init		= tcc88xx_timer_init,
-};
-
-#endif	/* #ifndef CONFIG_GENERIC_TIME	*/

@@ -967,7 +967,7 @@ static void copy_change_clock(void)
 //--------------------------------------------------------------
 // enable kernel tick timer
 #if !defined(CONFIG_GENERIC_TIME)
-	pTIMER->TC32EN |= Hw24;
+	pTIMER->TC32EN.nREG |= Hw24;
 #endif
 
 //--------------------------------------------------------------

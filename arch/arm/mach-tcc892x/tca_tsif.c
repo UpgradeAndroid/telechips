@@ -17,6 +17,7 @@
 #include <linux/clk.h>
 #include <linux/cpufreq.h>
 
+#include <asm/system_info.h>
 #include <asm/mach-types.h>
 #include <mach/tca_tsif.h>
 #if defined(SUPPORT_PIDFILTER_INTERNAL)

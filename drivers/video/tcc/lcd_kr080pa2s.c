@@ -14,8 +14,7 @@
  *
  */
 
-#include <linux/kernel.h>
-#include <linux/init.h>
+#include <linux/module.h>
 #include <linux/delay.h>
 #include <linux/platform_device.h>
 #include <linux/gpio.h>
@@ -25,6 +24,7 @@
 #include <asm/io.h>
 #include <asm/mach-types.h>
 
+#include <asm/system_info.h>
 #include <mach/tcc_fb.h>
 #include <mach/gpio.h>
 #include <mach/tca_lcdc.h>

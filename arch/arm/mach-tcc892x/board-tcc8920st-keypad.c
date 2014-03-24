@@ -37,8 +37,8 @@ static struct gpio_event_input_info tcc8920_gpio_key_input_info = {
 	.info.func = gpio_event_input_func,
 	.keymap = tcc8920_gpio_keymap,
 	.keymap_size = ARRAY_SIZE(tcc8920_gpio_keymap),
-	.poll_time.tv.nsec = 20 * NSEC_PER_MSEC,
-	.debounce_time.tv.nsec = 20 * NSEC_PER_MSEC,
+	.poll_time.tv64 = 20 * NSEC_PER_MSEC,
+	.debounce_time.tv64 = 20 * NSEC_PER_MSEC,
 	//.flags = 0 /*GPIOEDF_PRINT_KEYS*/,
 	.type = EV_KEY,
 };

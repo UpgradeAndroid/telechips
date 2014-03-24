@@ -31,8 +31,9 @@
 #include <linux/string.h>
 #include <linux/delay.h>
 #include <linux/init.h>
+#include <asm/system_info.h>
 
-unsigned int tca_get_lcd_lcdc_num(viod)
+unsigned int tca_get_lcd_lcdc_num(void)
 {
 	#ifdef CONFIG_LCD_LCDC0_USE
 		return 0;
@@ -54,7 +55,7 @@ unsigned int tca_get_lcd_lcdc_num(viod)
 }
 EXPORT_SYMBOL(tca_get_lcd_lcdc_num);
 
-unsigned int tca_get_output_lcdc_num(viod)
+unsigned int tca_get_output_lcdc_num(void)
 {
 	#ifdef CONFIG_LCD_LCDC0_USE
 		return 1;

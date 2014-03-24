@@ -8,7 +8,7 @@
 
 #include <mach/gpio.h>
 #include <mach/bsp.h>
-
+#include <asm/system_info.h>
 #include <mach/tcc_board_power.h>
 
 #include "board-tcc8920st.h"

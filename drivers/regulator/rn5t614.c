@@ -756,6 +756,7 @@ static int rn5t614_pmic_probe(struct i2c_client *client, const struct i2c_device
 	INIT_WORK(&rn5t614->work, rn5t614_work_func);
 
 	for (i = 0; i < pdata->num_subdevs && i <= NUM_OUPUT; i++) {
+		struct regulator_config cfg = { };
 		id = pdata->subdevs[i].id;
 		if (!pdata->subdevs[i].platform_data) {
 			rdev[i] = NULL;
@@ -765,9 +766,10 @@ static int rn5t614_pmic_probe(struct i2c_client *client, const struct i2c_device
 			dev_err(&client->dev, "invalid regulator id %d\n", id);
 			goto err;
 		}
-		rdev[i] = regulator_register(&rn5t614_reg[id], &client->dev,
-						 pdata->subdevs[i].platform_data,
-						 rn5t614);
+		cfg.dev = &client->dev;
+		cfg.init_data = pdata->subdevs[i].platform_data;
+		cfg.driver_data = rn5t614;
+		rdev[i] = regulator_register(&rn5t614_reg[id], &cfg);
 		if (IS_ERR(rdev[i])) {
 			ret = PTR_ERR(rdev[i]);
 			dev_err(&client->dev, "failed to register %s\n",

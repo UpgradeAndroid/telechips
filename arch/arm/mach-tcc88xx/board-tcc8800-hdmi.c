@@ -4,8 +4,9 @@
 #include <linux/mmc/host.h>
 #include <linux/gpio.h>
 
+#include <asm/system_info.h>
 #include <asm/mach-types.h>
-#include <asm/io.h>
+#include <linux/io.h>
 
 #include <mach/gpio.h>
 #include <mach/bsp.h>

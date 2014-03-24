@@ -30,7 +30,9 @@
 #include <linux/fs.h>
 #include <linux/errno.h>
 #include <asm/uaccess.h>
+#ifdef CONFIG_HAS_EARLYSUSPEND
 #include <linux/earlysuspend.h>
+#endif
 #include <linux/interrupt.h>
 #include <linux/irq.h>
 

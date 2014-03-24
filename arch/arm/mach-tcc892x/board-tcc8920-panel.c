@@ -18,6 +18,7 @@
 #include <linux/leds.h>
 #include <linux/gpio.h>
 #include <asm/setup.h>
+#include <asm/system_info.h>
 #include <asm/mach-types.h>
 
 #include <mach/gpio.h>

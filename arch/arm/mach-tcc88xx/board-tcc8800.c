@@ -19,14 +19,13 @@
 #include <linux/input.h>
 #include <linux/i2c.h>
 #include <linux/i2c/pca953x.h>
-#include <linux/akm8975.h>
-//#include <linux/usb/android_composite.h>      // Temp, Telechips B090183
 #include <linux/spi/spi.h>
 #include <linux/regulator/axp192.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
 #include <asm/mach/map.h>
 #include <asm/mach/flash.h>
+#include <asm/system_info.h>
 
 #include <mach/gpio.h>
 #include <mach/bsp.h>
@@ -62,7 +61,7 @@ void __cpu_early_init(void);
 extern void __init tcc_init_irq(void);
 extern void __init tcc_map_common_io(void);
 extern void __init tcc_reserve_sdram(void);
-
+extern void __init tcc_init_time(void);
 
 static struct spi_board_info tcc8800_spi0_board_info[] = {
 	{
@@ -701,16 +700,14 @@ static void __init tcc8800_mem_reserve(void)
     tcc_reserve_sdram();
 }
 
-extern struct sys_timer tcc_timer;
-
 MACHINE_START(TCC8800, "tcc8800")
 	/* Maintainer: Telechips Linux BSP Team <linux@telechips.com> */
 //	.phys_io        = 0xf0000000,
 //	.io_pg_offst    = ((0xf0000000) >> 18) & 0xfffc,
-	.boot_params    = PHYS_OFFSET + 0x00000100,
+//	.boot_params    = PHYS_OFFSET + 0x00000100,
 	.reserve        = tcc8800_mem_reserve,
 	.map_io         = tcc8800_map_io,
 	.init_irq       = tcc8800_init_irq,
 	.init_machine   = tcc8800_init_machine,
-	.timer          = &tcc_timer,
+	.init_time      = tcc_init_time,
 MACHINE_END

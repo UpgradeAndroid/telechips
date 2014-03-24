@@ -162,7 +162,7 @@ static int tccxxx_overlay_mmap(struct file *file, struct vm_area_struct *vma)
 
 	vma->vm_ops	= NULL;
 	vma->vm_flags 	|= VM_IO;
-	vma->vm_flags 	|= VM_RESERVED;
+	vma->vm_flags 	|= (VM_DONTEXPAND | VM_DONTDUMP);
 	
 	return 0;
 }

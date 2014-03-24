@@ -19,7 +19,6 @@
 #include <linux/input.h>
 #include <linux/i2c.h>
 #include <linux/i2c/pca953x.h>
-#include <linux/akm8975.h>
 #include <linux/spi/spi.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
@@ -69,6 +68,7 @@
 extern void __init tcc_init_irq(void);
 extern void __init tcc_map_common_io(void);
 extern void __init tcc_reserve_sdram(void);
+extern void __init tcc_init_time(void);
 
 static struct spi_board_info tcc8920_spi0_board_info[] = {
 	{
@@ -632,10 +632,10 @@ extern struct sys_timer tcc_timer;
 
 MACHINE_START(TCC8920, "tcc8920")
 	/* Maintainer: Telechips Linux BSP Team <linux@telechips.com> */
-	.boot_params    = PHYS_OFFSET + 0x00000100,
+	.atag_offset    = 0x100,
 	.reserve        = tcc8920_mem_reserve,
 	.map_io         = tcc8920_map_io,
 	.init_irq       = tcc8920_init_irq,
 	.init_machine   = tcc8920_init_machine,
-	.timer          = &tcc_timer,
+	.init_time      = tcc_init_time,
 MACHINE_END

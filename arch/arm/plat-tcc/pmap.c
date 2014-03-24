@@ -16,6 +16,7 @@
 #include <linux/init.h>
 #include <linux/string.h>
 #include <linux/proc_fs.h>
+#include <linux/uaccess.h>
 #include <asm/setup.h>
 
 #include <plat/pmap.h>
@@ -72,25 +73,32 @@ static inline int pmap_proc_info(char *buf, const char *name,
 	return sprintf(buf, "0x%8.8x 0x%8.8x %s\n", base_addr, size, name);
 }
 
-static int pmap_read_proc(char *page, char **start, off_t off,
-			      int count, int *eof, void *data)
+static int pmap_read_proc(struct file *filp, char *buf, size_t count, loff_t *offp)
 {
+	char output[4096];
 	int i, len;
 
-	len = sprintf(page, "%-10s %-10s %s\n", "base_addr", "size", "name");
+	len = sprintf(buf, "%-10s %-10s %s\n", "base_addr", "size", "name");
 	for (i = 0; i < num_pmaps; i++) {
-		len += pmap_proc_info(page + len, pmap_table[i].name,
+		len += pmap_proc_info(output + len, pmap_table[i].name,
 				      pmap_table[i].base, pmap_table[i].size);
 	}
-	return len;
+
+	if (count > len)
+		count = len;
+
+	copy_to_user(buf, output, count);
+
+	return count;
 }
+
+static struct file_operations pmap_fops = {
+	read:   pmap_read_proc
+};
 
 static int __init tcc_pmap_init(void)
 {
-	pmap_proc_entry = create_proc_entry("pmap", 0444, NULL);
-	if (pmap_proc_entry) {
-		pmap_proc_entry->read_proc = pmap_read_proc;
-	}
+	pmap_proc_entry = proc_create("pmap", 0444, NULL, &pmap_fops);
 	return 0;
 }
 postcore_initcall(tcc_pmap_init);

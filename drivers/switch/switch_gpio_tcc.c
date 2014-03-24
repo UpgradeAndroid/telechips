@@ -25,9 +25,10 @@
 #include <linux/workqueue.h>
 #include <linux/gpio.h>
 
-#include <asm/io.h>
+#include <linux/io.h>
 #include <mach/bsp.h>
 #include <mach/irqs.h>
+#include <asm/system_info.h>
 #include <asm/mach-types.h>
 
 #include <linux/kthread.h>  /* thread */
@@ -236,7 +237,7 @@ err_switch_dev_register:
 	return ret;
 }
 
-static int __devexit tcc_gpio_switch_remove(struct platform_device *pdev)
+static int tcc_gpio_switch_remove(struct platform_device *pdev)
 {
 	struct tcc_gpio_switch_data *switch_data = platform_get_drvdata(pdev);
 
@@ -250,7 +251,7 @@ static int __devexit tcc_gpio_switch_remove(struct platform_device *pdev)
 
 static struct platform_driver tcc_gpio_switch_driver = {
 	.probe		= tcc_gpio_switch_probe,
-	.remove		= __devexit_p(tcc_gpio_switch_remove),
+	.remove		= tcc_gpio_switch_remove,
 	.driver		= {
 		.name	= "switch-gpio-earjack-detect",
 		.owner	= THIS_MODULE,

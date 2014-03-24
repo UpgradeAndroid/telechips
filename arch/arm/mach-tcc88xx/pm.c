@@ -38,7 +38,9 @@
 #include <linux/reboot.h>
 #include <linux/gpio.h>
 
-#include <asm/io.h>
+#include <linux/io.h>
+#include <asm/system_info.h>
+#include <asm/system_misc.h>
 #include <asm/tlbflush.h>
 #include <linux/syscalls.h>		// sys_sync()
 #include <asm/cacheflush.h>		// local_flush_tlb_all(), flush_cache_all();

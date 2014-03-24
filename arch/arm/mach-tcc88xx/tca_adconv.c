@@ -9,9 +9,12 @@
 *
  ****************************************************************************/
 #include <mach/bsp.h>
+#include <linux/module.h>
 #include <asm/mach-types.h>
 #include <mach/tsadc.h>
 #include <mach/tca_adconv.h>
+
+#include <asm/system_info.h>
 
 /************************************************************************************************
 * Global Defines

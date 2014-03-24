@@ -42,10 +42,11 @@
 #include <linux/clk.h>
 #include <linux/cpufreq.h>
 
-#include <asm/io.h>
-#include <asm/uaccess.h>
+#include <linux/io.h>
+#include <linux/uaccess.h>
 #include <asm/div64.h>
 #include <asm/mach/map.h>
+#include <asm/system_info.h>
 #include <asm/mach-types.h>
 #ifdef CONFIG_PM
 #include <linux/pm.h>

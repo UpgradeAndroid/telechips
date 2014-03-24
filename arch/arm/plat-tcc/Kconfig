@@ -4,6 +4,9 @@ choice
 	prompt "TCC Processor Family"
 config ARCH_TCC88XX
 	bool "TCC88xx"
+	select NEED_MACH_IO_H
+	select NEED_MACH_GPIO_H
+	select NEED_MACH_MEMORY_H
 	select AEABI
 	select ARCH_HAS_CPUFREQ
 	select CPU_V7
@@ -13,11 +16,13 @@ config ARCH_TCC88XX
 	select ARM_L1_CACHE_SHIFT_6
 	select GENERIC_GPIO
 	select ARCH_REQUIRE_GPIOLIB
-	select GENERIC_TIME
 	select GENERIC_CLOCKEVENTS
 
 config ARCH_TCC892X
 	bool "TCC892x"
+	select NEED_MACH_IO_H
+	select NEED_MACH_GPIO_H
+	select NEED_MACH_MEMORY_H
 	select AEABI
 	select ARCH_HAS_CPUFREQ
 	select CPU_V7
@@ -26,7 +31,6 @@ config ARCH_TCC892X
 	select HAVE_CLK
 	select GENERIC_GPIO
 	select ARCH_REQUIRE_GPIOLIB
-	select GENERIC_TIME
 	select GENERIC_CLOCKEVENTS
 
 endchoice
@@ -247,5 +251,8 @@ config TCC_ECID_SUPPORT
         default n
 	help
 	  Support for the TCCXXXX demo board, Say Y here if you use ECID
+
+source "arch/arm/mach-tcc892x/Kconfig"
+source "arch/arm/mach-tcc88xx/Kconfig"
 
 endif

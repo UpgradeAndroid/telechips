@@ -30,12 +30,15 @@
 #include <linux/fs.h>
 #include <linux/errno.h>
 #include <asm/uaccess.h>
+#ifdef CONFIG_HAS_EARLYSUSPEND
 #include <linux/earlysuspend.h>
+#endif
 #include <linux/interrupt.h>
 #include <linux/irq.h>
 
-#include <asm/io.h>
-#include <asm/uaccess.h>
+#include <linux/io.h>
+#include <linux/uaccess.h>
+#include <asm/system_info.h>
 #include <asm/mach-types.h>
 #include <linux/delay.h>
 #include <mach/bsp.h>
@@ -213,7 +216,7 @@ struct bmasensor_data *mData;
 
 static int sensor_used_count=0;
 
-#define BMA220_GET_BITSLICE(regvar, bitname)\			
+#define BMA220_GET_BITSLICE(regvar, bitname)\
 		   (regvar & bitname##__MSK) >> bitname##__POS
 
 #define BMA220_SET_BITSLICE(regvar, bitname, val)\

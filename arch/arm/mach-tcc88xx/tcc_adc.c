@@ -333,7 +333,7 @@ static struct platform_driver tcc_adc_driver = {
 	     .owner  = THIS_MODULE,
 	},
 	.probe          = tcc_adc_probe,
-	.remove         = __devexit_p(tcc_adc_remove),
+	.remove         = tcc_adc_remove,
 	.suspend        = tcc_adc_suspend,
 	.resume         = tcc_adc_resume,
 };

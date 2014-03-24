@@ -10,6 +10,7 @@
 *
  ****************************************************************************/
 #include "tca_keypad.h"
+#include <asm/system_info.h>
 #include <asm/mach-types.h>
 
 typedef struct {

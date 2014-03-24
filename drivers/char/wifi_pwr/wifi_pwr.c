@@ -3,7 +3,6 @@
 #include <linux/kernel.h> 
 #include <linux/delay.h>
 #include <linux/syscalls.h>
-#include <linux/earlysuspend.h>
 #include <linux/fs.h>            
 #include <linux/mm.h>            
 #include <linux/errno.h>         
@@ -14,8 +13,9 @@
 #include <linux/major.h>         
 #include <linux/gpio.h>
 
-#include <asm/uaccess.h>  
-#include <asm/io.h>  
+#include <linux/uaccess.h>  
+#include <linux/io.h>  
+#include <asm/system_info.h>
 #include <asm/mach-types.h>
 
 #include <mach/bsp.h>  

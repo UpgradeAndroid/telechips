@@ -1259,7 +1259,7 @@ void dwc_otg_pcd_remove(dwc_otg_pcd_t * pcd)
 	dwc_free(pcd);
 }
 
-uint32_t dwc_otg_pcd_is_dualspeed(dwc_otg_pcd_t * pcd)
+uint32_t dwc_otg_pcd_get_maxspeed(dwc_otg_pcd_t * pcd)
 {
 	dwc_otg_core_if_t *core_if = GET_CORE_IF(pcd);
 
@@ -1267,10 +1267,10 @@ uint32_t dwc_otg_pcd_is_dualspeed(dwc_otg_pcd_t * pcd)
 	    ((core_if->hwcfg2.b.hs_phy_type == 2) &&
 	     (core_if->hwcfg2.b.fs_phy_type == 1) &&
 	     (core_if->core_params->ulpi_fs_ls))) {
-		return 0;
+		return USB_SPEED_FULL;
 	}
 
-	return 1;
+	return USB_SPEED_HIGH;
 }
 
 uint32_t dwc_otg_pcd_is_otg(dwc_otg_pcd_t * pcd)

@@ -42,9 +42,10 @@
 #include <linux/cpufreq.h>
 #include <linux/irq.h>
 
-#include <asm/io.h>
-#include <asm/uaccess.h>
+#include <linux/io.h>
+#include <linux/uaccess.h>
 #include <asm/div64.h>
+#include <asm/system_info.h>
 #include <asm/mach/map.h>
 #ifdef CONFIG_PM
 #include <linux/pm.h>
@@ -324,6 +325,8 @@ EXPORT_SYMBOL(tca_fb_activate_var);
 
 
 
+static volatile VIOC_RDMA pRDMA_BackUp;
+
 #ifdef CONFIG_HAS_EARLYSUSPEND
 
 void tca_fb_earlier_suspend(struct early_suspend *h)
@@ -333,8 +336,6 @@ void tca_fb_earlier_suspend(struct early_suspend *h)
 EXPORT_SYMBOL(tca_fb_earlier_suspend);
 
 
-
-static volatile VIOC_RDMA pRDMA_BackUp;
 
 void tca_fb_early_suspend(struct early_suspend *h)
 {

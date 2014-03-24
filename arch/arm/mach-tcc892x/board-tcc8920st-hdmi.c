@@ -17,6 +17,7 @@
 #include <linux/err.h>
 #include <linux/regulator/machine.h>
 #include <linux/regulator/consumer.h>
+#include <asm/system_info.h>
 
 #include "board-tcc8920st.h"
 

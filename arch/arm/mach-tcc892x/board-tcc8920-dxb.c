@@ -26,6 +26,7 @@
 #include <linux/gpio.h>
 #include <linux/platform_device.h>
 #include <mach/tcc_dxb_ctrl.h>
+#include <asm/system_info.h>
 #include "board-tcc8920.h"
 
 ////////////////////////////////////

@@ -215,7 +215,8 @@ static struct usb_request *acc_request_new(struct usb_ep *ep, int buffer_size)
 
 	/* now allocate buffers for the requests */
 #ifdef DMA_MODE
-	req->buf = dma_alloc_coherent(NULL, ADB_BULK_BUFFER_SIZE, &req->dma, GFP_KERNEL|GFP_DMA); 
+	req->dmasz = buffer_size;
+	req->buf = dma_alloc_coherent(NULL, buffer_size, &req->dma, GFP_KERNEL|GFP_DMA); 
 #else	
 	req->buf = kmalloc(buffer_size, GFP_KERNEL);
 #endif	
@@ -231,7 +232,7 @@ static void acc_request_free(struct usb_request *req, struct usb_ep *ep)
 {
 	if (req) {
 #ifdef DMA_MODE
-		dma_free_coherent(NULL, ADB_BULK_BUFFER_SIZE, req->buf, req->dma);
+		dma_free_coherent(NULL, req->dmasz, req->buf, req->dma);
 #else	
 		kfree(req->buf);
 #endif		

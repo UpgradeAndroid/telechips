@@ -16,6 +16,7 @@
 #include <linux/input.h>
 #include <linux/gpio_event.h>
 #include <asm/gpio.h>
+#include <asm/system_info.h>
 #include <asm/mach-types.h>
 #include <mach/bsp.h>
 #include <mach/io.h>
@@ -33,8 +34,8 @@ static struct gpio_event_input_info tcc8920_gpio_key_input_info = {
 	.info.func = gpio_event_input_func,
 	.keymap = tcc8920_gpio_keymap,
 	.keymap_size = ARRAY_SIZE(tcc8920_gpio_keymap),
-	.poll_time.tv.nsec = 20 * NSEC_PER_MSEC,
-	.debounce_time.tv.nsec = 20 * NSEC_PER_MSEC,
+	.poll_time.tv64 = 20 * NSEC_PER_MSEC,
+	.debounce_time.tv64 = 20 * NSEC_PER_MSEC,
 	//.flags = 0 /*GPIOEDF_PRINT_KEYS*/,
 	.type = EV_KEY,
 };
@@ -103,9 +104,9 @@ static struct gpio_event_matrix_info tcc8921_keymap_info = {
 	.input_gpios = tcc8920_row_gpios,
 	.noutputs = ARRAY_SIZE(tcc8920_col_gpios),
 	.ninputs = ARRAY_SIZE(tcc8920_row_gpios),
-	.settle_time.tv.nsec = 40 * NSEC_PER_USEC,
-	.poll_time.tv.nsec = 20 * NSEC_PER_MSEC,
-	.debounce_delay.tv.nsec = 50 * NSEC_PER_MSEC,
+	.settle_time.tv64 = 40 * NSEC_PER_USEC,
+	.poll_time.tv64 = 20 * NSEC_PER_MSEC,
+	.debounce_delay.tv64 = 50 * NSEC_PER_MSEC,
 #if 1 // XXX: disable interrupt for now
 	.flags = GPIOKPF_DRIVE_INACTIVE /*| GPIOKPF_PRINT_UNMAPPED_KEYS | GPIOKPF_PRINT_MAPPED_KEYS*/,
 #else

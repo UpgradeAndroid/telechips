@@ -1602,7 +1602,7 @@ int composite_dev_prepare(struct usb_composite_driver *composite,
 		return -ENOMEM;
 
 #ifdef DMA_MODE
-	cdev->req->buf = dma_alloc_coherent(NULL, USB_BUFSIZ, &cdev->req->dma, GFP_KERNEL|GFP_DMA);
+	cdev->req->buf = dma_alloc_coherent(NULL, USB_COMP_EP0_BUFSIZ, &cdev->req->dma, GFP_KERNEL|GFP_DMA);
 #else
 	cdev->req->buf = kmalloc(USB_COMP_EP0_BUFSIZ, GFP_KERNEL);
 #endif
@@ -1650,7 +1650,7 @@ void composite_dev_cleanup(struct usb_composite_dev *cdev)
 	}
 	if (cdev->req) {
 #ifdef DMA_MODE
-		dma_free_coherent(NULL, USB_BUFSIZ, cdev->req->buf, cdev->req->dma);
+		dma_free_coherent(NULL, USB_COMP_EP0_BUFSIZ, cdev->req->buf, cdev->req->dma);
 #else
 		kfree(cdev->req->buf);
 #endif

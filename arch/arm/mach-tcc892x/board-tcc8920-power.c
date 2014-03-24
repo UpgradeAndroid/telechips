@@ -3,7 +3,7 @@
 #include <linux/platform_device.h>
 #include <linux/mmc/host.h>
 #include <linux/gpio.h>
-
+#include <asm/system_info.h>
 #include <asm/mach-types.h>
 
 #include <mach/gpio.h>

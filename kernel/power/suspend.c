@@ -27,6 +27,7 @@
 #include <linux/ftrace.h>
 #include <linux/rtc.h>
 #include <trace/events/power.h>
+#include <linux/kmod.h>
 
 #include "power.h"
 
@@ -463,12 +464,12 @@ int tcc_umh_ehci_module(int flag)
 		flag ? "/lib/modules/ohci-hcd.ko" : "ohci_hcd",
 		NULL};
 
-	sub_info_hs = call_usermodehelper_setup( argv_hs[0], argv_hs, envp, GFP_ATOMIC );
-	sub_info_fs = call_usermodehelper_setup( argv_fs[0], argv_fs, envp, GFP_ATOMIC );
+	sub_info_hs = call_usermodehelper_setup( argv_hs[0], argv_hs, envp, GFP_ATOMIC, NULL, NULL, NULL );
+	sub_info_fs = call_usermodehelper_setup( argv_fs[0], argv_fs, envp, GFP_ATOMIC, NULL, NULL, NULL );
 	if (sub_info_hs == NULL || sub_info_fs == NULL) {
 	printk("-> [%s:%d] ERROR-hs:0x%p, fs:0x%p\n", __func__, __LINE__, sub_info_hs, sub_info_fs);
-		if(sub_info_hs) call_usermodehelper_freeinfo(sub_info_hs);
-		if(sub_info_fs) call_usermodehelper_freeinfo(sub_info_fs);
+		if(sub_info_hs) kfree(sub_info_hs);
+		if(sub_info_fs) kfree(sub_info_fs);
 		retval = -ENOMEM;
 		goto End;
 	}
@@ -503,10 +504,10 @@ int tcc_bcmwifi_module(int flag)
 		flag ? "/system/wifi/bcm4330.ko" : "bcmdhd",
 		NULL};
 
-	sub_info_hs = call_usermodehelper_setup( argv_hs[0], argv_hs, envp, GFP_ATOMIC );
+	sub_info_hs = call_usermodehelper_setup( argv_hs[0], argv_hs, envp, GFP_ATOMIC, NULL, NULL, NULL );
 	if (sub_info_hs == NULL) {
 	printk("-> [%s:%d] ERROR-hs:0x%p", __func__, __LINE__, sub_info_hs);
-		if(sub_info_hs) call_usermodehelper_freeinfo(sub_info_hs);
+		if(sub_info_hs) kfree(sub_info_hs);
 		retval = -ENOMEM;
 		goto End;
 	}
