@@ -1,0 +1,68 @@
+if ARCH_TCC93XX
+
+comment "TCC Board Type"
+
+config MACH_TCC9300
+	bool "TCC9300 demo board"
+	depends on ARCH_TCC93XX
+	help
+	  Support for the TCC9300 demo board. Say Y here if you have such a device.
+
+config MACH_TCC9300ST
+        bool "TCC930X STB demo board"
+	depends on ARCH_TCC93XX
+        help
+          Support for the TCC930X_STB demo board. Say Y here if you have such a device.
+
+config MACH_TCC9300CM
+	bool "TCC9300CM demo board"
+	depends on ARCH_TCC93XX
+	help
+	  Support for the TCC9300_89 demo board. Say Y here if you  have such a device.
+
+comment "TCC Feature Selections"
+
+config CPU_HIGHSPEED
+    bool "CPU high-speed clock"
+    depends on ARCH_TCC93XX
+    default n
+    help
+     Support for the TCC88xx demo board, Say Y here if you
+     want to overclocking
+
+config GPIO_CORE_VOLTAGE_CONTROL
+	bool "Ctrl coreA/B voltage by gpio ports"
+	depends on CPU_FREQ_DEFAULT_GOV_ONDEMAND && !REGULATOR
+	default n
+	help
+	  Support for the TCC88XX demo board.
+
+config WIFI_CONTROL_FUNC
+	bool "Enable WiFi control function abstraction"
+	help
+	  Enables Power/Reset/Carddetect function abstraction
+
+comment "TCC STB Feature Selections"
+
+config TCC_STB_MODE
+	bool "TCC STB Mode"
+	help
+	  Support for the TCC93/88/8910 demo board, Say Y here if you STB
+	  It change the memory configuration
+
+config TCC_OUTPUT_STARTER
+        bool "TCC OUTPUT show boot logo image on HDMI/CVBS/Component"
+        depends on ARCH_TCC93XX
+        default n
+        help
+          Support for the TCC93/88/8910 demo board, Say Y here if you want
+          to show boot logo by using HDMI/CVBS/Component output
+
+
+config USE_TCC_LAYER
+        bool "Support TCC interface layer"
+        default n
+        help
+                TCC interface layer.
+
+endif

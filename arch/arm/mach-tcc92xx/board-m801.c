@@ -1,0 +1,451 @@
+/* linux/arch/arm/mach-tcc92x/board-m801.c
+ *
+ * Copyright (C) 2010 Telechips, Inc.
+ *
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/platform_device.h>
+#include <linux/proc_fs.h>
+#include <linux/delay.h>
+#include <linux/input.h>
+#include <linux/i2c.h>
+#include <linux/i2c/pca953x.h>
+#include <linux/usb/android_composite.h>
+#include <linux/spi/spi.h>
+#include <linux/i2c.h>
+#include <asm/mach-types.h>
+#include <asm/mach/arch.h>
+#include <asm/mach/map.h>
+#include <asm/mach/flash.h>
+
+#include <asm/io.h>
+#include <mach/irqs.h>
+#include <mach/gpio.h>
+#include <plat/serial.h>
+#include <mach/tca_serial.h>
+#include <mach/tca_i2c.h>
+#include <plat/tcc_ts.h>
+#include <mach/bsp.h>
+#include <plat/pmap.h>
+#include <mach/common.h>
+#include <plat/nand.h>
+
+
+
+#include "devices.h"
+#include "board-m801.h"
+
+#if defined(CONFIG_VIDEO_TCCXX_CAMERA) //20100720 ysseung   add to sensor slave id.
+#include <media/cam_i2c.h>
+#if defined(CONFIG_VIDEO_CAMERA_SENSOR_AIT848_ISP)
+#define SENSOR_I2C_SLAVE_ID 	(0x06>>1)
+#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9P111)
+#define SENSOR_I2C_SLAVE_ID 	(0x78>>1)
+#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9T111)
+#define SENSOR_I2C_SLAVE_ID 	(0x7A>>1)
+#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_MV9317)
+#define SENSOR_I2C_SLAVE_ID 	(0x50>>1)
+#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_MT9D112)
+#define SENSOR_I2C_SLAVE_ID 	(0x7A>>1)
+#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_OV3640)
+#define SENSOR_I2C_SLAVE_ID 	(0x78>>1)
+#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_S5K4BAFB)
+#define SENSOR_I2C_SLAVE_ID 	(0x52>>1)
+#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_ISX006)
+#define SENSOR_I2C_SLAVE_ID 	(0x34>>1)
+#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_OV7690)
+#define SENSOR_I2C_SLAVE_ID 		(0x42>>1)
+#elif defined(CONFIG_VIDEO_CAMERA_SENSOR_GT2005)
+#define SENSOR_I2C_SLAVE_ID 	(0x78>>1)
+#elif defined(CONFIG_VIDEO_ATV_SENSOR_TVP5150)
+#define SENSOR_I2C_SLAVE_ID 		(0xB8>>1)
+#elif defined(CONFIG_VIDEO_ATV_SENSOR_RDA5888)
+#define SENSOR_I2C_SLAVE_ID 		(0xC4>>1)
+#endif
+#endif // defined(CONFIG_VIDEO_TCCXX_CAMERA)
+
+extern void __init tcc9200_irq_init(void);
+extern void __init tcc9200_map_common_io(void);
+
+static struct spi_board_info m801_spi0_board_info[] = {
+	{
+		.modalias = "spidev",
+		.bus_num = 0,
+		.chip_select = 0,
+		.max_speed_hz = 2 * 1000 *1000,
+	},
+};
+
+static void __init tcc9200_init_irq(void)
+{
+    tcc9200_irq_init();
+//    tcc9200_gpio_init();
+}
+
+static void m801_nand_init(void)
+{
+	unsigned int gpio_wp = GPIO_NAND_WP;
+	unsigned int gpio_rdy = GPIO_NAND_RDY;
+
+	tcc_gpio_config(gpio_wp, GPIO_FN(0));
+	tcc_gpio_config(gpio_rdy, GPIO_FN(0));
+
+	gpio_request(gpio_wp, "nand_wp");
+	gpio_direction_output(gpio_wp, 1);
+
+	gpio_request(gpio_rdy, "nand_rdy");
+	gpio_direction_input(gpio_rdy);
+}
+
+static int m801_nand_ready(void)
+{
+	return !gpio_get_value(GPIO_NAND_RDY);
+}
+
+static struct tcc_nand_platform_data tcc_nand_platdata = {
+	.parts		= NULL,
+	.nr_parts	= 0,
+	.gpio_wp	= GPIO_NAND_WP,
+	.init		= m801_nand_init,
+	.ready		= m801_nand_ready,
+};
+
+static struct platform_device tcc_nand_device = {
+	.name		= "tcc_mtd",
+	.id			= -1,
+	.dev		= {
+		.platform_data = &tcc_nand_platdata,
+	},
+};
+
+static void tcc_add_nand_device(void)
+{
+	tcc_get_partition_info(&tcc_nand_platdata.parts, &tcc_nand_platdata.nr_parts);
+	platform_device_register(&tcc_nand_device);
+}
+
+
+static struct pca953x_platform_data pca9539_data1 = {
+	.gpio_base	= GPIO_PORTEXT1,
+};
+
+
+static struct pca953x_platform_data pca9539_data2 = {
+	.gpio_base	= GPIO_PORTEXT2
+};
+
+static struct pca953x_platform_data pca9538_data = {
+	.gpio_base	= GPIO_PORTEXT3,
+};
+
+#if defined(CONFIG_VIDEO_TCCXX_CAMERA)
+static struct cam_i2c_platform_data cam_i2c_data = {
+};
+#endif//
+
+#if defined(CONFIG_I2C_TCC92XX)
+static struct tcc_i2c_platform_data m801_i2c_platform_data = {
+    .core_clk_rate      = 4*1000*1000,    /* core clock rate: 4MHz */
+    .core_clk_name      = "i2c",
+    .smu_i2c_flag       = 0,
+    .i2c_ch_clk_rate[0] = 100,      /* SCL clock rate : 100kHz */
+    .i2c_ch_clk_rate[1] = 100,      /* SCL clock rate : 100kHz */
+};
+
+static struct tcc_i2c_platform_data m801_smu_platform_data = {
+    .core_clk_name  = "smu",
+    .smu_i2c_flag   = 1,
+};
+#endif
+
+#ifdef CONFIG_I2C_BOARDINFO
+static struct i2c_board_info __initdata i2c_devices0[] = {
+	{
+		I2C_BOARD_INFO("pca9539", 0x74),
+		.platform_data = &pca9539_data1,
+	},
+	{
+		I2C_BOARD_INFO("pca9539", 0x77),
+		.platform_data = &pca9539_data2,
+	},
+	{
+		I2C_BOARD_INFO("pca9538", 0x70),
+		.platform_data = &pca9538_data,
+	},
+	#if defined(CONFIG_VIDEO_TCCXX_CAMERA)
+	#if defined(CONFIG_VIDEO_DUAL_CAMERA_SUPPORT)
+	{
+		I2C_BOARD_INFO("tcc-cam-sensor-0", (0x50>>1)), //20100716 ysseung   sign-up to sensor slave-id.
+		.platform_data = &cam_i2c_data,
+	},
+	{
+		I2C_BOARD_INFO("tcc-cam-sensor-1", (0x7A>>1)), //20100716 ysseung   sign-up to sensor slave-id.
+		.platform_data = &cam_i2c_data,
+	},
+	#else // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
+	{
+		I2C_BOARD_INFO("tcc-cam-sensor", SENSOR_I2C_SLAVE_ID), //20100716 ysseung   sign-up to sensor slave-id.
+		.platform_data = &cam_i2c_data,
+	},
+	#endif // CONFIG_VIDEO_DUAL_CAMERA_SUPPORT
+	#endif // CONFIG_VIDEO_TCCXX_CAMERA
+};
+#endif
+
+#if defined(CONFIG_TOUCHSCREEN_TCCTS)
+static struct resource tcc_touch_resources[] = {
+	[0] = {
+		.start	= 0xF05F4000,
+		.end	= 0xF05F4000 + 0x20,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start = INT_TSADC,
+		.end   = INT_TSADC,
+		.flags = IORESOURCE_IRQ,
+	},
+	[2] = {
+		.start = INT_EI2,
+		.end   = INT_EI2,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct tcc_adc_ts_platform_data tcc_touchscreen_pdata = {
+#ifdef CONFIG_TOUCHSCREEN_CALIBRATION
+	.min_x = 1,
+	.max_x = 1023,
+	.min_y = 1,
+	.max_y = 1023,
+#else
+	.min_x = 64,
+	.max_x = 950,
+	.min_y = 120,
+	.max_y = 910,
+#endif
+	.reverse_x_pos = 1,
+};
+
+static struct platform_device tcc_touchscreen_device = {
+	.name		= "tcc-ts",
+	.id		= -1,
+	.resource	= tcc_touch_resources,
+	.num_resources	= ARRAY_SIZE(tcc_touch_resources),
+	.dev = {
+		.platform_data = &tcc_touchscreen_pdata
+	},
+};
+#endif /* CONFIG_TOUCHSCREEN_TCCTS */
+
+/*----------------------------------------------------------------------
+ * Device     : USB Android Gadget
+ * Description:
+ *----------------------------------------------------------------------*/
+static struct usb_mass_storage_platform_data mass_storage_pdata = {
+#ifdef CONFIG_SCSI
+	.nluns = 4, // for iNand
+#else
+	.nluns = 3,
+#endif
+	.vendor = "Telechips, Inc.",
+	.product = "M801",
+	.release = 0x0100,
+};
+
+static struct platform_device usb_mass_storage_device = {
+	.name = "usb_mass_storage",
+	.id = -1,
+	.dev = {
+		.platform_data = &mass_storage_pdata,
+	},
+};
+
+#ifdef CONFIG_USB_ANDROID_RNDIS
+static struct usb_ether_platform_data rndis_pdata = {
+	/* ethaddr is filled by board_serialno_setup */
+	.vendorID	= 0x18d1,
+	.vendorDescr	= "Telechips, Inc.",
+};
+
+static struct platform_device rndis_device = {
+	.name	= "rndis",
+	.id	= -1,
+	.dev	= {
+		.platform_data = &rndis_pdata,
+	},
+};
+#endif
+
+static char *usb_functions_ums[] = {
+	"usb_mass_storage",
+};
+
+static char *usb_functions_ums_adb[] = {
+	"usb_mass_storage",
+	"adb",
+};
+
+static char *usb_functions_rndis[] = {
+	"rndis",
+};
+
+static char *usb_functions_rndis_adb[] = {
+	"rndis",
+	"adb",
+};
+
+
+static char *usb_functions_all[] = {
+#ifdef CONFIG_USB_ANDROID_RNDIS
+	"rndis",
+#endif
+	"usb_mass_storage",
+	"adb",
+#ifdef CONFIG_USB_ANDROID_ACM
+	"acm",
+#endif
+};
+
+static struct android_usb_product usb_products[] = {
+	{
+		.product_id	= 0xb058, /* Telechips UMS PID */
+		.num_functions	= ARRAY_SIZE(usb_functions_ums),
+		.functions	= usb_functions_ums,
+	},
+	{
+		.product_id	= 0xdeed,
+		.num_functions	= ARRAY_SIZE(usb_functions_ums_adb),
+		.functions	= usb_functions_ums_adb,
+	},
+	{
+		.product_id	= 0x0002,
+		.num_functions	= ARRAY_SIZE(usb_functions_rndis),
+		.functions	= usb_functions_rndis,
+	},
+	{
+		.product_id	= 0x0003,
+		.num_functions	= ARRAY_SIZE(usb_functions_rndis_adb),
+		.functions	= usb_functions_rndis_adb,
+	},
+};
+
+static struct android_usb_platform_data android_usb_pdata = {
+	.vendor_id      = 0x18D1,
+	.product_id     = 0x0001,
+	.version	= 0x0100,
+	.product_name	= "M801",
+	.manufacturer_name = "Telechips, Inc.",
+	.num_products = ARRAY_SIZE(usb_products),
+	.products = usb_products,
+	.num_functions = ARRAY_SIZE(usb_functions_all),
+	.functions = usb_functions_all,
+};
+
+static struct platform_device android_usb_device = {
+	.name	= "android_usb",
+	.id		= -1,
+	.dev		= {
+		.platform_data = &android_usb_pdata,
+	},
+};
+
+#if defined(CONFIG_TCC_WATCHDOG)
+static struct platform_device tccwdt_device = {
+	.name	= "tcc-wdt",
+	.id		= -1,
+};
+#endif
+
+#if defined(CONFIG_SERIAL_TCC_DMA) || defined(CONFIG_BT)
+static struct tcc_uart_platform_data uart1_data_bt = {
+    .tx_dma_use     = 0,
+    .tx_dma_buf_size= SERIAL_TX_DMA_BUF_SIZE,
+    .tx_dma_base    = &HwGDMA1_BASE,
+    .tx_dma_ch      = SERIAL_TX_DMA_CH_NUM,
+    .tx_dma_intr    = INT_DMA1_CH0,
+    .tx_dma_mode    = SERIAL_TX_DMA_MODE,
+
+    .rx_dma_use     = 1,
+    .rx_dma_buf_size= SERIAL_RX_DMA_BUF_SIZE,
+    .rx_dma_base    = &HwGDMA1_BASE,
+    .rx_dma_ch      = SERIAL_RX_DMA_CH_NUM,
+    .rx_dma_intr    = 0,
+    .rx_dma_mode    = SERIAL_RX_DMA_MODE,
+};
+#endif
+
+
+static struct platform_device *m801_devices[] __initdata = {
+#if defined(CONFIG_I2C_TCC92XX)
+	&tcc9200_i2c_device,
+	&tcc9200_smu_device,
+#endif
+#if defined(CONFIG_TOUCHSCREEN_TCCTS)
+	&tcc_touchscreen_device,
+#endif
+	&tcc_otg_device,
+#ifdef CONFIG_USB_ANDROID_RNDIS
+	&rndis_device,
+#endif
+	&usb_mass_storage_device,
+	&android_usb_device,
+#if defined(CONFIG_TCC_WATCHDOG)
+	&tccwdt_device,
+#endif
+};
+
+static int __init board_serialno_setup(char *serialno)
+{
+	android_usb_pdata.serial_number = serialno;
+	return 1;
+}
+__setup("androidboot.serialno=", board_serialno_setup);
+
+static void __init tcc9200_init_machine(void)
+{
+#ifdef CONFIG_I2C_BOARDINFO
+	i2c_register_board_info(0, i2c_devices0, ARRAY_SIZE(i2c_devices0));
+#endif
+
+	spi_register_board_info(m801_spi0_board_info, ARRAY_SIZE(m801_spi0_board_info));
+
+#if defined(CONFIG_SERIAL_TCC_DMA) || defined(CONFIG_BT)
+            /* BT: use UART1 and TX DMA */
+            platform_device_add_data(&tcc9200_uart1_device, &uart1_data_bt, sizeof(struct tcc_uart_platform_data));
+#endif
+
+#if defined(CONFIG_I2C_TCC92XX)
+    platform_device_add_data(&tcc9200_i2c_device, &m801_i2c_platform_data, sizeof(m801_i2c_platform_data));
+    platform_device_add_data(&tcc9200_smu_device, &m801_smu_platform_data, sizeof(m801_smu_platform_data));
+#endif
+    	tcc_add_nand_device();
+
+	platform_add_devices(m801_devices, ARRAY_SIZE(m801_devices));
+}
+
+
+static void __init tcc9200_map_io(void)
+{
+    tcc9200_map_common_io();
+}
+
+MACHINE_START(M801, "m801")
+    /* Maintainer: Telechips Linux BSP Team <linux@telechips.com> */
+    .phys_io        = 0xf0000000,
+    .io_pg_offst    = ((0xf0000000) >> 18) & 0xfffc,
+    .boot_params    = PHYS_OFFSET + 0x00000100,
+    .map_io         = tcc9200_map_io,
+    .init_irq       = tcc9200_init_irq,
+    .init_machine   = tcc9200_init_machine,
+    .timer          = &tcc9200_timer,
+MACHINE_END

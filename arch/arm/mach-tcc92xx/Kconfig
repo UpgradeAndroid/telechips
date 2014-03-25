@@ -1,0 +1,139 @@
+if ARCH_TCC92XX
+
+comment "TCC Board Type"
+
+config MACH_TCC9200S
+    bool "TCC9200s evaluation board"
+    depends on ARCH_TCC92XX
+    help 
+      Support for the TCC9200s demo board. Say Y here if you
+      have such a device.
+
+config MACH_TCC9201
+    bool "TCC9201 evaluation board"
+    depends on ARCH_TCC92XX
+    help
+      Support for the TCC9201 demo board. Say Y here if you
+      have such a device.
+      
+config MACH_TCC8900
+    bool "TCC8900 evaluation board"
+    depends on ARCH_TCC92XX
+    help 
+      Support for the TCC8900 demo board. Say Y here if you
+      have such a device.
+
+config MACH_M57TE
+    bool "M57TE board"
+    depends on ARCH_TCC92XX
+    help 
+      Support for the M57TE board. Say Y here if you
+      have such a device.
+
+config MACH_M801
+    bool "M801 board"
+    depends on ARCH_TCC92XX
+    help
+      Support for the M801 board. Say Y here if you
+      have such a device.
+
+comment "TCC Feature Selections"
+
+config TCC_CHIP_REV_A
+    tristate "TCC Chip Revision A - 2009 July"
+    help 
+      Support for the TCC9200x demo board, Say Y here if you
+      have such a Rev.A chip.
+
+config TCC_EHI
+    tristate "TCC EHI driver"
+    depends on ARCH_TCC92XX
+    help 
+      Support for the TCC9200x demo board, Say Y here if you
+      have such a Rev.A chip.
+
+config HIGH_PERFORMANCE
+    bool "High performance"
+    depends on DRAM_MDDR && REGULATOR
+    help
+      Support for the TCC92xx demo board. Say Y here if you
+      want high performance.
+
+config CPU_OVERCLOCKING_700MHZ
+    bool "CPU overclocking to 700MHz"
+    depends on DRAM_MDDR && HIGH_PERFORMANCE
+    help
+      Support for the TCC92xx demo board. Say Y here if you
+      want overclocking.
+
+config CPU_HIGHSPEED
+    bool "CPU high-speed clock to 1GHz"
+    depends on DRAM_DDR2
+    help
+     Support for the TCC89/91/92xx demo board, Say Y here if you
+     want to overclocking
+
+config VBUS_280MHZ_USE
+    bool "Use max VBUS clock to 280MHz (Not enough tested)"
+    depends on CPU_HIGHSPEED && TCC_MEM_512MB
+    help
+     This clock setting can be used for 512MB 1GHz Froyo version to play Full HD video file.
+     But this setting is still being tested and please do not use until we confirm its stability
+
+#Bruce_Sleep_ITCM, 100104, PowerDown+ITCMBoot
+config SLEEP_WITH_ITCM
+	bool "TCC PowerDown mode with ITCM Boot"
+    depends on ARCH_TCC92XX
+	default y
+    help
+      Support for the TCC92xx PowerDown + ITCM Boot. Select Y here if you
+      want it.
+
+choice
+  bool "TCC HDMI UI size"
+  default TCC_HDMI_UI_SIZE_800_480
+  help
+        HDMI UI size for TCC89/91/92 Demo Board
+
+config TCC_HDMI_UI_SIZE_800_480
+   bool "TCC hdmi ui size use 800_480"
+   help
+     Support for the TCC89/91/92xx demo board, Say Y here if you
+     want to use 800_480
+
+config TCC_HDMI_UI_SIZE_1280_720
+   bool "TCC hdmi ui size use 1280_720"
+   help
+     Support for the TCC89/91/92xx demo board, Say Y here if you
+     want to use 1280_720
+
+endchoice
+
+config TCC_HDMI_STARTER
+        bool "TCC HDMI show boot logo image"
+        depends on ARCH_TCC92XX
+        default n
+        help
+          Support for the TCC89/91/92xx demo board, Say Y here if you
+          want to show boot logo on HDMI
+
+config TCC_OUTPUT_STARTER
+        bool "TCC OUTPUT show boot logo image on HDMI/CVBS/Component"
+        depends on ARCH_TCC92XX
+        default n
+        help
+          Support for the TCC89/91/92xx demo board, Say Y here if you want
+          to show boot logo by using HDMI/CVBS/Component output
+
+config USE_TCC_LAYER
+	bool "Support TCC interface layer"
+	default n
+	help
+		TCC interface layer.
+
+config WIFI_CONTROL_FUNC
+	bool "Enable WiFi control function abstraction"
+	help
+	  Enables Power/Reset/Carddetect function abstraction
+
+endif

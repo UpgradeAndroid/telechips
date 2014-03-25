@@ -2,6 +2,27 @@ if ARCH_TCC
 
 choice
 	prompt "TCC Processor Family"
+
+config ARCH_TCC92XX
+	bool "TCC89xx/91xx/92xx"
+	select ARCH_HAS_CPUFREQ
+	select CPU_V6
+	select HAVE_CLK
+	select GENERIC_GPIO
+	select ARCH_REQUIRE_GPIOLIB
+	select GENERIC_TIME
+	select GENERIC_CLOCKEVENTS
+
+config ARCH_TCC93XX
+	bool "TCC93xx"
+	select ARCH_HAS_CPUFREQ
+	select CPU_V6
+	select HAVE_CLK
+	select GENERIC_GPIO
+	select ARCH_REQUIRE_GPIOLIB
+	select GENERIC_TIME
+	select GENERIC_CLOCKEVENTS
+
 config ARCH_TCC88XX
 	bool "TCC88xx"
 	select NEED_MACH_IO_H
@@ -32,6 +53,19 @@ config ARCH_TCC892X
 	select GENERIC_GPIO
 	select ARCH_REQUIRE_GPIOLIB
 	select GENERIC_CLOCKEVENTS
+
+endchoice
+
+choice
+	prompt "TCC93xx chip version"
+	depends on ARCH_TCC93XX
+	default TCC93XX_AX
+
+config TCC93XX_AX
+	bool "TCC93XX AX"
+
+config TCC93XX_BX
+	bool "TCC93XX BX"
 
 endchoice
 
@@ -252,6 +286,8 @@ config TCC_ECID_SUPPORT
 	help
 	  Support for the TCCXXXX demo board, Say Y here if you use ECID
 
+source "arch/arm/mach-tcc92xx/Kconfig"
+source "arch/arm/mach-tcc93xx/Kconfig"
 source "arch/arm/mach-tcc892x/Kconfig"
 source "arch/arm/mach-tcc88xx/Kconfig"
 
