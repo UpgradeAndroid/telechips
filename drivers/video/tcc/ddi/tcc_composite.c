@@ -479,8 +479,12 @@ void tcc_composite_set_lcd2tv(COMPOSITE_MODE_TYPE type)
 	else
 		lcd_peri = PERI_LCD0;
 
+	#if defined(CONFIG_ARCH_TCC92XX) || defined(CONFIG_ARCH_TCC93XX)
+	tca_ckc_setperi(lcd_peri, ENABLE, 270000, PCDIRECTPLL2);
+	#else
 	tca_ckc_setperi(lcd_peri, ENABLE, 270000);
-	
+	#endif
+
 	#if defined(CONFIG_ARCH_TCC92XX) && defined(CONFIG_TCC_OUTPUT_STARTER)
 	{
 		int wait_count = 0;

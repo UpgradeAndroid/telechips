@@ -1028,7 +1028,7 @@ int tccxxx_grp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 EXPORT_SYMBOL(tccxxx_grp_ioctl);
 
 
-#if defined(CONFIG_CPU_FREQ)
+#if defined(CONFIG_CPU_FREQ) && !defined(CONFIG_ARCH_TCC92XX)
 extern struct tcc_freq_table_t gtOverlayClockLimitTable;
 #endif//
 
@@ -1042,9 +1042,9 @@ int tccxxx_grp_release(struct inode *inode, struct file *file)
 
 	if(g2d_struct.dev_opened == 0)
 	{
-		#if defined(CONFIG_CPU_FREQ)
+		#if defined(CONFIG_CPU_FREQ) && !defined(CONFIG_ARCH_TCC92XX)
 		tcc_cpufreq_set_limit_table(&gtOverlayClockLimitTable, TCC_FREQ_LIMIT_G2D, 0);
-#endif//
+		#endif//
 
 		#if defined(CONFIG_ARCH_TCC892X)
 		disable_irq(INT_G2D);
@@ -1070,7 +1070,7 @@ int tccxxx_grp_open(struct inode *inode, struct file *file)
 
 	if(g2d_struct.dev_opened == 1)
 	{
-		#if defined(CONFIG_CPU_FREQ)
+		#if defined(CONFIG_CPU_FREQ) && !defined(CONFIG_ARCH_TCC92XX)
 		tcc_cpufreq_set_limit_table(&gtOverlayClockLimitTable, TCC_FREQ_LIMIT_G2D, 1);
 		#endif//
 

@@ -2,6 +2,13 @@
 #ifndef _VDEC_IOCTL_H_
 #define _VDEC_IOCTL_H_
 
+typedef enum {
+	VPU_DEC = 0,
+	VPU_DEC_EXT,	
+	VPU_ENC,
+	VPU_MAX
+}vputype;
+
 #if !defined(CONFIG_TCC_VPU)
 #define VPU_IN_KERNEL
 #endif
@@ -10,24 +17,18 @@
 /* VPU MANAGER */
 typedef enum
 {
-	CONTENT_VIDEO,
-    CONTENT_VIDEO_SWCODEC,
-	CONTENT_CAMCORDER,	
-} Contents_Type;
-
-typedef enum
-{
 	OPEN_VIDEO,
     OPEN_DMB
 } Open_Type;
 
 typedef struct
 {
-	Contents_Type		type;
+	vputype				type;
 	unsigned int		width;
 	unsigned int		height;
 	unsigned int		bitrate;
 	unsigned int		framerate;
+	unsigned int		isSWCodec;	
 }CONTENTS_INFO;
 
 typedef struct
@@ -61,7 +62,7 @@ typedef struct
 #define VPU_SET_CLK 		 10
 #define VPU_GET_OPEN_INFO 	 20
 #define VPU_SET_OPEN_INFO 	 30
-#define VPU_FORCE_CLK_CLOSE  100  //fixed value
+#define VPU_FORCE_CLK_CLOSE  100 //fixed value
 
 #ifdef VPU_IN_KERNEL
 #define VPU_GET_FREEMEM_SIZE 40
@@ -88,6 +89,15 @@ typedef struct
 #define V_DEC_INIT_RESULT				25
 #define V_DEC_SEQ_HEADER_RESULT			26
 #define V_DEC_DECODE_RESULT				27
+#define V_DEC_UPDATE_RINGBUF_WP		28
+
+#define V_GET_RING_BUFFER_STATUS_RESULT	29
+#define V_FILL_RING_BUFFER_AUTO_RESULT	30
+#define V_DEC_UPDATE_RINGBUF_WP_RESULT	31
+#define V_GET_INITIAL_INFO_FOR_STREAMING_MODE_ONLY_RESULT 32
+
+#define V_GET_VPU_VERSION					33
+#define V_GET_VPU_VERSION_RESULT			34
 
 typedef struct {
 	int result;
@@ -112,6 +122,28 @@ typedef struct {
 	dec_output_t gsVpuDecOutput;
 }VDEC_DECODE_t;
 
+typedef struct {
+	int result;
+	dec_ring_buffer_status_out_t gsVpuDecRingStatus;
+}VDEC_RINGBUF_GETINFO_t;
+
+typedef struct {
+	int result;
+	dec_init_t gsVpuDecInit;
+	dec_ring_buffer_setting_in_t gsVpuDecRingFeed;
+}VDEC_RINGBUF_SETBUF_t;
+
+typedef struct {
+	int result;
+	int iCopiedSize;
+	int iFlushBuf;
+}VDEC_RINGBUF_SETBUF_PTRONLY_t;
+
+typedef struct {
+	int result;
+	char * pszVersion;
+	char * pszBuildData;
+}VDEC_GET_VERSION_t;
 ////////////////////////////////////////////////////////////////////////////////////////
 /* VPU ENCODER */
 #define V_ENC_INIT					10	//!< init

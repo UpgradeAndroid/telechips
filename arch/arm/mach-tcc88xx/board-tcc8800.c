@@ -588,8 +588,6 @@ static struct platform_device *tcc8800_devices[] __initdata = {
 	&tcc_gmac_device,
 #endif
 
-//	&usb_mass_storage_device,   // temp, Telechips B090183
-//	&android_usb_device,        // temp, Telechips B090183
 #if defined(CONFIG_TCC_WATCHDOG)
 	&tccwdt_device,
 #endif

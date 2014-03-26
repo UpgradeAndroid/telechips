@@ -26,7 +26,7 @@
 #include <mach/hardware.h>
 #include <mach/bsp.h>
 
-volatile static PCKC pCKC = (volatile PCKC)tcc_p2v(HwCLK_BASE);
+volatile static PCKC pCKC = (volatile PCKC)tcc_p2v(HwCKC_BASE);
 //volatile static unsigned int bCLK0CTRL = 0;
 volatile unsigned int idle_expired;
 extern unsigned int g_org_tcc_clk; /* backup cpu clock value */

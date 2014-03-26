@@ -81,11 +81,11 @@ extern unsigned int tcc_LCDC_set_bgcolor(unsigned lcdc, unsigned red, unsigned g
 extern void tcc_ddi_cache_setting(void);
 extern void tcc_onthefly_init(void);
 extern  void tca_lcdc_interrupt_onoff(char onoff, char lcdc);
-extern unsigned char DEV_LCDC_Wait_signal(char lcdc);
+extern unsigned int DEV_LCDC_Wait_signal(char lcdc);
 extern unsigned int DEV_LCDC_Status(char lcdc);
 
-#define ID_INVERT_EN	0x01 	// Invered Data Enable(ACBIS pin)  anctive Low
-#define IV_INVERT_EN	0x02	// Invered Vertical sync  anctive Low
-#define IH_INVERT_EN	0x04	// Invered Horizontal sync	 anctive Low
-#define IP_INVERT_EN	0x08	// Invered Pixel Clock : anctive Low
+#define ID_INVERT	0x01 	// Invered Data Enable(ACBIS pin)  anctive Low
+#define IV_INVERT	0x02	// Invered Vertical sync  anctive Low
+#define IH_INVERT	0x04	// Invered Horizontal sync	 anctive Low
+#define IP_INVERT	0x08	// Invered Pixel Clock : anctive Low
 

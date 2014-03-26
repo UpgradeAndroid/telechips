@@ -81,7 +81,7 @@ extern unsigned int tcc_LCDC_set_bgcolor(unsigned lcdc, unsigned red, unsigned g
 extern void tcc_ddi_cache_setting(void);
 extern void tcc_onthefly_init(void);
 extern  void tca_lcdc_interrupt_onoff(char onoff, char lcdc);
-extern unsigned char DEV_LCDC_Wait_signal(char lcdc);
+extern unsigned int DEV_LCDC_Wait_signal(char lcdc);
 extern unsigned int DEV_LCDC_Status(char lcdc);
 
 #define ID_INVERT_EN    0x01    // Invered Data Enable(ACBIS pin)  anctive Low

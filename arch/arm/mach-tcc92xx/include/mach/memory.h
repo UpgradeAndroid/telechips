@@ -38,7 +38,7 @@
 /*
  * Physical DRAM offset.
  */
-#define PHYS_OFFSET		UL(0x40000000)
+#define PLAT_PHYS_OFFSET				UL(0x40000000)
 
 /*
  * Size of DMA-consistent memory region.  Must be multiple of 2M,

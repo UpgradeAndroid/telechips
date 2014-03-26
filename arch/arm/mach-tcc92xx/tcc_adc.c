@@ -224,7 +224,7 @@ static irqreturn_t tcc_adc_irq(int irq, void *pw)
 	unsigned data0, data1;
 
 	if (!client) {
-	     printk(&adc->pdev->dev, "%s: no adc pending\n", __func__);
+	     dev_err(&adc->pdev->dev, "%s: no adc pending\n", __func__);
 	     return IRQ_HANDLED;
 	}
 	return IRQ_HANDLED;
@@ -360,7 +360,7 @@ static struct platform_driver tcc_adc_driver = {
 	     .owner  = THIS_MODULE,
 	},
 	.probe          = tcc_adc_probe,
-	.remove         = __devexit_p(tcc_adc_remove),
+	.remove         = tcc_adc_remove,
 	.suspend        = tcc_adc_suspend,
 	.resume         = tcc_adc_resume,
 };

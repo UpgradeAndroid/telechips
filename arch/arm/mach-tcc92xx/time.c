@@ -40,14 +40,12 @@
 #include <linux/spinlock.h>
 #include <linux/irq.h>	// for setup_irq()
 #include <linux/mm.h>	// for PAGE_ALIGN
-#ifdef CONFIG_GENERIC_TIME	/* B090183 */
 #include <linux/clk.h>
 #include <linux/clocksource.h>
 #include <linux/clockchips.h>
-#endif
 
-#include <asm/io.h>
-#include <asm/leds.h>
+#include <linux/io.h>
+#include <linux/leds.h>
 #include <asm/mach/time.h>
 #include <mach/bsp.h>
 
@@ -83,85 +81,6 @@ static unsigned long gdelta_max = 0;
 #endif
 
 
-#ifndef CONFIG_GENERIC_TIME     /* B090183 */
-/*
- * Returns elapsed usecs since last system timer interrupt
- */
-static unsigned long tcc9200_timer_gettimeoffset(void)
-{
-    return PRESCALE_TO_MICROSEC(pTIMER->TC32PCNT);
-}
-
-static irqreturn_t tcc9200_timer_interrupt(int irq, void *dev_id)
-{
-    timer_tick();
-
-    BITSET(pPIC->CLR0, TCC_ENABLE_BIT(irq));
-    if(pTIMER->TC32IRQ & Hw31) 
-        BITSET(pTIMER->TC32IRQ, Hw31);
-
-    return IRQ_HANDLED;
-}
-
-static struct irqaction tcc9200_timer_irq = {
-    .name       = "TC1_timer",
-    .flags      = IRQF_DISABLED | IRQF_TIMER,
-    .handler    = tcc9200_timer_interrupt,
-};
-
-/*
- * Scheduler clock - returns current time in nanosec units.
- */
-unsigned long long sched_clock(void)
-{
-    return ((unsigned long long)jiffies) * (1000000000llu / HZ);
-}
-
-
-/* 
- * Timer Initialization 
- */
- 
-static void __init tcc9200_timer_init(void)
-{
-    unsigned int cpu_clk;
-    unsigned int bus_clk;
-
-#if defined(CONFIG_SATA_TCC)
-    init_pwm_list();
-#endif
-
-	tca_ckc_init();
-    g_org_tcc_clk = tca_ckc_getclkctrl0();
-    cpu_clk = (unsigned int)tca_ckc_getcpu();
-    bus_clk = (unsigned int)tca_ckc_getbus();
-
-    pTIMER  = (volatile PTIMER)tcc_p2v(HwTMR_BASE);
-   	pPIC    = (volatile PPIC)tcc_p2v(HwPIC_BASE);
-
-    printk(" ### CORE CLOCK (%u Hz), BUS CLOCK (%u Hz) ###\n", cpu_clk * 100, bus_clk * 100);
-
-    BITCLR(pTIMER->TC32EN, Hw24);
-    pTIMER->TC32EN = TCC_TIMER_FREQ / HZ;
-    pTIMER->TC32LDV = 0;
-    BITSET(pTIMER->TC32IRQ, Hw19);
-    BITSET(pTIMER->TC32EN, Hw24);
-
-    BITSET(pPIC->SEL0, TCC_ENABLE_BIT(INT_TC1));
-    BITSET(pPIC->IEN0, TCC_ENABLE_BIT(INT_TC1));
-    BITSET(pPIC->INTMSK0, TCC_ENABLE_BIT(INT_TC1));
-    BITSET(pPIC->MODEA0, TCC_ENABLE_BIT(INT_TC1));
-    //BITCLR(pPIC->CLR0, TCC_ENABLE_BIT(INT_TC1));
-
-    setup_irq(INT_TC1, &tcc9200_timer_irq);
-}
-
-struct sys_timer tcc9200_timer = {
-    .init       = tcc9200_timer_init,
-    .offset     = tcc9200_timer_gettimeoffset, 
-};
-
-#else   /* CONFIG_GENERIC_TIME, second version from sa1100 */
 /*************************************************************************************************
  * Tickless Part
  *************************************************************************************************/
@@ -315,7 +234,7 @@ static struct irqaction tcc9200_timer_irq = {
 	.dev_id		= &ckevt_tcc9200_osmr0,
 };
 
-static void __init tcc9200_timer_init(void)
+void __init tcc_init_time(void)
 {
 	unsigned long	rate;
     unsigned int cpu_clk;
@@ -372,9 +291,3 @@ static void __init tcc9200_timer_init(void)
 	clocksource_register(&cksrc_tcc9200_oscr);
 	clockevents_register_device(&ckevt_tcc9200_osmr0);
 }
-
-struct sys_timer tcc9200_timer = {
-	.init		= tcc9200_timer_init,
-};
-
-#endif  /* #ifndef CONFIG_GENERIC_TIME  */

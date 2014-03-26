@@ -39,7 +39,7 @@
 #define SIGN_CHIPSET			'T','C','C','8','9','X','X','_'
 #elif defined(TCC91XX)
 #define SIGN_CHIPSET			'T','C','C','9','1','X','X','_'
-#elif defined(TCC92XX)
+#elif defined(CONFIG_ARCH_TCC92XX)
 #define SIGN_CHIPSET			'T','C','C','9','2','X','X','_'
 #elif defined(CONFIG_ARCH_TCC93XX)
 #define SIGN_CHIPSET			'T','C','C','9','3','X','X','_'

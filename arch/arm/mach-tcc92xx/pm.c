@@ -24,13 +24,14 @@
 #include <linux/reboot.h>
 #include <asm/tlbflush.h>
 #include <asm/cacheflush.h>
-#include <asm/io.h>
+#include <linux/io.h>
 #include <linux/syscalls.h>		
 #include <linux/delay.h>
 #include <linux/regulator/machine.h>
 #include <mach/pm.h>
 
 #include <mach/system.h>
+#include <asm/system_misc.h>
 #include <mach/tcc_pca953x.h>
 
 #define TCC_PMU_BASE	0xf0404000
@@ -198,7 +199,7 @@ static void suspend_mode_on(void)
 	 PART2 - SMU & PMU
 	--------------------------------------------------------------*/
 	//CKC
-	//memcpy(pSave->uCKC, &HwCLK_BASE, sizeof(CKC));
+	//memcpy(pSave->uCKC, &HwCKC_BASE, sizeof(CKC));
 	//VPIC (VECTORED PRIORITY INTERRUPT CONTROLLER)
 	//memcpy(pSave->uPIC, &HwPIC_BASE, sizeof(PIC));
 	//memcpy(pSave->uVIC, &HwVIC_BASE, sizeof(VIC));
@@ -1078,7 +1079,7 @@ volatile void copy_func_to_sram(void)
 
 	volatile unsigned int *ptr;
 	//CKC
-	memcpy(uCKC, (char*)&HwCLK_BASE, sizeof(CKC));
+	memcpy(uCKC, (char*)&HwCKC_BASE, sizeof(CKC));
 	//VPIC (VECTORED PRIORITY INTERRUPT CONTROLLER)
 	memcpy(uPIC, (char*)&HwPIC_BASE, sizeof(PIC));
 	memcpy(uVIC, (char*)&HwVIC_BASE, sizeof(VIC));

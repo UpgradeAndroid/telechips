@@ -20,7 +20,6 @@
 #include <linux/input.h>
 #include <linux/i2c.h>
 #include <linux/i2c/pca953x.h>
-#include <linux/usb/android_composite.h>
 #include <linux/spi/spi.h>
 #include <linux/i2c.h>
 #include <asm/mach-types.h>
@@ -76,6 +75,7 @@
 
 extern void __init tcc9200_irq_init(void);
 extern void __init tcc9200_map_common_io(void);
+extern void __init tcc_init_time(void);
 
 static struct spi_board_info m801_spi0_board_info[] = {
 	{
@@ -247,118 +247,6 @@ static struct platform_device tcc_touchscreen_device = {
 };
 #endif /* CONFIG_TOUCHSCREEN_TCCTS */
 
-/*----------------------------------------------------------------------
- * Device     : USB Android Gadget
- * Description:
- *----------------------------------------------------------------------*/
-static struct usb_mass_storage_platform_data mass_storage_pdata = {
-#ifdef CONFIG_SCSI
-	.nluns = 4, // for iNand
-#else
-	.nluns = 3,
-#endif
-	.vendor = "Telechips, Inc.",
-	.product = "M801",
-	.release = 0x0100,
-};
-
-static struct platform_device usb_mass_storage_device = {
-	.name = "usb_mass_storage",
-	.id = -1,
-	.dev = {
-		.platform_data = &mass_storage_pdata,
-	},
-};
-
-#ifdef CONFIG_USB_ANDROID_RNDIS
-static struct usb_ether_platform_data rndis_pdata = {
-	/* ethaddr is filled by board_serialno_setup */
-	.vendorID	= 0x18d1,
-	.vendorDescr	= "Telechips, Inc.",
-};
-
-static struct platform_device rndis_device = {
-	.name	= "rndis",
-	.id	= -1,
-	.dev	= {
-		.platform_data = &rndis_pdata,
-	},
-};
-#endif
-
-static char *usb_functions_ums[] = {
-	"usb_mass_storage",
-};
-
-static char *usb_functions_ums_adb[] = {
-	"usb_mass_storage",
-	"adb",
-};
-
-static char *usb_functions_rndis[] = {
-	"rndis",
-};
-
-static char *usb_functions_rndis_adb[] = {
-	"rndis",
-	"adb",
-};
-
-
-static char *usb_functions_all[] = {
-#ifdef CONFIG_USB_ANDROID_RNDIS
-	"rndis",
-#endif
-	"usb_mass_storage",
-	"adb",
-#ifdef CONFIG_USB_ANDROID_ACM
-	"acm",
-#endif
-};
-
-static struct android_usb_product usb_products[] = {
-	{
-		.product_id	= 0xb058, /* Telechips UMS PID */
-		.num_functions	= ARRAY_SIZE(usb_functions_ums),
-		.functions	= usb_functions_ums,
-	},
-	{
-		.product_id	= 0xdeed,
-		.num_functions	= ARRAY_SIZE(usb_functions_ums_adb),
-		.functions	= usb_functions_ums_adb,
-	},
-	{
-		.product_id	= 0x0002,
-		.num_functions	= ARRAY_SIZE(usb_functions_rndis),
-		.functions	= usb_functions_rndis,
-	},
-	{
-		.product_id	= 0x0003,
-		.num_functions	= ARRAY_SIZE(usb_functions_rndis_adb),
-		.functions	= usb_functions_rndis_adb,
-	},
-};
-
-static struct android_usb_platform_data android_usb_pdata = {
-	.vendor_id      = 0x18D1,
-	.product_id     = 0x0001,
-	.version	= 0x0100,
-	.product_name	= "M801",
-	.manufacturer_name = "Telechips, Inc.",
-	.num_products = ARRAY_SIZE(usb_products),
-	.products = usb_products,
-	.num_functions = ARRAY_SIZE(usb_functions_all),
-	.functions = usb_functions_all,
-};
-
-static struct platform_device android_usb_device = {
-	.name	= "android_usb",
-	.id		= -1,
-	.dev		= {
-		.platform_data = &android_usb_pdata,
-	},
-};
-
 #if defined(CONFIG_TCC_WATCHDOG)
 static struct platform_device tccwdt_device = {
 	.name	= "tcc-wdt",
@@ -394,22 +282,10 @@ static struct platform_device *m801_devices[] __initdata = {
 	&tcc_touchscreen_device,
 #endif
 	&tcc_otg_device,
-#ifdef CONFIG_USB_ANDROID_RNDIS
-	&rndis_device,
-#endif
-	&usb_mass_storage_device,
-	&android_usb_device,
 #if defined(CONFIG_TCC_WATCHDOG)
 	&tccwdt_device,
 #endif
 };
-
-static int __init board_serialno_setup(char *serialno)
-{
-	android_usb_pdata.serial_number = serialno;
-	return 1;
-}
-__setup("androidboot.serialno=", board_serialno_setup);
 
 static void __init tcc9200_init_machine(void)
 {
@@ -441,11 +317,9 @@ static void __init tcc9200_map_io(void)
 
 MACHINE_START(M801, "m801")
     /* Maintainer: Telechips Linux BSP Team <linux@telechips.com> */
-    .phys_io        = 0xf0000000,
-    .io_pg_offst    = ((0xf0000000) >> 18) & 0xfffc,
-    .boot_params    = PHYS_OFFSET + 0x00000100,
+    .atag_offset    = 0x100,
     .map_io         = tcc9200_map_io,
     .init_irq       = tcc9200_init_irq,
     .init_machine   = tcc9200_init_machine,
-    .timer          = &tcc9200_timer,
+    .init_time      = tcc_init_time,
 MACHINE_END

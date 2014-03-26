@@ -428,7 +428,7 @@ sfPLL	pIO_CKC_PLL1[]	=
 #define tca_wait()				{ volatile int i; for (i=0; i<0x2000; i++); }
 
 #if defined(_LINUX_)
-    #define iomap_p2v(x)            (x)
+    #define iomap_p2v(x)            (&x)
 #else
 //	#define iomap_p2v(x)			(x & ~0x40000000) //0xF0400000 -> 0xB04 
 	#define iomap_p2v(x)			(OALPAtoVA(x,FALSE)) //0xF0400000 -> 0xB04 
@@ -452,9 +452,9 @@ unsigned		uIO_CKC_Fclk[HwCKC_SYS_MAX];	// Current Generated Clock Frequency, 100
 * ***************************************************************************************/
 VOLATILE void tca_ckc_init(void)
 {
-	pCKC = (PCKC)(iomap_p2v((unsigned int)&HwCLK_BASE)); //0xF0400000
-	pPMU = (PPMU)(iomap_p2v((unsigned int)&HwPMU_BASE)); //0xF0404000
-	pIOBUSCFG = (PIOBUSCFG)(iomap_p2v((unsigned int)&HwIOBUSCFG_BASE)); //0xF05F5000
+	pCKC = (PCKC)(iomap_p2v(HwCKC_BASE));
+	pPMU = (PPMU)(iomap_p2v(HwPMU_BASE));
+	pIOBUSCFG = (PIOBUSCFG)(iomap_p2v(HwIOBUSCFG_BASE));
 	
 }
 /****************************************************************************************
@@ -1397,7 +1397,7 @@ VOLATILE void tca_ckc_setsmui2c(unsigned int freq)
 	unsigned int lclksource=0;
 	unsigned int lclkdiv=0;
 	
-	lSMUICLK = (PSMUI2CICLK)(iomap_p2v((unsigned int)&HwSMU_I2CICLK_BASE)); //0xF0400000
+	lSMUICLK = (PSMUI2CICLK)(iomap_p2v(HwSMU_I2CICLK_BASE));
 	lclkctrl7 = (unsigned int)pCKC->CLK7CTRL;
 
 	lsel = (lclkctrl7 & 7);
@@ -1450,7 +1450,7 @@ VOLATILE int tca_ckc_getsmui2c(void)
 	unsigned int lclksource;
 	unsigned int lclkdiv;
 
-	lSMUICLK = (PSMUI2CICLK)(iomap_p2v((unsigned int)&HwSMU_I2CICLK_BASE)); //0xF0400000
+	lSMUICLK = (PSMUI2CICLK)(iomap_p2v(HwSMU_I2CICLK_BASE));
 	lclkctrl7 = (unsigned int)pCKC->CLK7CTRL;
 
 	lsel = (lclkctrl7 & 7);
@@ -1502,7 +1502,7 @@ VOLATILE void tca_ckc_setddipwdn(unsigned int lpwdn , unsigned int lmode)
 	if(!(pCKC->CLK1CTRL & Hw21))
 		return;
 
-	lDDIPWDN = (PDDICONFIG)(iomap_p2v((unsigned int)&HwDDI_CONFIG_BASE)); //0xF0400000
+	lDDIPWDN = (PDDICONFIG)(iomap_p2v(HwDDI_CONFIG_BASE));
 
 	if(lmode)  // Normal
 		lDDIPWDN->PWDN &= ~lindex[lpwdn];
@@ -1523,7 +1523,7 @@ int tca_ckc_getddipwdn(unsigned int lpwdn)
 	if(!(pCKC->CLK1CTRL & Hw21))
 		return 1;
 
-	lDDIPWDN = (PDDICONFIG)(iomap_p2v((unsigned int)&HwDDI_CONFIG_BASE)); //0xF0400000
+	lDDIPWDN = (PDDICONFIG)(iomap_p2v(HwDDI_CONFIG_BASE));
 
 	return (lDDIPWDN->PWDN &  lindex[lpwdn]);
 }
@@ -1536,7 +1536,7 @@ VOLATILE void tca_ckc_setddiswreset(unsigned int lpwdn , unsigned int lmode)
 	if(!(pCKC->CLK1CTRL & Hw21))
 		return;
 
-	lDDIPWDN = (PDDICONFIG)(iomap_p2v((unsigned int)&HwDDI_CONFIG_BASE)); //0xF0400000
+	lDDIPWDN = (PDDICONFIG)(iomap_p2v(HwDDI_CONFIG_BASE));
 
 	if(lmode)
 		lDDIPWDN->SWRESET |= lindex[lpwdn];
@@ -1556,7 +1556,7 @@ VOLATILE void tca_ckc_setgrppwdn(unsigned int lpwdn , unsigned int lmode)
 	if(!(pCKC->CLK3CTRL & Hw21))
 		return;
 
-	lGRPPWDN = (PGPUGRPBUSCONFIG)(iomap_p2v((unsigned int)&HwGRPBUS_BASE));
+	lGRPPWDN = (PGPUGRPBUSCONFIG)(iomap_p2v(HwGRPBUS_BASE));
 
 	if(lmode)  // Normal
 		lGRPPWDN->GRPBUS_PWRDOWN &= ~lindex[lpwdn];
@@ -1577,7 +1577,7 @@ int tca_ckc_getgrppwdn(unsigned int lpwdn)
 	if(!(pCKC->CLK3CTRL & Hw21))
 		return 1;
 
-	lGRPPWDN = (PGPUGRPBUSCONFIG)(iomap_p2v((unsigned int)&HwGRPBUS_BASE));
+	lGRPPWDN = (PGPUGRPBUSCONFIG)(iomap_p2v(HwGRPBUS_BASE));
 
 	return (lGRPPWDN->GRPBUS_PWRDOWN &  lindex[lpwdn]);
 }
@@ -1590,7 +1590,7 @@ VOLATILE void tca_ckc_setgrpswreset(unsigned int lpwdn , unsigned int lmode)
 	if(!(pCKC->CLK3CTRL & Hw21))
 		return;
 
-	lGRPPWDN = (PGPUGRPBUSCONFIG)(iomap_p2v((unsigned int)&HwGRPBUS_BASE));
+	lGRPPWDN = (PGPUGRPBUSCONFIG)(iomap_p2v(HwGRPBUS_BASE));
 
 	if(lmode)
 		lGRPPWDN->GRPBUS_SWRESET |= lindex[lpwdn];
@@ -1610,7 +1610,7 @@ VOLATILE void tca_ckc_setvbuspwdn(unsigned int lpwdn , unsigned int lmode)
 	if(!(pCKC->CLK5CTRL & Hw21))
 		return;
 
-	VBUSPWDN = (PVIDEOCODEC)(iomap_p2v((unsigned int)&HwVIDEOBUS_BASE));
+	VBUSPWDN = (PVIDEOCODEC)(iomap_p2v(HwVIDEOBUS_BASE));
 
 	if(lmode)  // Normal
 		VBUSPWDN->PWDN &= ~lindex[lpwdn];
@@ -1645,7 +1645,7 @@ int tca_ckc_getvbuspwdn(unsigned int lpwdn)
 	if(!(pCKC->CLK5CTRL & Hw21))
 		return 1;
 
-	VBUSPWDN = (PVIDEOCODEC)(iomap_p2v((unsigned int)&HwVIDEOBUS_BASE));
+	VBUSPWDN = (PVIDEOCODEC)(iomap_p2v(HwVIDEOBUS_BASE));
 
 	return (VBUSPWDN->PWDN &  lindex[lpwdn]);
 	
@@ -1659,7 +1659,7 @@ VOLATILE void tca_ckc_setvbusswreset(unsigned int lpwdn , unsigned int lmode)
 	if(!(pCKC->CLK5CTRL & Hw21))
 		return;
 
-	VBUSPWDN = (PVIDEOCODEC)(iomap_p2v((unsigned int)&HwVIDEOBUS_BASE));
+	VBUSPWDN = (PVIDEOCODEC)(iomap_p2v(HwVIDEOBUS_BASE));
 
 	if(lmode)
 		VBUSPWDN->SWRESET |= lindex[lpwdn];

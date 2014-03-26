@@ -891,8 +891,9 @@ config TOUCHSCREEN_TPS6507X
 
 config TCC_TCH_CORE
     tristate "Telechips touchscreen core"
-        default y
-        depends on TOUCHSCREEN_TCC_AK4183 || TOUCHSCREEN_TCC_TSC2003 || TOUCHSCREEN_TCC_GOODIX_CAP || TOUCHSCREEN_TCC_SITRONIX
+        default n
+        depends on ARCH_TCC
+
 config TOUCHSCREEN_TCC_GOODIX_CAP
 	tristate "Multi Touch Controller Goodix-TS for EMDOOR MID"
 	select TCC_TCH_CORE

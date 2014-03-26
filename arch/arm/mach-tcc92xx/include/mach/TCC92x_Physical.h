@@ -79,8 +79,8 @@
 //15  | 14  | 13  | 12  | 11  | 10  |  9  |  8  |  7  |   6 |   5 |   4 |   3 |   2 |   1 |  0 |
 //   NCKOE/DMIN  		|		NCKOE/DMAX      |		  NCKOE/DCDIV   |     |	    CKSEL      |
 //----------------------------------------------------------------------------------------------   
-#define HwCLK_BASE					*(volatile unsigned long *)0xF0400000
-#define HwCKC						((PCKC)&HwCLK_BASE)
+#define HwCKC_BASE					*(volatile unsigned long *)0xF0400000
+#define HwCKC						((PCKC)&HwCKC_BASE)
 
 // Clock Chennal 0 ~ 7
 enum {

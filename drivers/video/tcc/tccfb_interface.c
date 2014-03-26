@@ -51,6 +51,7 @@
 #include <asm/tlbflush.h>
 #include <asm/cacheflush.h>
 #include <asm/mach-types.h>
+#include <asm/system_info.h>
 
 #include <mach/globals.h>
 #include <mach/reg_physical.h>

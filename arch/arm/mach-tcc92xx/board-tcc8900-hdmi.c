@@ -198,7 +198,8 @@ struct platform_device tcc_hpd_device = {
 static int __init tcc8900_init_hdmi(void)
 {
 	printk("%s (built %s %s)\n", __func__, __DATE__, __TIME__);
-
+//IRA: just for testing!!
+#if 0
 	platform_device_register(&tcc_hdmi_device);
 
 	platform_device_register(&tcc_audio_device);
@@ -206,7 +207,7 @@ static int __init tcc8900_init_hdmi(void)
 	platform_device_register(&tcc_cec_device);
 
 	platform_device_register(&tcc_hpd_device);
-
+#endif
 	return 0;
 }
 device_initcall(tcc8900_init_hdmi);

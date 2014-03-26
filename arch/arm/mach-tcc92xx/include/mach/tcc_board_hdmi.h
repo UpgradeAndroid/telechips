@@ -26,6 +26,7 @@ typedef enum{
 }tcc_hdmi_power_s;
 
 struct tcc_hdmi_platform_data {
+	unsigned int hdmi_lcdc_num;
 	int (*set_power)(struct device *dev, tcc_hdmi_power_s pwr);
 };
 

@@ -58,6 +58,12 @@ typedef enum{
 #define TCC_LCDC_SET_CHROMAKEY			0x0057
 #define TCC_LCDC_SET_CHROMA				0x0058
 #define TCC_LCDC_SET_COLORENHANCE		0x0059
+#define TCC_LCDC_SET_GAMMA				0x005A
+
+#define TCC_LCDC_3D_UI_ENABLE			0x005B
+#define TCC_LCDC_3D_UI_DISABLE			0x005C
+
+#define	TCC_LCDC_GET_NUM			0x005D	//to fix compile error. ioctl is not implemented.
 
 #if defined(CONFIG_TCC_VIDEO_DISPLAY_BY_VSYNC_INT) || defined(TCC_VIDEO_DISPLAY_BY_VSYNC_INT)
 #define	TCC_LCDC_VIDEO_START_VSYNC		0x0060
@@ -72,6 +78,7 @@ typedef enum{
 #define	TCC_LCDC_VIDEO_SET_FRAMERATE	0x006B
 #define	TCC_LCDC_VIDEO_SKIP_ONE_FRAME	0x006C
 #define TCC_LCDC_VIDEO_DEINTERLACE_SET	0x006D		// ronald.lee
+#define TCC_LCDC_VIDEO_GET_VALID_COUNT  0x006E
 #endif
 
 #define	TCC_LCDC_EXCLUSIVE_UI_SET_PARAM			0x0070
@@ -86,12 +93,23 @@ typedef enum{
 #define	TCC_LCDC_EXCLUSIVE_UI_CLEAR				0x0079
 #define	TCC_LCDC_EXCLUSIVE_UI_PROCESS_HDMI		0x007A
 #define	TCC_LCDC_EXCLUSIVE_UI_SET_AR			0x007B
-#define	TCC_LCDC_EXCLUSIVE_UI_DISPLAY_ON		0x007C
-#define	TCC_LCDC_EXCLUSIVE_UI_DISPLAY_OFF		0x007D
+#define	TCC_LCDC_EXCLUSIVE_UI_SET_ARATIO		0x007C
+#define	TCC_LCDC_EXCLUSIVE_UI_DISPLAY_ON		0x007D
+#define	TCC_LCDC_EXCLUSIVE_UI_DISPLAY_OFF		0x007E
+#define	TCC_LCDC_EXCLUSIVE_UI_3D_ENABLE			0x007F
+#define	TCC_LCDC_EXCLUSIVE_UI_3D_DISABLE		0x0080
+
 
 #define TCC_LCD_BL_SET					0x0100
+#define TCC_LCDC_UI_UPDATE_CTRL		0x0090
+
+
+#define TCC_LCDC_MOUSE_SHOW				0x0200
+#define TCC_LCDC_MOUSE_MOVE				0x0201
+#define TCC_LCDC_MOUSE_ICON				0x0202
 
 #define TCC_FB_FLUSH					0x1000
+
 #define TCC_GPU_CLOCK					0x2000
 
 #define TCCFB_BLIT	_IOW(TCCFB_IOCTL_MAGIC, 0x1100, unsigned int)
@@ -157,7 +175,9 @@ struct display_platform_data
 {
 	uint32_t resolution;
 	uint32_t output;
-	uint32_t composite;
+	uint32_t hdmi_resolution;
+	uint32_t composite_resolution;
+	uint32_t component_resolution;
 }; 
 
 #define TCCFB_ROT_90	0x4
@@ -170,6 +190,25 @@ typedef struct
 	int height;
 	int frame_hz;
 }tcc_display_size;
+
+typedef struct
+{
+        int resize_x;
+        int resize_y;
+}tcc_display_resize;
+
+typedef struct
+{
+	int x;
+	int y;
+}tcc_mouse;
+
+typedef struct
+{
+	unsigned int width;
+	unsigned int height;
+	unsigned char *buf;
+}tcc_mouse_icon;
 
 struct tcc_rect {
 	uint32_t x;
@@ -247,9 +286,12 @@ struct tcc_lcdc_image_update
 	unsigned int addr2;
 	unsigned int fmt;	//TCC_LCDC_IMG_FMT_TYPE
 	unsigned int on_the_fly; // 0: not use , 1 : scaler0 ,  2 :scaler1
+	unsigned int crop_top;
+	unsigned int crop_bottom;
+	unsigned int crop_left;
+	unsigned int crop_right;
 
 #if defined(CONFIG_TCC_VIDEO_DISPLAY_BY_VSYNC_INT) || defined(TCC_VIDEO_DISPLAY_BY_VSYNC_INT)
-	int crop_top, crop_bottom, crop_left, crop_right;	// support for screen-mode.
 
 	int time_stamp;
 	int sync_time;
@@ -261,8 +303,11 @@ struct tcc_lcdc_image_update
 
 	int deinterlace_mode;
 	int odd_first_flag;
+	int m2m_mode;
+	int output_toMemory;
+	int frameInfo_interlace;
 #endif
-
+	int MVCframeView;
 	unsigned int dst_addr0;
 	unsigned int dst_addr1;
 	unsigned int dst_addr2;
@@ -378,6 +423,15 @@ typedef struct
 
 typedef struct  
 {
+	unsigned lcdc_num;
+	unsigned onoff;
+	unsigned GammaRed[16];
+	unsigned GammaGreen[16];
+	unsigned GammaBlue[16];
+}lcdc_gamma_params;
+
+typedef struct  
+{
 	unsigned 	lcdc;
 	unsigned 	wd;
 	unsigned 	ht;
@@ -405,6 +459,12 @@ typedef struct
 	unsigned 	dst_y;
 	void 		*pBaseAddr;
 }exclusive_ui_frame;
+
+typedef struct  
+{
+	unsigned 	ratio_x;
+	unsigned 	ratio_y;
+}exclusive_ui_ratio;
 
 typedef struct  
 {

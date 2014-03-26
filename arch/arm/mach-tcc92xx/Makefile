@@ -7,6 +7,8 @@ obj-$(CONFIG_ARCH_TCC92XX)	+= tca_ckc.o pm.o gpio.o
 obj-$(CONFIG_ARCH_TCC92XX)	+= tcc_display.o
 obj-$(CONFIG_ARCH_TCC92XX)	+= tca_serial.o
 obj-$(CONFIG_ARCH_TCC92XX)	+= tca_i2c.o
+obj-$(CONFIG_ARCH_TCC92XX)	+= tca_tco.o
+obj-$(CONFIG_ARCH_TCC92XX)      += tca_intr.o
 
 obj-$(CONFIG_TCC_EHI)		+= IO_EHI.o IO_IPC.o ipc_tty.o
 

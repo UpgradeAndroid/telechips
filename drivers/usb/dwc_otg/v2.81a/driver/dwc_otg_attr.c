@@ -355,7 +355,7 @@ DEVICE_ATTR(_otg_attr_name_,0644,_otg_attr_name_##_show,_otg_attr_name_##_store)
 
 #define DWC_OTG_DEVICE_ATTR_BITFIELD_RO(_otg_attr_name_,_string_) \
 DWC_OTG_DEVICE_ATTR_BITFIELD_SHOW(_otg_attr_name_,_string_) \
-DEVICE_ATTR(_otg_attr_name_,0444,_otg_attr_name_##_show,NULL);
+DEVICE_ATTR(_otg_attr_name_,S_IRUGO,_otg_attr_name_##_show,NULL);
 
 #define DWC_OTG_DEVICE_ATTR_REG32_RW(_otg_attr_name_,_addr_,_string_) \
 DWC_OTG_DEVICE_ATTR_REG_SHOW(_otg_attr_name_,_string_) \
@@ -364,7 +364,7 @@ DEVICE_ATTR(_otg_attr_name_,0644,_otg_attr_name_##_show,_otg_attr_name_##_store)
 
 #define DWC_OTG_DEVICE_ATTR_REG32_RO(_otg_attr_name_,_addr_,_string_) \
 DWC_OTG_DEVICE_ATTR_REG_SHOW(_otg_attr_name_,_string_) \
-DEVICE_ATTR(_otg_attr_name_,0444,_otg_attr_name_##_show,NULL);
+DEVICE_ATTR(_otg_attr_name_,S_IRUGO,_otg_attr_name_##_show,NULL);
 
 /** @name Functions for Show/Store of Attributes */
 /**@{*/
@@ -682,7 +682,7 @@ static ssize_t regdump_show(struct device *_dev,
 	return sprintf(buf, "Register Dump\n");
 }
 
-DEVICE_ATTR(regdump, S_IRUGO | S_IWUSR, regdump_show, 0);
+DEVICE_ATTR(regdump, S_IRUGO, regdump_show, 0);
 
 /**
  * Dump global registers and either host or device registers (depending on the
@@ -698,7 +698,7 @@ static ssize_t spramdump_show(struct device *_dev,
 	return sprintf(buf, "SPRAM Dump\n");
 }
 
-DEVICE_ATTR(spramdump, S_IRUGO | S_IWUSR, spramdump_show, 0);
+DEVICE_ATTR(spramdump, S_IRUGO, spramdump_show, 0);
 
 /**
  * Dump the current hcd state.
@@ -714,7 +714,7 @@ static ssize_t hcddump_show(struct device *_dev,
 	return sprintf(buf, "HCD Dump\n");
 }
 
-DEVICE_ATTR(hcddump, S_IRUGO | S_IWUSR, hcddump_show, 0);
+DEVICE_ATTR(hcddump, S_IRUGO, hcddump_show, 0);
 
 /**
  * Dump the average frame remaining at SOF. This can be used to
@@ -732,7 +732,7 @@ static ssize_t hcd_frrem_show(struct device *_dev,
 	return sprintf(buf, "HCD Dump Frame Remaining\n");
 }
 
-DEVICE_ATTR(hcd_frrem, S_IRUGO | S_IWUSR, hcd_frrem_show, 0);
+DEVICE_ATTR(hcd_frrem, S_IRUGO, hcd_frrem_show, 0);
 
 /**
  * Displays the time required to read the GNPTXFSIZ register many times (the
@@ -761,7 +761,7 @@ static ssize_t rd_reg_test_show(struct device *_dev,
 		       RW_REG_COUNT, time * MSEC_PER_JIFFIE, time);
 }
 
-DEVICE_ATTR(rd_reg_test, S_IRUGO | S_IWUSR, rd_reg_test_show, 0);
+DEVICE_ATTR(rd_reg_test, S_IRUGO, rd_reg_test_show, 0);
 
 /**
  * Displays the time required to write the GNPTXFSIZ register many times (the
@@ -790,7 +790,7 @@ static ssize_t wr_reg_test_show(struct device *_dev,
 		       RW_REG_COUNT, time * MSEC_PER_JIFFIE, time);
 }
 
-DEVICE_ATTR(wr_reg_test, S_IRUGO | S_IWUSR, wr_reg_test_show, 0);
+DEVICE_ATTR(wr_reg_test, S_IRUGO, wr_reg_test_show, 0);
 
 #ifdef CONFIG_USB_DWC_OTG_LPM
 

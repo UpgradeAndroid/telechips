@@ -9,8 +9,8 @@
 // you entered into with Samsung Electronics.
 //-------------------------------------------------------------------
 /**
- * @file  cec.h
- * @brief This file defines interface of CEC driver.
+ * @file  hpd.h
+ * @brief This file defines interface of HPD driver.
  *
  * @author   Digital IP Development Team (mrkim@samsung.com) \n
  *           SystemLSI, Samsung Electronics
@@ -19,19 +19,15 @@
  * @remarks  09-30-2008 1.0 Initial version
  */
 
-#ifndef _LINUX_CEC_H_
-#define _LINUX_CEC_H_
+#ifndef _LINUX_HPD_H_
+#define _LINUX_HPD_H_
 
-#define CEC_IOC_MAGIC        'c'
+#define HPD_IOC_MAGIC        'p'
 
 /**
- * CEC device request code to set logical address.
+ * HPD device request code to set logical address.
  */
-#define CEC_IOC_SETLADDR     _IOW(CEC_IOC_MAGIC, 0, unsigned int)
-#define CEC_IOC_SENDDATA	 _IOW(CEC_IOC_MAGIC, 1, unsigned int)
-#define CEC_IOC_RECVDATA	 _IOW(CEC_IOC_MAGIC, 2, unsigned int)
+#define HPD_IOC_START	 _IO(HPD_IOC_MAGIC, 0)
+#define HPD_IOC_STOP	 _IO(HPD_IOC_MAGIC, 1)
 
-#define CEC_IOC_START	 _IO(CEC_IOC_MAGIC, 3)
-#define CEC_IOC_STOP	 _IO(CEC_IOC_MAGIC, 4)
-
-#endif /* _LINUX_CEC_H_ */
+#endif /* _LINUX_HPD_H_ */

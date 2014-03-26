@@ -160,7 +160,7 @@ static struct platform_driver cpu_id_driver = {
 	},
 };
 
-static int __devinit cpu_id_init(void)
+static int cpu_id_init(void)
 {
 	return platform_driver_register(&cpu_id_driver);
 }

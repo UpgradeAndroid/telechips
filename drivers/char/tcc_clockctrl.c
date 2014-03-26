@@ -111,13 +111,14 @@ static long tcc_clockctrl_ioctl(struct file *filp, unsigned int cmd, unsigned lo
 		case TCC_CLOCKCTRL_FLASH_MAX_CLOCK_DISABLE:			
 			tcc_cpufreq_set_limit_table(&gtJpegMaxClockLimitTable, TCC_FREQ_LIMIT_FLASH, 0);
 			break;	
-			
+#if !defined(CONFIG_ARCH_TCC92XX)
 		case TCC_CLOCKCTRL_VOIP_MAX_CLOCK_ENABLE:
 			tcc_cpufreq_set_limit_table(&gtVoipClockLimitTable[arg], TCC_FREQ_LIMIT_VOIP+arg, 1);
 			break;
 		case TCC_CLOCKCTRL_VOIP_MAX_CLOCK_DISABLE:
 			tcc_cpufreq_set_limit_table(&gtVoipClockLimitTable[arg], TCC_FREQ_LIMIT_VOIP+arg, 0);
 			break;	
+#endif
 #if defined(CONFIG_CPU_HIGHSPEED)
 		case TCC_CLOCKCTRL_LIMIT_OVERCLOCK_ENABLE:
 			tcc_cpufreq_set_limit_table(NULL, TCC_FREQ_LIMIT_OVERCLOCK, 1);

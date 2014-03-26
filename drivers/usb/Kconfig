@@ -32,7 +32,8 @@ config USB_ARCH_HAS_OHCI
 # some non-PCI hcds implement EHCI
 config USB_ARCH_HAS_EHCI
 	boolean
-	default y if ARCH_TCC
+	default y if ARCH_TCC88XX
+	default y if ARCH_TCC892X
 	default y if FSL_SOC
 	default y if PPC_MPC512x
 	default y if ARCH_IXP4XX

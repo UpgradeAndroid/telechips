@@ -307,7 +307,7 @@ static struct miscdevice tccwdt_miscdev = {
 /*===========================================================================
 FUNCTION
 ===========================================================================*/
-static int __devinit tccwdt_probe(struct platform_device *pdev)
+static int tccwdt_probe(struct platform_device *pdev)
 {
 	int ret;
 //88 5.0 board -> GPS_PWDN , J10D1 15 pin
@@ -362,7 +362,7 @@ static int __devinit tccwdt_probe(struct platform_device *pdev)
 /*===========================================================================
 FUNCTION
 ===========================================================================*/
-static int __devexit tccwdt_remove(struct platform_device *dev)
+static int tccwdt_remove(struct platform_device *dev)
 {
 	DBG("%s: remove=%p\n", __func__, dev);
 
@@ -419,7 +419,7 @@ VARIABLE
 ===========================================================================*/
 static struct platform_driver tccwdt_driver = {
 	.probe		= tccwdt_probe,
-	.remove		= __devexit_p(tccwdt_remove),
+	.remove		= tccwdt_remove,
 	.shutdown	= tccwdt_shutdown,
 	.suspend	= tccwdt_suspend,
 	.resume		= tccwdt_resume,

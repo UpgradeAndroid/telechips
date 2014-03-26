@@ -5,22 +5,29 @@ choice
 
 config ARCH_TCC92XX
 	bool "TCC89xx/91xx/92xx"
+	select NEED_MACH_IO_H
+	select NEED_MACH_GPIO_H
+	select NEED_MACH_MEMORY_H
 	select ARCH_HAS_CPUFREQ
 	select CPU_V6
+	select VFP
 	select HAVE_CLK
 	select GENERIC_GPIO
 	select ARCH_REQUIRE_GPIOLIB
-	select GENERIC_TIME
 	select GENERIC_CLOCKEVENTS
 
 config ARCH_TCC93XX
 	bool "TCC93xx"
+	select NEED_MACH_IO_H
+	select NEED_MACH_GPIO_H
+	select NEED_MACH_MEMORY_H
+	select AEABI
 	select ARCH_HAS_CPUFREQ
 	select CPU_V6
+	select VFP
 	select HAVE_CLK
 	select GENERIC_GPIO
 	select ARCH_REQUIRE_GPIOLIB
-	select GENERIC_TIME
 	select GENERIC_CLOCKEVENTS
 
 config ARCH_TCC88XX

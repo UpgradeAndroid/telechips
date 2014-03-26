@@ -1313,7 +1313,9 @@ static int dwc_otg_driver_probe(struct platform_device *_dev)
 		if (machine_is_m801_88() || machine_is_m803())
 			TCC_OTG_PWR_M801(1);
 #endif
+#if !defined(CONFIG_ARCH_TCC92XX)
 		tca_ckc_setiopwdn(RB_USB20OTG, 0);	// Turn on the USB clock from IO BUS
+#endif
 	}
 
 #if defined(CONFIG_ARCH_TCC93XX)

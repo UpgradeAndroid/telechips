@@ -771,7 +771,7 @@ void sitronix_ts_late_resume(struct early_suspend *h)
 	printk("%s out\n", __func__);	
 }
 
-static int __devinit sitronix_ts_probe(struct i2c_client *client, const struct i2c_device_id *idp)
+static int sitronix_ts_probe(struct i2c_client *client, const struct i2c_device_id *idp)
 {
 	struct sitronix_ts_priv *priv;
 	struct input_dev *input;
@@ -971,7 +971,7 @@ err0:
 	return err;
 }
 
-static int __devexit sitronix_ts_remove(struct i2c_client *client)
+static int sitronix_ts_remove(struct i2c_client *client)
 {
 	struct sitronix_ts_priv *priv = i2c_get_clientdata(client);
 
@@ -1020,7 +1020,7 @@ static struct i2c_driver sitronix_ts_driver = {
 		.name = "tcc-ts-sitronix",
 	},
 	.probe = sitronix_ts_probe,
-	.remove = __devexit_p(sitronix_ts_remove),
+	.remove = sitronix_ts_remove,
 	.suspend = sitronix_ts_suspend,
 	.resume = sitronix_ts_resume,
 	.id_table = sitronix_ts_id,

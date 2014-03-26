@@ -15,13 +15,13 @@
  *
  */
 
-		.macro	addruart,rx
-		mrc	p15, 0, \rx, c1, c0
-		tst	\rx, #1					@ MMU enabled?
-		moveq	 \rx, #0xf0000000	@ physical base address
-		movne	 \rx, #0xf0000000	@ virtual base
-		orr	\rx, \rx, #0x00530000   @ debug port UART0
-		orr	\rx, \rx, #0x2000		@ debug port UART0 0xf00532000
+		.macro	addruart,rp,rv,tmp
+		mov	 \rp, #0xf0000000	@ physical base address
+		mov	 \rv, #0xf0000000	@ virtual base
+		orr	\rp, \rp, #0x00530000   @ debug port UART0
+		orr	\rp, \rp, #0x2000		@ debug port UART0 0xf00532000
+		orr	\rv, \rv, #0x00530000   @ debug port UART0
+		orr	\rv, \rv, #0x2000		@ debug port UART0 0xf00532000
 		.endm
 
 		.macro	senduart,rd,rx

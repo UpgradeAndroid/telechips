@@ -684,10 +684,12 @@ err_check_functionality_failed:
 	return ret;
 }
 
-static int __devexit goodix_i2c_remove(struct i2c_client *client)
+static int goodix_i2c_remove(struct i2c_client *client)
 {
 	struct goodix_ts *ts = i2c_get_clientdata(client);
+#ifdef CONFIG_HAS_EARLYSUSPEND
 	unregister_early_suspend(&ts->early_suspend);
+#endif
 	free_irq(ts->irq, ts);
 	input_unregister_device(ts->input_dev);
 	kfree(ts);

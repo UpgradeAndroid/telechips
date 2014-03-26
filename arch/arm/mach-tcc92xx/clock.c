@@ -364,7 +364,7 @@ static int pclk_set_rate(struct clk *clk, unsigned long rate)
 	volatile unsigned	*pPERI;
 	unsigned int div[MAX_TCC_PLL], div_100[MAX_TCC_PLL], i, clksrc, searchsrc, dco_shift, md;
 	unsigned long clkrate;
-	PCKC pCKC = (PCKC)(iomap_p2v((unsigned int)&HwCLK_BASE));
+	PCKC pCKC = (PCKC)(iomap_p2v((unsigned int)&HwCKC_BASE));
 
 	clkrate = rate/100;
 

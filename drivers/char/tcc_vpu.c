@@ -510,7 +510,7 @@ static struct file_operations vpu_fops = {
 	.open		= vpu_open,
 	.release	= vpu_release,
 	.mmap		= vpu_mmap,
-	.ioctl		= vpu_ioctl,
+	.unlocked_ioctl	= vpu_ioctl,
 };
 
 static void __exit vpu_cleanup(void)

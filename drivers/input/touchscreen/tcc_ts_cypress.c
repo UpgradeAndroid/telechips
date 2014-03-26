@@ -109,8 +109,8 @@ struct cypress_ts {
 	struct clk *clk;
 #ifdef CONFIG_HAS_EARLYSUSPEND
     struct early_suspend early_suspend;
-	int	in_suspend, running;
 #endif
+	int	in_suspend, running;
 };
 
 static struct workqueue_struct *cypress_ts_wq;
@@ -285,7 +285,7 @@ static void cypress_ts_timer_func(unsigned long data)
 }
 #endif
 
-static int __devinit cypress_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
+static int cypress_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 	struct cypress_ts *ts;
 	int ret = 0;
@@ -395,10 +395,12 @@ err_check_functionality_failed:
 	return ret;
 }
 
-static int __devexit cypress_ts_remove(struct i2c_client *client)
+static int cypress_ts_remove(struct i2c_client *client)
 {
 	struct cypress_ts *ts = i2c_get_clientdata(client);
+#ifdef CONFIG_HAS_EARLYSUSPEND
 	unregister_early_suspend(&ts->early_suspend);
+#endif
 	free_irq(ts->irq, ts);
 #ifdef TSC_USE_HRTIMER
 	hrtimer_cancel(&ts->timer);
@@ -477,7 +479,7 @@ static struct i2c_driver cypress_driver = {
 	},
 };
 
-static int __devinit cypress_ts_init(void)
+static int cypress_ts_init(void)
 {
 	cypress_ts_wq = create_singlethread_workqueue("cypress_ts_wq");
 	if (!cypress_ts_wq)

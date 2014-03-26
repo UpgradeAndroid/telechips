@@ -16,7 +16,6 @@
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/platform_device.h>
-#include <linux/android_pmem.h>
 
 #include <asm/setup.h>
 #include <asm/io.h>
@@ -788,47 +787,6 @@ struct display_platform_data tcc_display_data = {
 	.output		= 0,
 };
 
-static struct android_pmem_platform_data pmem_pdata = {
-	.name = "pmem",
-	.no_allocator = 1,
-	.cached = 1,
-};
-
-static struct android_pmem_platform_data pmem_adsp_pdata = {
-	.name = "pmem_adsp",
-	.no_allocator = 0,
-	.cached = 0,
-};
-
-static struct platform_device pmem_device = {
-	.name = "android_pmem",
-	.id = 0,
-	.dev = { .platform_data = &pmem_pdata },
-};
-
-static struct platform_device pmem_adsp_device = {
-	.name = "android_pmem",
-	.id = 1,
-	.dev = { .platform_data = &pmem_adsp_pdata },
-};
-
-static void tcc_add_pmem_devices(void)
-{
-        pmap_t pmem;
-        pmap_t pmem_cam;
-
-        pmap_get_info("pmem", &pmem);
-        pmap_get_info("camera", &pmem_cam);
-
-        pmem_pdata.start = pmem.base;
-        pmem_pdata.size = pmem.size;
-        platform_device_register(&pmem_device);
-
-        pmem_adsp_pdata.start = pmem_cam.base;
-        pmem_adsp_pdata.size = pmem_cam.size;
-        platform_device_register(&pmem_adsp_device);
-}
-
 #if defined(CONFIG_TCC_ECID_SUPPORT)
 static struct platform_device tcc_cpu_id_device = {
 	.name	= "cpu-id",
@@ -911,8 +869,6 @@ struct platform_device *devices[] __initdata = {
  */
 static int __init tcc9200_init_devices(void)
 {
-	tcc_add_pmem_devices();
-
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 
 #if defined(CONFIG_USB_OHCI_HCD) || defined(CONFIG_USB_OHCI_HCD_MODULE)

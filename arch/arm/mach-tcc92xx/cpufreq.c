@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  */
 
-#include <linux/kernel.h>
-#include <linux/init.h>
+#include <linux/module.h>
 #include <linux/cpufreq.h>
 #include <linux/delay.h>
 #include <linux/clk.h>
@@ -182,8 +181,7 @@ static int tcc_cpufreq_is_limit_highspeed_status(void)
 	  || tcc_battery_get_charging_status() == POWER_SUPPLY_STATUS_CHARGING 	/* check charging status */
 	  || tcc_battery_get_charging_status() == POWER_SUPPLY_STATUS_FULL		/* check charging status */
 	  || tcc_freq_limit_table[TCC_FREQ_LIMIT_OVERCLOCK].usecount	/* check 3d gallery (from app.) */
-	  || tcc_freq_limit_table[TCC_FREQ_LIMIT_VPU_ENC].usecount		/* check video encoding status */
-	  || tcc_freq_limit_table[TCC_FREQ_LIMIT_VPU_DEC].usecount		/* check video decoding status */
+	  || tcc_freq_limit_table[TCC_FREQ_LIMIT_VPU].usecount		/* check video decoding status */
 	  || tcc_freq_limit_table[TCC_FREQ_LIMIT_CAMERA].usecount		/* check camera active status */
 	  || tcc_battery_percentage() < 50			/* check battery level */
 	  || android_system_booting_finished == 0	/* check boot complete */
@@ -467,7 +465,7 @@ static int tcc_cpufreq_set_clock_table(struct tcc_freq_table_t *curr_clk_tbl)
 
 #if defined(CONFIG_VBUS_280MHZ_USE)
 	if ((curr_clk_tbl->cpu_freq <= 660000) && (curr_clk_tbl->mem_freq == 330000 || curr_clk_tbl->mem_freq == 325000) && (
-			tcc_freq_limit_table[TCC_FREQ_LIMIT_VPU_DEC].usecount || tcc_freq_limit_table[TCC_FREQ_LIMIT_VPU_ENC].usecount
+			tcc_freq_limit_table[TCC_FREQ_LIMIT_VPU].usecount ||
 		 || tcc_freq_limit_table[TCC_FREQ_LIMIT_JPEG].usecount)) {
 		curr_clk_tbl->mem_freq = 325000;	// change mem_freq 330MHz to 325MHz, for check pll source.
 		clk_set_rate(pll0_clk, tcc_cpufreq_get_pll_table(660000) * 1000);
@@ -605,7 +603,7 @@ int tcc_cpufreq_set_limit_table(struct tcc_freq_table_t *limit_tbl, tcc_freq_lim
 			if (tcc_freq_limit_table[TCC_FREQ_LIMIT_HDMI].usecount && tcc_freq_limit_table[TCC_FREQ_LIMIT_HDMI].freq.mem_freq)
 				tcc_freq_curr_limit_table.mem_freq = tcc_freq_limit_table[TCC_FREQ_LIMIT_HDMI].freq.mem_freq;
 			else if (tcc_freq_limit_table[TCC_FREQ_LIMIT_CAMERA].usecount) {
-				if(tcc_freq_limit_table[TCC_FREQ_LIMIT_V2IP].usecount == 0)
+				if(tcc_freq_limit_table[TCC_FREQ_LIMIT_VOIP].usecount == 0)
 					tcc_freq_curr_limit_table.mem_freq = tcc_freq_limit_table[TCC_FREQ_LIMIT_CAMERA].freq.mem_freq;
                  }	
 
@@ -715,7 +713,7 @@ static int tcc_cpufreq_target(struct cpufreq_policy *policy,
 				tcc_freq_curr_limit_table.mem_freq = tcc_freq_limit_table[TCC_FREQ_LIMIT_VPU_ENC].freq.mem_freq;
 			else if (tcc_freq_limit_table[TCC_FREQ_LIMIT_CAMERA].freq.mem_freq)
 			#endif
-			if(tcc_freq_limit_table[TCC_FREQ_LIMIT_V2IP].usecount == 0)
+			if(tcc_freq_limit_table[TCC_FREQ_LIMIT_VOIP].usecount == 0)
 				tcc_freq_curr_limit_table.mem_freq = tcc_freq_limit_table[TCC_FREQ_LIMIT_CAMERA].freq.mem_freq;
 		}
 
@@ -735,7 +733,7 @@ static int tcc_cpufreq_target(struct cpufreq_policy *policy,
 	freqs.new = tcc_freq_curr_limit_table.cpu_freq;
 	freqs.cpu = 0;
 
-	cpufreq_notify_transition(&freqs, CPUFREQ_PRECHANGE);
+	cpufreq_notify_transition(policy, &freqs, CPUFREQ_PRECHANGE);
 
 	pr_debug("cpufreq: changing clk to %u; target = %u, oldfreq = %u, mem = %u, mask = 0x%x\n",
 		freqs.new, target_freq, freqs.old, tcc_freq_curr_limit_table.mem_freq, limit_tbl_flag);
@@ -745,7 +743,7 @@ static int tcc_cpufreq_target(struct cpufreq_policy *policy,
 
 	startup_cpufreq = 1;
 
-	cpufreq_notify_transition(&freqs, CPUFREQ_POSTCHANGE);
+	cpufreq_notify_transition(policy, &freqs, CPUFREQ_POSTCHANGE);
 
 	return ret;
 }

@@ -268,7 +268,7 @@ void my_uart_rx_process(unsigned long arg)
                 goto out;
             /* put the received char into UART buffer */
             uart_insert_char(port, uerstat, UART_LSR_OE, ch, flag);
-            tty_flip_buffer_push(tty);
+            tty_flip_buffer_push(tty->port);
             tcc_port->rx_dma_tail++;
         }
 
@@ -579,7 +579,7 @@ static irqreturn_t tcc_serial_interrupt(int irq, void *id)
             /* put the received char into UART buffer */
             uart_insert_char(port, uerstat, UART_LSR_OE, ch, flag);
 
-            tty_flip_buffer_push(tty);
+            tty_flip_buffer_push(tty->port);
 
         }
     }
@@ -758,7 +758,9 @@ static int tcc_serial_startup(struct uart_port *port)
                           //HwCHCTRL_CONT_C       |
                           HwCHCTRL_SYNC_EN        |
 			  //HwCHCTRL_BST_BURST	    |
+#if !defined(CONFIG_ARCH_TCC92XX)
 			  HwCHCTRL_HRD_WR	  |
+#endif
                           //HwCHCTRL_TYPE_SL        |
                           HwCHCTRL_BSIZE_1        |
                           HwCHCTRL_WSIZE_8        |
