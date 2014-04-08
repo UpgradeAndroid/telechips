@@ -16,7 +16,74 @@
                 reg = <0x40000000 0x10000000>; /* 256MB */
         };
 
+	smu_pmu {
+		pinctrl@f0102000 {
+			touch_pin: touch_pin@0 {
+				tcc,pins = "PC29";
+                                tcc,function = "gpio";
+                                tcc,pull = <2>;
+			};
+
+			sdhcip1: sdhci_port1@0 {
+				tcc,pins = "PF18", "PF19", "PF20", "PF21", "PF22";
+				tcc,function = "sd1";
+			};
+			sdhci1clk: sdhci_port1_clk@0 {
+				tcc,pins = "PF23";
+				tcc,function = "sd1";
+				tcc,drive = <3>;
+			};
+			sdhcip3: sdhci_port3@0 {
+				tcc,pins = "PF0", "PF1", "PF2", "PF3", "PF8";
+				tcc,function = "sd3";
+			};
+			sdhci3clk: sdhci_port3_clk@0 {
+				tcc,pins = "PF9";
+				tcc,function = "sd3";
+				tcc,drive = <1>;
+			};
+		};
+	};
+
         iobus {
+		i2c-master0@f0530000 {
+			clock-frequency = <100000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "okay";
+
+			pca@4a {
+				compatible = "pca9539";
+				reg = <0x4a>;
+			};
+			codec: codec@77 {
+				compatible = "wlf,wm8731";
+				reg = <0x77>;
+			};
+		};
+		i2c-master1@f0530040 {
+			clock-frequency = <100000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "okay";
+
+			uor6153@48 {
+				compatible = "uutek,uor6x5x";
+				reg = <0x48>;
+				interrupts = <3 0x4>; /* EINT0 */
+				pinctrl-names = "default";
+				pinctrl-0 = <&touch_pin>;
+			};
+			mma7660@4c {
+				compatible = "fsc,mma7660";
+				reg = <0x4c>;
+			};
+			u3: pca@74 {
+				compatible = "pca9539";
+				reg = <0x74>;
+			};
+                };
+
                 serial@f0532000 {
 			clock-frequency = <48000000>;
                         status = "okay";
