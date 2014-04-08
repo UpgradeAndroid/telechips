@@ -1,0 +1,25 @@
+/dts-v1/;
+
+/include/ "tcc92xx.dtsi"
+
+/ {
+        model = "X6D";
+        compatible = "hsg,x6d", "tcc,tcc92xx";
+
+	chosen {
+		linux,stdout-path = &uart0;
+		bootargs = "mem=256M console=ttyS0,115200n8 debug";
+	};
+
+        memory {
+                device_type = "memory";
+                reg = <0x40000000 0x10000000>; /* 256MB */
+        };
+
+        iobus {
+                serial@f0532000 {
+			clock-frequency = <48000000>;
+                        status = "okay";
+                };
+	};
+};

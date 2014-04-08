@@ -1,0 +1,114 @@
+/*
+ * Device Tree Source for TCC890x/TCC920x SoC
+ *
+ * Copyright (C) 2014 Upgrade Android.
+ *
+ * This file is licensed under the terms of the GNU General Public License
+ * version 2.  This program is licensed "as is" without any warranty of any
+ * kind, whether express or implied.
+ */
+
+/include/ "skeleton.dtsi"
+
+/ {
+	compatible = "tcc,tcc92xx";
+	interrupt-parent = <&vpic>;
+
+	aliases {
+		serial0 = &uart0;
+		serial1 = &uart1;
+		serial2 = &uart2;
+		serial3 = &uart3;
+		serial4 = &uart4;
+		serial5 = &uart5;
+	};
+
+	cpus {
+		cpu@0 {
+			compatible = "arm,arm1176";
+		};
+	};
+
+	smu_pmu {
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+                clks: ckc@f0400000 {
+                        compatible = "tcc,tcc92xx-ckc";
+                        reg = <0xf0400000 0x200>;
+			#clock-cells = <1>;
+                };
+
+                vpic: vpic@f0401000 {
+                        compatible = "tcc,tcc92xx-vpic";
+                        reg = <0xf0401000 0x300>;
+                        interrupt-controller;
+                        #interrupt-cells = <2>;
+                };
+
+                timers@f0403000 {
+			compatible = "tcc,timers";
+			reg = <0xf0403000 0x100>;
+			interrupts = <0 0x4>, <1 0x4>;
+			clocks = <&clks 18>, <&clks 19>, <&clks 20>;
+		};
+	};
+
+	iobus {
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		uart0: serial@f0532000 {
+			compatible = "tcc,uart", "ns16550a";
+			reg = <0xf0532000 0x100>;
+			interrupts = <47 0x4>;
+			reg-shift = <2>;
+			clocks = <&clks 33>;
+			status = "disabled";
+		};
+		uart1: serial@f0532100 {
+			compatible = "tcc,uart", "ns16550a";
+			reg = <0xf0532100 0x100>;
+			interrupts = <47 0x4>;
+			reg-shift = <2>;
+			clocks = <&clks 34>;
+			status = "disabled";
+		};
+		uart2: serial@f0532200 {
+			compatible = "tcc,uart", "ns16550a";
+			reg = <0xf0532200 0x100>;
+			interrupts = <47 0x4>;
+			reg-shift = <2>;
+			clocks = <&clks 35>;
+			status = "disabled";
+		};
+		uart3: serial@f0532300 {
+			compatible = "tcc,uart", "ns16550a";
+			reg = <0xf0532200 0x100>;
+			interrupts = <47 0x4>;
+			reg-shift = <2>;
+			clocks = <&clks 36>;
+			status = "disabled";
+		};
+		uart4: serial@f0532400 {
+			compatible = "tcc,uart", "ns16550a";
+			reg = <0xf0532400 0x100>;
+			interrupts = <47 0x4>;
+			reg-shift = <2>;
+			clocks = <&clks 37>;
+			status = "disabled";
+		};
+		uart5: serial@f0532500 {
+			compatible = "tcc,uart", "ns16550a";
+			reg = <0xf0532500 0x100>;
+			interrupts = <47 0x4>;
+			reg-shift = <2>;
+			clocks = <&clks 38>;
+			status = "disabled";
+		};
+	};
+};

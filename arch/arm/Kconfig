@@ -1011,6 +1011,8 @@ source "arch/arm/mach-prima2/Kconfig"
 
 source "arch/arm/mach-tegra/Kconfig"
 
+source "arch/arm/mach-tcc/Kconfig"
+
 source "arch/arm/mach-u300/Kconfig"
 
 source "arch/arm/mach-ux500/Kconfig"
