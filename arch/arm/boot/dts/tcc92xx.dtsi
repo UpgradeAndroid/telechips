@@ -35,6 +35,15 @@
 		#size-cells = <1>;
 		ranges;
 
+		pio: pinctrl@f0102000 {
+			compatible = "tcc,tcc92xx-pinctrl";
+			reg = <0xf0102000 0x200>;
+			gpio-controller;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			#gpio-cells = <3>;
+		};
+
                 clks: ckc@f0400000 {
                         compatible = "tcc,tcc92xx-ckc";
                         reg = <0xf0400000 0x200>;

@@ -22,4 +22,31 @@
                         status = "okay";
                 };
 	};
+
+	gpio-keys {
+		compatible = "gpio-keys-polled";
+		#gpio-cells = <2>;
+		poll-interval = <100>; /* ms */
+
+		power {
+			label = "Power";
+			gpios = <&pio 0 3 1>; /* A3 */
+			linux,code = <116>; /* KEY_POWER */
+		};
+		menu {
+			label = "Menu";
+			gpios = <&pio 4 5 1>; /* E5 */
+			linux,code = <139>; /* KEY_MENU */
+		};
+		home {
+			label = "Home";
+			gpios = <&pio 4 6 1>; /* E6 */
+			linux,code = <102>; /* KEY_HOME */
+		};
+		back {
+			label = "Back";
+			gpios = <&pio 4 7 1>; /* E7 */
+			linux,code = <158>; /* KEY_BACK */
+		};
+	};
 };
