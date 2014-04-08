@@ -167,6 +167,16 @@ config MMC_SDHCI_DOVE
 
 	  If unsure, say N.
 
+config MMC_SDHCI_TCC
+	tristate "SDHCI platform support for the Telechips SD/MMC Controller"
+	depends on ARCH_TCC
+	depends on MMC_SDHCI_PLTFM
+	help
+	  This selects the Telechips SD/MMC controller. If you have a Telechips
+	  platform with SD or MMC devices, say Y or M here.
+
+	  If unsure, say N.
+
 config MMC_SDHCI_TEGRA
 	tristate "SDHCI platform support for the Tegra SD/MMC Controller"
 	depends on ARCH_TEGRA
