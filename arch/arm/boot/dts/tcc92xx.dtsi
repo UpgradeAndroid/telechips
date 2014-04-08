@@ -195,5 +195,42 @@
 			clocks = <&clks 38>;
 			status = "disabled";
 		};
+
+		sdhc0: sdhci@f05a0000 {
+			compatible = "tcc,tcc92xx-sdhc";
+			reg = <	0xf05a0000 0x100
+				0xf05a0800 0x14 >;
+			interrupts = <44 0x4>;
+			clocks = <&clks 30>;
+			tcc,slot = <0>;
+			status = "disabled";
+		};
+		sdhc1: sdhci@f05a0100 {
+			compatible = "tcc,tcc92xx-sdhc";
+			reg = <	0xf05a0100 0x100
+				0xf05a0800 0x14 >;
+			interrupts = <44 0x4>;
+			clocks = <&clks 30>;
+			tcc,slot = <1>;
+			status = "disabled";
+		};
+		sdhc2: sdhci@f05a0200 {
+			compatible = "tcc,tcc92xx-sdhc";
+			reg = <	0xf05a0200 0x100
+				0xf05a0800 0x14 >;
+			interrupts = <45 0x4>;
+			clocks = <&clks 50>;
+			tcc,slot = <2>;
+			status = "disabled";
+		};
+		sdhc3: sdhci@f05a0300 {
+			compatible = "tcc,tcc92xx-sdhc";
+			reg = <	0xf05a0300 0x100
+				0xf05a0800 0x14 >;
+			interrupts = <45 0x4>;
+			clocks = <&clks 50>;
+			tcc,slot = <3>;
+			status = "disabled";
+		};
 	};
 };
