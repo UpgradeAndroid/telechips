@@ -1,0 +1,38 @@
+config ARCH_TCC
+	bool "Telechips" if (ARCH_MULTI_V7 || ARCH_MULTI_V6 || ARCH_MULTI_V6_V7)
+	select ARCH_HAS_CPUFREQ
+	select ARCH_REQUIRE_GPIOLIB
+	select GENERIC_IRQ_CHIP
+	select CLKDEV_LOOKUP
+	select CLKSRC_MMIO
+	select CLKSRC_OF
+	select COMMON_CLK
+	select GENERIC_CLOCKEVENTS
+	select HAVE_CLK
+	select SOC_BUS
+	select SPARSE_IRQ
+	select USE_OF
+	select PINCTRL
+	select PINCTRL_TCC
+	select HAVE_TCM
+	help
+	  This enables support for Telechips based systems.
+
+menu "Telechips options"
+	depends on ARCH_TCC
+
+config SOC_TCC92XX
+	bool "TCC890x/TCC920x" if (ARCH_MULTI_V6 || ARCH_MULTI_V6_V7)
+	select CPU_V6
+	select VIRT_TO_BUS
+	help
+	  Support for the Telechips TCC890x & TCC920x ARM1176JZF-S based processors.
+
+config SOC_TCC88XX
+	bool "TCC880x" if (ARCH_MULTI_V7 || ARCH_MULTI_V6_V7)
+	select CPU_V7
+	select VIRT_TO_BUS
+	help
+	  Support for the Telechips TCC880x Cortex-A8 based processors.
+
+endmenu

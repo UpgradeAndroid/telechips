@@ -1,0 +1,147 @@
+/dts-v1/;
+
+/include/ "tcc92xx.dtsi"
+
+/ {
+        model = "NAVPA83";
+        compatible = "arrival,navpa83", "tcc,tcc92xx";
+
+	chosen {
+		linux,stdout-path = &uart0;
+		bootargs = "mem=256M console=ttyS0,115200n8 fbcon=rotate:3 console=tty1 debug clk_ignore_unused no_console_suspend";
+	};
+
+        memory {
+                device_type = "memory";
+                reg = <0x40000000 0x10000000>; /* 256MB */
+        };
+
+	smu_pmu {
+		pinctrl@f0102000 {
+			tcc,eint0-gpio = <&pio 3 14 0>; /* touch */
+			tcc,eint1-gpio = <&pio 0 10 0>; /* mmc0cd */
+			tcc,eint2-gpio = <&pio 5 25 0>;	/* power button */
+	
+			sdhcip1: sdhci_port1@0 {
+				tcc,pins = "PF18", "PF19", "PF20", "PF21", "PF22";
+				tcc,function = "sd1";
+			};
+			sdhci1clk: sdhci_port1_clk@0 {
+				tcc,pins = "PF23";
+				tcc,function = "sd1";
+				tcc,drive = <3>;
+			};
+			sdhcip4: sdhci_port4@0 {
+				tcc,pins = "PE8", "PE9", "PE10", "PE11", "PE7";
+				tcc,function = "sd4";
+			};
+			sdhci4clk: sdhci_port4_clk@0 {
+				tcc,pins = "PE6";
+				tcc,function = "sd4";
+				tcc,drive = <3>;
+			};
+		};
+
+		pmu@f0404000 {
+			tcc,power-gpio = <&pio 0 2 0>; /* GPA2 */
+		};
+	};
+
+        iobus {
+		usbh11@f0500000 {
+			gpios = <&u4 1 0>, <&u4 7 0>;
+			status = "okay";
+		};
+
+		i2c-master0@f0530000 {
+			clock-frequency = <100000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "okay";
+
+			u2: pca@77 {
+				compatible = "pca9539";
+				reg = <0x77>;
+				gpio-controller;
+				#gpio-cells = <2>;
+			};
+			u3: pca@74 {
+				compatible = "pca9539";
+				reg = <0x74>;
+				gpio-controller;
+				#gpio-cells = <2>;
+			};
+			u4: pca@70 {
+				compatible = "pca9538";
+				reg = <0x70>;
+				gpio-controller;
+				#gpio-cells = <2>;
+			};
+		};
+		i2c-master1@f0530040 {
+			clock-frequency = <100000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "okay";
+
+			touch@5 {
+				compatible = "sis,81x";
+				reg = <0x5>;
+				interrupts = <3 0x4>; /* EINT0 */
+				gpios = <&pio 3 14 0>;
+			};
+			codec@1a {
+				compatible = "rtek,alc5621";
+				reg = <0x1a>;
+			};
+			stk_als@38 {
+				compatible = "stk,als";
+				reg = <0x38>;
+			};
+			mma7660@4c {
+				compatible = "fsc,mma7660";
+				reg = <0x4c>;
+			};
+                };
+
+                serial@f0532000 {
+			clock-frequency = <48000000>;
+                        status = "okay";
+                };
+
+		sdhci@f05a0000 {
+			pinctrl-names = "default";
+			pinctrl-0 = <&sdhcip4>, <&sdhci4clk>;
+			/* tcc,power-gpios = <&pio 5 24 0>; */
+			cd-gpios = <&pio 0 10 0>;
+			bus-width = <4>;
+			tcc,port = <4>;
+			status = "okay";
+		};
+		sdhci@f05a0200 {
+			pinctrl-names = "default";
+			pinctrl-0 = <&sdhcip1>, <&sdhci1clk>;
+			/* tcc,power-gpios = <&pio 3 18 0>; */
+                        non-removable;
+                        bus-width = <4>;
+			tcc,port = <1>;
+			status = "okay";
+		};
+
+		nfc@f05b0000 {
+			nand-bus-width = <8>;
+			nand-ecc-mode = "none";
+		};
+	};
+
+	gpio-keys@0 {
+		compatible = "gpio-keys";
+
+		power {
+			label = "Power";
+			gpios = <&pio 5 25 0>;	/* F25 */
+			linux,code = <116>;	/* KEY_POWER */
+			gpio-key,wakeup;
+		};
+	};
+};

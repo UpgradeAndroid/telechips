@@ -1,0 +1,212 @@
+/dts-v1/;
+
+/include/ "tcc92xx.dtsi"
+
+/ {
+        model = "X6D";
+        compatible = "hsg,x6d", "tcc,tcc92xx";
+
+	chosen {
+		linux,stdout-path = &uart0;
+		bootargs = "mem=256M console=ttyS0,115200n8 fbcon=rotate:3 console=tty1 debug clk_ignore_unused user_debug=31 no_console_suspend";
+	};
+
+        memory {
+                device_type = "memory";
+                reg = <0x40000000 0x10000000>; /* 256MB */
+        };
+
+	smu_pmu {
+		pinctrl@f0102000 {
+			tcc,eint0-gpio = <&pio 2 29 0>;	/* touch */
+			tcc,eint1-gpio = <&pio 2 31 0>;	/* mmc0cd */
+			tcc,eint2-gpio = <&pio 0 3 1>;	/* power button */
+
+			touch_pin: touch_pin@0 {
+				tcc,pins = "PC29";
+                                tcc,function = "gpio";
+                                tcc,pull = <2>;
+			};
+
+			sdhcip1: sdhci_port1@0 {
+				tcc,pins = "PF18", "PF19", "PF20", "PF21", "PF22";
+				tcc,function = "sd1";
+			};
+			sdhci1clk: sdhci_port1_clk@0 {
+				tcc,pins = "PF23";
+				tcc,function = "sd1";
+				tcc,drive = <3>;
+			};
+			sdhcip3: sdhci_port3@0 {
+				tcc,pins = "PF0", "PF1", "PF2", "PF3", "PF8";
+				tcc,function = "sd3";
+			};
+			sdhci3clk: sdhci_port3_clk@0 {
+				tcc,pins = "PF9";
+				tcc,function = "sd3";
+				tcc,drive = <1>;
+			};
+		};
+
+		pmu@f0404000 {
+			tcc,power-gpio = <&pio 0 2 0>; /* GPA2 */
+		};
+	};
+
+        iobus {
+		usbh11@f0500000 {
+			gpios = <&u4 1 0>, <&u4 7 0>;
+			status = "okay";
+		};
+
+		i2c-master0@f0530000 {
+			clock-frequency = <100000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "okay";
+
+			codec: codec@4a {
+				compatible = "wlf,wm8731";
+				reg = <0x4a>;
+			};
+			u2: pca@77 {
+				compatible = "pca9539";
+				reg = <0x77>;
+				gpio-controller;
+				#gpio-cells = <2>;
+			};
+			u3: pca@74 {
+				compatible = "pca9539";
+				reg = <0x74>;
+				gpio-controller;
+				#gpio-cells = <2>;
+			};
+			u4: pca@70 {
+				compatible = "pca9538";
+				reg = <0x70>;
+				gpio-controller;
+				#gpio-cells = <2>;
+			};
+		};
+		i2c-master1@f0530040 {
+			clock-frequency = <100000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "okay";
+
+			touch@48 {
+				compatible = "uutek,uor6x5x";
+				reg = <0x48>;
+				interrupts = <3 0x4>; /* EINT0 */
+				gpios = <&pio 2 29 0>;
+				pinctrl-names = "default";
+				pinctrl-0 = <&touch_pin>;
+			};
+			mma7660@4c {
+				compatible = "fsc,mma7660";
+				reg = <0x4c>;
+			};
+                };
+
+                serial@f0532000 {
+			clock-frequency = <48000000>;
+                        status = "okay";
+                };
+
+		sdhci@f05a0000 {
+			pinctrl-names = "default";
+			pinctrl-0 = <&sdhcip1>, <&sdhci1clk>;
+			tcc,power-gpios = <&u3 7>;
+			cd-gpios = <&pio 2 31 0>;
+			cd-inverted;
+			bus-width = <4>;
+			tcc,port = <1>;
+			status = "okay";
+		};
+		sdhci@f05a0200 {
+			pinctrl-names = "default";
+			pinctrl-0 = <&sdhcip3>, <&sdhci3clk>;
+			tcc,power-gpios = <&pio 5 10 0>;
+                        non-removable;
+                        bus-width = <4>;
+			tcc,port = <3>;
+			status = "okay";
+		};
+
+		nfc@f05b0000 {
+			nand-bus-width = <8>;
+			nand-ecc-mode = "none";
+
+			boot@1c00000 {
+				label = "boot";
+				reg = <0x1c00000 0x1400000>;
+			};
+			kpanic@3000000 {
+				label = "kpanic";
+				reg = <0x3000000 0xa00000>;
+			};
+			system@3a00000 {
+				label = "system";
+				reg = <0x3a00000 0x12c00000>;
+			};
+			splash@16600000 {
+				label = "splash";
+				reg = <0x16600000 0x800000>;
+			};
+			cache@16e00000 {
+				label = "cache";
+				reg = <0x16e00000 0x5000000>;
+			};
+			userdata@1be00000 {
+				label = "userdata";
+				reg = <0x1be00000 0x24600000>;
+			};
+			recovery@40400000 {
+				label = "recovery";
+				reg = <0x40400000 0x1400000>;
+			};
+			misc@41800000 {
+				label = "misc";
+				reg = <0x41800000 0x200000>;
+			};
+			tcc@41a00000 {
+				label = "tcc";
+				reg = <0x41a00000 0x200000>;
+			};
+		};
+	};
+
+	gpio-keys {
+		compatible = "gpio-keys";
+
+		power {
+			label = "Power";
+			gpios = <&pio 0 3 1>;	/* A3 */
+			linux,code = <116>;	/* KEY_POWER */
+			gpio-key,wakeup;
+		};
+	};
+
+	/* Other keys need to be polled, as the GPIOs they
+	   are on are not all valid eint sources */
+	gpio-keys-polled {
+		compatible = "gpio-keys-polled";
+		poll-interval = <100>; /* ms */
+
+		menu {
+			label = "Menu";
+			gpios = <&pio 4 5 1>; /* E5 */
+			linux,code = <139>; /* KEY_MENU */
+		};
+		home {
+			label = "Home";
+			gpios = <&pio 4 6 1>; /* E6 */
+			linux,code = <102>; /* KEY_HOME */
+		};
+		back {
+			label = "Back";
+			gpios = <&pio 4 7 1>; /* E7 */
+			linux,code = <158>; /* KEY_BACK */
+		};
+	};
+};

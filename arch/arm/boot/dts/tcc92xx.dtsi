@@ -1,0 +1,272 @@
+/*
+ * Device Tree Source for TCC890x/TCC920x SoC
+ *
+ * Copyright (C) 2014 Upgrade Android.
+ *
+ * This file is licensed under the terms of the GNU General Public License
+ * version 2.  This program is licensed "as is" without any warranty of any
+ * kind, whether express or implied.
+ */
+
+/include/ "skeleton.dtsi"
+
+/ {
+	compatible = "tcc,tcc92xx";
+	interrupt-parent = <&vpic>;
+
+	aliases {
+		serial0 = &uart0;
+		serial1 = &uart1;
+		serial2 = &uart2;
+		serial3 = &uart3;
+		serial4 = &uart4;
+		serial5 = &uart5;
+	};
+
+	cpus {
+		cpu@0 {
+			compatible = "arm,arm1176";
+		};
+	};
+
+        ddi {
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		lcdc0@f0200000 {
+			compatible = "tcc,tcc92xx-lcdc";
+			reg = <0xf0200000 0x800>;
+			interrupts = <18>;
+			clocks = <&clks 21>, <&clks 23>;
+		};
+		lcdc1@f0204000 {
+			compatible = "tcc,tcc92xx-lcdc";
+			reg = <0xf0204000 0x800>;
+			interrupts = <19>;
+			clocks = <&clks 22>, <&clks 23>;
+		};
+		lcdsi@f020c000 {
+			compatible = "tcc,lcdsi";
+			reg = <0xf020c000 0xa4>;
+			clocks = <&clks 23>;
+		};
+	};
+
+	smu_pmu {
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		pio: pinctrl@f0102000 {
+			compatible = "tcc,tcc92xx-pinctrl";
+			reg = <0xf0102000 0x200>;
+			gpio-controller;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			#gpio-cells = <3>;
+
+			i2cm0: i2cm0@0 {
+				tcc,pins = "PA0", "PA1";
+				tcc,function = "i2c0";
+			};
+			i2cm1: i2cm1@0 {
+				tcc,pins = "PA8", "PA9";
+				tcc,function = "i2c1";
+			};
+		};
+
+                clks: ckc@f0400000 {
+                        compatible = "tcc,tcc92xx-ckc";
+                        reg = <0xf0400000 0x200>;
+			#clock-cells = <1>;
+                };
+
+                vpic: vpic@f0401000 {
+                        compatible = "tcc,tcc92xx-vpic";
+                        reg = <0xf0401000 0x300>;
+                        interrupt-controller;
+                        #interrupt-cells = <2>;
+                };
+
+                timers@f0403000 {
+			compatible = "tcc,timers";
+			reg = <0xf0403000 0x100>;
+			interrupts = <0 0x4>, <1 0x4>;
+			clocks = <&clks 18>, <&clks 19>, <&clks 20>;
+		};
+
+		pmu@f0404000 {
+			compatible = "tcc,pmu";
+			reg = <0xf0404000 0x20>;
+		};
+
+		smui2cmaster0: smui2c-master0@f0405000 {
+			compatible = "tcc,i2c-master";
+			reg = <0xf0405000 0x40>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			interrupts = <2 0x4>;
+			clocks = <&clks 32>;
+			status = "disabled";
+		};
+		smui2cmaster1: smui2c-master1@f0405040 {
+			compatible = "tcc,i2c-master";
+			reg = <0xf0405040 0x40>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			interrupts = <2 0x4>;
+			clocks = <&clks 32>;
+			status = "disabled";
+		};
+	};
+
+	iobus {
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		usbh11: usbh11@f0500000 {
+			compatible = "tcc,ohci";
+			reg = <	0xf0500000 0x60
+				0xf05f5000 0x40 >;
+			interrupts = <49 0x4>;
+			clocks = <&clks 29>;
+			status = "disabled";
+		};
+		i2cmaster0: i2c-master0@f0530000 {
+			compatible = "tcc,i2c-master";
+			reg = <0xf0530000 0x40>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			interrupts = <38 0x4>;
+			clocks = <&clks 32>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&i2cm0>;
+			status = "disabled";
+		};
+		i2cmaster1: i2c-master1@f0530040 {
+			compatible = "tcc,i2c-master";
+			reg = <0xf0530040 0x40>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			interrupts = <38 0x4>;
+			clocks = <&clks 32>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&i2cm1>;
+			status = "disabled";
+		};
+
+		uart0: serial@f0532000 {
+			compatible = "tcc,uart", "ns16550a";
+			reg = <0xf0532000 0x100>;
+			interrupts = <47 0x4>;
+			reg-shift = <2>;
+			clocks = <&clks 33>;
+			status = "disabled";
+		};
+		uart1: serial@f0532100 {
+			compatible = "tcc,uart", "ns16550a";
+			reg = <0xf0532100 0x100>;
+			interrupts = <47 0x4>;
+			reg-shift = <2>;
+			clocks = <&clks 34>;
+			status = "disabled";
+		};
+		uart2: serial@f0532200 {
+			compatible = "tcc,uart", "ns16550a";
+			reg = <0xf0532200 0x100>;
+			interrupts = <47 0x4>;
+			reg-shift = <2>;
+			clocks = <&clks 35>;
+			status = "disabled";
+		};
+		uart3: serial@f0532300 {
+			compatible = "tcc,uart", "ns16550a";
+			reg = <0xf0532200 0x100>;
+			interrupts = <47 0x4>;
+			reg-shift = <2>;
+			clocks = <&clks 36>;
+			status = "disabled";
+		};
+		uart4: serial@f0532400 {
+			compatible = "tcc,uart", "ns16550a";
+			reg = <0xf0532400 0x100>;
+			interrupts = <47 0x4>;
+			reg-shift = <2>;
+			clocks = <&clks 37>;
+			status = "disabled";
+		};
+		uart5: serial@f0532500 {
+			compatible = "tcc,uart", "ns16550a";
+			reg = <0xf0532500 0x100>;
+			interrupts = <47 0x4>;
+			reg-shift = <2>;
+			clocks = <&clks 38>;
+			status = "disabled";
+		};
+
+		sdhc0: sdhci@f05a0000 {
+			compatible = "tcc,tcc92xx-sdhc";
+			reg = <	0xf05a0000 0x100
+				0xf05a0800 0x14 >;
+			interrupts = <44 0x4>;
+			clocks = <&clks 30>;
+			tcc,slot = <0>;
+			status = "disabled";
+		};
+		sdhc1: sdhci@f05a0100 {
+			compatible = "tcc,tcc92xx-sdhc";
+			reg = <	0xf05a0100 0x100
+				0xf05a0800 0x14 >;
+			interrupts = <44 0x4>;
+			clocks = <&clks 30>;
+			tcc,slot = <1>;
+			status = "disabled";
+		};
+		sdhc2: sdhci@f05a0200 {
+			compatible = "tcc,tcc92xx-sdhc";
+			reg = <	0xf05a0200 0x100
+				0xf05a0800 0x14 >;
+			interrupts = <45 0x4>;
+			clocks = <&clks 50>;
+			tcc,slot = <2>;
+			status = "disabled";
+		};
+		sdhc3: sdhci@f05a0300 {
+			compatible = "tcc,tcc92xx-sdhc";
+			reg = <	0xf05a0300 0x100
+				0xf05a0800 0x14 >;
+			interrupts = <45 0x4>;
+			clocks = <&clks 50>;
+			tcc,slot = <3>;
+			status = "disabled";
+		};
+
+		nfc@f05b0000 {
+			compatible = "tcc,tcc92xx-nfc";
+			reg = <	0xf05b0000 0x80
+				0xf0539000 0x98 >;
+			interrupts = <41 0x4>;
+			#address-cells = <1>;
+			#size-cells = <1>;
+		};
+
+		adc@f05f4000 {
+			compatible = "tcc,tcc92xx-adc";
+			reg = <0xf05f4000 0x24>;
+			interrupts = <28 0x4>;
+			clocks = <&clks 45>;
+		};
+
+		rtc@f05f2000 {
+			compatible = "tcc,tcc92xx-rtc";
+			reg = <0xf05f2000 0x50>;
+			interrupts = <43 0x4>;
+			clocks = <&clks 5>; /* XTIN */
+		};
+	};
+};
