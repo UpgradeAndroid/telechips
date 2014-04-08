@@ -29,6 +29,31 @@
 		};
 	};
 
+        ddi {
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		lcdc0@f0200000 {
+			compatible = "tcc,tcc92xx-lcdc";
+			reg = <0xf0200000 0x800>;
+			interrupts = <18>;
+			clocks = <&clks 21>, <&clks 23>;
+		};
+		lcdc1@f0204000 {
+			compatible = "tcc,tcc92xx-lcdc";
+			reg = <0xf0204000 0x800>;
+			interrupts = <19>;
+			clocks = <&clks 22>, <&clks 23>;
+		};
+		lcdsi@f020c000 {
+			compatible = "tcc,lcdsi";
+			reg = <0xf020c000 0xa4>;
+			clocks = <&clks 23>;
+		};
+	};
+
 	smu_pmu {
 		compatible = "simple-bus";
 		#address-cells = <1>;
