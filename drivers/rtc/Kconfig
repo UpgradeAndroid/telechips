@@ -895,6 +895,16 @@ config RTC_DRV_S3C
 	  This driver can also be build as a module. If so, the module
 	  will be called rtc-s3c.
 
+config RTC_DRV_TCC
+	tristate "Telechips SoC RTC"
+	depends on ARCH_TCC
+	help
+	  If you say yes here you get support for the RTC embedded
+	  in the Telechips SoCs.
+
+	  This driver can also be built as a module. If so, the module
+	  will be called rtc-tcc.
+
 config RTC_DRV_EP93XX
 	tristate "Cirrus Logic EP93XX"
 	depends on ARCH_EP93XX
