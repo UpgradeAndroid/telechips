@@ -239,5 +239,12 @@
 			interrupts = <28 0x4>;
 			clocks = <&clks 45>;
 		};
+
+		rtc@f05f2000 {
+			compatible = "tcc,tcc92xx-rtc";
+			reg = <0xf05f2000 0x50>;
+			interrupts = <43 0x4>;
+			clocks = <&clks 5>; /* XTIN */
+		};
 	};
 };
