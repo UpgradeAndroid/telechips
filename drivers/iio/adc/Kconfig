@@ -133,6 +133,13 @@ config MAX1363
 	  max11646, max11647) Provides direct access via sysfs and buffered
 	  data via the iio dev interface.
 
+config TCC_ADC
+	bool "Telechips ADC driver support"
+	depends on OF
+	help
+	  Core support for the ADC block found in Telechips SoCs for drivers
+	  such as the touchscreen and hwmon to use to share this resource.
+
 config TI_ADC081C
 	tristate "Texas Instruments ADC081C021/027"
 	depends on I2C

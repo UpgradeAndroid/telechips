@@ -232,5 +232,12 @@
 			tcc,slot = <3>;
 			status = "disabled";
 		};
+
+		adc@f05f4000 {
+			compatible = "tcc,tcc92xx-adc";
+			reg = <0xf05f4000 0x24>;
+			interrupts = <28 0x4>;
+			clocks = <&clks 45>;
+		};
 	};
 };
