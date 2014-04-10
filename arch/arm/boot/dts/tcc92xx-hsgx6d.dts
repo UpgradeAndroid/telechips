@@ -108,6 +108,48 @@
 			tcc,port = <3>;
 			status = "okay";
 		};
+
+		nfc@f05b0000 {
+			nand-bus-width = <8>;
+			nand-ecc-mode = "none";
+
+			boot@1c00000 {
+				label = "boot";
+				reg = <0x1c00000 0x1400000>;
+			};
+			kpanic@3000000 {
+				label = "kpanic";
+				reg = <0x3000000 0xa00000>;
+			};
+			system@3a00000 {
+				label = "system";
+				reg = <0x3a00000 0x12c00000>;
+			};
+			splash@16600000 {
+				label = "splash";
+				reg = <0x16600000 0x800000>;
+			};
+			cache@16e00000 {
+				label = "cache";
+				reg = <0x16e00000 0x5000000>;
+			};
+			userdata@1be00000 {
+				label = "userdata";
+				reg = <0x1be00000 0x24600000>;
+			};
+			recovery@40400000 {
+				label = "recovery";
+				reg = <0x40400000 0x1400000>;
+			};
+			misc@41800000 {
+				label = "misc";
+				reg = <0x41800000 0x200000>;
+			};
+			tcc@41a00000 {
+				label = "tcc";
+				reg = <0x41a00000 0x200000>;
+			};
+		};
 	};
 
 	gpio-keys {

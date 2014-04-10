@@ -233,6 +233,12 @@ config MTD_NAND_S3C2410_CLKSTOP
 	  when the is NAND chip selected or released, but will save
 	  approximately 5mA of power when there is nothing happening.
 
+config MTD_NAND_TCC
+	tristate "Telechips NAND Flash Controller"
+	depends on ARCH_TCC
+	help
+	  Support NFC IP integrated in Telechips SoCs.
+
 config MTD_NAND_DISKONCHIP
 	tristate "DiskOnChip 2000, Millennium and Millennium Plus (NAND reimplementation)"
 	depends on HAS_IOMEM

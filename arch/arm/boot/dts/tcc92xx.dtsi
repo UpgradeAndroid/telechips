@@ -233,6 +233,15 @@
 			status = "disabled";
 		};
 
+		nfc@f05b0000 {
+			compatible = "tcc,tcc92xx-nfc";
+			reg = <	0xf05b0000 0x80
+				0xf0539000 0x98 >;
+			interrupts = <41 0x4>;
+			#address-cells = <1>;
+			#size-cells = <1>;
+		};
+
 		adc@f05f4000 {
 			compatible = "tcc,tcc92xx-adc";
 			reg = <0xf05f4000 0x24>;
