@@ -140,6 +140,13 @@ config MTD_AR7_PARTS
 	---help---
 	  TI AR7 partitioning support
 
+config MTD_TCC_PARTS
+	boolean "Telechips partitioning support"
+	depends on ARCH_TCC
+	help
+	  This provides partitions parser for devices based on Telechips
+	  SoCs.
+
 config MTD_BCM63XX_PARTS
 	tristate "BCM63XX CFE partitioning support"
 	depends on BCM63XX
