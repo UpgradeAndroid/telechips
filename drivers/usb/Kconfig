@@ -18,6 +18,7 @@ config USB_ARCH_HAS_OHCI
 	default y if ARCH_DAVINCI_DA8XX
 	default y if ARCH_CNS3XXX
 	default y if PLAT_SPEAR
+	default y if ARCH_TCC
 	default y if ARCH_EXYNOS
 	# PPC:
 	default y if STB03xxx
