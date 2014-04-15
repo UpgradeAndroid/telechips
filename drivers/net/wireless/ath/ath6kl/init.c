@@ -34,6 +34,36 @@
 
 static const struct ath6kl_hw hw_list[] = {
 	{
+		.id				= AR6002_HW_2_0_VERSION,
+		.name				= "ar6002 hw 2.0",
+#if defined(FROM_TCC_AR6003)
+		.dataset_patch_addr		= 0x52d8b0,
+		.app_load_addr			= 0x502070,
+		/* hw2.0 needs override address hardcoded */
+		.app_start_override_addr	= 0x911a00,
+#elif defined(FROM_TCC_AR6002)
+		.dataset_patch_addr		= 0x52d6d0,
+		.app_load_addr			= ,
+		/* hw2.0 needs override address hardcoded */
+		.app_start_override_adr		= 0x9140f0,
+#endif
+		.refclk_hz			= 26000000,
+		.uarttx_pin			= 8,
+		.flags				= 0,
+
+
+		.fw = {
+			.dir		= AR6002_HW_2_0_FW_DIR,
+			.fw		= AR6002_HW_2_0_FIRMWARE_FILE,
+			.tcmd		= AR6002_HW_2_0_TCMD_FIRMWARE_FILE,
+			.patch		= AR6002_HW_2_0_PATCH_FILE,
+		},
+
+		.fw_board		= AR6002_HW_2_0_BOARD_DATA_FILE,
+		.fw_default_board	= AR6002_HW_2_0_DEFAULT_BOARD_DATA_FILE,
+
+	},
+	{
 		.id				= AR6003_HW_2_0_VERSION,
 		.name				= "ar6003 hw 2.0",
 		.dataset_patch_addr		= 0x57e884,
@@ -622,11 +652,13 @@ int ath6kl_configure_target(struct ath6kl *ar)
 		/* use default number of control buffers */
 		return -EIO;
 
+#if 0
 	/* Configure GPIO AR600x UART */
 	status = ath6kl_bmi_write_hi32(ar, hi_dbg_uart_txpin,
 				       ar->hw.uarttx_pin);
 	if (status)
 		return status;
+#endif
 
 	/* Configure target refclk_hz */
 	status = ath6kl_bmi_write_hi32(ar, hi_refclk_hz, ar->hw.refclk_hz);
@@ -1174,6 +1206,10 @@ static int ath6kl_upload_board_file(struct ath6kl *ar)
 	}
 
 	switch (ar->target_type) {
+	case TARGET_TYPE_AR6002:
+		board_data_size = AR6002_BOARD_DATA_SZ;
+		board_ext_data_size = 0;
+		break;
 	case TARGET_TYPE_AR6003:
 		board_data_size = AR6003_BOARD_DATA_SZ;
 		board_ext_data_size = AR6003_BOARD_EXT_DATA_SZ;
@@ -1373,7 +1409,8 @@ static int ath6kl_init_upload(struct ath6kl *ar)
 	u32 param, options, sleep, address;
 	int status = 0;
 
-	if (ar->target_type != TARGET_TYPE_AR6003 &&
+	if (ar->target_type != TARGET_TYPE_AR6002 &&
+	    ar->target_type != TARGET_TYPE_AR6003 &&
 	    ar->target_type != TARGET_TYPE_AR6004)
 		return -EINVAL;
 

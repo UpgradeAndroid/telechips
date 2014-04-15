@@ -35,6 +35,7 @@
 #define MAX_SCATTER_ENTRIES_PER_REQ      16
 #define MAX_SCATTER_REQ_TRANSFER_SIZE    (32 * 1024)
 
+#define MANUFACTURER_ID_AR6002_BASE        0x200
 #define MANUFACTURER_ID_AR6003_BASE        0x300
 #define MANUFACTURER_ID_AR6004_BASE        0x400
     /* SDIO manufacturer ID and Codes */

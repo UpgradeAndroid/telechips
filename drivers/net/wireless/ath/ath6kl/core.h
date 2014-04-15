@@ -159,6 +159,20 @@ enum ath6kl_hw_flags {
 #define ATH6KL_FW_API3_FILE "fw-3.bin"
 #define ATH6KL_FW_API4_FILE "fw-4.bin"
 
+/* AR6002 1.0 definitions */
+#define AR6002_HW_1_0_VERSION                 0x20000086
+
+/* AR6002 2.0 definitions */
+#define AR6002_HW_2_0_VERSION                 0x20000188
+#define AR6002_HW_2_0_PATCH_DOWNLOAD_ADDRESS  0x57e910
+#define AR6002_HW_2_0_FW_DIR			"ath6k/AR6002/hw2.0"
+#define AR6002_HW_2_0_FIRMWARE_FILE		"athwlan.bin.z77"
+#define AR6002_HW_2_0_TCMD_FIRMWARE_FILE	"athtcmd_ram.bin"
+#define AR6002_HW_2_0_PATCH_FILE		"data.patch.bin"
+#define AR6002_HW_2_0_BOARD_DATA_FILE AR6002_HW_2_0_FW_DIR "/bdata.bin"
+#define AR6002_HW_2_0_DEFAULT_BOARD_DATA_FILE \
+			AR6002_HW_2_0_FW_DIR "/bdata.default.bin"
+
 /* AR6003 1.0 definitions */
 #define AR6003_HW_1_0_VERSION                 0x300002ba
 
@@ -857,6 +871,8 @@ static inline u32 ath6kl_get_hi_item_addr(struct ath6kl *ar,
 
 	if (ar->target_type == TARGET_TYPE_AR6003)
 		addr = ATH6KL_AR6003_HI_START_ADDR + item_offset;
+	else if (ar->target_type == TARGET_TYPE_AR6002)
+		addr = ATH6KL_AR6002_HI_START_ADDR + item_offset;
 	else if (ar->target_type == TARGET_TYPE_AR6004)
 		addr = ATH6KL_AR6004_HI_START_ADDR + item_offset;
 
