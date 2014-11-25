@@ -512,18 +512,6 @@ static int __init board_serialno_setup(char *serialno)
 }
 __setup("androidboot.serialno=", board_serialno_setup);
 
-char* atheros_wifi_mac;
-
-static int __init board_wifimac_setup(char *wifimac)
-{
-	atheros_wifi_mac = wifimac;
-
-	return 1;
-}
-__setup("androidboot.wifimac=", board_wifimac_setup);
-
-EXPORT_SYMBOL(atheros_wifi_mac);
-
 static int __init board_btaddr_setup(char *btaddr)
 {
 	return 1;

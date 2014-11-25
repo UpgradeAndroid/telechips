@@ -13,4 +13,4 @@ endif
 
 obj-$(CONFIG_DPM) 	+= tcc_dpm.o
 
-obj-$(CONFIG_ARCH_TCC)	+= nand.o pmap.o
+obj-$(CONFIG_ARCH_TCC)	+= nand.o pmap.o atheros_wifi.o
