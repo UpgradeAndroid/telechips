@@ -824,7 +824,7 @@ i2c_ts_probe(struct i2c_adapter *adap, unsigned short addr)
 	return res == 1;
 }
 
-static int
+static int __init
 touchscreen_detect(void)
 {
 	struct i2c_client *touch_chip = NULL;

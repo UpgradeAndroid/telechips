@@ -379,7 +379,7 @@ static const struct dev_pm_ops ehci_tcc_pmops = {
 #define EHCI_TCC_PMOPS NULL
 #endif	/* CONFIG_PM */
 
-static int __init ehci_tcc_drv_probe(struct platform_device *pdev)
+static int ehci_tcc_drv_probe(struct platform_device *pdev)
 {
 	struct usb_hcd *hcd;
 	struct ehci_hcd *ehci = NULL;

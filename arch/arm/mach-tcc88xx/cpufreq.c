@@ -759,7 +759,7 @@ static int tcc_cpufreq_resume(struct cpufreq_policy *policy)
 	return 0;
 }
 
-static int __init tcc_cpufreq_init(struct cpufreq_policy *policy)
+static int __cpuinit tcc_cpufreq_init(struct cpufreq_policy *policy)
 {
 	int ret, i;
 

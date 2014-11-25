@@ -3217,7 +3217,7 @@ static inline void tccfb_unmap_video_memory(struct tccfb_info *fbi)
 }
 
 static char tccfb_driver_name[]="tccfb";
-static int __init tccfb_probe(struct platform_device *pdev)
+static int tccfb_probe(struct platform_device *pdev)
 {
 	struct tccfb_info *info;
 	struct fb_info *fbinfo;
