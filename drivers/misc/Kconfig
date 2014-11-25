@@ -4,6 +4,7 @@
 
 config TCCDUMP
 	tristate "Dump TCC SoC registers"
+	depends on ARCH_TCC88XX
 	default m
 
 # This one has to live outside of the MISC_DEVICES conditional,
