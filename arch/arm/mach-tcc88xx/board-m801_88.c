@@ -23,7 +23,6 @@
 #include <linux/i2c/egalax_i2c.h>
 #include <linux/goodix_touch.h>
 #include <linux/akm8975.h>
-//#include <linux/usb/android_composite.h>
 #include <linux/spi/spi.h>
 #include <linux/regulator/machine.h>
 #include <linux/regulator/axp192.h>
@@ -368,34 +367,6 @@ static void tcc_add_nand_device(void)
 	platform_device_register(&tcc_nand_device);
 }
 
-
-/*----------------------------------------------------------------------
- * Device     : USB Android Gadget
- * Description:
- *----------------------------------------------------------------------*/
-#if 0
-static struct usb_mass_storage_platform_data mass_storage_pdata = {
-#ifdef CONFIG_SCSI
-	.nluns = 4, // for iNand
-#else
-	.nluns = 3,
-#endif
-	.vendor = "Telechips, Inc.",
-	.product = "M801_88",
-	.release = 0x0100,
-};
-
-static struct platform_device usb_mass_storage_device = {
-	.name = "usb_mass_storage",
-	.id = -1,
-	.dev = {
-		.platform_data = &mass_storage_pdata,
-	},
-};
-
-#endif
-
-
 #ifdef CONFIG_TCC_UART2_DMA
 static struct tcc_uart_platform_data uart2_data = {
     .tx_dma_use     = 0,
@@ -450,97 +421,6 @@ static struct tcc_uart_platform_data uart1_data_bt = {
     .rx_dma_intr    = 0,
     .rx_dma_mode    = SERIAL_RX_DMA_MODE,
 };
-#endif
-
-#if 0
-#ifdef CONFIG_USB_ANDROID_RNDIS
-static struct usb_ether_platform_data rndis_pdata = {
-	/* ethaddr is filled by board_serialno_setup */
-	.vendorID	= 0x18d1,
-	.vendorDescr	= "Telechips, Inc.",
-};
-
-static struct platform_device rndis_device = {
-	.name	= "rndis",
-	.id	= -1,
-	.dev	= {
-		.platform_data = &rndis_pdata,
-	},
-};
-#endif
-
-static char *usb_functions_ums[] = {
-	"usb_mass_storage",
-};
-
-static char *usb_functions_ums_adb[] = {
-	"usb_mass_storage",
-	"adb",
-};
-
-static char *usb_functions_rndis[] = {
-	"rndis",
-};
-
-static char *usb_functions_rndis_adb[] = {
-	"rndis",
-	"adb",
-};
-
-static char *usb_functions_all[] = {
-#ifdef CONFIG_USB_ANDROID_RNDIS
-	"rndis",
-#endif
-	"usb_mass_storage",
-	"adb",
-#ifdef CONFIG_USB_ANDROID_ACM
-	"acm",
-#endif
-};
-
-static struct android_usb_product usb_products[] = {
-	{
-		.product_id	= 0xb058, /* Telechips UMS PID */
-		.num_functions	= ARRAY_SIZE(usb_functions_ums),
-		.functions	= usb_functions_ums,
-	},
-	{
-		.product_id	= 0xdeed,
-		.num_functions	= ARRAY_SIZE(usb_functions_ums_adb),
-		.functions	= usb_functions_ums_adb,
-	},
-	{
-		.product_id	= 0x0002,
-		.num_functions	= ARRAY_SIZE(usb_functions_rndis),
-		.functions	= usb_functions_rndis,
-	},
-	{
-		.product_id	= 0x0003,
-		.num_functions	= ARRAY_SIZE(usb_functions_rndis_adb),
-		.functions	= usb_functions_rndis_adb,
-	},
-};
-
-static struct android_usb_platform_data android_usb_pdata = {
-	.vendor_id	= 0x18D1,
-	.product_id	= 0x0001,
-	.version	= 0x0100,
-	.product_name		= "M801_88",
-	.manufacturer_name	= "Telechips, Inc.",
-	.num_products	= ARRAY_SIZE(usb_products),
-	.products	= usb_products,
-	.num_functions	= ARRAY_SIZE(usb_functions_all),
-	.functions	= usb_functions_all,
-};
-
-static struct platform_device android_usb_device = {
-	.name	= "android_usb",
-	.id		= -1,
-	.dev		= {
-		.platform_data = &android_usb_pdata,
-	},
-};
-
 #endif
 
 static struct platform_device tcc_earjack_detect_device = {
@@ -649,8 +529,6 @@ static struct platform_device *m801_88_devices[] __initdata = {
 #endif
 
 #endif
-//	&usb_mass_storage_device,
-//	&android_usb_device,
 	&tcc_earjack_detect_device,
 #if defined(CONFIG_GPS_JGR_SC3_S)
 	&tcc8800_uart3_device,
@@ -659,15 +537,6 @@ static struct platform_device *m801_88_devices[] __initdata = {
 	&tccwdt_device,
 #endif
 };
-
-
-static int __init board_serialno_setup(char *serialno)
-{
-	//android_usb_pdata.serial_number = serialno;
-	return 1;
-}
-__setup("androidboot.serialno=", board_serialno_setup);
-
 
 static void __init tcc8800_init_machine(void)
 {
