@@ -266,15 +266,9 @@ static struct i2c_board_info __initdata i2c_devices1[] = {
 		.platform_data = NULL,
 	},
 #endif
-#ifdef CONFIG_SENSORS_MMA7660
-	{
-		I2C_BOARD_INFO("mma7660", 0x4c),
-	},
-#else
 	{
 		I2C_BOARD_INFO("tcc-accel-sensor", 0x4c),
 	},
-#endif
 };
 #endif
 

@@ -44,14 +44,6 @@
 
 #include <mach/sensor_ioctl.h>
 
-#define MMA7660_DEBUG    0
-
-#if MMA7660_DEBUG
-#define sensor_dbg(fmt, arg...)     printk(fmt, ##arg)
-#else
-#define sensor_dbg(arg...)
-#endif
-
 #define SENSOR_DEV_NAME			"sensor"
 #define SENSOR_DEV_MAJOR		249
 #define SENSOR_DEV_MINOR		1
@@ -90,16 +82,16 @@ struct sensor_i2c_chip_info {
 
 static void sensor_timer_handler(unsigned long data)
 {
-	sensor_dbg("%s\n", __func__);
+	pr_debug("%s\n", __func__);
 
 	if (schedule_work(&sensor_work_q) == 0)
-		sensor_dbg("cannot schedule work !!!\n");
+		pr_debug("cannot schedule work !!!\n");
 }
 
 static void sensor_timer_registertimer(struct timer_list *ptimer,
 				       unsigned int timeover)
 {
-	sensor_dbg("%s\n", __func__);
+	pr_debug("%s\n", __func__);
 	init_timer(ptimer);
 	ptimer->expires = jiffies + msecs_to_jiffies(timeover);
 	ptimer->data = (unsigned long)NULL;
@@ -127,11 +119,11 @@ static int sensor_i2c_probe(struct i2c_client *client,
 {
 	struct sensor_i2c_chip_info *chip;
 
-	sensor_dbg("\n sensor_i2c_probe  :  %s \n", client->name);
+	pr_debug("\n sensor_i2c_probe  :  %s \n", client->name);
 
 	chip = kzalloc(sizeof(struct sensor_i2c_chip_info), GFP_KERNEL);
 	if (chip == NULL) {
-		sensor_dbg("\n tcc_sensor_i2c  :  no chip info. \n");
+		pr_debug("\n tcc_sensor_i2c  :  no chip info. \n");
 		return -ENOMEM;
 	}
 
@@ -262,7 +254,7 @@ static void tcc_sensor_avg(int *data)
 	acc_data_avg.x = acc_data_sum.x / store_used_count;
 	acc_data_avg.y = acc_data_sum.y / store_used_count;
 	acc_data_avg.z = acc_data_sum.z / store_used_count;
-printk("%s: %d, %d, %d  - %d %d %d , delay = %d\n", __func__, acc_data_sum.x, acc_data_sum.y, acc_data_sum.z, acc_data_avg.x, acc_data_avg.y, acc_data_avg.z, tcc_sensor_accel.delay_time);
+	pr_debug("%s: %d, %d, %d  - %d %d %d , delay = %d\n", __func__, acc_data_sum.x, acc_data_sum.y, acc_data_sum.z, acc_data_avg.x, acc_data_avg.y, acc_data_avg.z, tcc_sensor_accel.delay_time);
 }
 
 static void tcc_sensor_landscapeDevice2AndroidPortrait(tcc_sensor_accel_t *
@@ -378,13 +370,13 @@ static int tcc_sensor_get_accel(void)
 	tcc_sensor_set_data(acc_data_avg);
 
 	tcc_sensor_compensation();
-	printk("%s: else accel : %d, %d, %d - [%d:%d:%d]\n", __func__, tcc_sensor_accel.x, tcc_sensor_accel.y, tcc_sensor_accel.z,calib_data.x,calib_data.y,calib_data.z);
+	pr_debug("%s: else accel : %d, %d, %d - [%d:%d:%d]\n", __func__, tcc_sensor_accel.x, tcc_sensor_accel.y, tcc_sensor_accel.z,calib_data.x,calib_data.y,calib_data.z);
 	return 0;
 }
 
 static void sensor_fetch_thread(struct work_struct *work)
 {
-	sensor_dbg("%s: sensor_duration =%d \n", __func__, sensor_duration);
+	pr_debug("%s: sensor_duration =%d \n", __func__, sensor_duration);
 	tcc_sensor_get_accel();
 	sensor_timer_registertimer(sensor_timer, sensor_duration);
 }
@@ -392,21 +384,21 @@ static void sensor_fetch_thread(struct work_struct *work)
 static ssize_t tcc_sensor_write(struct file *file, const char __user * user,
 				size_t size, loff_t * o)
 {
-	sensor_dbg("%s\n", __func__);
+	pr_debug("%s\n", __func__);
 	return 0;
 }
 
 static ssize_t tcc_sensor_read(struct file *file, char __user * user,
 			       size_t size, loff_t * o)
 {
-	sensor_dbg("%s\n", __func__);
-//    sensor_dbg("%s: IOCTL_read_SENSORS_ACCELERATION  %d, %d, %d\n", __func__, tcc_sensor_accel.x, tcc_sensor_accel.y, tcc_sensor_accel.z);
+	pr_debug("%s\n", __func__);
+//    pr_debug("%s: IOCTL_read_SENSORS_ACCELERATION  %d, %d, %d\n", __func__, tcc_sensor_accel.x, tcc_sensor_accel.y, tcc_sensor_accel.z);
 
 //    tcc_sensor_get_accel();   //test  reverse
 	if (copy_to_user
 	    ((tcc_sensor_accel_t *) user, (const void *)&tcc_sensor_accel,
 	     sizeof(tcc_sensor_accel_t)) != 0) {
-		sensor_dbg("tcc_gsensor_read error\n");
+		pr_debug("tcc_gsensor_read error\n");
 	}
 	pr_debug("mma7660: x=%d,y=%d,z=%d resolution=%d, delay_time=%d\n",
 		tcc_sensor_accel.x, tcc_sensor_accel.y, tcc_sensor_accel.z,
@@ -421,7 +413,7 @@ static long tcc_sensor_ioctl(struct file *filp, unsigned int cmd,
 //    if (!sensor_used_count)
 //        return -1;
 
-	sensor_dbg("%s  (0x%x)  \n", __func__, cmd);
+	pr_debug("%s  (0x%x)  \n", __func__, cmd);
 
 	switch (cmd) {
 
@@ -431,9 +423,9 @@ static long tcc_sensor_ioctl(struct file *filp, unsigned int cmd,
 		    ((tcc_sensor_accel_t *) arg,
 		     (const void *)&tcc_sensor_accel,
 		     sizeof(tcc_sensor_accel_t)) != 0) {
-			sensor_dbg("copy_to error\n");
+			pr_debug("copy_to error\n");
 		}
-		sensor_dbg("%s: IOCTL_SENSOR_GET_DATA_ACCEL %d, %d, %d\n",
+		pr_debug("%s: IOCTL_SENSOR_GET_DATA_ACCEL %d, %d, %d\n",
 			   __func__, tcc_sensor_accel.x, tcc_sensor_accel.y,
 			   tcc_sensor_accel.z);
 		break;
@@ -442,11 +434,10 @@ static long tcc_sensor_ioctl(struct file *filp, unsigned int cmd,
 		if (copy_from_user
 		    ((void *)&sensor_duration, (unsigned int *)arg,
 		     sizeof(unsigned int)) != 0) {
-			sensor_dbg("copy_from error\n");
+			pr_debug("copy_from error\n");
 		}
-		sensor_dbg(KERN_INFO
-			   "%s:  IOCTL_SENSOR_SET_DELAY_ACCEL (0x%x) %d \n",
-			   __func__, cmd, sensor_duration);
+		pr_debug("%s:  IOCTL_SENSOR_SET_DELAY_ACCEL (0x%x) %d \n",
+			 __func__, cmd, sensor_duration);
 		tcc_sensor_accel.delay_time = sensor_duration;
 		tcc_sensor_avg_count(sensor_duration);
 		break;
@@ -456,12 +447,11 @@ static long tcc_sensor_ioctl(struct file *filp, unsigned int cmd,
 		if (copy_to_user
 		    ((unsigned int *)arg, (const void *)&sensor_state_flag,
 		     sizeof(unsigned int)) != 0) {
-			sensor_dbg("copy_to error\n");
+			pr_debug("copy_to error\n");
 		}
 
-		sensor_dbg(KERN_INFO
-			   "%s: IOCTL_SENSOR_GET_STATE_ACCEL  (0x%x) %d \n",
-			   __func__, cmd, sensor_state_flag);
+		pr_debug("%s: IOCTL_SENSOR_GET_STATE_ACCEL  (0x%x) %d \n",
+			 __func__, cmd, sensor_state_flag);
 		break;
 
 	case IOCTL_SENSOR_SET_STATE_ACCEL:
@@ -470,11 +460,10 @@ static long tcc_sensor_ioctl(struct file *filp, unsigned int cmd,
 		if (copy_from_user
 		    ((void *)&sensor_state_flag, (unsigned int *)arg,
 		     sizeof(unsigned int)) != 0) {
-			sensor_dbg("copy_from error\n");
+			pr_debug("copy_from error\n");
 		}
-		sensor_dbg(KERN_INFO
-			   "%s: IOCTL_SENSOR_SET_STATE_ACCEL  (0x%x) %d \n",
-			   __func__, cmd, sensor_state_flag);
+		pr_debug("%s: IOCTL_SENSOR_SET_STATE_ACCEL  (0x%x) %d \n",
+			 __func__, cmd, sensor_state_flag);
 		break;
 
 	case IOCTL_SENSOR_SET_CALIB_ACCEL:
@@ -486,7 +475,7 @@ static long tcc_sensor_ioctl(struct file *filp, unsigned int cmd,
 			if (copy_from_user
 			    ((void *)&stTmp, (unsigned int *)arg,
 			     sizeof(tcc_sensor_accel_t)) != 0) {
-				sensor_dbg("copy_from error\n");
+				pr_debug("copy_from error\n");
 				return -1;
 			}
 			tcc_sensor_set_compensation_data(stTmp);
@@ -494,7 +483,7 @@ static long tcc_sensor_ioctl(struct file *filp, unsigned int cmd,
 		}
 		break;
 	default:
-		sensor_dbg("sensor: unrecognized ioctl (0x%x)\n", cmd);
+		pr_debug("sensor: unrecognized ioctl (0x%x)\n", cmd);
 		return -EINVAL;
 		break;
 	}
@@ -503,10 +492,10 @@ static long tcc_sensor_ioctl(struct file *filp, unsigned int cmd,
 
 static int tcc_sensor_release(struct inode *inode, struct file *filp)
 {
-	sensor_dbg("%s (%d)\n", __func__, sensor_used_count);
+	pr_debug("%s (%d)\n", __func__, sensor_used_count);
 	sensor_used_count--;
 	if (sensor_used_count < 0) {
-		sensor_dbg("sensor: release error (over)\n");
+		pr_debug("sensor: release error (over)\n");
 		sensor_used_count = 0;
 	}
 
@@ -522,7 +511,7 @@ static int tcc_sensor_release(struct inode *inode, struct file *filp)
 
 static int tcc_sensor_open(struct inode *inode, struct file *filp)
 {
-	sensor_dbg("%s : \n", __func__);
+	pr_debug("%s : \n", __func__);
 	if (sensor_used_count == 0) {
 		//Initate MMA7760FC 's Register 
 		SENSOR_SEND_CMD(0x07, 0);	//set mode to standby Mode
@@ -535,7 +524,7 @@ static int tcc_sensor_open(struct inode *inode, struct file *filp)
 
 		sensor_timer = kmalloc(sizeof(struct timer_list), GFP_KERNEL);	// test
 		if (sensor_timer == NULL) {
-			sensor_dbg("%s: mem alloc fail\n", __func__);
+			pr_debug("%s: mem alloc fail\n", __func__);
 			return -ENOMEM;
 		}
 		memset(sensor_timer, 0, sizeof(struct timer_list));	// test
@@ -543,7 +532,7 @@ static int tcc_sensor_open(struct inode *inode, struct file *filp)
 		tcc_sensor_avg_init();
 	}
 	sensor_used_count++;
-	sensor_dbg("%s successed... \n", __func__);
+	pr_debug("%s successed... \n", __func__);
 
 	return 0;
 }
@@ -563,7 +552,7 @@ int __init tcc_sensor_init(void)
 {
 	int ret;
 
-	sensor_dbg(KERN_INFO "tcc_sensor_init \n", __func__);
+	pr_debug("%s\n", __func__);
 
         ret = i2c_add_driver(&sensor_i2c_driver);
         if (ret < 0) 
@@ -584,13 +573,13 @@ int __init tcc_sensor_init(void)
 
 	tcc_sensor_accel.delay_time = sensor_duration;
 
-	sensor_dbg(KERN_INFO "%s\n", __func__);
+	pr_debug("%s\n", __func__);
 	return 0;
 }
 
 void __exit tcc_sensor_exit(void)
 {
-	sensor_dbg(KERN_INFO "%s\n", __func__);
+	pr_debug("%s\n", __func__);
 	i2c_del_driver(&sensor_i2c_driver);
 	unregister_chrdev(SENSOR_DEV_MAJOR, SENSOR_DEV_NAME);
 }
