@@ -110,11 +110,15 @@ static void tcc_keypadpad_convert(unsigned int d0, unsigned int d1)
 
 static int __devinit tcc_keypad_probe(struct platform_device *pdev)
 {
+	struct tcc_keypad_platform_data *pdata = pdev->dev.platform_data;
 	struct tcc_adc_client *client = NULL;
 	struct input_polled_dev *poll_dev;
 	struct input_dev *input_dev;
 	int error;
 	int  i;
+
+	if (pdata == NULL)
+		return -EINVAL;
 
 	tcc_private = kzalloc(sizeof(struct tcc_private), GFP_KERNEL);
 	poll_dev = input_allocate_polled_device();
@@ -122,6 +126,10 @@ static int __devinit tcc_keypad_probe(struct platform_device *pdev)
 		error = -ENOMEM;
 		goto fail;
 	}
+
+	tcc_private->num_keys = pdata->num_keys;
+	tcc_private->keys = pdata->keys;
+	tcc_private->adc_channel = pdata->adc_channel;
 
 	platform_set_drvdata(pdev, tcc_private);
 

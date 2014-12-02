@@ -9,7 +9,7 @@ struct tcc_key_info {
 	unsigned int end;
 };
 
-struct tcc_keypad_pdata {
+struct tcc_keypad_platform_data {
 	int adc_channel;
 	struct tcc_key_info *keys;
 	int num_keys;
