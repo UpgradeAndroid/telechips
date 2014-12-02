@@ -133,9 +133,9 @@ static void sis_tpinfo_clear(struct sis_touch_state *touch_state, int max)
 	touch_state->crc = 0x0;
 }
 
-static void sis_ts_wakeup_func(struct delayed_work *work)
+static void sis_ts_wakeup_func(struct work_struct *work)
 {
-	struct sis_i2c_driver_data *ts = container_of(work, struct sis_i2c_driver_data, wakeup_work);
+	struct sis_i2c_driver_data *ts = container_of(work, struct sis_i2c_driver_data, wakeup_work.work);
 	i2c_smbus_write_byte_data(ts->client, 0xF1, 1);
 	queue_delayed_work(sis_wq, &ts->wakeup_work, 500/*jiffies*/);
 }
