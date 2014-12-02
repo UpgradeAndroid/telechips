@@ -92,7 +92,7 @@ struct tcc_uart_port {
     int                     fifosize;
 
     int                     bt_use;
-#if CONFIG_TCC_BT_DEV	
+#ifdef CONFIG_TCC_BT_DEV
     int			    bt_suspend;
 #endif
 
