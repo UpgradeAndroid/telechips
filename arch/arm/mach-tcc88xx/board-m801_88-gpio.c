@@ -48,10 +48,11 @@ void __init m801_88_init_gpio(void)
 	if (!machine_is_m801_88())
 		return;
 
-	pr_info("EI37SEL: %08x\n", pPIC->EI37SEL);
 	BITCSET(pGPIO->EINTSEL0, HwEINTSEL0_EINT2_MASK, HwEINTSEL0_EINT2(SEL_GPIOB31));
 	BITCSET(pGPIO->EINTSEL0, HwEINTSEL0_EINT3_MASK, HwEINTSEL0_EINT3(SEL_GPIOA3));
-	BITCSET(pPIC->EI37SEL, (1 << 3), (1 << 3)); /* 0 for TS demux, 1 for Ext. INT 3 */
+
+	pr_info("EI37SEL: %08x\n", pPIC->EI37SEL);
+	pPIC->EI37SEL |= (1 << 3); /* 0 for TS demux, 1 for Ext. INT 3 */
 
 	board_gpio_irqs = m801_88_gpio_irqs;
 	printk(KERN_INFO "M801_88 GPIO initialized\n");
